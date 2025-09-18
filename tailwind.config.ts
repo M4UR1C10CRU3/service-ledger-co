@@ -22,10 +22,30 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          light: "hsl(var(--primary-light))",
+          lighter: "hsl(var(--primary-lighter))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+          light: "hsl(var(--success-light))",
+          lighter: "hsl(var(--success-lighter))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+          light: "hsl(var(--warning-light))",
+          lighter: "hsl(var(--warning-lighter))",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger))",
+          foreground: "hsl(var(--danger-foreground))",
+          light: "hsl(var(--danger-light))",
+          lighter: "hsl(var(--danger-lighter))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -46,6 +66,12 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        chart: {
+          invoiced: "hsl(var(--chart-invoiced))",
+          paid: "hsl(var(--chart-paid))",
+          pending: "hsl(var(--chart-pending))",
+          overdue: "hsl(var(--chart-overdue))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
