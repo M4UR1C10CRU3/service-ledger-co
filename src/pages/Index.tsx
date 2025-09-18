@@ -6,16 +6,22 @@ import { DashboardCards } from '@/components/DashboardCards';
 import { ServiceChart } from '@/components/ServiceChart';
 import { ServiceTable } from '@/components/ServiceTable';
 import { ServiceForm } from '@/components/ServiceForm';
+import { ReportsDialog } from '@/components/ReportsDialog';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { services, dashboardMetrics, addService, updateService, deleteService } = useServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
   const handleAddService = () => {
     setEditingService(null);
     setIsFormOpen(true);
+  };
+
+  const handleOpenReports = () => {
+    setIsReportsOpen(true);
   };
 
   const handleEditService = (service: Service) => {
@@ -51,7 +57,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onAddService={handleAddService} />
+      <Header onAddService={handleAddService} onOpenReports={handleOpenReports} />
       
       <main className="container mx-auto px-6 py-6 space-y-6">
         <DashboardCards metrics={dashboardMetrics} />
@@ -68,6 +74,12 @@ const Index = () => {
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         editingService={editingService}
+      />
+
+      <ReportsDialog 
+        open={isReportsOpen}
+        onOpenChange={setIsReportsOpen}
+        services={services}
       />
     </div>
   );

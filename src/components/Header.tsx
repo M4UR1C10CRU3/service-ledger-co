@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
   onAddService: () => void;
+  onOpenReports: () => void;
 }
 
-export const Header = ({ onAddService }: HeaderProps) => {
+export const Header = ({ onAddService, onOpenReports }: HeaderProps) => {
   return (
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
@@ -20,7 +21,7 @@ export const Header = ({ onAddService }: HeaderProps) => {
         </div>
         
         <div className="flex items-center space-x-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={onOpenReports}>
             <FileText className="w-4 h-4 mr-2" />
             Relatórios
           </Button>
