@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Service } from '@/types/service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,17 +28,48 @@ export const ServiceForm = ({
   editingService 
 }: ServiceFormProps) => {
   const [formData, setFormData] = useState({
-    data: editingService?.data || '',
-    servico: editingService?.servico || '',
-    cliente: editingService?.cliente || '',
-    resumo: editingService?.resumo || '',
-    proposta: editingService?.proposta || '',
-    fatura: editingService?.fatura || '',
-    valorComIVA: editingService?.valorComIVA || 0,
-    valorSemIVA: editingService?.valorSemIVA || 0,
-    liquidado: editingService?.liquidado || 0,
-    aRealizar: editingService?.aRealizar || false,
+    data: '',
+    servico: '',
+    cliente: '',
+    resumo: '',
+    proposta: '',
+    fatura: '',
+    valorComIVA: 0,
+    valorSemIVA: 0,
+    liquidado: 0,
+    aRealizar: false,
   });
+
+  // Update form data when editingService changes
+  useEffect(() => {
+    if (editingService) {
+      setFormData({
+        data: editingService.data,
+        servico: editingService.servico,
+        cliente: editingService.cliente,
+        resumo: editingService.resumo,
+        proposta: editingService.proposta,
+        fatura: editingService.fatura,
+        valorComIVA: editingService.valorComIVA,
+        valorSemIVA: editingService.valorSemIVA,
+        liquidado: editingService.liquidado,
+        aRealizar: editingService.aRealizar,
+      });
+    } else {
+      setFormData({
+        data: '',
+        servico: '',
+        cliente: '',
+        resumo: '',
+        proposta: '',
+        fatura: '',
+        valorComIVA: 0,
+        valorSemIVA: 0,
+        liquidado: 0,
+        aRealizar: false,
+      });
+    }
+  }, [editingService]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

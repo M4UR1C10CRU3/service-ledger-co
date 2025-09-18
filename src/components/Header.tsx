@@ -14,7 +14,7 @@ export const Header = ({ onAddService }: HeaderProps) => {
             <Calculator className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">BillManager Pro</h1>
+            <h1 className="text-xl font-bold text-foreground">Obrajusta II</h1>
             <p className="text-sm text-muted-foreground">Gestão de Serviços e Faturação</p>
           </div>
         </div>
