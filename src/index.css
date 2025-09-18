@@ -9,66 +9,66 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Core Interface Colors */
-    --background: 248 250 252;
-    --foreground: 214 31.8% 16.1%;
+    --background: 0 0% 100%;
+    --foreground: 219 25% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 214 31.8% 16.1%;
+    --card-foreground: 219 25% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 214 31.8% 16.1%;
+    --popover-foreground: 219 25% 20%;
 
-    /* Brand Colors - Corporate Blue */
-    --primary: 214 76% 19%;
+    /* Brand Colors - User Specified #196eed */
+    --primary: 219 85% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 214 76% 35%;
-    --primary-lighter: 214 76% 88%;
+    --primary-light: 219 85% 65%;
+    --primary-lighter: 219 85% 92%;
 
-    /* Financial Status Colors */
-    --success: 142 71% 20%;
+    /* Financial Status Colors - User Specified #aee62c */
+    --success: 74 75% 54%;
     --success-foreground: 0 0% 100%;
-    --success-light: 142 71% 45%;
-    --success-lighter: 142 71% 92%;
+    --success-light: 74 75% 65%;
+    --success-lighter: 74 75% 92%;
 
-    --warning: 25 95% 35%;
+    --warning: 45 93% 47%;
     --warning-foreground: 0 0% 100%;
-    --warning-light: 25 95% 53%;
-    --warning-lighter: 25 95% 95%;
+    --warning-light: 45 93% 60%;
+    --warning-lighter: 45 93% 95%;
 
-    --danger: 0 84% 35%;
+    --danger: 0 84% 60%;
     --danger-foreground: 0 0% 100%;
-    --danger-light: 0 84% 50%;
+    --danger-light: 0 84% 70%;
     --danger-lighter: 0 84% 95%;
 
     /* Neutral Interface */
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 214 32% 25%;
+    --secondary: 219 15% 91%;
+    --secondary-foreground: 219 25% 25%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 214 16% 47%;
+    --muted: 219 15% 96%;
+    --muted-foreground: 219 15% 47%;
 
-    --accent: 214 32% 91%;
-    --accent-foreground: 214 32% 25%;
+    --accent: 219 15% 91%;
+    --accent-foreground: 219 25% 25%;
 
-    --destructive: 0 84% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 88%;
-    --input: 214 32% 88%;
-    --ring: 214 76% 19%;
+    --border: 219 15% 88%;
+    --input: 219 15% 88%;
+    --ring: 219 85% 52%;
 
     --radius: 0.75rem;
 
     /* Dashboard Specific */
-    --dashboard-bg: 248 250 252;
+    --dashboard-bg: 0 0% 100%;
     --sidebar-bg: 0 0% 100%;
     --header-bg: 0 0% 100%;
     
     /* Chart Colors */
-    --chart-invoiced: 214 76% 35%;
-    --chart-paid: 142 71% 45%;
-    --chart-pending: 25 95% 53%;
-    --chart-overdue: 0 84% 50%;
+    --chart-invoiced: 219 85% 52%;
+    --chart-paid: 74 75% 54%;
+    --chart-pending: 45 93% 60%;
+    --chart-overdue: 0 84% 60%;
 
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
@@ -76,55 +76,55 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 214 31.8% 8%;
+    --background: 219 25% 8%;
     --foreground: 0 0% 95%;
 
-    --card: 214 31.8% 10%;
+    --card: 219 25% 10%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 214 31.8% 10%;
+    --popover: 219 25% 10%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 214 76% 50%;
-    --primary-foreground: 214 31.8% 8%;
-    --primary-light: 214 76% 60%;
-    --primary-lighter: 214 76% 20%;
+    --primary: 219 85% 52%;
+    --primary-foreground: 219 25% 8%;
+    --primary-light: 219 85% 65%;
+    --primary-lighter: 219 85% 20%;
 
-    --success: 142 71% 45%;
-    --success-foreground: 214 31.8% 8%;
-    --success-light: 142 71% 55%;
-    --success-lighter: 142 71% 15%;
+    --success: 74 75% 54%;
+    --success-foreground: 219 25% 8%;
+    --success-light: 74 75% 65%;
+    --success-lighter: 74 75% 15%;
 
-    --warning: 25 95% 50%;
-    --warning-foreground: 214 31.8% 8%;
-    --warning-light: 25 95% 60%;
-    --warning-lighter: 25 95% 15%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 219 25% 8%;
+    --warning-light: 45 93% 60%;
+    --warning-lighter: 45 93% 15%;
 
-    --danger: 0 84% 50%;
-    --danger-foreground: 214 31.8% 8%;
-    --danger-light: 0 84% 60%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 219 25% 8%;
+    --danger-light: 0 84% 70%;
     --danger-lighter: 0 84% 15%;
 
-    --secondary: 214 32% 20%;
+    --secondary: 219 25% 20%;
     --secondary-foreground: 0 0% 95%;
 
-    --muted: 214 32% 15%;
-    --muted-foreground: 214 16% 65%;
+    --muted: 219 25% 15%;
+    --muted-foreground: 219 15% 65%;
 
-    --accent: 214 32% 20%;
+    --accent: 219 25% 20%;
     --accent-foreground: 0 0% 95%;
 
-    --destructive: 0 84% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 95%;
 
-    --border: 214 32% 20%;
-    --input: 214 32% 20%;
-    --ring: 214 76% 50%;
+    --border: 219 25% 20%;
+    --input: 219 25% 20%;
+    --ring: 219 85% 52%;
 
-    --chart-invoiced: 214 76% 50%;
-    --chart-paid: 142 71% 55%;
-    --chart-pending: 25 95% 60%;
-    --chart-overdue: 0 84% 60%;
+    --chart-invoiced: 219 85% 52%;
+    --chart-paid: 74 75% 54%;
+    --chart-pending: 45 93% 60%;
+    --chart-overdue: 0 84% 70%;
   }
 }
 
