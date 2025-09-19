@@ -54,23 +54,24 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   // Report: Valores Faturados
   const getValoresFaturadosReport = () => {
-    const faturados = services.filter(s => s.fatura);
+    const faturados = services.filter(s => s.fatura && s.fatura.trim() !== '');
     
     const clientData = faturados.reduce((acc, service) => {
       const existing = acc.find(item => item.cliente === service.cliente);
+      const emDebito = service.valorComIVA - service.liquidado;
       
       if (existing) {
         existing.nFaturas += 1;
         existing.valorTotal += service.valorComIVA;
         existing.liquidado += service.liquidado;
-        existing.emDebito += service.executadoEmDebito;
+        existing.emDebito += emDebito;
       } else {
         acc.push({
           cliente: service.cliente,
           nFaturas: 1,
           valorTotal: service.valorComIVA,
           liquidado: service.liquidado,
-          emDebito: service.executadoEmDebito,
+          emDebito: emDebito,
         });
       }
       
@@ -89,15 +90,15 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   // Report: Valores Não Faturados
   const getValoresNaoFaturadosReport = () => {
-    const naoFaturados = services.filter(s => !s.fatura);
+    const naoFaturados = services.filter(s => !s.fatura || s.fatura.trim() === '');
     const total = naoFaturados.reduce((sum, s) => sum + s.valorComIVA, 0);
     return { naoFaturados, total };
   };
 
   // Report: Relatório Geral
   const getRelatorioGeralReport = () => {
-    const faturados = services.filter(s => s.fatura);
-    const naoFaturados = services.filter(s => !s.fatura);
+    const faturados = services.filter(s => s.fatura && s.fatura.trim() !== '');
+    const naoFaturados = services.filter(s => !s.fatura || s.fatura.trim() === '');
     
     const valorFaturado = faturados.reduce((sum, s) => sum + s.valorComIVA, 0);
     const valorNaoFaturado = naoFaturados.reduce((sum, s) => sum + s.valorComIVA, 0);
@@ -138,8 +139,8 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
     const clientData = services.reduce((acc, service) => {
       const existing = acc.find(item => item.cliente === service.cliente);
       
-      const valorEmDebito = service.fatura ? service.executadoEmDebito : 0;
-      const valorNaoFaturado = !service.fatura ? service.valorComIVA : 0;
+      const valorEmDebito = (service.fatura && service.fatura.trim() !== '') ? (service.valorComIVA - service.liquidado) : 0;
+      const valorNaoFaturado = (!service.fatura || service.fatura.trim() === '') ? service.valorComIVA : 0;
       
       if (valorEmDebito > 0 || valorNaoFaturado > 0) {
         if (existing) {
