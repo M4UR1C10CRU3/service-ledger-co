@@ -35,7 +35,7 @@ type ReportType =
   | 'faturados' 
   | 'nao-faturados' 
   | 'geral' 
-  | 'liquidados-mes'
+  | 'movimento-mensal'
   | 'projecao';
 
 export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogProps) => {
@@ -107,29 +107,32 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
     return { valorFaturado, valorNaoFaturado, totalGeral };
   };
 
-  // Report: Liquidados por Mês
-  const getLiquidadosPorMesReport = () => {
-    const liquidados = services.filter(s => s.liquidado > 0);
+  // Report: Movimento Mensal
+  const getMovimentoMensalReport = () => {
+    const faturados = services.filter(s => s.fatura && s.fatura.trim() !== '');
     
-    const monthData = liquidados.reduce((acc, service) => {
+    const monthData = faturados.reduce((acc, service) => {
       const [day, month, year] = service.data.split('/');
       const monthKey = `${month}/${year}`;
       
       const existing = acc.find(item => item.mes === monthKey);
+      const emDebito = service.valorComIVA - service.liquidado;
       
       if (existing) {
         existing.valorLiquidado += service.liquidado;
+        existing.valorEmDebito += emDebito;
         existing.nServicos += 1;
       } else {
         acc.push({
           mes: monthKey,
           valorLiquidado: service.liquidado,
+          valorEmDebito: emDebito,
           nServicos: 1,
         });
       }
       
       return acc;
-    }, [] as Array<{ mes: string; valorLiquidado: number; nServicos: number }>);
+    }, [] as Array<{ mes: string; valorLiquidado: number; valorEmDebito: number; nServicos: number }>);
 
     return monthData.sort((a, b) => a.mes.localeCompare(b.mes));
   };
@@ -293,19 +296,20 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         );
       }
 
-      case 'liquidados-mes': {
-        const monthData = getLiquidadosPorMesReport();
+      case 'movimento-mensal': {
+        const monthData = getMovimentoMensalReport();
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Relatório - Liquidados por Mês</CardTitle>
+              <CardTitle>Relatório - Movimento Mensal</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Mês/Ano</TableHead>
-                    <TableHead className="text-right">Valor Liquidado (€)</TableHead>
+                    <TableHead className="text-right">Liquidado (€)</TableHead>
+                    <TableHead className="text-right">Em Débito (€)</TableHead>
                     <TableHead className="text-right">Nº Serviços</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -314,6 +318,7 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
                     <TableRow key={month.mes}>
                       <TableCell className="font-medium">{month.mes}</TableCell>
                       <TableCell className="text-right">{formatCurrency(month.valorLiquidado)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(month.valorEmDebito)}</TableCell>
                       <TableCell className="text-right">{month.nServicos}</TableCell>
                     </TableRow>
                   ))}
@@ -393,7 +398,7 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
                   <SelectItem value="faturados">Valores Faturados</SelectItem>
                   <SelectItem value="nao-faturados">Valores Não Faturados</SelectItem>
                   <SelectItem value="geral">Relatório Geral</SelectItem>
-                  <SelectItem value="liquidados-mes">Liquidados por Mês</SelectItem>
+                  <SelectItem value="movimento-mensal">Movimento Mensal</SelectItem>
                   <SelectItem value="projecao">Projeção de Valores a Realizar</SelectItem>
                 </SelectContent>
               </Select>
