@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Service, ServiceWithCalculations, DashboardMetrics } from '@/types/service';
+import { supabase } from '@/integrations/supabase/client';
 
 // Sample data based on the user's example
 const initialServices: Service[] = [
@@ -75,8 +76,81 @@ const initialServices: Service[] = [
   },
 ];
 
+// Helper functions for database operations
+const saveServiceToDatabase = async (service: Service) => {
+  try {
+    const { error } = await supabase
+      .from('services')
+      .upsert({
+        service_id: service.id,
+        data: service.data,
+        servico: service.servico,
+        cliente: service.cliente,
+        resumo: service.resumo,
+        proposta: service.proposta,
+        fatura: service.fatura,
+        valor_com_iva: service.valorComIVA,
+        valor_sem_iva: service.valorSemIVA,
+        liquidado: service.liquidado,
+        a_realizar: service.aRealizar,
+        created_at: service.createdAt.toISOString(),
+      });
+    
+    if (error) {
+      console.error('Error saving service to database:', error);
+    }
+  } catch (error) {
+    console.error('Error saving service to database:', error);
+  }
+};
+
+const loadServicesFromDatabase = async (): Promise<Service[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading services from database:', error);
+      return initialServices;
+    }
+    
+    return data?.map(row => ({
+      id: row.service_id,
+      data: row.data,
+      servico: row.servico,
+      cliente: row.cliente,
+      resumo: row.resumo || '',
+      proposta: row.proposta || '',
+      fatura: row.fatura || '',
+      valorComIVA: parseFloat(row.valor_com_iva.toString()),
+      valorSemIVA: parseFloat(row.valor_sem_iva.toString()),
+      liquidado: parseFloat(row.liquidado.toString()),
+      aRealizar: row.a_realizar,
+      createdAt: new Date(row.created_at),
+    })) || initialServices;
+  } catch (error) {
+    console.error('Error loading services from database:', error);
+    return initialServices;
+  }
+};
+
 export const useServices = () => {
   const [services, setServices] = useState<Service[]>(initialServices);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load services from database on mount
+  useEffect(() => {
+    const loadServices = async () => {
+      setIsLoading(true);
+      const servicesFromDb = await loadServicesFromDatabase();
+      setServices(servicesFromDb);
+      setIsLoading(false);
+    };
+    
+    loadServices();
+  }, []);
 
   const calculateServiceMetrics = (service: Service): ServiceWithCalculations => {
     const executadoEmDebito = service.valorComIVA - service.liquidado;
@@ -126,23 +200,43 @@ export const useServices = () => {
     };
   }, [services, servicesWithCalculations]);
 
-  const addService = (service: Omit<Service, 'id' | 'createdAt'>) => {
+  const addService = async (service: Omit<Service, 'id' | 'createdAt'>) => {
     const newService: Service = {
       ...service,
       id: Date.now().toString(),
       createdAt: new Date(),
     };
     setServices(prev => [...prev, newService]);
+    await saveServiceToDatabase(newService);
   };
 
-  const updateService = (id: string, updates: Partial<Service>) => {
-    setServices(prev => prev.map(service => 
-      service.id === id ? { ...service, ...updates } : service
-    ));
+  const updateService = async (id: string, updates: Partial<Service>) => {
+    setServices(prev => prev.map(service => {
+      if (service.id === id) {
+        const updatedService = { ...service, ...updates };
+        saveServiceToDatabase(updatedService);
+        return updatedService;
+      }
+      return service;
+    }));
   };
 
-  const deleteService = (id: string) => {
+  const deleteService = async (id: string) => {
     setServices(prev => prev.filter(service => service.id !== id));
+    
+    // Delete from database
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('service_id', id);
+      
+      if (error) {
+        console.error('Error deleting service from database:', error);
+      }
+    } catch (error) {
+      console.error('Error deleting service from database:', error);
+    }
   };
 
   return {
@@ -151,5 +245,6 @@ export const useServices = () => {
     addService,
     updateService,
     deleteService,
+    isLoading,
   };
 };
