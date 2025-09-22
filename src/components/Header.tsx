@@ -1,5 +1,6 @@
-import { Calculator, FileText, Plus } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logoObrajusta from '@/assets/logo-obrajusta.png';
 
 interface HeaderProps {
   onAddService: () => void;
@@ -11,9 +12,11 @@ export const Header = ({ onAddService, onOpenReports }: HeaderProps) => {
     <header className="bg-card border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-lg">
-            <Calculator className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src={logoObrajusta} 
+            alt="Obrajusta Logo" 
+            className="w-12 h-12 object-contain"
+          />
           <div>
             <h1 className="text-xl font-bold text-foreground">Obrajusta II</h1>
             <p className="text-sm text-muted-foreground">Gestão de Serviços e Faturação</p>
