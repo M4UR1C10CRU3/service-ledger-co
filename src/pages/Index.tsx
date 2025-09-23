@@ -1,19 +1,30 @@
 import { useState } from 'react';
 import { useServices } from '@/hooks/useServices';
-import { Service } from '@/types/service';
+import { Service, ServiceWithCalculations } from '@/types/service';
 import { Header } from '@/components/Header';
 import { DashboardCards } from '@/components/DashboardCards';
 import { ServiceChart } from '@/components/ServiceChart';
 import { ServiceTable } from '@/components/ServiceTable';
 import { ServiceForm } from '@/components/ServiceForm';
+import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
-  const { services, dashboardMetrics, addService, updateService, deleteService } = useServices();
+  const { 
+    services, 
+    dashboardMetrics, 
+    addService, 
+    updateService, 
+    deleteService, 
+    addLiquidacao, 
+    removeLiquidacao 
+  } = useServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceWithCalculations | null>(null);
 
   const handleAddService = () => {
     setEditingService(null);
@@ -27,6 +38,30 @@ const Index = () => {
   const handleEditService = (service: Service) => {
     setEditingService(service);
     setIsFormOpen(true);
+  };
+
+  const handleViewService = (service: ServiceWithCalculations) => {
+    setSelectedService(service);
+    setIsDetailOpen(true);
+  };
+
+  const handleAddLiquidacao = (liquidacao: any) => {
+    addLiquidacao(liquidacao);
+    toast({
+      title: "Pagamento registrado",
+      description: "O pagamento foi registrado com sucesso.",
+    });
+  };
+
+  const handleRemoveLiquidacao = (liquidacaoId: string) => {
+    if (selectedService) {
+      removeLiquidacao(liquidacaoId, selectedService.id);
+      toast({
+        title: "Pagamento removido",
+        description: "O pagamento foi removido com sucesso.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleFormSubmit = (serviceData: Omit<Service, 'id' | 'createdAt'>) => {
@@ -66,6 +101,7 @@ const Index = () => {
           services={services}
           onEditService={handleEditService}
           onDeleteService={handleDeleteService}
+          onViewService={handleViewService}
         />
       </main>
 
@@ -74,6 +110,14 @@ const Index = () => {
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         editingService={editingService}
+      />
+
+      <ServiceDetailDialog
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        service={selectedService}
+        onAddLiquidacao={handleAddLiquidacao}
+        onRemoveLiquidacao={handleRemoveLiquidacao}
       />
 
       <ReportsDialog 

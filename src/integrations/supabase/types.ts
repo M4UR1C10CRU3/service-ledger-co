@@ -35,16 +35,44 @@ export type Database = {
         }
         Relationships: []
       }
+      liquidacoes: {
+        Row: {
+          created_at: string
+          data_pagamento: string
+          id: string
+          observacoes: string | null
+          service_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento: string
+          id?: string
+          observacoes?: string | null
+          service_id: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          service_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           a_realizar: boolean
           cliente: string
           created_at: string
           data: string
-          data_liquidacao: string | null
           fatura: string | null
           id: string
-          liquidacao_total: boolean | null
           liquidado: number
           proposta: string | null
           resumo: string | null
@@ -59,10 +87,8 @@ export type Database = {
           cliente: string
           created_at?: string
           data: string
-          data_liquidacao?: string | null
           fatura?: string | null
           id?: string
-          liquidacao_total?: boolean | null
           liquidado?: number
           proposta?: string | null
           resumo?: string | null
@@ -77,10 +103,8 @@ export type Database = {
           cliente?: string
           created_at?: string
           data?: string
-          data_liquidacao?: string | null
           fatura?: string | null
           id?: string
-          liquidacao_total?: boolean | null
           liquidado?: number
           proposta?: string | null
           resumo?: string | null

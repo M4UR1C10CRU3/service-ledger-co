@@ -2,7 +2,7 @@ import { ServiceWithCalculations } from '@/types/service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Eye } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,9 +16,15 @@ interface ServiceTableProps {
   services: ServiceWithCalculations[];
   onEditService: (service: ServiceWithCalculations) => void;
   onDeleteService: (id: string) => void;
+  onViewService: (service: ServiceWithCalculations) => void;
 }
 
-export const ServiceTable = ({ services, onEditService, onDeleteService }: ServiceTableProps) => {
+export const ServiceTable = ({ 
+  services, 
+  onEditService, 
+  onDeleteService, 
+  onViewService 
+}: ServiceTableProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
@@ -110,7 +116,16 @@ export const ServiceTable = ({ services, onEditService, onDeleteService }: Servi
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => onViewService(service)}
+                        title="Ver Detalhes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onEditService(service)}
+                        title="Editar"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -118,6 +133,7 @@ export const ServiceTable = ({ services, onEditService, onDeleteService }: Servi
                         variant="ghost"
                         size="sm"
                         onClick={() => onDeleteService(service.id)}
+                        title="Eliminar"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

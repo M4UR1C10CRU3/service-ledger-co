@@ -8,10 +8,17 @@ export interface Service {
   fatura: string;
   valorComIVA: number;
   valorSemIVA: number;
-  liquidado: number;
-  dataLiquidacao?: string; // Data da liquidação em DD/MM/YYYY
-  liquidacaoTotal: boolean; // true para total, false para parcial
+  liquidado: number; // Calculado automaticamente pela soma das liquidações
   aRealizar: boolean;
+  createdAt: Date;
+}
+
+export interface Liquidacao {
+  id: string;
+  serviceId: string;
+  valor: number;
+  dataPagamento: string; // Data in DD/MM/YYYY format
+  observacoes?: string;
   createdAt: Date;
 }
 
@@ -21,7 +28,9 @@ export interface ServiceCalculations {
   percentualLiquidado: number; // (liquidado / valorComIVA) * 100
 }
 
-export interface ServiceWithCalculations extends Service, ServiceCalculations {}
+export interface ServiceWithCalculations extends Service, ServiceCalculations {
+  liquidacoes: Liquidacao[];
+}
 
 export interface ReportFilters {
   faturados?: boolean;

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Service, ServiceWithCalculations, DashboardMetrics } from '@/types/service';
+import { Service, ServiceWithCalculations, DashboardMetrics, Liquidacao } from '@/types/service';
 import { supabase } from '@/integrations/supabase/client';
 
 // Sample data based on the user's example
@@ -15,8 +15,6 @@ const initialServices: Service[] = [
     valorComIVA: 2000.00,
     valorSemIVA: 1626.02,
     liquidado: 2000.00,
-    dataLiquidacao: '15/09/2025',
-    liquidacaoTotal: true,
     aRealizar: false,
     createdAt: new Date('2025-09-01'),
   },
@@ -31,8 +29,6 @@ const initialServices: Service[] = [
     valorComIVA: 1500.00,
     valorSemIVA: 1219.51,
     liquidado: 1000.00,
-    dataLiquidacao: '10/09/2025',
-    liquidacaoTotal: false,
     aRealizar: false,
     createdAt: new Date('2025-09-05'),
   },
@@ -47,7 +43,6 @@ const initialServices: Service[] = [
     valorComIVA: 3000.00,
     valorSemIVA: 2439.02,
     liquidado: 0.00,
-    liquidacaoTotal: true,
     aRealizar: true,
     createdAt: new Date('2025-09-10'),
   },
@@ -62,8 +57,6 @@ const initialServices: Service[] = [
     valorComIVA: 4000.00,
     valorSemIVA: 3252.03,
     liquidado: 2000.00,
-    dataLiquidacao: '20/09/2025',
-    liquidacaoTotal: false,
     aRealizar: false,
     createdAt: new Date('2025-09-12'),
   },
@@ -78,7 +71,6 @@ const initialServices: Service[] = [
     valorComIVA: 1200.00,
     valorSemIVA: 975.61,
     liquidado: 0.00,
-    liquidacaoTotal: true,
     aRealizar: false,
     createdAt: new Date('2025-09-15'),
   },
@@ -100,8 +92,6 @@ const saveServiceToDatabase = async (service: Service) => {
         valor_com_iva: service.valorComIVA,
         valor_sem_iva: service.valorSemIVA,
         liquidado: service.liquidado,
-        data_liquidacao: service.dataLiquidacao,
-        liquidacao_total: service.liquidacaoTotal,
         a_realizar: service.aRealizar,
         created_at: service.createdAt.toISOString(),
       });
@@ -111,6 +101,54 @@ const saveServiceToDatabase = async (service: Service) => {
     }
   } catch (error) {
     console.error('Error saving service to database:', error);
+  }
+};
+
+const loadLiquidacoesFromDatabase = async (serviceId: string): Promise<Liquidacao[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('liquidacoes')
+      .select('*')
+      .eq('service_id', serviceId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading liquidacoes from database:', error);
+      return [];
+    }
+    
+    return data?.map(row => ({
+      id: row.id,
+      serviceId: row.service_id,
+      valor: parseFloat(row.valor.toString()),
+      dataPagamento: row.data_pagamento,
+      observacoes: row.observacoes || undefined,
+      createdAt: new Date(row.created_at),
+    })) || [];
+  } catch (error) {
+    console.error('Error loading liquidacoes from database:', error);
+    return [];
+  }
+};
+
+const saveLiquidacaoToDatabase = async (liquidacao: Liquidacao) => {
+  try {
+    const { error } = await supabase
+      .from('liquidacoes')
+      .upsert({
+        id: liquidacao.id,
+        service_id: liquidacao.serviceId,
+        valor: liquidacao.valor,
+        data_pagamento: liquidacao.dataPagamento,
+        observacoes: liquidacao.observacoes,
+        created_at: liquidacao.createdAt.toISOString(),
+      });
+    
+    if (error) {
+      console.error('Error saving liquidacao to database:', error);
+    }
+  } catch (error) {
+    console.error('Error saving liquidacao to database:', error);
   }
 };
 
@@ -137,8 +175,6 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
       valorComIVA: parseFloat(row.valor_com_iva.toString()),
       valorSemIVA: parseFloat(row.valor_sem_iva.toString()),
       liquidado: parseFloat(row.liquidado.toString()),
-      dataLiquidacao: row.data_liquidacao || '',
-      liquidacaoTotal: row.liquidacao_total ?? true,
       aRealizar: row.a_realizar,
       createdAt: new Date(row.created_at),
     })) || initialServices;
@@ -150,6 +186,7 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
 
 export const useServices = () => {
   const [services, setServices] = useState<Service[]>(initialServices);
+  const [liquidacoes, setLiquidacoes] = useState<Record<string, Liquidacao[]>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   // Load services from database on mount
@@ -158,15 +195,26 @@ export const useServices = () => {
       setIsLoading(true);
       const servicesFromDb = await loadServicesFromDatabase();
       setServices(servicesFromDb);
+      
+      // Load liquidacoes for each service
+      const allLiquidacoes: Record<string, Liquidacao[]> = {};
+      for (const service of servicesFromDb) {
+        const serviceLiquidacoes = await loadLiquidacoesFromDatabase(service.id);
+        allLiquidacoes[service.id] = serviceLiquidacoes;
+      }
+      setLiquidacoes(allLiquidacoes);
       setIsLoading(false);
     };
-    
+
     loadServices();
   }, []);
 
   const calculateServiceMetrics = (service: Service): ServiceWithCalculations => {
-    const executadoEmDebito = service.valorComIVA - service.liquidado;
-    const percentualLiquidado = service.valorComIVA > 0 ? (service.liquidado / service.valorComIVA) * 100 : 0;
+    const serviceLiquidacoes = liquidacoes[service.id] || [];
+    const liquidadoCalculated = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+    
+    const executadoEmDebito = service.valorComIVA - liquidadoCalculated;
+    const percentualLiquidado = service.valorComIVA > 0 ? (liquidadoCalculated / service.valorComIVA) * 100 : 0;
     
     // Calculate days overdue if invoice exists and not fully paid
     let diasEmAtraso = 0;
@@ -180,9 +228,11 @@ export const useServices = () => {
 
     return {
       ...service,
+      liquidado: liquidadoCalculated,
       executadoEmDebito,
       diasEmAtraso,
       percentualLiquidado,
+      liquidacoes: serviceLiquidacoes,
     };
   };
 
@@ -191,7 +241,8 @@ export const useServices = () => {
   }, [services]);
 
   const dashboardMetrics = useMemo((): DashboardMetrics => {
-    const faturados = services.filter(s => s.fatura);
+    const servicesWithCalc = servicesWithCalculations;
+    const faturados = servicesWithCalc.filter(s => s.fatura);
     const naoFaturados = services.filter(s => !s.fatura);
     
     const totalFaturado = faturados.reduce((sum, s) => sum + s.valorComIVA, 0);
@@ -200,7 +251,7 @@ export const useServices = () => {
     const percentualLiquidado = totalFaturado > 0 ? (totalLiquidado / totalFaturado) * 100 : 0;
     const totalNaoFaturado = naoFaturados.reduce((sum, s) => sum + s.valorComIVA, 0);
     
-    const servicosEmAtraso = servicesWithCalculations.filter(s => s.diasEmAtraso > 0).length;
+    const servicosEmAtraso = servicesWithCalc.filter(s => s.diasEmAtraso > 0).length;
 
     return {
       totalFaturado,
@@ -246,8 +297,60 @@ export const useServices = () => {
       if (error) {
         console.error('Error deleting service from database:', error);
       }
+
+      // Also delete associated liquidacoes
+      const { error: liquidacoesError } = await supabase
+        .from('liquidacoes')
+        .delete()
+        .eq('service_id', id);
+      
+      if (liquidacoesError) {
+        console.error('Error deleting liquidacoes from database:', liquidacoesError);
+      }
+      
+      // Remove from local state
+      setLiquidacoes(prev => {
+        const newLiquidacoes = { ...prev };
+        delete newLiquidacoes[id];
+        return newLiquidacoes;
+      });
     } catch (error) {
-      console.error('Error deleting service from database:', error);
+      console.error('Error deleting service:', error);
+    }
+  };
+
+  const addLiquidacao = async (liquidacao: Omit<Liquidacao, 'id' | 'createdAt'>) => {
+    const newLiquidacao: Liquidacao = {
+      ...liquidacao,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+    };
+    
+    setLiquidacoes(prev => ({
+      ...prev,
+      [liquidacao.serviceId]: [...(prev[liquidacao.serviceId] || []), newLiquidacao]
+    }));
+    
+    await saveLiquidacaoToDatabase(newLiquidacao);
+  };
+
+  const removeLiquidacao = async (liquidacaoId: string, serviceId: string) => {
+    setLiquidacoes(prev => ({
+      ...prev,
+      [serviceId]: (prev[serviceId] || []).filter(l => l.id !== liquidacaoId)
+    }));
+    
+    try {
+      const { error } = await supabase
+        .from('liquidacoes')
+        .delete()
+        .eq('id', liquidacaoId);
+      
+      if (error) {
+        console.error('Error deleting liquidacao from database:', error);
+      }
+    } catch (error) {
+      console.error('Error deleting liquidacao:', error);
     }
   };
 
@@ -257,6 +360,8 @@ export const useServices = () => {
     addService,
     updateService,
     deleteService,
+    addLiquidacao,
+    removeLiquidacao,
     isLoading,
   };
 };
