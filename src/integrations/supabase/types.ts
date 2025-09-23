@@ -41,8 +41,10 @@ export type Database = {
           cliente: string
           created_at: string
           data: string
+          data_liquidacao: string | null
           fatura: string | null
           id: string
+          liquidacao_total: boolean | null
           liquidado: number
           proposta: string | null
           resumo: string | null
@@ -57,8 +59,10 @@ export type Database = {
           cliente: string
           created_at?: string
           data: string
+          data_liquidacao?: string | null
           fatura?: string | null
           id?: string
+          liquidacao_total?: boolean | null
           liquidado?: number
           proposta?: string | null
           resumo?: string | null
@@ -73,8 +77,10 @@ export type Database = {
           cliente?: string
           created_at?: string
           data?: string
+          data_liquidacao?: string | null
           fatura?: string | null
           id?: string
+          liquidacao_total?: boolean | null
           liquidado?: number
           proposta?: string | null
           resumo?: string | null

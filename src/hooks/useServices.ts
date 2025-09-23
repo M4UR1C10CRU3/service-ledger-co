@@ -100,6 +100,8 @@ const saveServiceToDatabase = async (service: Service) => {
         valor_com_iva: service.valorComIVA,
         valor_sem_iva: service.valorSemIVA,
         liquidado: service.liquidado,
+        data_liquidacao: service.dataLiquidacao,
+        liquidacao_total: service.liquidacaoTotal,
         a_realizar: service.aRealizar,
         created_at: service.createdAt.toISOString(),
       });
@@ -135,6 +137,8 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
       valorComIVA: parseFloat(row.valor_com_iva.toString()),
       valorSemIVA: parseFloat(row.valor_sem_iva.toString()),
       liquidado: parseFloat(row.liquidado.toString()),
+      dataLiquidacao: row.data_liquidacao || '',
+      liquidacaoTotal: row.liquidacao_total ?? true,
       aRealizar: row.a_realizar,
       createdAt: new Date(row.created_at),
     })) || initialServices;
