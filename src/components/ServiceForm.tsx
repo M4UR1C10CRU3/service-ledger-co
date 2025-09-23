@@ -37,6 +37,8 @@ export const ServiceForm = ({
     valorComIVA: 0,
     valorSemIVA: 0,
     liquidado: 0,
+    dataLiquidacao: '',
+    liquidacaoTotal: true,
     aRealizar: false,
   });
 
@@ -48,11 +50,13 @@ export const ServiceForm = ({
         servico: editingService.servico,
         cliente: editingService.cliente,
         resumo: editingService.resumo,
-        proposta: editingService.proposta,
+        proposta: editingService.proposta || '',
         fatura: editingService.fatura,
         valorComIVA: editingService.valorComIVA,
         valorSemIVA: editingService.valorSemIVA,
         liquidado: editingService.liquidado,
+        dataLiquidacao: editingService.dataLiquidacao || '',
+        liquidacaoTotal: editingService.liquidacaoTotal,
         aRealizar: editingService.aRealizar,
       });
     } else {
@@ -66,6 +70,8 @@ export const ServiceForm = ({
         valorComIVA: 0,
         valorSemIVA: 0,
         liquidado: 0,
+        dataLiquidacao: '',
+        liquidacaoTotal: true,
         aRealizar: false,
       });
     }
@@ -86,6 +92,8 @@ export const ServiceForm = ({
       valorComIVA: 0,
       valorSemIVA: 0,
       liquidado: 0,
+      dataLiquidacao: '',
+      liquidacaoTotal: true,
       aRealizar: false,
     });
   };
@@ -157,12 +165,12 @@ export const ServiceForm = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="proposta">Proposta</Label>
+              <Label htmlFor="proposta">Proposta (opcional)</Label>
               <Input
                 id="proposta"
                 value={formData.proposta}
                 onChange={(e) => setFormData(prev => ({ ...prev, proposta: e.target.value }))}
-                required
+                placeholder="Opcional"
               />
             </div>
 
@@ -209,6 +217,29 @@ export const ServiceForm = ({
                 value={formData.liquidado}
                 onChange={(e) => setFormData(prev => ({ ...prev, liquidado: parseFloat(e.target.value) || 0 }))}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dataLiquidacao">Data da Liquidação</Label>
+              <Input
+                id="dataLiquidacao"
+                type="text"
+                placeholder="DD/MM/YYYY (opcional)"
+                value={formData.dataLiquidacao}
+                onChange={(e) => setFormData(prev => ({ ...prev, dataLiquidacao: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2 flex items-center space-x-2">
+              <Switch
+                id="liquidacaoTotal"
+                checked={formData.liquidacaoTotal}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, liquidacaoTotal: checked }))}
+              />
+              <Label htmlFor="liquidacaoTotal">Liquidação Total</Label>
+              <span className="text-sm text-muted-foreground">
+                {formData.liquidacaoTotal ? '(Total)' : '(Parcial - permite preenchimento posterior)'}
+              </span>
             </div>
 
             <div className="space-y-2 flex items-center space-x-2">

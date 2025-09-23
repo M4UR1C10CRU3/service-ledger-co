@@ -4,11 +4,13 @@ export interface Service {
   servico: string;
   cliente: string;
   resumo: string; // Max 40 characters
-  proposta: string;
+  proposta?: string; // Optional - pode ser vazia
   fatura: string;
   valorComIVA: number;
   valorSemIVA: number;
   liquidado: number;
+  dataLiquidacao?: string; // Data da liquidação em DD/MM/YYYY
+  liquidacaoTotal: boolean; // true para total, false para parcial
   aRealizar: boolean;
   createdAt: Date;
 }
