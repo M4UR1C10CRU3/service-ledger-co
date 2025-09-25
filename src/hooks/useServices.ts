@@ -131,12 +131,11 @@ const loadLiquidacoesFromDatabase = async (serviceId: string): Promise<Liquidaca
   }
 };
 
-const saveLiquidacaoToDatabase = async (liquidacao: Liquidacao) => {
+const saveLiquidacaoToDatabase = async (liquidacao: Omit<Liquidacao, 'id'>) => {
   try {
     const { error } = await supabase
       .from('liquidacoes')
-      .upsert({
-        id: liquidacao.id,
+      .insert({
         service_id: liquidacao.serviceId,
         valor: liquidacao.valor,
         data_pagamento: liquidacao.dataPagamento,
@@ -332,18 +331,19 @@ export const useServices = () => {
   };
 
   const addLiquidacao = async (liquidacao: Omit<Liquidacao, 'id' | 'createdAt'>) => {
-    const newLiquidacao: Liquidacao = {
+    const liquidacaoToSave = {
       ...liquidacao,
-      id: Date.now().toString(),
       createdAt: new Date(),
     };
     
+    await saveLiquidacaoToDatabase(liquidacaoToSave);
+    
+    // Reload liquidacoes for this service from database to get the generated ID
+    const serviceLiquidacoes = await loadLiquidacoesFromDatabase(liquidacao.serviceId);
     setLiquidacoes(prev => ({
       ...prev,
-      [liquidacao.serviceId]: [...(prev[liquidacao.serviceId] || []), newLiquidacao]
+      [liquidacao.serviceId]: serviceLiquidacoes
     }));
-    
-    await saveLiquidacaoToDatabase(newLiquidacao);
   };
 
   const removeLiquidacao = async (liquidacaoId: string, serviceId: string) => {
