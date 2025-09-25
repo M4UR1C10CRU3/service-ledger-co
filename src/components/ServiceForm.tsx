@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Service } from '@/types/service';
+import { Service, Liquidacao } from '@/types/service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -13,11 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Plus, Trash2 } from 'lucide-react';
 
 interface ServiceFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (service: Omit<Service, 'id' | 'createdAt'>) => void;
+  onSubmit: (service: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]) => void;
   editingService?: Service | null;
 }
 
@@ -39,6 +42,13 @@ export const ServiceForm = ({
     aRealizar: false,
   });
 
+  const [liquidacoes, setLiquidacoes] = useState<Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]>([]);
+  const [novaLiquidacao, setNovaLiquidacao] = useState({
+    valor: 0,
+    dataPagamento: '',
+    observacoes: ''
+  });
+
   // Update form data when editingService changes
   useEffect(() => {
     if (editingService) {
@@ -53,6 +63,7 @@ export const ServiceForm = ({
         valorSemIVA: editingService.valorSemIVA,
         aRealizar: editingService.aRealizar,
       });
+      setLiquidacoes([]);
     } else {
       setFormData({
         data: '',
@@ -65,15 +76,57 @@ export const ServiceForm = ({
         valorSemIVA: 0,
         aRealizar: false,
       });
+      setLiquidacoes([]);
     }
   }, [editingService]);
+
+  const handleAddLiquidacao = () => {
+    if (novaLiquidacao.valor > 0 && novaLiquidacao.dataPagamento) {
+      setLiquidacoes(prev => [...prev, {
+        valor: novaLiquidacao.valor,
+        dataPagamento: novaLiquidacao.dataPagamento,
+        observacoes: novaLiquidacao.observacoes
+      }]);
+      setNovaLiquidacao({
+        valor: 0,
+        dataPagamento: '',
+        observacoes: ''
+      });
+    }
+  };
+
+  const handleRemoveLiquidacao = (index: number) => {
+    setLiquidacoes(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const totalLiquidado = liquidacoes.reduce((total, liq) => total + liq.valor, 0);
+
+  const handleDataPagamentoChange = (value: string) => {
+    // Remove caracteres não numéricos exceto /
+    const cleaned = value.replace(/[^\d/]/g, '');
+    // Aplicar máscara DD/MM/AAAA
+    let masked = cleaned;
+    if (cleaned.length >= 2 && !cleaned.includes('/')) {
+      masked = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+    }
+    if (cleaned.length >= 5 && cleaned.indexOf('/') === 2) {
+      const parts = cleaned.split('/');
+      if (parts[1] && parts[1].length >= 2) {
+        masked = parts[0] + '/' + parts[1].slice(0, 2) + '/' + (parts[1].slice(2) + (parts[2] || '')).slice(0, 4);
+      }
+    }
+    // Limitar a 10 caracteres (DD/MM/AAAA)
+    if (masked.length <= 10) {
+      setNovaLiquidacao(prev => ({ ...prev, dataPagamento: masked }));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
       ...formData,
-      liquidado: 0 // Será calculado automaticamente pelas liquidações
-    });
+      liquidado: totalLiquidado
+    }, liquidacoes);
     onOpenChange(false);
     // Reset form
     setFormData({
@@ -86,6 +139,12 @@ export const ServiceForm = ({
       valorComIVA: 0,
       valorSemIVA: 0,
       aRealizar: false,
+    });
+    setLiquidacoes([]);
+    setNovaLiquidacao({
+      valor: 0,
+      dataPagamento: '',
+      observacoes: ''
     });
   };
 
@@ -114,9 +173,30 @@ export const ServiceForm = ({
               <Input
                 id="data"
                 type="text"
-                placeholder="DD/MM/YYYY"
+                placeholder="DD/MM/AAAA"
                 value={formData.data}
-                onChange={(e) => setFormData(prev => ({ ...prev, data: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Remove caracteres não numéricos exceto /
+                  const cleaned = value.replace(/[^\d/]/g, '');
+                  // Aplicar máscara DD/MM/AAAA
+                  let masked = cleaned;
+                  if (cleaned.length >= 2 && !cleaned.includes('/')) {
+                    masked = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+                  }
+                  if (cleaned.length >= 5 && cleaned.indexOf('/') === 2) {
+                    const parts = cleaned.split('/');
+                    if (parts[1] && parts[1].length >= 2) {
+                      masked = parts[0] + '/' + parts[1].slice(0, 2) + '/' + (parts[1].slice(2) + (parts[2] || '')).slice(0, 4);
+                    }
+                  }
+                  // Limitar a 10 caracteres (DD/MM/AAAA)
+                  if (masked.length <= 10) {
+                    setFormData(prev => ({ ...prev, data: masked }));
+                  }
+                }}
+                maxLength={10}
+                pattern="\d{2}/\d{2}/\d{4}"
                 required
               />
             </div>
@@ -208,6 +288,110 @@ export const ServiceForm = ({
               <Label htmlFor="aRealizar">A Realizar</Label>
             </div>
           </div>
+
+          <Separator className="my-6" />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Liquidações (Opcional)</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Adicione pagamentos parciais ou totais para este serviço
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Lista de liquidações existentes */}
+              {liquidacoes.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Pagamentos Adicionados:</Label>
+                  {liquidacoes.map((liquidacao, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-4">
+                          <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
+                          <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                        </div>
+                        {liquidacao.observacoes && (
+                          <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveLiquidacao(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="text-sm font-medium text-right">
+                    Total Liquidado: €{totalLiquidado.toFixed(2)}
+                    {formData.valorComIVA > 0 && (
+                      <span className="text-muted-foreground ml-2">
+                        / €{formData.valorComIVA.toFixed(2)} (Saldo: €{(formData.valorComIVA - totalLiquidado).toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Formulário para nova liquidação */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
+                <div className="space-y-2">
+                  <Label htmlFor="valorLiquidacao">Valor (€)</Label>
+                  <Input
+                    id="valorLiquidacao"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={novaLiquidacao.valor || ''}
+                    onChange={(e) => setNovaLiquidacao(prev => ({ 
+                      ...prev, 
+                      valor: parseFloat(e.target.value) || 0 
+                    }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dataPagamento">Data Pagamento</Label>
+                  <Input
+                    id="dataPagamento"
+                    type="text"
+                    placeholder="DD/MM/AAAA"
+                    value={novaLiquidacao.dataPagamento}
+                    onChange={(e) => handleDataPagamentoChange(e.target.value)}
+                    maxLength={10}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="observacoes">Observações</Label>
+                  <Input
+                    id="observacoes"
+                    placeholder="Opcional"
+                    value={novaLiquidacao.observacoes}
+                    onChange={(e) => setNovaLiquidacao(prev => ({ 
+                      ...prev, 
+                      observacoes: e.target.value 
+                    }))}
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddLiquidacao}
+                    disabled={!novaLiquidacao.valor || !novaLiquidacao.dataPagamento}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Pagamento
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

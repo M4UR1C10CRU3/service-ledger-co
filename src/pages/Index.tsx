@@ -64,7 +64,7 @@ const Index = () => {
     }
   };
 
-  const handleFormSubmit = (serviceData: Omit<Service, 'id' | 'createdAt'>) => {
+  const handleFormSubmit = (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: any[]) => {
     if (editingService) {
       updateService(editingService.id, serviceData);
       toast({
@@ -72,7 +72,7 @@ const Index = () => {
         description: "O serviço foi atualizado com sucesso.",
       });
     } else {
-      addService(serviceData);
+      addService(serviceData, liquidacoes);
       toast({
         title: "Serviço adicionado",
         description: "O novo serviço foi adicionado com sucesso.",

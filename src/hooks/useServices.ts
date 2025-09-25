@@ -263,7 +263,7 @@ export const useServices = () => {
     };
   }, [services, servicesWithCalculations]);
 
-  const addService = async (service: Omit<Service, 'id' | 'createdAt'>) => {
+  const addService = async (service: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]) => {
     const newService: Service = {
       ...service,
       id: Date.now().toString(),
@@ -271,6 +271,18 @@ export const useServices = () => {
     };
     setServices(prev => [...prev, newService]);
     await saveServiceToDatabase(newService);
+    
+    // Adicionar liquidações se fornecidas
+    if (liquidacoes && liquidacoes.length > 0) {
+      for (const liquidacao of liquidacoes) {
+        await addLiquidacao({
+          serviceId: newService.id,
+          valor: liquidacao.valor,
+          dataPagamento: liquidacao.dataPagamento,
+          observacoes: liquidacao.observacoes
+        });
+      }
+    }
   };
 
   const updateService = async (id: string, updates: Partial<Service>) => {
