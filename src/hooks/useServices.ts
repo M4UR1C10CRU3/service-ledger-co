@@ -238,7 +238,7 @@ export const useServices = () => {
 
   const servicesWithCalculations = useMemo(() => {
     return services.map(calculateServiceMetrics);
-  }, [services]);
+  }, [services, liquidacoes]);
 
   const dashboardMetrics = useMemo((): DashboardMetrics => {
     const servicesWithCalc = servicesWithCalculations;
