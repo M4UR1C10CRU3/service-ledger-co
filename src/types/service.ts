@@ -11,6 +11,12 @@ export interface Service {
   liquidado: number; // Calculado automaticamente pela soma das liquidações
   aRealizar: boolean;
   createdAt: Date;
+  
+  // Novos campos para contratos e faturas
+  tipoServico: 'contrato' | 'fatura';
+  contratoId?: string; // ID do contrato pai (quando for fatura)
+  valorFaturado: number; // Para contratos: valor já faturado
+  numeroFatura?: string; // Para faturas: número da fatura
 }
 
 export interface Liquidacao {
@@ -23,9 +29,11 @@ export interface Liquidacao {
 }
 
 export interface ServiceCalculations {
-  executadoEmDebito: number; // valorComIVA - liquidado
+  executadoEmDebito: number; // Para faturas: valorComIVA - liquidado; Para contratos: 0
   diasEmAtraso: number;
   percentualLiquidado: number; // (liquidado / valorComIVA) * 100
+  valorARealizar: number; // Para contratos: valorComIVA - valorFaturado; Para faturas: 0
+  statusContrato?: 'nao_iniciado' | 'em_andamento' | 'concluido'; // Para contratos
 }
 
 export interface ServiceWithCalculations extends Service, ServiceCalculations {
@@ -41,10 +49,16 @@ export interface ReportFilters {
 }
 
 export interface DashboardMetrics {
+  // Métricas de faturas (débitos reais)
   totalFaturado: number;
   totalLiquidado: number;
   totalEmDebito: number;
   percentualLiquidado: number;
-  totalNaoFaturado: number;
   servicosEmAtraso: number;
+  
+  // Métricas de contratos (projeções)
+  totalContratado: number;
+  totalARealizar: number;
+  totalJaFaturado: number;
+  percentualFaturado: number;
 }

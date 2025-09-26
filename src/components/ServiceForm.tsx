@@ -40,6 +40,10 @@ export const ServiceForm = ({
     valorComIVA: 0,
     valorSemIVA: 0,
     aRealizar: false,
+    tipoServico: 'fatura' as 'contrato' | 'fatura',
+    contratoId: '',
+    valorFaturado: 0,
+    numeroFatura: '',
   });
 
   const [liquidacoes, setLiquidacoes] = useState<Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]>([]);
@@ -62,6 +66,10 @@ export const ServiceForm = ({
         valorComIVA: editingService.valorComIVA,
         valorSemIVA: editingService.valorSemIVA,
         aRealizar: editingService.aRealizar,
+        tipoServico: editingService.tipoServico || 'fatura',
+        contratoId: editingService.contratoId || '',
+        valorFaturado: editingService.valorFaturado || 0,
+        numeroFatura: editingService.numeroFatura || '',
       });
       setLiquidacoes([]);
     } else {
@@ -75,6 +83,10 @@ export const ServiceForm = ({
         valorComIVA: 0,
         valorSemIVA: 0,
         aRealizar: false,
+        tipoServico: 'fatura',
+        contratoId: '',
+        valorFaturado: 0,
+        numeroFatura: '',
       });
       setLiquidacoes([]);
     }
@@ -139,6 +151,10 @@ export const ServiceForm = ({
       valorComIVA: 0,
       valorSemIVA: 0,
       aRealizar: false,
+      tipoServico: 'fatura',
+      contratoId: '',
+      valorFaturado: 0,
+      numeroFatura: '',
     });
     setLiquidacoes([]);
     setNovaLiquidacao({
@@ -236,6 +252,44 @@ export const ServiceForm = ({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="tipoServico">Tipo de Serviço</Label>
+              <select
+                id="tipoServico"
+                value={formData.tipoServico}
+                onChange={(e) => setFormData(prev => ({ ...prev, tipoServico: e.target.value as 'contrato' | 'fatura' }))}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                required
+              >
+                <option value="fatura">Fatura (Débito Real)</option>
+                <option value="contrato">Contrato (Projeção)</option>
+              </select>
+            </div>
+
+            {formData.tipoServico === 'fatura' && (
+              <div className="space-y-2">
+                <Label htmlFor="contratoId">Contrato de Origem (opcional)</Label>
+                <Input
+                  id="contratoId"
+                  value={formData.contratoId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contratoId: e.target.value }))}
+                  placeholder="ID do contrato pai"
+                />
+              </div>
+            )}
+
+            {formData.tipoServico === 'fatura' && (
+              <div className="space-y-2">
+                <Label htmlFor="numeroFatura">Número da Fatura</Label>
+                <Input
+                  id="numeroFatura"
+                  value={formData.numeroFatura}
+                  onChange={(e) => setFormData(prev => ({ ...prev, numeroFatura: e.target.value }))}
+                  placeholder="Número da fatura"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
               <Label htmlFor="proposta">Proposta (opcional)</Label>
               <Input
                 id="proposta"
@@ -246,17 +300,30 @@ export const ServiceForm = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fatura">Fatura</Label>
-              <Input
-                id="fatura"
-                value={formData.fatura}
-                onChange={(e) => setFormData(prev => ({ ...prev, fatura: e.target.value }))}
-                placeholder="Deixe vazio se não faturado"
-              />
+              <Label htmlFor="fatura">
+                {formData.tipoServico === 'contrato' ? 'Valor Total Contratado (€)' : 'Fatura'}
+              </Label>
+              {formData.tipoServico === 'contrato' ? (
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="text-sm text-muted-foreground">
+                    Para contratos, este é o valor total acordado. 
+                    As faturas serão criadas separadamente.
+                  </p>
+                </div>
+              ) : (
+                <Input
+                  id="fatura"
+                  value={formData.fatura}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fatura: e.target.value }))}
+                  placeholder="Número da fatura"
+                />
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="valorComIVA">Valor com IVA (€)</Label>
+              <Label htmlFor="valorComIVA">
+                {formData.tipoServico === 'contrato' ? 'Valor Total com IVA (€)' : 'Valor com IVA (€)'}
+              </Label>
               <Input
                 id="valorComIVA"
                 type="number"
@@ -265,10 +332,17 @@ export const ServiceForm = ({
                 onChange={(e) => setFormData(prev => ({ ...prev, valorComIVA: parseFloat(e.target.value) || 0 }))}
                 required
               />
+              {formData.tipoServico === 'contrato' && (
+                <p className="text-xs text-muted-foreground">
+                  Este valor não será considerado como débito até que faturas sejam emitidas.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="valorSemIVA">Valor sem IVA (€)</Label>
+              <Label htmlFor="valorSemIVA">
+                {formData.tipoServico === 'contrato' ? 'Valor Total sem IVA (€)' : 'Valor sem IVA (€)'}
+              </Label>
               <Input
                 id="valorSemIVA"
                 type="number"

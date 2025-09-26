@@ -17,6 +17,8 @@ const initialServices: Service[] = [
     liquidado: 2000.00,
     aRealizar: false,
     createdAt: new Date('2025-09-01'),
+    tipoServico: 'fatura',
+    valorFaturado: 0,
   },
   {
     id: '2',
@@ -31,20 +33,24 @@ const initialServices: Service[] = [
     liquidado: 1000.00,
     aRealizar: false,
     createdAt: new Date('2025-09-05'),
+    tipoServico: 'fatura',
+    valorFaturado: 0,
   },
   {
     id: '3',
     data: '10/09/2025',
-    servico: 'Auditoria Interna',
+    servico: 'Construção Edifício Comercial',
     cliente: 'Cliente C',
-    resumo: 'Auditoria trimestral',
+    resumo: 'Obra completa de 24 meses',
     proposta: 'P-103',
     fatura: '',
-    valorComIVA: 3000.00,
-    valorSemIVA: 2439.02,
+    valorComIVA: 100000.00,
+    valorSemIVA: 81301.00,
     liquidado: 0.00,
     aRealizar: true,
     createdAt: new Date('2025-09-10'),
+    tipoServico: 'contrato',
+    valorFaturado: 0,
   },
   {
     id: '4',
@@ -59,6 +65,8 @@ const initialServices: Service[] = [
     liquidado: 2000.00,
     aRealizar: false,
     createdAt: new Date('2025-09-12'),
+    tipoServico: 'fatura',
+    valorFaturado: 0,
   },
   {
     id: '5',
@@ -73,6 +81,8 @@ const initialServices: Service[] = [
     liquidado: 0.00,
     aRealizar: false,
     createdAt: new Date('2025-09-15'),
+    tipoServico: 'fatura',
+    valorFaturado: 0,
   },
 ];
 
@@ -93,6 +103,10 @@ const saveServiceToDatabase = async (service: Service) => {
         valor_sem_iva: service.valorSemIVA,
         liquidado: service.liquidado,
         a_realizar: service.aRealizar,
+        tipo_servico: service.tipoServico,
+        contrato_id: service.contratoId || null,
+        valor_faturado: service.valorFaturado || 0,
+        numero_fatura: service.numeroFatura || null,
         created_at: service.createdAt.toISOString(),
       });
     
@@ -176,6 +190,10 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
       liquidado: parseFloat(row.liquidado.toString()),
       aRealizar: row.a_realizar,
       createdAt: new Date(row.created_at),
+      tipoServico: (row as any).tipo_servico || 'fatura',
+      contratoId: (row as any).contrato_id || undefined,
+      valorFaturado: (row as any).valor_faturado ? parseFloat((row as any).valor_faturado.toString()) : 0,
+      numeroFatura: (row as any).numero_fatura || undefined,
     })) || initialServices;
   } catch (error) {
     console.error('Error loading services from database:', error);
@@ -212,6 +230,24 @@ export const useServices = () => {
     const serviceLiquidacoes = liquidacoes[service.id] || [];
     const liquidadoCalculated = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
     
+    // Para contratos: não há débito, apenas valor a realizar
+    if (service.tipoServico === 'contrato') {
+      const valorARealizar = service.valorComIVA - service.valorFaturado;
+      
+      return {
+        ...service,
+        liquidado: liquidadoCalculated,
+        executadoEmDebito: 0, // Contratos não geram débito
+        diasEmAtraso: 0,
+        percentualLiquidado: service.valorComIVA > 0 ? (service.valorFaturado / service.valorComIVA) * 100 : 0,
+        valorARealizar,
+        statusContrato: service.valorFaturado === 0 ? 'nao_iniciado' : 
+                      service.valorFaturado >= service.valorComIVA ? 'concluido' : 'em_andamento',
+        liquidacoes: serviceLiquidacoes,
+      };
+    }
+    
+    // Para faturas: cálculo tradicional de débito
     const executadoEmDebito = service.valorComIVA - liquidadoCalculated;
     const percentualLiquidado = service.valorComIVA > 0 ? (liquidadoCalculated / service.valorComIVA) * 100 : 0;
     
@@ -231,6 +267,7 @@ export const useServices = () => {
       executadoEmDebito,
       diasEmAtraso,
       percentualLiquidado,
+      valorARealizar: 0, // Faturas não têm valor a realizar
       liquidacoes: serviceLiquidacoes,
     };
   };
@@ -240,33 +277,43 @@ export const useServices = () => {
   }, [services, liquidacoes]);
 
   const dashboardMetrics = useMemo((): DashboardMetrics => {
-    const servicesWithCalc = servicesWithCalculations;
-    const faturados = servicesWithCalc.filter(s => s.fatura);
-    const naoFaturados = services.filter(s => !s.fatura);
+    const faturas = servicesWithCalculations.filter(s => s.tipoServico === 'fatura');
+    const contratos = servicesWithCalculations.filter(s => s.tipoServico === 'contrato');
     
-    const totalFaturado = faturados.reduce((sum, s) => sum + s.valorComIVA, 0);
-    const totalLiquidado = faturados.reduce((sum, s) => sum + s.liquidado, 0);
-    const totalEmDebito = totalFaturado - totalLiquidado;
-    const percentualLiquidado = totalFaturado > 0 ? (totalLiquidado / totalFaturado) * 100 : 0;
-    const totalNaoFaturado = naoFaturados.reduce((sum, s) => sum + s.valorComIVA, 0);
+    // Métricas de faturas (débitos reais)
+    const totalFaturado = faturas.reduce((sum, service) => sum + service.valorComIVA, 0);
+    const totalLiquidado = faturas.reduce((sum, service) => sum + service.liquidado, 0);
+    const totalEmDebito = faturas.reduce((sum, service) => sum + service.executadoEmDebito, 0);
+    const servicosEmAtraso = faturas.filter(service => service.diasEmAtraso > 0).length;
     
-    const servicosEmAtraso = servicesWithCalc.filter(s => s.diasEmAtraso > 0).length;
-
+    // Métricas de contratos (projeções)
+    const totalContratado = contratos.reduce((sum, service) => sum + service.valorComIVA, 0);
+    const totalJaFaturado = contratos.reduce((sum, service) => sum + service.valorFaturado, 0);
+    const totalARealizar = contratos.reduce((sum, service) => sum + service.valorARealizar, 0);
+    
     return {
+      // Faturas
       totalFaturado,
       totalLiquidado,
       totalEmDebito,
-      percentualLiquidado,
-      totalNaoFaturado,
+      percentualLiquidado: totalFaturado > 0 ? (totalLiquidado / totalFaturado) * 100 : 0,
       servicosEmAtraso,
+      
+      // Contratos
+      totalContratado,
+      totalARealizar,
+      totalJaFaturado,
+      percentualFaturado: totalContratado > 0 ? (totalJaFaturado / totalContratado) * 100 : 0,
     };
-  }, [services, servicesWithCalculations]);
+  }, [servicesWithCalculations]);
 
   const addService = async (service: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]) => {
     const newService: Service = {
       ...service,
       id: Date.now().toString(),
       createdAt: new Date(),
+      tipoServico: service.tipoServico || 'fatura',
+      valorFaturado: service.valorFaturado || 0,
     };
     setServices(prev => [...prev, newService]);
     await saveServiceToDatabase(newService);
