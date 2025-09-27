@@ -8,6 +8,7 @@ import { ServiceTable } from '@/components/ServiceTable';
 import { ServiceForm } from '@/components/ServiceForm';
 import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
+import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -23,8 +24,10 @@ const Index = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceWithCalculations | null>(null);
+  const [selectedContract, setSelectedContract] = useState<ServiceWithCalculations | null>(null);
 
   const handleAddService = () => {
     setEditingService(null);
@@ -62,6 +65,19 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleCreateInvoice = (contract: ServiceWithCalculations) => {
+    setSelectedContract(contract);
+    setIsCreateInvoiceOpen(true);
+  };
+
+  const handleCreateInvoiceSubmit = (invoiceData: any) => {
+    addService(invoiceData);
+    toast({
+      title: "Fatura criada",
+      description: "A fatura parcial foi criada com sucesso.",
+    });
   };
 
   const handleFormSubmit = (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: any[]) => {
@@ -102,6 +118,7 @@ const Index = () => {
           onEditService={handleEditService}
           onDeleteService={handleDeleteService}
           onViewService={handleViewService}
+          onCreateInvoice={handleCreateInvoice}
         />
       </main>
 
@@ -124,6 +141,13 @@ const Index = () => {
         open={isReportsOpen}
         onOpenChange={setIsReportsOpen}
         services={services}
+      />
+
+      <CreateInvoiceDialog
+        open={isCreateInvoiceOpen}
+        onOpenChange={setIsCreateInvoiceOpen}
+        contract={selectedContract}
+        onCreateInvoice={handleCreateInvoiceSubmit}
       />
     </div>
   );

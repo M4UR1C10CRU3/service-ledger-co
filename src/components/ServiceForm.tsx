@@ -272,8 +272,11 @@ export const ServiceForm = ({
                   id="contratoId"
                   value={formData.contratoId}
                   onChange={(e) => setFormData(prev => ({ ...prev, contratoId: e.target.value }))}
-                  placeholder="ID do contrato pai"
+                  placeholder="ID do contrato pai (para faturas parciais)"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Deixe vazio para faturas independentes. Preencha para faturas parciais de contratos.
+                </p>
               </div>
             )}
 
@@ -367,103 +370,125 @@ export const ServiceForm = ({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Liquidações (Opcional)</CardTitle>
+              <CardTitle className="text-lg">
+                Liquidações 
+                {formData.tipoServico === 'contrato' ? ' (Não aplicável a contratos)' : ' (Opcional)'}
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Adicione pagamentos parciais ou totais para este serviço
+                {formData.tipoServico === 'contrato' 
+                  ? 'Contratos não recebem liquidações diretamente. Crie faturas parciais para registrar pagamentos.'
+                  : 'Adicione pagamentos parciais ou totais para esta fatura'
+                }
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Lista de liquidações existentes */}
-              {liquidacoes.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Pagamentos Adicionados:</Label>
-                  {liquidacoes.map((liquidacao, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4">
-                          <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
-                          <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+              {formData.tipoServico === 'fatura' && (
+                <>
+                  {/* Lista de liquidações existentes */}
+                  {liquidacoes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Pagamentos Adicionados:</Label>
+                      {liquidacoes.map((liquidacao, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4">
+                              <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
+                              <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                            </div>
+                            {liquidacao.observacoes && (
+                              <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveLiquidacao(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        {liquidacao.observacoes && (
-                          <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
+                      ))}
+                      <div className="text-sm font-medium text-right">
+                        Total Liquidado: €{totalLiquidado.toFixed(2)}
+                        {formData.valorComIVA > 0 && (
+                          <span className="text-muted-foreground ml-2">
+                            / €{formData.valorComIVA.toFixed(2)} (Saldo: €{(formData.valorComIVA - totalLiquidado).toFixed(2)})
+                          </span>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Formulário para nova liquidação */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
+                    <div className="space-y-2">
+                      <Label htmlFor="valorLiquidacao">Valor (€)</Label>
+                      <Input
+                        id="valorLiquidacao"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={novaLiquidacao.valor || ''}
+                        onChange={(e) => setNovaLiquidacao(prev => ({ 
+                          ...prev, 
+                          valor: parseFloat(e.target.value) || 0 
+                        }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="dataPagamento">Data Pagamento</Label>
+                      <Input
+                        id="dataPagamento"
+                        type="text"
+                        placeholder="DD/MM/AAAA"
+                        value={novaLiquidacao.dataPagamento}
+                        onChange={(e) => handleDataPagamentoChange(e.target.value)}
+                        maxLength={10}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="observacoes">Observações</Label>
+                      <Input
+                        id="observacoes"
+                        placeholder="Opcional"
+                        value={novaLiquidacao.observacoes}
+                        onChange={(e) => setNovaLiquidacao(prev => ({ 
+                          ...prev, 
+                          observacoes: e.target.value 
+                        }))}
+                      />
+                    </div>
+
+                    <div className="md:col-span-3">
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveLiquidacao(index)}
+                        variant="outline"
+                        onClick={handleAddLiquidacao}
+                        disabled={!novaLiquidacao.valor || !novaLiquidacao.dataPagamento}
+                        className="w-full"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Pagamento
                       </Button>
                     </div>
-                  ))}
-                  <div className="text-sm font-medium text-right">
-                    Total Liquidado: €{totalLiquidado.toFixed(2)}
-                    {formData.valorComIVA > 0 && (
-                      <span className="text-muted-foreground ml-2">
-                        / €{formData.valorComIVA.toFixed(2)} (Saldo: €{(formData.valorComIVA - totalLiquidado).toFixed(2)})
-                      </span>
-                    )}
                   </div>
+                </>
+              )}
+              
+              {formData.tipoServico === 'contrato' && (
+                <div className="p-4 bg-blue-50 rounded-md border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-2">Como funciona:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Este contrato representa o valor total acordado</li>
+                    <li>• Para faturar parcialmente, crie "Faturas" vinculadas a este contrato</li>
+                    <li>• Cada fatura poderá receber liquidações (pagamentos)</li>
+                    <li>• O saldo "A Realizar" diminui conforme faturas são emitidas</li>
+                  </ul>
                 </div>
               )}
-
-              {/* Formulário para nova liquidação */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
-                <div className="space-y-2">
-                  <Label htmlFor="valorLiquidacao">Valor (€)</Label>
-                  <Input
-                    id="valorLiquidacao"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={novaLiquidacao.valor || ''}
-                    onChange={(e) => setNovaLiquidacao(prev => ({ 
-                      ...prev, 
-                      valor: parseFloat(e.target.value) || 0 
-                    }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dataPagamento">Data Pagamento</Label>
-                  <Input
-                    id="dataPagamento"
-                    type="text"
-                    placeholder="DD/MM/AAAA"
-                    value={novaLiquidacao.dataPagamento}
-                    onChange={(e) => handleDataPagamentoChange(e.target.value)}
-                    maxLength={10}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="observacoes">Observações</Label>
-                  <Input
-                    id="observacoes"
-                    placeholder="Opcional"
-                    value={novaLiquidacao.observacoes}
-                    onChange={(e) => setNovaLiquidacao(prev => ({ 
-                      ...prev, 
-                      observacoes: e.target.value 
-                    }))}
-                  />
-                </div>
-
-                <div className="md:col-span-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAddLiquidacao}
-                    disabled={!novaLiquidacao.valor || !novaLiquidacao.dataPagamento}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Pagamento
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
