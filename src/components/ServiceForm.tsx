@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -172,7 +173,7 @@ export const ServiceForm = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {editingService ? 'Editar Serviço' : 'Novo Serviço'}
@@ -182,7 +183,8 @@ export const ServiceForm = ({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <ScrollArea className="max-h-[60vh] pr-4">
+          <form id="service-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="data">Data</Label>
@@ -491,16 +493,17 @@ export const ServiceForm = ({
               )}
             </CardContent>
           </Card>
+          </form>
+        </ScrollArea>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">
-              {editingService ? 'Atualizar' : 'Adicionar'} Serviço
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="service-form">
+            {editingService ? 'Atualizar' : 'Adicionar'} Serviço
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
