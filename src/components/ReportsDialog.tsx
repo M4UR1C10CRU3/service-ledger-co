@@ -88,23 +88,113 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
     return { clientData, totals };
   };
 
-  // Report: Valores Não Faturados
+  // Report: Valores Não Faturados (serviços com proposta mas sem fatura)
   const getValoresNaoFaturadosReport = () => {
-    const naoFaturados = services.filter(s => !s.fatura || s.fatura.trim() === '');
-    const total = naoFaturados.reduce((sum, s) => sum + s.valorComIVA, 0);
-    return { naoFaturados, total };
+    const naoFaturados = services.filter(s => 
+      s.tipoServico === 'fatura' && 
+      s.proposta && 
+      s.proposta.trim() !== '' && 
+      (!s.fatura || s.fatura.trim() === '')
+    );
+    
+    const clientData = naoFaturados.reduce((acc, service) => {
+      const existing = acc.find(item => item.cliente === service.cliente);
+      
+      if (existing) {
+        existing.valorTotal += service.valorComIVA;
+        existing.liquidado += service.liquidado;
+        existing.emDebito += (service.valorComIVA - service.liquidado);
+        existing.nServicos += 1;
+      } else {
+        acc.push({
+          cliente: service.cliente,
+          valorTotal: service.valorComIVA,
+          liquidado: service.liquidado,
+          emDebito: service.valorComIVA - service.liquidado,
+          nServicos: 1,
+        });
+      }
+      
+      return acc;
+    }, [] as Array<{ cliente: string; valorTotal: number; liquidado: number; emDebito: number; nServicos: number }>);
+
+    const totals = {
+      valorTotal: clientData.reduce((sum, item) => sum + item.valorTotal, 0),
+      liquidado: clientData.reduce((sum, item) => sum + item.liquidado, 0),
+      emDebito: clientData.reduce((sum, item) => sum + item.emDebito, 0),
+      nServicos: clientData.reduce((sum, item) => sum + item.nServicos, 0),
+    };
+
+    return { clientData, totals };
   };
 
-  // Report: Relatório Geral
+  // Report: Relatório Geral - Movimento Mensal Detalhado
   const getRelatorioGeralReport = () => {
-    const faturados = services.filter(s => s.fatura && s.fatura.trim() !== '');
-    const naoFaturados = services.filter(s => !s.fatura || s.fatura.trim() === '');
-    
-    const valorFaturado = faturados.reduce((sum, s) => sum + s.valorComIVA, 0);
-    const valorNaoFaturado = naoFaturados.reduce((sum, s) => sum + s.valorComIVA, 0);
-    const totalGeral = valorFaturado + valorNaoFaturado;
+    // Agrupar por mês
+    const monthData = services.reduce((acc, service) => {
+      const [day, month, year] = service.data.split('/');
+      const monthKey = `${month}/${year}`;
+      
+      let existing = acc.find(item => item.mes === monthKey);
+      
+      if (!existing) {
+        existing = {
+          mes: monthKey,
+          faturadosDebito: 0,
+          faturadosLiquidado: 0,
+          naoFaturadosDebito: 0,
+          naoFaturadosLiquidado: 0,
+          projecaoARealizar: 0,
+        };
+        acc.push(existing);
+      }
+      
+      // Valores faturados (faturas emitidas)
+      if (service.tipoServico === 'fatura' && service.fatura && service.fatura.trim() !== '') {
+        existing.faturadosDebito += (service.valorComIVA - service.liquidado);
+        existing.faturadosLiquidado += service.liquidado;
+      }
+      
+      // Valores não faturados (propostas sem fatura)
+      if (service.tipoServico === 'fatura' && service.proposta && service.proposta.trim() !== '' && (!service.fatura || service.fatura.trim() === '')) {
+        existing.naoFaturadosDebito += (service.valorComIVA - service.liquidado);
+        existing.naoFaturadosLiquidado += service.liquidado;
+      }
+      
+      // Projeção a realizar (apenas contratos com saldo não faturado)
+      if (service.tipoServico === 'contrato') {
+        existing.projecaoARealizar += service.valorARealizar;
+      }
+      
+      return acc;
+    }, [] as Array<{
+      mes: string;
+      faturadosDebito: number;
+      faturadosLiquidado: number;
+      naoFaturadosDebito: number;
+      naoFaturadosLiquidado: number;
+      projecaoARealizar: number;
+    }>);
 
-    return { valorFaturado, valorNaoFaturado, totalGeral };
+    // Ordenar por mês
+    monthData.sort((a, b) => {
+      const [monthA, yearA] = a.mes.split('/');
+      const [monthB, yearB] = b.mes.split('/');
+      return yearA !== yearB 
+        ? parseInt(yearA) - parseInt(yearB) 
+        : parseInt(monthA) - parseInt(monthB);
+    });
+
+    // Calcular totais gerais
+    const totals = {
+      faturadosDebito: monthData.reduce((sum, item) => sum + item.faturadosDebito, 0),
+      faturadosLiquidado: monthData.reduce((sum, item) => sum + item.faturadosLiquidado, 0),
+      naoFaturadosDebito: monthData.reduce((sum, item) => sum + item.naoFaturadosDebito, 0),
+      naoFaturadosLiquidado: monthData.reduce((sum, item) => sum + item.naoFaturadosLiquidado, 0),
+      projecaoARealizar: monthData.reduce((sum, item) => sum + item.projecaoARealizar, 0),
+    };
+
+    return { monthData, totals };
   };
 
   // Report: Movimento Mensal
@@ -137,36 +227,36 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
     return monthData.sort((a, b) => a.mes.localeCompare(b.mes));
   };
 
-  // Report: Projeção de Valores a Realizar
+  // Report: Projeção de Valores a Realizar (apenas contratos)
   const getProjecaoValoresReport = () => {
-    const clientData = services.reduce((acc, service) => {
+    const contratos = services.filter(s => s.tipoServico === 'contrato' && s.valorARealizar > 0);
+    
+    const clientData = contratos.reduce((acc, service) => {
       const existing = acc.find(item => item.cliente === service.cliente);
       
-      const valorEmDebito = (service.fatura && service.fatura.trim() !== '') ? (service.valorComIVA - service.liquidado) : 0;
-      const valorNaoFaturado = (!service.fatura || service.fatura.trim() === '') ? service.valorComIVA : 0;
-      
-      if (valorEmDebito > 0 || valorNaoFaturado > 0) {
-        if (existing) {
-          existing.valorEmDebito += valorEmDebito;
-          existing.valorNaoFaturado += valorNaoFaturado;
-          existing.projecaoTotal += valorEmDebito + valorNaoFaturado;
-        } else {
-          acc.push({
-            cliente: service.cliente,
-            valorEmDebito,
-            valorNaoFaturado,
-            projecaoTotal: valorEmDebito + valorNaoFaturado,
-          });
-        }
+      if (existing) {
+        existing.valorContratado += service.valorComIVA;
+        existing.valorFaturado += service.valorFaturado;
+        existing.valorARealizar += service.valorARealizar;
+        existing.nContratos += 1;
+      } else {
+        acc.push({
+          cliente: service.cliente,
+          valorContratado: service.valorComIVA,
+          valorFaturado: service.valorFaturado,
+          valorARealizar: service.valorARealizar,
+          nContratos: 1,
+        });
       }
       
       return acc;
-    }, [] as Array<{ cliente: string; valorEmDebito: number; valorNaoFaturado: number; projecaoTotal: number }>);
+    }, [] as Array<{ cliente: string; valorContratado: number; valorFaturado: number; valorARealizar: number; nContratos: number }>);
 
     const totals = {
-      valorEmDebito: clientData.reduce((sum, item) => sum + item.valorEmDebito, 0),
-      valorNaoFaturado: clientData.reduce((sum, item) => sum + item.valorNaoFaturado, 0),
-      projecaoTotal: clientData.reduce((sum, item) => sum + item.projecaoTotal, 0),
+      valorContratado: clientData.reduce((sum, item) => sum + item.valorContratado, 0),
+      valorFaturado: clientData.reduce((sum, item) => sum + item.valorFaturado, 0),
+      valorARealizar: clientData.reduce((sum, item) => sum + item.valorARealizar, 0),
+      nContratos: clientData.reduce((sum, item) => sum + item.nContratos, 0),
     };
 
     return { clientData, totals };
@@ -224,70 +314,105 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
       }
 
       case 'nao-faturados': {
-        const { naoFaturados, total } = getValoresNaoFaturadosReport();
+        const { clientData, totals } = getValoresNaoFaturadosReport();
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Relatório - Valores Não Faturados</CardTitle>
+              <CardTitle>Relatório - Valores Não Faturados (Propostas sem Fatura)</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Serviço</TableHead>
+                    <TableHead>Nº Serviços</TableHead>
                     <TableHead className="text-right">Valor Total (€)</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Liquidado (€)</TableHead>
+                    <TableHead className="text-right">Em Débito (€)</TableHead>
+                    <TableHead className="text-right">% Liquidado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {naoFaturados.map((service) => (
-                    <TableRow key={service.id}>
-                      <TableCell className="font-medium">{service.cliente}</TableCell>
-                      <TableCell>{service.servico}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(service.valorComIVA)}</TableCell>
-                      <TableCell>
-                        {service.aRealizar ? 'A realizar' : 'Realizado'}
+                  {clientData.map((client) => (
+                    <TableRow key={client.cliente}>
+                      <TableCell className="font-medium">{client.cliente}</TableCell>
+                      <TableCell>{client.nServicos}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(client.valorTotal)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(client.liquidado)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(client.emDebito)}</TableCell>
+                      <TableCell className="text-right">
+                        {formatPercentage(client.valorTotal > 0 ? (client.liquidado / client.valorTotal) * 100 : 0)}
                       </TableCell>
                     </TableRow>
                   ))}
+                  <TableRow className="font-bold bg-muted/50">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell>{totals.nServicos}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.valorTotal)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.liquidado)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.emDebito)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatPercentage(totals.valorTotal > 0 ? (totals.liquidado / totals.valorTotal) * 100 : 0)}
+                    </TableCell>
+                  </TableRow>
                 </TableBody>
               </Table>
-              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                <p className="font-bold">TOTAL Não Faturado: {formatCurrency(total)}</p>
-              </div>
             </CardContent>
           </Card>
         );
       }
 
       case 'geral': {
-        const { valorFaturado, valorNaoFaturado, totalGeral } = getRelatorioGeralReport();
+        const { monthData, totals } = getRelatorioGeralReport();
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Relatório Geral (Faturados + Não Faturados)</CardTitle>
+              <CardTitle>Relatório Geral - Movimento Mensal</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead className="text-right">Valor Total (€)</TableHead>
+                    <TableHead>Mês/Ano</TableHead>
+                    <TableHead className="text-right">Faturado Débito</TableHead>
+                    <TableHead className="text-right">Faturado Liquid.</TableHead>
+                    <TableHead className="text-right">Não Fat. Débito</TableHead>
+                    <TableHead className="text-right">Não Fat. Liquid.</TableHead>
+                    <TableHead className="text-right">Projeção A Realizar</TableHead>
+                    <TableHead className="text-right">Total Mês</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Valores Faturados</TableCell>
-                    <TableCell className="text-right">{formatCurrency(valorFaturado)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Valores Não Faturados</TableCell>
-                    <TableCell className="text-right">{formatCurrency(valorNaoFaturado)}</TableCell>
-                  </TableRow>
+                  {monthData.map((month) => {
+                    const totalMes = month.faturadosDebito + month.faturadosLiquidado + 
+                                    month.naoFaturadosDebito + month.naoFaturadosLiquidado + 
+                                    month.projecaoARealizar;
+                    return (
+                      <TableRow key={month.mes}>
+                        <TableCell className="font-medium">{month.mes}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.faturadosDebito)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.faturadosLiquidado)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.naoFaturadosDebito)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.naoFaturadosLiquidado)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(month.projecaoARealizar)}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(totalMes)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                   <TableRow className="font-bold bg-muted/50">
                     <TableCell>TOTAL GERAL</TableCell>
-                    <TableCell className="text-right">{formatCurrency(totalGeral)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.faturadosDebito)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.projecaoARealizar)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatCurrency(
+                        totals.faturadosDebito + totals.faturadosLiquidado + 
+                        totals.naoFaturadosDebito + totals.naoFaturadosLiquidado + 
+                        totals.projecaoARealizar
+                      )}
+                    </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -334,36 +459,42 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Relatório - Projeção de Valores a Realizar</CardTitle>
+              <CardTitle>Relatório - Projeção de Valores a Realizar (Contratos)</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Valor em Débito (€)</TableHead>
-                    <TableHead className="text-right">Valor Não Faturado (€)</TableHead>
-                    <TableHead className="text-right">Projeção Total (€)</TableHead>
+                    <TableHead>Nº Contratos</TableHead>
+                    <TableHead className="text-right">Valor Contratado</TableHead>
+                    <TableHead className="text-right">Já Faturado</TableHead>
+                    <TableHead className="text-right">Saldo A Realizar</TableHead>
+                    <TableHead className="text-right">% Executado</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {clientData.map((client) => (
                     <TableRow key={client.cliente}>
                       <TableCell className="font-medium">{client.cliente}</TableCell>
+                      <TableCell>{client.nContratos}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(client.valorContratado)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(client.valorFaturado)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(client.valorARealizar)}</TableCell>
                       <TableCell className="text-right">
-                        {client.valorEmDebito > 0 ? formatCurrency(client.valorEmDebito) : '—'}
+                        {formatPercentage(client.valorContratado > 0 ? (client.valorFaturado / client.valorContratado) * 100 : 0)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {client.valorNaoFaturado > 0 ? formatCurrency(client.valorNaoFaturado) : '—'}
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(client.projecaoTotal)}</TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="font-bold bg-muted/50">
                     <TableCell>TOTAL</TableCell>
-                    <TableCell className="text-right">{formatCurrency(totals.valorEmDebito)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(totals.valorNaoFaturado)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(totals.projecaoTotal)}</TableCell>
+                    <TableCell>{totals.nContratos}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.valorContratado)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.valorFaturado)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(totals.valorARealizar)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatPercentage(totals.valorContratado > 0 ? (totals.valorFaturado / totals.valorContratado) * 100 : 0)}
+                    </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
