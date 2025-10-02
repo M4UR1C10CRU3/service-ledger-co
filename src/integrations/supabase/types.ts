@@ -65,53 +65,86 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           a_realizar: boolean
           cliente: string
+          contrato_id: string | null
           created_at: string
           data: string
           fatura: string | null
           id: string
           liquidado: number
+          numero_fatura: string | null
           proposta: string | null
           resumo: string | null
           service_id: string
           servico: string
+          tipo_servico: string
           updated_at: string
           valor_com_iva: number
+          valor_faturado: number | null
           valor_sem_iva: number
         }
         Insert: {
           a_realizar?: boolean
           cliente: string
+          contrato_id?: string | null
           created_at?: string
           data: string
           fatura?: string | null
           id?: string
           liquidado?: number
+          numero_fatura?: string | null
           proposta?: string | null
           resumo?: string | null
           service_id: string
           servico: string
+          tipo_servico?: string
           updated_at?: string
           valor_com_iva?: number
+          valor_faturado?: number | null
           valor_sem_iva?: number
         }
         Update: {
           a_realizar?: boolean
           cliente?: string
+          contrato_id?: string | null
           created_at?: string
           data?: string
           fatura?: string | null
           id?: string
           liquidado?: number
+          numero_fatura?: string | null
           proposta?: string | null
           resumo?: string | null
           service_id?: string
           servico?: string
+          tipo_servico?: string
           updated_at?: string
           valor_com_iva?: number
+          valor_faturado?: number | null
           valor_sem_iva?: number
         }
         Relationships: []
@@ -121,7 +154,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calcular_valor_faturado: {
+        Args: { contrato_service_id: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
