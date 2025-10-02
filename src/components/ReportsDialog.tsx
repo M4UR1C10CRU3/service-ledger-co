@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ServiceWithCalculations } from '@/types/service';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -270,12 +271,12 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         
         if (clientData.length === 0) {
           return (
-            <Card>
-              <CardHeader>
-                <CardTitle>Relatório - Valores Faturados</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="text-lg">📊 Relatório - Valores Faturados</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
+              <CardContent className="py-12">
+                <p className="text-muted-foreground text-center text-base">
                   Nenhum valor faturado encontrado.
                 </p>
               </CardContent>
@@ -284,43 +285,46 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         }
         
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatório - Valores Faturados</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="bg-muted/30">
+              <CardTitle className="text-lg">📊 Relatório - Valores Faturados</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Análise detalhada de todas as faturas emitidas
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
+            <CardContent className="pt-6">
+              <div className="rounded-lg border-2 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Nº Faturas</TableHead>
-                      <TableHead className="text-right">Valor Total (€)</TableHead>
-                      <TableHead className="text-right">Liquidado (€)</TableHead>
-                      <TableHead className="text-right">Em Débito (€)</TableHead>
-                      <TableHead className="text-right">Percentual Liquidado</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-bold">Cliente</TableHead>
+                      <TableHead className="font-bold text-center">Nº Faturas</TableHead>
+                      <TableHead className="font-bold text-right">Valor Total</TableHead>
+                      <TableHead className="font-bold text-right">Liquidado</TableHead>
+                      <TableHead className="font-bold text-right">Em Débito</TableHead>
+                      <TableHead className="font-bold text-right">% Liquidado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientData.map((client) => (
-                      <TableRow key={client.cliente}>
+                    {clientData.map((client, index) => (
+                      <TableRow key={client.cliente} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                         <TableCell className="font-medium">{client.cliente}</TableCell>
-                        <TableCell>{client.nFaturas}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.valorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.liquidado)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.emDebito)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">{client.nFaturas}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(client.valorTotal)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(client.liquidado)}</TableCell>
+                        <TableCell className="text-right font-mono text-orange-600">{formatCurrency(client.emDebito)}</TableCell>
+                        <TableCell className="text-right font-semibold">
                           {formatPercentage(client.valorTotal > 0 ? (client.liquidado / client.valorTotal) * 100 : 0)}
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow className="font-bold bg-muted/50">
-                      <TableCell>TOTAL</TableCell>
-                      <TableCell>{totals.nFaturas}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.valorTotal)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.liquidado)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.emDebito)}</TableCell>
-                      <TableCell className="text-right">
+                    <TableRow className="font-bold bg-primary/10 border-t-2">
+                      <TableCell className="text-base">TOTAL GERAL</TableCell>
+                      <TableCell className="text-center text-base">{totals.nFaturas}</TableCell>
+                      <TableCell className="text-right font-mono text-base">{formatCurrency(totals.valorTotal)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-green-600">{formatCurrency(totals.liquidado)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-orange-600">{formatCurrency(totals.emDebito)}</TableCell>
+                      <TableCell className="text-right text-base">
                         {formatPercentage(totals.valorTotal > 0 ? (totals.liquidado / totals.valorTotal) * 100 : 0)}
                       </TableCell>
                     </TableRow>
@@ -337,12 +341,12 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         
         if (clientData.length === 0) {
           return (
-            <Card>
-              <CardHeader>
-                <CardTitle>Relatório - Valores Não Faturados (Propostas sem Fatura)</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="text-lg">📋 Relatório - Valores Não Faturados</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
+              <CardContent className="py-12">
+                <p className="text-muted-foreground text-center text-base">
                   Nenhum valor não faturado encontrado.
                 </p>
               </CardContent>
@@ -351,43 +355,46 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         }
         
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatório - Valores Não Faturados (Propostas sem Fatura)</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="bg-muted/30">
+              <CardTitle className="text-lg">📋 Relatório - Valores Não Faturados</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Propostas emitidas que ainda não foram faturadas
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
+            <CardContent className="pt-6">
+              <div className="rounded-lg border-2 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Nº Serviços</TableHead>
-                      <TableHead className="text-right">Valor Total (€)</TableHead>
-                      <TableHead className="text-right">Liquidado (€)</TableHead>
-                      <TableHead className="text-right">Em Débito (€)</TableHead>
-                      <TableHead className="text-right">% Liquidado</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-bold">Cliente</TableHead>
+                      <TableHead className="font-bold text-center">Nº Serviços</TableHead>
+                      <TableHead className="font-bold text-right">Valor Total</TableHead>
+                      <TableHead className="font-bold text-right">Liquidado</TableHead>
+                      <TableHead className="font-bold text-right">Em Débito</TableHead>
+                      <TableHead className="font-bold text-right">% Liquidado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientData.map((client) => (
-                      <TableRow key={client.cliente}>
+                    {clientData.map((client, index) => (
+                      <TableRow key={client.cliente} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                         <TableCell className="font-medium">{client.cliente}</TableCell>
-                        <TableCell>{client.nServicos}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.valorTotal)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.liquidado)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.emDebito)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">{client.nServicos}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(client.valorTotal)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(client.liquidado)}</TableCell>
+                        <TableCell className="text-right font-mono text-orange-600">{formatCurrency(client.emDebito)}</TableCell>
+                        <TableCell className="text-right font-semibold">
                           {formatPercentage(client.valorTotal > 0 ? (client.liquidado / client.valorTotal) * 100 : 0)}
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow className="font-bold bg-muted/50">
-                      <TableCell>TOTAL</TableCell>
-                      <TableCell>{totals.nServicos}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.valorTotal)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.liquidado)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.emDebito)}</TableCell>
-                      <TableCell className="text-right">
+                    <TableRow className="font-bold bg-primary/10 border-t-2">
+                      <TableCell className="text-base">TOTAL GERAL</TableCell>
+                      <TableCell className="text-center text-base">{totals.nServicos}</TableCell>
+                      <TableCell className="text-right font-mono text-base">{formatCurrency(totals.valorTotal)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-green-600">{formatCurrency(totals.liquidado)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-orange-600">{formatCurrency(totals.emDebito)}</TableCell>
+                      <TableCell className="text-right text-base">
                         {formatPercentage(totals.valorTotal > 0 ? (totals.liquidado / totals.valorTotal) * 100 : 0)}
                       </TableCell>
                     </TableRow>
@@ -404,12 +411,12 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         
         if (monthData.length === 0) {
           return (
-            <Card>
-              <CardHeader>
-                <CardTitle>Relatório Geral - Movimento Mensal</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="text-lg">📈 Relatório Geral - Movimento Mensal</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
+              <CardContent className="py-12">
+                <p className="text-muted-foreground text-center text-base">
                   Nenhum movimento encontrado.
                 </p>
               </CardContent>
@@ -418,49 +425,52 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         }
         
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatório Geral - Movimento Mensal</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="bg-muted/30">
+              <CardTitle className="text-lg">📈 Relatório Geral - Movimento Mensal Completo</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Visão consolidada de todos os movimentos por mês
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
+            <CardContent className="pt-6">
+              <div className="rounded-lg border-2 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Mês/Ano</TableHead>
-                      <TableHead className="text-right">Faturado Débito</TableHead>
-                      <TableHead className="text-right">Faturado Liquid.</TableHead>
-                      <TableHead className="text-right">Não Fat. Débito</TableHead>
-                      <TableHead className="text-right">Não Fat. Liquid.</TableHead>
-                      <TableHead className="text-right">Projeção A Realizar</TableHead>
-                      <TableHead className="text-right">Total Mês</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-bold">Mês/Ano</TableHead>
+                      <TableHead className="font-bold text-right">Fat. Débito</TableHead>
+                      <TableHead className="font-bold text-right">Fat. Liquid.</TableHead>
+                      <TableHead className="font-bold text-right">Não Fat. Déb.</TableHead>
+                      <TableHead className="font-bold text-right">Não Fat. Liq.</TableHead>
+                      <TableHead className="font-bold text-right">Proj. A Realizar</TableHead>
+                      <TableHead className="font-bold text-right">Total Mês</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {monthData.map((month) => {
+                    {monthData.map((month, index) => {
                       const totalMes = month.faturadosDebito + month.faturadosLiquidado + 
                                       month.naoFaturadosDebito + month.naoFaturadosLiquidado + 
                                       month.projecaoARealizar;
                       return (
-                        <TableRow key={month.mes}>
-                          <TableCell className="font-medium">{month.mes}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(month.faturadosDebito)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(month.faturadosLiquidado)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(month.naoFaturadosDebito)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(month.naoFaturadosLiquidado)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(month.projecaoARealizar)}</TableCell>
-                          <TableCell className="text-right font-semibold">{formatCurrency(totalMes)}</TableCell>
+                        <TableRow key={month.mes} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                          <TableCell className="font-semibold">{month.mes}</TableCell>
+                          <TableCell className="text-right font-mono text-orange-600">{formatCurrency(month.faturadosDebito)}</TableCell>
+                          <TableCell className="text-right font-mono text-green-600">{formatCurrency(month.faturadosLiquidado)}</TableCell>
+                          <TableCell className="text-right font-mono text-orange-500">{formatCurrency(month.naoFaturadosDebito)}</TableCell>
+                          <TableCell className="text-right font-mono text-green-500">{formatCurrency(month.naoFaturadosLiquidado)}</TableCell>
+                          <TableCell className="text-right font-mono text-blue-600">{formatCurrency(month.projecaoARealizar)}</TableCell>
+                          <TableCell className="text-right font-mono font-bold">{formatCurrency(totalMes)}</TableCell>
                         </TableRow>
                       );
                     })}
-                    <TableRow className="font-bold bg-muted/50">
-                      <TableCell>TOTAL GERAL</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.faturadosDebito)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.projecaoARealizar)}</TableCell>
-                      <TableCell className="text-right">
+                    <TableRow className="font-bold bg-primary/10 border-t-2">
+                      <TableCell className="text-base">TOTAL GERAL</TableCell>
+                      <TableCell className="text-right font-mono text-base text-orange-600">{formatCurrency(totals.faturadosDebito)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-green-600">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-orange-500">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-green-500">{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-blue-600">{formatCurrency(totals.projecaoARealizar)}</TableCell>
+                      <TableCell className="text-right font-mono text-base">
                         {formatCurrency(
                           totals.faturadosDebito + totals.faturadosLiquidado + 
                           totals.naoFaturadosDebito + totals.naoFaturadosLiquidado + 
@@ -481,12 +491,12 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         
         if (monthData.length === 0) {
           return (
-            <Card>
-              <CardHeader>
-                <CardTitle>Relatório - Movimento Mensal</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="text-lg">📅 Relatório - Movimento Mensal</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
+              <CardContent className="py-12">
+                <p className="text-muted-foreground text-center text-base">
                   Nenhum movimento mensal encontrado.
                 </p>
               </CardContent>
@@ -495,28 +505,31 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         }
         
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatório - Movimento Mensal</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="bg-muted/30">
+              <CardTitle className="text-lg">📅 Relatório - Movimento Mensal Simplificado</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Resumo mensal dos valores faturados e liquidados
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
+            <CardContent className="pt-6">
+              <div className="rounded-lg border-2 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Mês/Ano</TableHead>
-                      <TableHead className="text-right">Liquidado (€)</TableHead>
-                      <TableHead className="text-right">Em Débito (€)</TableHead>
-                      <TableHead className="text-right">Nº Serviços</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-bold">Mês/Ano</TableHead>
+                      <TableHead className="font-bold text-right">Liquidado</TableHead>
+                      <TableHead className="font-bold text-right">Em Débito</TableHead>
+                      <TableHead className="font-bold text-center">Nº Serviços</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {monthData.map((month) => (
-                      <TableRow key={month.mes}>
-                        <TableCell className="font-medium">{month.mes}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(month.valorLiquidado)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(month.valorEmDebito)}</TableCell>
-                        <TableCell className="text-right">{month.nServicos}</TableCell>
+                    {monthData.map((month, index) => (
+                      <TableRow key={month.mes} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                        <TableCell className="font-semibold">{month.mes}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(month.valorLiquidado)}</TableCell>
+                        <TableCell className="text-right font-mono text-orange-600">{formatCurrency(month.valorEmDebito)}</TableCell>
+                        <TableCell className="text-center">{month.nServicos}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -532,12 +545,12 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         
         if (clientData.length === 0) {
           return (
-            <Card>
-              <CardHeader>
-                <CardTitle>Relatório - Projeção de Valores a Realizar (Contratos)</CardTitle>
+            <Card className="border-2">
+              <CardHeader className="bg-muted/30">
+                <CardTitle className="text-lg">🎯 Relatório - Projeção de Valores a Realizar</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
+              <CardContent className="py-12">
+                <p className="text-muted-foreground text-center text-base">
                   Nenhum contrato com saldo a realizar encontrado.
                 </p>
               </CardContent>
@@ -546,43 +559,46 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
         }
         
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatório - Projeção de Valores a Realizar (Contratos)</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="bg-muted/30">
+              <CardTitle className="text-lg">🎯 Relatório - Projeção de Valores a Realizar</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Contratos ativos e seus valores ainda não faturados
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
+            <CardContent className="pt-6">
+              <div className="rounded-lg border-2 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Nº Contratos</TableHead>
-                      <TableHead className="text-right">Valor Contratado</TableHead>
-                      <TableHead className="text-right">Já Faturado</TableHead>
-                      <TableHead className="text-right">Saldo A Realizar</TableHead>
-                      <TableHead className="text-right">% Executado</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-bold">Cliente</TableHead>
+                      <TableHead className="font-bold text-center">Nº Contratos</TableHead>
+                      <TableHead className="font-bold text-right">Valor Contratado</TableHead>
+                      <TableHead className="font-bold text-right">Já Faturado</TableHead>
+                      <TableHead className="font-bold text-right">Saldo A Realizar</TableHead>
+                      <TableHead className="font-bold text-right">% Executado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientData.map((client) => (
-                      <TableRow key={client.cliente}>
+                    {clientData.map((client, index) => (
+                      <TableRow key={client.cliente} className={index % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                         <TableCell className="font-medium">{client.cliente}</TableCell>
-                        <TableCell>{client.nContratos}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.valorContratado)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.valorFaturado)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(client.valorARealizar)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">{client.nContratos}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(client.valorContratado)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(client.valorFaturado)}</TableCell>
+                        <TableCell className="text-right font-mono text-blue-600">{formatCurrency(client.valorARealizar)}</TableCell>
+                        <TableCell className="text-right font-semibold">
                           {formatPercentage(client.valorContratado > 0 ? (client.valorFaturado / client.valorContratado) * 100 : 0)}
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow className="font-bold bg-muted/50">
-                      <TableCell>TOTAL</TableCell>
-                      <TableCell>{totals.nContratos}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.valorContratado)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.valorFaturado)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totals.valorARealizar)}</TableCell>
-                      <TableCell className="text-right">
+                    <TableRow className="font-bold bg-primary/10 border-t-2">
+                      <TableCell className="text-base">TOTAL GERAL</TableCell>
+                      <TableCell className="text-center text-base">{totals.nContratos}</TableCell>
+                      <TableCell className="text-right font-mono text-base">{formatCurrency(totals.valorContratado)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-green-600">{formatCurrency(totals.valorFaturado)}</TableCell>
+                      <TableCell className="text-right font-mono text-base text-blue-600">{formatCurrency(totals.valorARealizar)}</TableCell>
+                      <TableCell className="text-right text-base">
                         {formatPercentage(totals.valorContratado > 0 ? (totals.valorFaturado / totals.valorContratado) * 100 : 0)}
                       </TableCell>
                     </TableRow>
@@ -601,36 +617,39 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Relatórios
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <FileText className="w-6 h-6" />
+            Relatórios Financeiros
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center justify-between py-3">
-          <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
-            <SelectTrigger className="w-[300px] bg-background border-input">
-              <SelectValue placeholder="Selecione o tipo de relatório" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              <SelectItem value="faturados">Valores Faturados</SelectItem>
-              <SelectItem value="nao-faturados">Valores Não Faturados</SelectItem>
-              <SelectItem value="geral">Relatório Geral</SelectItem>
-              <SelectItem value="movimento-mensal">Movimento Mensal</SelectItem>
-              <SelectItem value="projecao">Projeção de Valores a Realizar</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b">
+          <div className="w-full sm:w-auto">
+            <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
+            <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
+              <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
+                <SelectValue placeholder="Selecione o tipo de relatório" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100]">
+                <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
+                <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
+                <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
+                <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
+                <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="default" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
-            Exportar
+            Exportar PDF
           </Button>
         </div>
 
         <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
+          <div className="py-4">
             {renderReport()}
           </div>
         </ScrollArea>
