@@ -47,11 +47,11 @@ export const ServiceDetailDialog = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <span className="font-medium">Tipo:</span>
-                  <p>
+                  <div className="mt-1">
                     <Badge variant={service.tipoServico === 'contrato' ? 'default' : 'secondary'}>
                       {service.tipoServico === 'contrato' ? 'Contrato' : 'Fatura'}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
                 <div>
                   <span className="font-medium">Data:</span>

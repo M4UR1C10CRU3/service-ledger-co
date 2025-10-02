@@ -278,6 +278,9 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
   };
 
   const renderReport = () => {
+    console.log('renderReport called with selectedReport:', selectedReport);
+    console.log('Total services in renderReport:', services.length);
+    
     switch (selectedReport) {
       case 'faturados': {
         const { clientData, totals } = getValoresFaturadosReport();
