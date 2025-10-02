@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useServices } from '@/hooks/useServices';
 import { Service, ServiceWithCalculations } from '@/types/service';
 import { Header } from '@/components/Header';
@@ -10,8 +12,50 @@ import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
 import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState<string>('');
+  
+  useEffect(() => {
+    // Check authentication
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/auth');
+      } else {
+        // Get user profile
+        supabase
+          .from('profiles')
+          .select('nome')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              setUserName(data.nome);
+            }
+            setLoading(false);
+          });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate('/auth');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   const { 
     services, 
     dashboardMetrics, 
@@ -108,7 +152,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onAddService={handleAddService} onOpenReports={handleOpenReports} />
+      <Header 
+        onAddService={handleAddService} 
+        onOpenReports={handleOpenReports}
+        userName={userName}
+      />
       
       <main className="container mx-auto px-6 py-6 space-y-6">
         <DashboardCards metrics={dashboardMetrics} />
