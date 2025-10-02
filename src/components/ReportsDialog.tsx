@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ServiceWithCalculations } from '@/types/service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -510,7 +511,7 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
@@ -522,10 +523,10 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
-                <SelectTrigger className="w-[300px]">
+                <SelectTrigger className="w-[300px] bg-background">
                   <SelectValue placeholder="Selecione o tipo de relatório" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background z-50">
                   <SelectItem value="faturados">Valores Faturados</SelectItem>
                   <SelectItem value="nao-faturados">Valores Não Faturados</SelectItem>
                   <SelectItem value="geral">Relatório Geral</SelectItem>
@@ -541,7 +542,9 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
             </Button>
           </div>
 
-          {renderReport()}
+          <ScrollArea className="max-h-[60vh] pr-4">
+            {renderReport()}
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
