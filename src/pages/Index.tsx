@@ -40,7 +40,8 @@ const Index = () => {
     updateService, 
     deleteService, 
     addLiquidacao, 
-    removeLiquidacao 
+    removeLiquidacao,
+    isLoading 
   } = useServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
@@ -166,6 +167,7 @@ const Index = () => {
         open={isReportsOpen}
         onOpenChange={setIsReportsOpen}
         services={services}
+        isLoading={isLoading}
       />
 
       <CreateInvoiceDialog
