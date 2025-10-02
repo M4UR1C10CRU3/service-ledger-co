@@ -92,12 +92,18 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   // Report: Valores Não Faturados (serviços com proposta mas sem fatura)
   const getValoresNaoFaturadosReport = () => {
-    const naoFaturados = services.filter(s => 
-      s.tipoServico === 'fatura' && 
-      s.proposta && 
-      s.proposta.trim() !== '' && 
-      (!s.fatura || s.fatura.trim() === '')
-    );
+    console.log('Total services:', services.length);
+    console.log('Services sample:', services.slice(0, 2));
+    
+    const naoFaturados = services.filter(s => {
+      const isCorrectType = s.tipoServico === 'fatura';
+      const hasProposta = s.proposta && s.proposta.trim() !== '';
+      const noFatura = !s.fatura || s.fatura.trim() === '';
+      
+      console.log(`Service ${s.servico}: tipo=${s.tipoServico}, proposta=${s.proposta}, fatura=${s.fatura}, filtered=${isCorrectType && hasProposta && noFatura}`);
+      
+      return isCorrectType && hasProposta && noFatura;
+    });
     
     const clientData = naoFaturados.reduce((acc, service) => {
       const existing = acc.find(item => item.cliente === service.cliente);
@@ -132,6 +138,7 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   // Report: Relatório Geral - Movimento Mensal Detalhado
   const getRelatorioGeralReport = () => {
+    console.log('Relatório Geral - Total services:', services.length);
     // Agrupar por mês
     const monthData = services.reduce((acc, service) => {
       const [day, month, year] = service.data.split('/');
@@ -201,7 +208,9 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   // Report: Movimento Mensal
   const getMovimentoMensalReport = () => {
+    console.log('Movimento Mensal - Total services:', services.length);
     const faturados = services.filter(s => s.fatura && s.fatura.trim() !== '');
+    console.log('Movimento Mensal - Faturados:', faturados.length);
     
     const monthData = faturados.reduce((acc, service) => {
       const [day, month, year] = service.data.split('/');
@@ -231,7 +240,11 @@ export const ReportsDialog = ({ open, onOpenChange, services }: ReportsDialogPro
 
   // Report: Projeção de Valores a Realizar (apenas contratos)
   const getProjecaoValoresReport = () => {
+    console.log('Projeção - Total services:', services.length);
+    console.log('Services with tipo:', services.map(s => ({ servico: s.servico, tipo: s.tipoServico, valorARealizar: s.valorARealizar })));
+    
     const contratos = services.filter(s => s.tipoServico === 'contrato' && s.valorARealizar > 0);
+    console.log('Projeção - Contratos filtered:', contratos.length);
     
     const clientData = contratos.reduce((acc, service) => {
       const existing = acc.find(item => item.cliente === service.cliente);
