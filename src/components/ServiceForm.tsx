@@ -102,7 +102,7 @@ export const ServiceForm = ({
         valor: parseFloat(novaLiquidacao.valor),
         dataPagamento: novaLiquidacao.dataPagamento,
         observacoes: novaLiquidacao.observacoes || undefined,
-      });
+      }) as Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>;
       
       setLiquidacoes(prev => [...prev, validated]);
       setNovaLiquidacao({
@@ -150,7 +150,7 @@ export const ServiceForm = ({
     onSubmit({
       ...data,
       liquidado: totalLiquidado
-    }, liquidacoes);
+    } as Omit<Service, 'id' | 'createdAt'>, liquidacoes);
     onOpenChange(false);
     form.reset();
     setLiquidacoes([]);
