@@ -61,7 +61,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getValoresFaturadosTable = () => {
-    const { clientData, totals } = getValoresFaturadosReport();
+    const { clientData, totals } = getValoresFaturadosReport(services);
     return (
       <Card>
         <CardHeader>
@@ -105,7 +105,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getValoresNaoFaturadosTable = () => {
-    const { clientData, totals } = getValoresNaoFaturadosReport();
+    const { clientData, totals } = getValoresNaoFaturadosReport(services);
     return (
       <Card>
         <CardHeader>
@@ -149,7 +149,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getRelatorioGeralTable = () => {
-    const { monthData, totals } = getRelatorioGeralReport();
+    const { monthData, totals } = getRelatorioGeralReport(services);
     return (
       <Card>
         <CardHeader>
@@ -197,7 +197,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getMovimentoMensalTable = () => {
-    const monthData = getMovimentoMensalReport();
+    const monthData = getMovimentoMensalReport(services);
     return (
       <Card>
         <CardHeader>
@@ -230,7 +230,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getProjecaoValoresTable = () => {
-    const { clientData, totals } = getProjecaoValoresReport();
+    const { clientData, totals } = getProjecaoValoresReport(services);
     return (
       <Card>
         <CardHeader>
@@ -333,22 +333,195 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   );
 };
 
-const getValoresFaturadosReport = () => {
-  return { clientData: [], totals: { nFaturas: 0, valorTotal: 0, liquidado: 0, emDebito: 0 } };
+const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
+  const faturados = services.filter(s => s.numeroFatura && s.numeroFatura.trim() !== '');
+  
+  const clientMap = new Map<string, { cliente: string; nFaturas: number; valorTotal: number; liquidado: number; emDebito: number }>();
+  
+  faturados.forEach(service => {
+    const existing = clientMap.get(service.cliente) || {
+      cliente: service.cliente,
+      nFaturas: 0,
+      valorTotal: 0,
+      liquidado: 0,
+      emDebito: 0
+    };
+    
+    existing.nFaturas += 1;
+    existing.valorTotal += service.valorComIVA;
+    existing.liquidado += service.liquidado;
+    existing.emDebito += service.executadoEmDebito;
+    
+    clientMap.set(service.cliente, existing);
+  });
+  
+  const clientData = Array.from(clientMap.values()).sort((a, b) => a.cliente.localeCompare(b.cliente));
+  
+  const totals = clientData.reduce((acc, item) => ({
+    nFaturas: acc.nFaturas + item.nFaturas,
+    valorTotal: acc.valorTotal + item.valorTotal,
+    liquidado: acc.liquidado + item.liquidado,
+    emDebito: acc.emDebito + item.emDebito
+  }), { nFaturas: 0, valorTotal: 0, liquidado: 0, emDebito: 0 });
+  
+  return { clientData, totals };
 };
 
-const getValoresNaoFaturadosReport = () => {
-  return { clientData: [], totals: { valorTotal: 0, liquidado: 0, emDebito: 0, nServicos: 0 } };
+const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
+  const naoFaturados = services.filter(s => !s.numeroFatura || s.numeroFatura.trim() === '');
+  
+  const clientMap = new Map<string, { cliente: string; nServicos: number; valorTotal: number; liquidado: number; emDebito: number }>();
+  
+  naoFaturados.forEach(service => {
+    const existing = clientMap.get(service.cliente) || {
+      cliente: service.cliente,
+      nServicos: 0,
+      valorTotal: 0,
+      liquidado: 0,
+      emDebito: 0
+    };
+    
+    existing.nServicos += 1;
+    existing.valorTotal += service.valorComIVA;
+    existing.liquidado += service.liquidado;
+    existing.emDebito += service.executadoEmDebito;
+    
+    clientMap.set(service.cliente, existing);
+  });
+  
+  const clientData = Array.from(clientMap.values()).sort((a, b) => a.cliente.localeCompare(b.cliente));
+  
+  const totals = clientData.reduce((acc, item) => ({
+    valorTotal: acc.valorTotal + item.valorTotal,
+    liquidado: acc.liquidado + item.liquidado,
+    emDebito: acc.emDebito + item.emDebito,
+    nServicos: acc.nServicos + item.nServicos
+  }), { valorTotal: 0, liquidado: 0, emDebito: 0, nServicos: 0 });
+  
+  return { clientData, totals };
 };
 
-const getRelatorioGeralReport = () => {
-  return { monthData: [], totals: { faturadosDebito: 0, faturadosLiquidado: 0, naoFaturadosDebito: 0, naoFaturadosLiquidado: 0, projecaoARealizar: 0 } };
+const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
+  const monthMap = new Map<string, { 
+    mes: string; 
+    faturadosDebito: number; 
+    faturadosLiquidado: number; 
+    naoFaturadosDebito: number; 
+    naoFaturadosLiquidado: number;
+    projecaoARealizar: number;
+  }>();
+  
+  services.forEach(service => {
+    const [day, month, year] = service.data.split('/');
+    const mesAno = `${month}/${year}`;
+    
+    const existing = monthMap.get(mesAno) || {
+      mes: mesAno,
+      faturadosDebito: 0,
+      faturadosLiquidado: 0,
+      naoFaturadosDebito: 0,
+      naoFaturadosLiquidado: 0,
+      projecaoARealizar: 0
+    };
+    
+    const isFaturado = service.numeroFatura && service.numeroFatura.trim() !== '';
+    
+    if (isFaturado) {
+      existing.faturadosDebito += service.executadoEmDebito;
+      existing.faturadosLiquidado += service.liquidado;
+    } else {
+      existing.naoFaturadosDebito += service.executadoEmDebito;
+      existing.naoFaturadosLiquidado += service.liquidado;
+    }
+    
+    if (service.tipoServico === 'contrato') {
+      existing.projecaoARealizar += service.valorARealizar;
+    }
+    
+    monthMap.set(mesAno, existing);
+  });
+  
+  const monthData = Array.from(monthMap.values()).sort((a, b) => {
+    const [monthA, yearA] = a.mes.split('/');
+    const [monthB, yearB] = b.mes.split('/');
+    return yearA.localeCompare(yearB) || monthA.localeCompare(monthB);
+  });
+  
+  const totals = monthData.reduce((acc, item) => ({
+    faturadosDebito: acc.faturadosDebito + item.faturadosDebito,
+    faturadosLiquidado: acc.faturadosLiquidado + item.faturadosLiquidado,
+    naoFaturadosDebito: acc.naoFaturadosDebito + item.naoFaturadosDebito,
+    naoFaturadosLiquidado: acc.naoFaturadosLiquidado + item.naoFaturadosLiquidado,
+    projecaoARealizar: acc.projecaoARealizar + item.projecaoARealizar
+  }), { faturadosDebito: 0, faturadosLiquidado: 0, naoFaturadosDebito: 0, naoFaturadosLiquidado: 0, projecaoARealizar: 0 });
+  
+  return { monthData, totals };
 };
 
-const getMovimentoMensalReport = () => {
-  return [];
+const getMovimentoMensalReport = (services: ServiceWithCalculations[]) => {
+  const monthMap = new Map<string, { mes: string; valorLiquidado: number; valorEmDebito: number; nServicos: number }>();
+  
+  services.forEach(service => {
+    const [day, month, year] = service.data.split('/');
+    const mesAno = `${month}/${year}`;
+    
+    const existing = monthMap.get(mesAno) || {
+      mes: mesAno,
+      valorLiquidado: 0,
+      valorEmDebito: 0,
+      nServicos: 0
+    };
+    
+    existing.valorLiquidado += service.liquidado;
+    existing.valorEmDebito += service.executadoEmDebito;
+    existing.nServicos += 1;
+    
+    monthMap.set(mesAno, existing);
+  });
+  
+  return Array.from(monthMap.values()).sort((a, b) => {
+    const [monthA, yearA] = a.mes.split('/');
+    const [monthB, yearB] = b.mes.split('/');
+    return yearA.localeCompare(yearB) || monthA.localeCompare(monthB);
+  });
 };
 
-const getProjecaoValoresReport = () => {
-  return { clientData: [], totals: { valorContratado: 0, valorFaturado: 0, valorARealizar: 0, nContratos: 0 } };
+const getProjecaoValoresReport = (services: ServiceWithCalculations[]) => {
+  const contratos = services.filter(s => s.tipoServico === 'contrato');
+  
+  const clientMap = new Map<string, { 
+    cliente: string; 
+    valorContratado: number; 
+    valorFaturado: number; 
+    valorARealizar: number;
+    nContratos: number;
+  }>();
+  
+  contratos.forEach(service => {
+    const existing = clientMap.get(service.cliente) || {
+      cliente: service.cliente,
+      valorContratado: 0,
+      valorFaturado: 0,
+      valorARealizar: 0,
+      nContratos: 0
+    };
+    
+    existing.valorContratado += service.valorComIVA;
+    existing.valorFaturado += service.valorFaturado;
+    existing.valorARealizar += service.valorARealizar;
+    existing.nContratos += 1;
+    
+    clientMap.set(service.cliente, existing);
+  });
+  
+  const clientData = Array.from(clientMap.values()).sort((a, b) => a.cliente.localeCompare(b.cliente));
+  
+  const totals = clientData.reduce((acc, item) => ({
+    valorContratado: acc.valorContratado + item.valorContratado,
+    valorFaturado: acc.valorFaturado + item.valorFaturado,
+    valorARealizar: acc.valorARealizar + item.valorARealizar,
+    nContratos: acc.nContratos + item.nContratos
+  }), { valorContratado: 0, valorFaturado: 0, valorARealizar: 0, nContratos: 0 });
+  
+  return { clientData, totals };
 };
