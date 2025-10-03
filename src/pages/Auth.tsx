@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { loginSchema, signupSchema, LoginFormData, SignupFormData } from '@/lib/validations';
 import logoObrajusta from '@/assets/logo-obrajusta.png';
 
 export default function Auth() {
@@ -14,14 +17,24 @@ export default function Auth() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  // Login state
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  // Login form
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
   
-  // Signup state
-  const [signupNome, setSignupNome] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
+  // Signup form
+  const signupForm = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      nome: '',
+      email: '',
+      password: '',
+    },
+  });
 
   useEffect(() => {
     // Check if user is already logged in
@@ -32,14 +45,13 @@ export default function Auth() {
     });
   }, [navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
+        email: values.email,
+        password: values.password,
       });
 
       if (error) throw error;
@@ -62,17 +74,16 @@ export default function Auth() {
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignup = async (values: SignupFormData) => {
     setLoading(true);
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
+        email: values.email,
+        password: values.password,
         options: {
           data: {
-            nome: signupNome,
+            nome: values.nome,
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -85,10 +96,7 @@ export default function Auth() {
           title: "Cadastro realizado!",
           description: "Verifique seu email para confirmar o cadastro.",
         });
-        // Clear form
-        setSignupNome('');
-        setSignupEmail('');
-        setSignupPassword('');
+        signupForm.reset();
       }
     } catch (error: any) {
       toast({
@@ -139,18 +147,19 @@ export default function Auth() {
               </TabsList>
               
               <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
                       placeholder="seu@email.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
+                      {...loginForm.register('email')}
                       disabled={loading}
                     />
+                    {loginForm.formState.errors.email && (
+                      <p className="text-sm text-destructive">{loginForm.formState.errors.email.message}</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -159,11 +168,12 @@ export default function Auth() {
                       id="login-password"
                       type="password"
                       placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
+                      {...loginForm.register('password')}
                       disabled={loading}
                     />
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-destructive">{loginForm.formState.errors.password.message}</p>
+                    )}
                   </div>
                   
                   <Button type="submit" className="w-full" disabled={loading}>
@@ -173,18 +183,19 @@ export default function Auth() {
               </TabsContent>
               
               <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
+                <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-nome">Nome</Label>
                     <Input
                       id="signup-nome"
                       type="text"
                       placeholder="Seu nome"
-                      value={signupNome}
-                      onChange={(e) => setSignupNome(e.target.value)}
-                      required
+                      {...signupForm.register('nome')}
                       disabled={loading}
                     />
+                    {signupForm.formState.errors.nome && (
+                      <p className="text-sm text-destructive">{signupForm.formState.errors.nome.message}</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -193,11 +204,12 @@ export default function Auth() {
                       id="signup-email"
                       type="email"
                       placeholder="seu@email.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
+                      {...signupForm.register('email')}
                       disabled={loading}
                     />
+                    {signupForm.formState.errors.email && (
+                      <p className="text-sm text-destructive">{signupForm.formState.errors.email.message}</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -206,14 +218,14 @@ export default function Auth() {
                       id="signup-password"
                       type="password"
                       placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
+                      {...signupForm.register('password')}
                       disabled={loading}
-                      minLength={6}
                     />
+                    {signupForm.formState.errors.password && (
+                      <p className="text-sm text-destructive">{signupForm.formState.errors.password.message}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">
-                      Mínimo de 6 caracteres
+                      Mínimo 8 caracteres, incluindo maiúscula, minúscula e número
                     </p>
                   </div>
                   
