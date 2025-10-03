@@ -433,20 +433,21 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
     
     const isFaturado = service.numeroFatura && service.numeroFatura.trim() !== '';
     const temProposta = service.proposta && service.proposta.trim() !== '';
+    const isContrato = service.tipoServico === 'contrato';
     
     // Valores faturados (todos com número de fatura - em débito e liquidados)
     if (isFaturado) {
       existing.faturadosDebito += service.executadoEmDebito;
       existing.faturadosLiquidado += service.liquidado;
     } 
-    // Valores não faturados (com proposta mas sem fatura - em débito e liquidados)
-    else if (temProposta && !isFaturado) {
+    // Valores não faturados (com proposta mas sem fatura - EXCETO contratos/projeções)
+    else if (temProposta && !isFaturado && !isContrato) {
       existing.naoFaturadosDebito += service.executadoEmDebito;
       existing.naoFaturadosLiquidado += service.liquidado;
     }
     
-    // Valores a realizar projeção (contratos com saldo ainda não faturado)
-    if (service.tipoServico === 'contrato') {
+    // Valores a realizar projeção (apenas contratos com saldo ainda não faturado)
+    if (isContrato) {
       existing.projecaoARealizar += service.valorARealizar;
     }
     
