@@ -164,6 +164,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableHead>Faturados (Liquidado)</TableHead>
                 <TableHead>Não Faturados (Débito)</TableHead>
                 <TableHead>Não Faturados (Liquidado)</TableHead>
+                <TableHead>Valores a Realizar (Projeção)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,6 +175,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                   <TableCell>{formatCurrency(item.faturadosLiquidado)}</TableCell>
                   <TableCell>{formatCurrency(item.naoFaturadosDebito)}</TableCell>
                   <TableCell>{formatCurrency(item.naoFaturadosLiquidado)}</TableCell>
+                  <TableCell>{formatCurrency(item.projecaoARealizar)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -184,6 +186,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableCell className="font-bold">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.projecaoARealizar)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -412,6 +415,7 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
     faturadosLiquidado: number; 
     naoFaturadosDebito: number; 
     naoFaturadosLiquidado: number;
+    projecaoARealizar: number;
   }>();
   
   services.forEach(service => {
@@ -423,7 +427,8 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
       faturadosDebito: 0,
       faturadosLiquidado: 0,
       naoFaturadosDebito: 0,
-      naoFaturadosLiquidado: 0
+      naoFaturadosLiquidado: 0,
+      projecaoARealizar: 0
     };
     
     const isFaturado = service.numeroFatura && service.numeroFatura.trim() !== '';
@@ -440,6 +445,11 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
       existing.naoFaturadosLiquidado += service.liquidado;
     }
     
+    // Valores a realizar projeção (contratos com saldo ainda não faturado)
+    if (service.tipoServico === 'contrato') {
+      existing.projecaoARealizar += service.valorARealizar;
+    }
+    
     monthMap.set(mesAno, existing);
   });
   
@@ -453,8 +463,9 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
     faturadosDebito: acc.faturadosDebito + item.faturadosDebito,
     faturadosLiquidado: acc.faturadosLiquidado + item.faturadosLiquidado,
     naoFaturadosDebito: acc.naoFaturadosDebito + item.naoFaturadosDebito,
-    naoFaturadosLiquidado: acc.naoFaturadosLiquidado + item.naoFaturadosLiquidado
-  }), { faturadosDebito: 0, faturadosLiquidado: 0, naoFaturadosDebito: 0, naoFaturadosLiquidado: 0 });
+    naoFaturadosLiquidado: acc.naoFaturadosLiquidado + item.naoFaturadosLiquidado,
+    projecaoARealizar: acc.projecaoARealizar + item.projecaoARealizar
+  }), { faturadosDebito: 0, faturadosLiquidado: 0, naoFaturadosDebito: 0, naoFaturadosLiquidado: 0, projecaoARealizar: 0 });
   
   return { monthData, totals };
 };
