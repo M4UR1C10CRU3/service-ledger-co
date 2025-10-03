@@ -164,7 +164,6 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableHead>Faturados (Liquidado)</TableHead>
                 <TableHead>Não Faturados (Débito)</TableHead>
                 <TableHead>Não Faturados (Liquidado)</TableHead>
-                <TableHead>Projeção a Realizar</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -175,7 +174,6 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                   <TableCell>{formatCurrency(item.faturadosLiquidado)}</TableCell>
                   <TableCell>{formatCurrency(item.naoFaturadosDebito)}</TableCell>
                   <TableCell>{formatCurrency(item.naoFaturadosLiquidado)}</TableCell>
-                  <TableCell>{formatCurrency(item.projecaoARealizar)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -186,7 +184,6 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableCell className="font-bold">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
-                <TableCell className="font-bold">{formatCurrency(totals.projecaoARealizar)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -415,7 +412,6 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
     faturadosLiquidado: number; 
     naoFaturadosDebito: number; 
     naoFaturadosLiquidado: number;
-    projecaoARealizar: number;
   }>();
   
   services.forEach(service => {
@@ -427,37 +423,24 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
       faturadosDebito: 0,
       faturadosLiquidado: 0,
       naoFaturadosDebito: 0,
-      naoFaturadosLiquidado: 0,
-      projecaoARealizar: 0
+      naoFaturadosLiquidado: 0
     };
     
     const isFaturado = service.numeroFatura && service.numeroFatura.trim() !== '';
     const temProposta = service.proposta && service.proposta.trim() !== '';
     
-    // Valores faturados (em débito e liquidados)
+    // Valores faturados (todos com número de fatura - em débito e liquidados)
     if (isFaturado) {
       existing.faturadosDebito += service.executadoEmDebito;
       existing.faturadosLiquidado += service.liquidado;
     } 
     // Valores não faturados (com proposta mas sem fatura - em débito e liquidados)
-    else if (temProposta) {
+    else if (temProposta && !isFaturado) {
       existing.naoFaturadosDebito += service.executadoEmDebito;
       existing.naoFaturadosLiquidado += service.liquidado;
     }
     
     monthMap.set(mesAno, existing);
-  });
-  
-  // Calcular projeção a realizar por mês (contratos com saldo a realizar)
-  const contratos = services.filter(s => s.tipoServico === 'contrato');
-  contratos.forEach(contrato => {
-    const [day, month, year] = contrato.data.split('/');
-    const mesAno = `${month}/${year}`;
-    
-    const existing = monthMap.get(mesAno);
-    if (existing) {
-      existing.projecaoARealizar += contrato.valorARealizar;
-    }
   });
   
   const monthData = Array.from(monthMap.values()).sort((a, b) => {
@@ -470,9 +453,8 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
     faturadosDebito: acc.faturadosDebito + item.faturadosDebito,
     faturadosLiquidado: acc.faturadosLiquidado + item.faturadosLiquidado,
     naoFaturadosDebito: acc.naoFaturadosDebito + item.naoFaturadosDebito,
-    naoFaturadosLiquidado: acc.naoFaturadosLiquidado + item.naoFaturadosLiquidado,
-    projecaoARealizar: acc.projecaoARealizar + item.projecaoARealizar
-  }), { faturadosDebito: 0, faturadosLiquidado: 0, naoFaturadosDebito: 0, naoFaturadosLiquidado: 0, projecaoARealizar: 0 });
+    naoFaturadosLiquidado: acc.naoFaturadosLiquidado + item.naoFaturadosLiquidado
+  }), { faturadosDebito: 0, faturadosLiquidado: 0, naoFaturadosDebito: 0, naoFaturadosLiquidado: 0 });
   
   return { monthData, totals };
 };
