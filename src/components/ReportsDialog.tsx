@@ -65,7 +65,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Valores Faturados por Cliente</CardTitle>
+          <CardTitle>Relatório - Valores Faturados</CardTitle>
+          <p className="text-sm text-muted-foreground">Análise detalhada de todas as faturas emitidas</p>
         </CardHeader>
         <CardContent className="overflow-auto">
           <Table>
@@ -75,7 +76,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableHead>Nº Faturas</TableHead>
                 <TableHead>Valor Total</TableHead>
                 <TableHead>Liquidado</TableHead>
-                <TableHead>Em Dívida</TableHead>
+                <TableHead>Em Débito</TableHead>
+                <TableHead>% Liquidado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,16 +88,18 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                   <TableCell>{formatCurrency(item.valorTotal)}</TableCell>
                   <TableCell>{formatCurrency(item.liquidado)}</TableCell>
                   <TableCell>{formatCurrency(item.emDebito)}</TableCell>
+                  <TableCell>{formatPercentage((item.liquidado / item.valorTotal) * 100)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter>
-              <TableRow>
-                <TableCell colSpan={1}></TableCell>
-                <TableCell>Total:</TableCell>
-                <TableCell>{formatCurrency(totals.valorTotal)}</TableCell>
-                <TableCell>{formatCurrency(totals.liquidado)}</TableCell>
-                <TableCell>{formatCurrency(totals.emDebito)}</TableCell>
+              <TableRow className="bg-muted/50">
+                <TableCell className="font-bold">TOTAL GERAL</TableCell>
+                <TableCell className="font-bold">{totals.nFaturas}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.valorTotal)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.liquidado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.emDebito)}</TableCell>
+                <TableCell className="font-bold">{formatPercentage((totals.liquidado / totals.valorTotal) * 100)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -109,7 +113,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Valores Não Faturados por Cliente</CardTitle>
+          <CardTitle>Relatório - Valores Não Faturados</CardTitle>
+          <p className="text-sm text-muted-foreground">Serviços com proposta emitida mas sem fatura</p>
         </CardHeader>
         <CardContent className="overflow-auto">
           <Table>
@@ -119,7 +124,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableHead>Nº Serviços</TableHead>
                 <TableHead>Valor Total</TableHead>
                 <TableHead>Liquidado</TableHead>
-                <TableHead>Em Dívida</TableHead>
+                <TableHead>Em Débito</TableHead>
+                <TableHead>% Liquidado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -130,16 +136,18 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                   <TableCell>{formatCurrency(item.valorTotal)}</TableCell>
                   <TableCell>{formatCurrency(item.liquidado)}</TableCell>
                   <TableCell>{formatCurrency(item.emDebito)}</TableCell>
+                  <TableCell>{formatPercentage((item.liquidado / item.valorTotal) * 100)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter>
-              <TableRow>
-                <TableCell colSpan={1}></TableCell>
-                <TableCell>Total:</TableCell>
-                <TableCell>{formatCurrency(totals.valorTotal)}</TableCell>
-                <TableCell>{formatCurrency(totals.liquidado)}</TableCell>
-                <TableCell>{formatCurrency(totals.emDebito)}</TableCell>
+              <TableRow className="bg-muted/50">
+                <TableCell className="font-bold">TOTAL GERAL</TableCell>
+                <TableCell className="font-bold">{totals.nServicos}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.valorTotal)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.liquidado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.emDebito)}</TableCell>
+                <TableCell className="font-bold">{formatPercentage((totals.liquidado / totals.valorTotal) * 100)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -154,6 +162,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
       <Card>
         <CardHeader>
           <CardTitle>Relatório Geral Mensal</CardTitle>
+          <p className="text-sm text-muted-foreground">Movimento geral separado por mês com totais</p>
         </CardHeader>
         <CardContent className="overflow-auto">
           <Table>
@@ -180,8 +189,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
               ))}
             </TableBody>
             <TableFooter>
-              <TableRow>
-                <TableCell className="font-bold">Total</TableCell>
+              <TableRow className="bg-muted/50">
+                <TableCell className="font-bold">TOTAL GERAL</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.faturadosDebito)}</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
                 <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
@@ -233,7 +242,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Projeção de Valores a Realizar</CardTitle>
+          <CardTitle>Relatório - Projeção de Valores a Realizar</CardTitle>
+          <p className="text-sm text-muted-foreground">Contratos com saldo ainda não faturado</p>
         </CardHeader>
         <CardContent className="overflow-auto">
           <Table>
@@ -244,6 +254,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                 <TableHead>Valor Faturado</TableHead>
                 <TableHead>Valor a Realizar</TableHead>
                 <TableHead>Nº Contratos</TableHead>
+                <TableHead>% Faturado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -254,17 +265,18 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
                   <TableCell>{formatCurrency(item.valorFaturado)}</TableCell>
                   <TableCell>{formatCurrency(item.valorARealizar)}</TableCell>
                   <TableCell>{item.nContratos}</TableCell>
+                  <TableCell>{formatPercentage((item.valorFaturado / item.valorContratado) * 100)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter>
-              <TableRow>
-                <TableCell colSpan={1}></TableCell>
-                <TableCell>Total:</TableCell>
-                <TableCell>{formatCurrency(totals.valorContratado)}</TableCell>
-                <TableCell>{formatCurrency(totals.valorFaturado)}</TableCell>
-                <TableCell>{formatCurrency(totals.valorARealizar)}</TableCell>
-                <TableCell>{totals.nContratos}</TableCell>
+              <TableRow className="bg-muted/50">
+                <TableCell className="font-bold">TOTAL GERAL</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.valorContratado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.valorFaturado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.valorARealizar)}</TableCell>
+                <TableCell className="font-bold">{totals.nContratos}</TableCell>
+                <TableCell className="font-bold">{formatPercentage((totals.valorFaturado / totals.valorContratado) * 100)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -333,9 +345,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
 };
 
 const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
-  console.log('getValoresFaturadosReport - Total services:', services.length);
   const faturados = services.filter(s => s.numeroFatura && s.numeroFatura.trim() !== '');
-  console.log('getValoresFaturadosReport - Faturados:', faturados.length);
   
   const clientMap = new Map<string, { cliente: string; nFaturas: number; valorTotal: number; liquidado: number; emDebito: number }>();
   
@@ -369,12 +379,10 @@ const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
-  console.log('getValoresNaoFaturadosReport - Total services:', services.length);
   // Filtrar serviços onde foi emitida proposta mas não foi emitida fatura
   const naoFaturados = services.filter(s => 
     s.proposta && s.proposta.trim() !== '' && (!s.numeroFatura || s.numeroFatura.trim() === '')
   );
-  console.log('getValoresNaoFaturadosReport - Não faturados:', naoFaturados.length);
   
   const clientMap = new Map<string, { cliente: string; nServicos: number; valorTotal: number; liquidado: number; emDebito: number }>();
   
@@ -408,8 +416,7 @@ const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
-  console.log('getRelatorioGeralReport - Total services:', services.length);
-  const monthMap = new Map<string, { 
+  const monthMap = new Map<string, {
     mes: string; 
     faturadosDebito: number; 
     faturadosLiquidado: number; 
@@ -500,9 +507,7 @@ const getMovimentoMensalReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getProjecaoValoresReport = (services: ServiceWithCalculations[]) => {
-  console.log('getProjecaoValoresReport - Total services:', services.length);
   const contratos = services.filter(s => s.tipoServico === 'contrato');
-  console.log('getProjecaoValoresReport - Contratos:', contratos.length);
   
   const clientMap = new Map<string, {
     cliente: string; 
