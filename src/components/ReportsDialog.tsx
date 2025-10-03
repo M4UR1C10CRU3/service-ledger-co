@@ -160,9 +160,9 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]">Mês</TableHead>
-                <TableHead>Faturados (Dívida)</TableHead>
+                <TableHead>Faturados (Débito)</TableHead>
                 <TableHead>Faturados (Liquidado)</TableHead>
-                <TableHead>Não Faturados (Dívida)</TableHead>
+                <TableHead>Não Faturados (Débito)</TableHead>
                 <TableHead>Não Faturados (Liquidado)</TableHead>
                 <TableHead>Projeção a Realizar</TableHead>
               </TableRow>
@@ -181,13 +181,12 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell colSpan={1}></TableCell>
-                <TableCell>Total:</TableCell>
-                <TableCell>{formatCurrency(totals.faturadosDebito)}</TableCell>
-                <TableCell>{formatCurrency(totals.faturadosLiquidado)}</TableCell>
-                <TableCell>{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
-                <TableCell>{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
-                <TableCell>{formatCurrency(totals.projecaoARealizar)}</TableCell>
+                <TableCell className="font-bold">Total</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.faturadosDebito)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.faturadosLiquidado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosDebito)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.naoFaturadosLiquidado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.projecaoARealizar)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -368,7 +367,10 @@ const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
-  const naoFaturados = services.filter(s => !s.numeroFatura || s.numeroFatura.trim() === '');
+  // Filtrar serviços onde foi emitida proposta mas não foi emitida fatura
+  const naoFaturados = services.filter(s => 
+    s.proposta && s.proposta.trim() !== '' && (!s.numeroFatura || s.numeroFatura.trim() === '')
+  );
   
   const clientMap = new Map<string, { cliente: string; nServicos: number; valorTotal: number; liquidado: number; emDebito: number }>();
   
@@ -425,20 +427,32 @@ const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
     };
     
     const isFaturado = service.numeroFatura && service.numeroFatura.trim() !== '';
+    const temProposta = service.proposta && service.proposta.trim() !== '';
     
+    // Valores faturados (em débito e liquidados)
     if (isFaturado) {
       existing.faturadosDebito += service.executadoEmDebito;
       existing.faturadosLiquidado += service.liquidado;
-    } else {
+    } 
+    // Valores não faturados (com proposta mas sem fatura - em débito e liquidados)
+    else if (temProposta) {
       existing.naoFaturadosDebito += service.executadoEmDebito;
       existing.naoFaturadosLiquidado += service.liquidado;
     }
     
-    if (service.tipoServico === 'contrato') {
-      existing.projecaoARealizar += service.valorARealizar;
-    }
-    
     monthMap.set(mesAno, existing);
+  });
+  
+  // Calcular projeção a realizar por mês (contratos com saldo a realizar)
+  const contratos = services.filter(s => s.tipoServico === 'contrato');
+  contratos.forEach(contrato => {
+    const [day, month, year] = contrato.data.split('/');
+    const mesAno = `${month}/${year}`;
+    
+    const existing = monthMap.get(mesAno);
+    if (existing) {
+      existing.projecaoARealizar += contrato.valorARealizar;
+    }
   });
   
   const monthData = Array.from(monthMap.values()).sort((a, b) => {
