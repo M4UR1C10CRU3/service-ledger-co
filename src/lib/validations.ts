@@ -96,7 +96,30 @@ export const liquidacaoSchema = z.object({
   dataPagamento: dateSchema,
   observacoes: z
     .string()
+    .trim()
     .max(500, { message: "Observações devem ter no máximo 500 caracteres" })
+    .optional(),
+});
+
+// Invoice creation validation schema
+export const invoiceFormSchema = z.object({
+  numeroFatura: z
+    .string()
+    .trim()
+    .min(1, { message: "Número da fatura é obrigatório" })
+    .max(100, { message: "Número da fatura deve ter no máximo 100 caracteres" }),
+  valorComIVA: z
+    .number()
+    .min(0.01, { message: "Valor deve ser maior que zero" })
+    .max(999999999, { message: "Valor muito alto" }),
+  valorSemIVA: z
+    .number()
+    .min(0.01, { message: "Valor deve ser maior que zero" })
+    .max(999999999, { message: "Valor muito alto" }),
+  resumo: z
+    .string()
+    .trim()
+    .max(40, { message: "Resumo deve ter no máximo 40 caracteres" })
     .optional(),
 });
 
@@ -104,3 +127,4 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export type SignupFormData = z.infer<typeof signupSchema>;
 export type ServiceFormData = z.infer<typeof serviceFormSchema>;
 export type LiquidacaoFormData = z.infer<typeof liquidacaoSchema>;
+export type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
