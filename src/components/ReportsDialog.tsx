@@ -333,7 +333,9 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
 };
 
 const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
+  console.log('getValoresFaturadosReport - Total services:', services.length);
   const faturados = services.filter(s => s.numeroFatura && s.numeroFatura.trim() !== '');
+  console.log('getValoresFaturadosReport - Faturados:', faturados.length);
   
   const clientMap = new Map<string, { cliente: string; nFaturas: number; valorTotal: number; liquidado: number; emDebito: number }>();
   
@@ -367,10 +369,12 @@ const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
+  console.log('getValoresNaoFaturadosReport - Total services:', services.length);
   // Filtrar serviços onde foi emitida proposta mas não foi emitida fatura
   const naoFaturados = services.filter(s => 
     s.proposta && s.proposta.trim() !== '' && (!s.numeroFatura || s.numeroFatura.trim() === '')
   );
+  console.log('getValoresNaoFaturadosReport - Não faturados:', naoFaturados.length);
   
   const clientMap = new Map<string, { cliente: string; nServicos: number; valorTotal: number; liquidado: number; emDebito: number }>();
   
@@ -404,6 +408,7 @@ const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getRelatorioGeralReport = (services: ServiceWithCalculations[]) => {
+  console.log('getRelatorioGeralReport - Total services:', services.length);
   const monthMap = new Map<string, { 
     mes: string; 
     faturadosDebito: number; 
@@ -501,9 +506,11 @@ const getMovimentoMensalReport = (services: ServiceWithCalculations[]) => {
 };
 
 const getProjecaoValoresReport = (services: ServiceWithCalculations[]) => {
+  console.log('getProjecaoValoresReport - Total services:', services.length);
   const contratos = services.filter(s => s.tipoServico === 'contrato');
+  console.log('getProjecaoValoresReport - Contratos:', contratos.length);
   
-  const clientMap = new Map<string, { 
+  const clientMap = new Map<string, {
     cliente: string; 
     valorContratado: number; 
     valorFaturado: number; 
