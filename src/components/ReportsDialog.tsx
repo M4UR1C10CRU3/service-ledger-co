@@ -27,6 +27,7 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { FileText, Download } from 'lucide-react';
+import logoObrajusta from '@/assets/logo-obrajusta.png';
 
 interface ReportsDialogProps {
   open: boolean;
@@ -57,7 +58,25 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const handleExportPDF = () => {
+    // Trigger browser print dialog with custom print styles
     window.print();
+  };
+
+  const getReportTitle = () => {
+    switch (selectedReport) {
+      case 'faturados':
+        return 'Relatório de Valores Faturados';
+      case 'nao-faturados':
+        return 'Relatório de Valores Não Faturados';
+      case 'geral':
+        return 'Relatório Geral Mensal';
+      case 'movimento-mensal':
+        return 'Relatório de Movimento Mensal';
+      case 'projecao':
+        return 'Relatório de Projeção de Valores a Realizar';
+      default:
+        return 'Relatório Financeiro';
+    }
   };
 
   const getValoresFaturadosTable = () => {
@@ -296,40 +315,153 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <FileText className="w-6 h-6" />
-            Relatórios Financeiros
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b">
-          <div className="w-full sm:w-auto">
-            <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
-            <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
-              <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
-                <SelectValue placeholder="Selecione o tipo de relatório" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-[100]">
-                <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
-                <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
-                <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
-                <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
-                <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
-              </SelectContent>
-            </Select>
+    <>
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-report, #printable-report * {
+            visibility: visible;
+          }
+          #printable-report {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20mm;
+            background: white;
+          }
+          .print-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #333;
+          }
+          .print-logo {
+            max-width: 150px;
+            height: auto;
+          }
+          .company-info {
+            text-align: right;
+            font-size: 10pt;
+            line-height: 1.4;
+          }
+          .company-name {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .report-title {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+          }
+          .report-date {
+            text-align: right;
+            font-size: 9pt;
+            margin-bottom: 20px;
+            color: #666;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 9pt;
+          }
+          table th {
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+          }
+          table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+          }
+          tfoot td {
+            background-color: #f8f8f8;
+            font-weight: bold;
+          }
+          .print-footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
+          <DialogHeader className="no-print">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <FileText className="w-6 h-6" />
+              Relatórios Financeiros
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b no-print">
+            <div className="w-full sm:w-auto">
+              <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
+              <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
+                <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
+                  <SelectValue placeholder="Selecione o tipo de relatório" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-[100]">
+                  <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
+                  <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
+                  <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
+                  <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
+                  <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" size="default" className="w-full sm:w-auto" onClick={handleExportPDF}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
           </div>
-          <Button variant="outline" size="default" className="w-full sm:w-auto" onClick={handleExportPDF}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar PDF
-          </Button>
-        </div>
-        <ScrollArea className="flex-1 pr-4">
-          <div className="py-4">{renderReport()}</div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+          <ScrollArea className="flex-1 pr-4">
+            <div id="printable-report">
+              <div className="print-header">
+                <img src={logoObrajusta} alt="Obrajusta II" className="print-logo" />
+                <div className="company-info">
+                  <div className="company-name">Obrajusta II</div>
+                  <div>Gestão de Serviços Jurídicos</div>
+                  <div>NIF: [Número de Identificação Fiscal]</div>
+                  <div>Email: contato@obrajusta.pt</div>
+                  <div>Tel: +351 XXX XXX XXX</div>
+                </div>
+              </div>
+              <h1 className="report-title">{getReportTitle()}</h1>
+              <div className="report-date">
+                Data de Emissão: {new Date().toLocaleDateString('pt-PT', { 
+                  day: '2-digit', 
+                  month: '2-digit', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+              <div className="py-4">{renderReport()}</div>
+              <div className="print-footer">
+                <p>Este documento foi gerado automaticamente pelo sistema de gestão Obrajusta II</p>
+                <p>© {new Date().getFullYear()} Obrajusta II - Todos os direitos reservados</p>
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
