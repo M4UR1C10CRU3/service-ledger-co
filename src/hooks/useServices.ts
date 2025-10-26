@@ -108,6 +108,8 @@ const saveServiceToDatabase = async (service: Service) => {
         valor_faturado: service.valorFaturado || 0,
         numero_fatura: service.numeroFatura || null,
         created_at: service.createdAt.toISOString(),
+      }, {
+        onConflict: 'service_id',
       });
     
     if (error) {
