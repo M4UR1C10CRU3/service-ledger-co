@@ -161,7 +161,6 @@ export const ServiceForm = ({
     });
   };
 
-  const tipoServico = form.watch('tipoServico');
   const resumo = form.watch('resumo');
 
   return (
@@ -265,97 +264,12 @@ export const ServiceForm = ({
 
                 <FormField
                   control={form.control}
-                  name="tipoServico"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Serviço</FormLabel>
-                      <FormControl>
-                        <select
-                          {...field}
-                          className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                        >
-                          <option value="fatura">Fatura (Débito Real)</option>
-                          <option value="contrato">Contrato (Projeção)</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {tipoServico === 'fatura' && (
-                  <FormField
-                    control={form.control}
-                    name="contratoId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contrato de Origem (opcional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="ID do contrato pai"
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          Deixe vazio para faturas independentes
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {tipoServico === 'fatura' && (
-                  <FormField
-                    control={form.control}
-                    name="numeroFatura"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número da Fatura</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Número da fatura"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                <FormField
-                  control={form.control}
                   name="proposta"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Proposta (opcional)</FormLabel>
+                      <FormLabel>Proposta</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Opcional" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="fatura"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {tipoServico === 'contrato' ? 'Valor Total Contratado (€)' : 'Fatura'}
-                      </FormLabel>
-                      <FormControl>
-                        {tipoServico === 'contrato' ? (
-                          <div className="p-3 bg-muted rounded-md">
-                            <p className="text-sm text-muted-foreground">
-                              Para contratos, este é o valor total acordado.
-                            </p>
-                          </div>
-                        ) : (
-                          <Input {...field} placeholder="Número da fatura" />
-                        )}
+                        <Input {...field} placeholder="Número da proposta" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -367,9 +281,7 @@ export const ServiceForm = ({
                   name="valorComIVA"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        {tipoServico === 'contrato' ? 'Valor Total com IVA (€)' : 'Valor com IVA (€)'}
-                      </FormLabel>
+                      <FormLabel>Valor Total da Proposta com IVA (€)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -379,11 +291,9 @@ export const ServiceForm = ({
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </FormControl>
-                      {tipoServico === 'contrato' && (
-                        <p className="text-xs text-muted-foreground">
-                          Este valor não será considerado como débito até que faturas sejam emitidas.
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Valor total acordado na proposta
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -394,9 +304,7 @@ export const ServiceForm = ({
                   name="valorSemIVA"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        {tipoServico === 'contrato' ? 'Valor Total sem IVA (€)' : 'Valor sem IVA (€)'}
-                      </FormLabel>
+                      <FormLabel>Valor Total da Proposta sem IVA (€)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -407,6 +315,104 @@ export const ServiceForm = ({
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Separator className="md:col-span-2 my-2" />
+                
+                <div className="md:col-span-2">
+                  <h4 className="text-sm font-medium mb-3">Faturamento</h4>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Se houver fatura emitida, informe o número e valor faturado. O valor pode ser menor que o total da proposta.
+                  </p>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="numeroFatura"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número da Fatura (opcional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Ex: 17/2025"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="valorFaturado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor Faturado com IVA (€)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...field}
+                          value={field.value || 0}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Valor efetivamente faturado (pode ser menor que o total)
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Calculated value display */}
+                {(() => {
+                  const valorTotal = form.watch('valorComIVA') || 0;
+                  const valorFat = form.watch('valorFaturado') || 0;
+                  const valorNaoFaturado = Math.max(0, valorTotal - valorFat);
+                  
+                  if (valorTotal > 0 && valorFat > 0 && valorNaoFaturado > 0) {
+                    return (
+                      <div className="md:col-span-2 p-3 bg-muted rounded-md">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Valor Não Faturado:</span>
+                          <span className="text-lg font-bold text-orange-600">
+                            €{valorNaoFaturado.toLocaleString('pt-PT', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Diferença entre o valor da proposta e o valor faturado
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <FormField
+                  control={form.control}
+                  name="fatura"
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tipoServico"
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
@@ -433,21 +439,13 @@ export const ServiceForm = ({
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">
-                    Liquidações 
-                    {tipoServico === 'contrato' ? ' (Não aplicável a contratos)' : ' (Opcional)'}
-                  </CardTitle>
+                  <CardTitle className="text-lg">Liquidações (Opcional)</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {tipoServico === 'contrato' 
-                      ? 'Contratos não recebem liquidações diretamente. Crie faturas parciais para registrar pagamentos.'
-                      : 'Adicione pagamentos parciais ou totais para esta fatura'
-                    }
+                    Adicione pagamentos parciais ou totais referentes ao valor faturado
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {tipoServico === 'fatura' && (
-                    <>
-                      {liquidacoes.length > 0 && (
+                  {liquidacoes.length > 0 && (
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Pagamentos Adicionados:</Label>
                           {liquidacoes.map((liquidacao, index) => (
@@ -532,8 +530,6 @@ export const ServiceForm = ({
                           </Button>
                         </div>
                       </div>
-                    </>
-                  )}
                 </CardContent>
               </Card>
             </form>

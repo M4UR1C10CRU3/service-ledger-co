@@ -144,7 +144,6 @@ const Index = () => {
           onEditService={handleEditService}
           onDeleteService={handleDeleteService}
           onViewService={handleViewService}
-          onCreateInvoice={handleCreateInvoice}
         />
       </main>
 

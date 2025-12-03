@@ -2,7 +2,7 @@ import { ServiceWithCalculations } from '@/types/service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Eye, Plus } from 'lucide-react';
+import { Edit, Trash2, Eye } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,15 +17,13 @@ interface ServiceTableProps {
   onEditService: (service: ServiceWithCalculations) => void;
   onDeleteService: (id: string) => void;
   onViewService: (service: ServiceWithCalculations) => void;
-  onCreateInvoice?: (contract: ServiceWithCalculations) => void;
 }
 
 export const ServiceTable = ({ 
   services, 
   onEditService, 
   onDeleteService, 
-  onViewService,
-  onCreateInvoice 
+  onViewService
 }: ServiceTableProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-PT', {
@@ -34,35 +32,27 @@ export const ServiceTable = ({
     }).format(value);
   };
 
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
-  };
-
   const getStatusBadge = (service: ServiceWithCalculations) => {
-    // Para contratos
-    if (service.tipoServico === 'contrato') {
-      if (service.statusContrato === 'nao_iniciado') {
-        return <Badge variant="outline">Não Iniciado</Badge>;
-      }
-      if (service.statusContrato === 'em_andamento') {
-        return <Badge className="bg-blue-100 text-blue-800">Em Andamento</Badge>;
-      }
-      if (service.statusContrato === 'concluido') {
-        return <Badge className="bg-green-100 text-green-800">Concluído</Badge>;
-      }
+    const valorFaturado = service.valorFaturado || 0;
+    
+    // Sem fatura emitida
+    if (!service.numeroFatura && valorFaturado === 0) {
+      return <Badge variant="outline">Não Faturado</Badge>;
     }
     
-    // Para faturas
-    if (!service.fatura) {
-      return <Badge variant="outline">A Realizar</Badge>;
-    }
-    
-    if (service.executadoEmDebito === 0) {
+    // Totalmente liquidado
+    if (valorFaturado > 0 && service.executadoEmDebito === 0) {
       return <Badge className="status-paid">Liquidado</Badge>;
     }
     
+    // Em atraso
     if (service.diasEmAtraso > 0) {
       return <Badge className="status-overdue">Em Atraso ({service.diasEmAtraso}d)</Badge>;
+    }
+    
+    // Parcialmente faturado ou pendente
+    if (service.valorARealizar > 0 && valorFaturado > 0) {
+      return <Badge className="bg-blue-100 text-blue-800">Parcial</Badge>;
     }
     
     return <Badge className="status-pending">Pendente</Badge>;
@@ -84,16 +74,16 @@ export const ServiceTable = ({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]">Data</TableHead>
-                <TableHead className="w-[80px]">Tipo</TableHead>
                 <TableHead>Serviço</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead className="w-[200px]">Resumo</TableHead>
                 <TableHead className="w-[100px]">Proposta</TableHead>
                 <TableHead className="w-[100px]">Fatura</TableHead>
-                <TableHead className="text-right w-[120px]">Valor c/ IVA</TableHead>
+                <TableHead className="text-right w-[120px]">Valor Total</TableHead>
+                <TableHead className="text-right w-[120px]">Faturado</TableHead>
+                <TableHead className="text-right w-[120px]">Não Faturado</TableHead>
                 <TableHead className="text-right w-[120px]">Liquidado</TableHead>
-                <TableHead className="text-right w-[120px]">Saldo</TableHead>
-                <TableHead className="text-right w-[100px]">%</TableHead>
+                <TableHead className="text-right w-[120px]">Em Débito</TableHead>
                 <TableHead className="w-[130px]">Status</TableHead>
                 <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
@@ -102,62 +92,41 @@ export const ServiceTable = ({
               {services.map((service) => (
                 <TableRow key={service.id}>
                   <TableCell className="font-mono text-sm">{service.data}</TableCell>
-                  <TableCell>
-                    <Badge variant={service.tipoServico === 'contrato' ? 'default' : 'secondary'}>
-                      {service.tipoServico === 'contrato' ? 'Contrato' : 'Fatura'}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="font-medium">{service.servico}</TableCell>
                   <TableCell>{service.cliente}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {service.resumo}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{service.proposta}</TableCell>
+                  <TableCell className="font-mono text-sm">{service.proposta || '—'}</TableCell>
                   <TableCell className="font-mono text-sm">
-                    {service.tipoServico === 'contrato' 
-                      ? (service.contratoId ? `Vinculado: ${service.contratoId}` : '—')
-                      : (service.fatura || '—')
-                    }
+                    {service.numeroFatura || '—'}
                   </TableCell>
                   <TableCell className="table-cell-currency">
                     {formatCurrency(service.valorComIVA)}
                   </TableCell>
                   <TableCell className="table-cell-currency">
-                    {service.tipoServico === 'contrato' 
-                      ? formatCurrency(service.valorFaturado)
-                      : formatCurrency(service.liquidado)
-                    }
+                    <span className={service.valorFaturado > 0 ? "text-green-600" : ""}>
+                      {formatCurrency(service.valorFaturado || 0)}
+                    </span>
                   </TableCell>
                   <TableCell className="table-cell-currency">
-                    {service.tipoServico === 'contrato' ? (
-                      <span className="text-blue-600">
-                        {formatCurrency(service.valorARealizar)}
-                      </span>
-                    ) : (
-                      <span className={service.executadoEmDebito > 0 ? "text-danger" : ""}>
-                        {formatCurrency(service.executadoEmDebito)}
-                      </span>
-                    )}
+                    <span className={service.valorARealizar > 0 ? "text-orange-600" : ""}>
+                      {formatCurrency(service.valorARealizar)}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {formatPercentage(service.percentualLiquidado)}
+                  <TableCell className="table-cell-currency">
+                    {formatCurrency(service.liquidado)}
+                  </TableCell>
+                  <TableCell className="table-cell-currency">
+                    <span className={service.executadoEmDebito > 0 ? "text-danger" : ""}>
+                      {formatCurrency(service.executadoEmDebito)}
+                    </span>
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(service)}
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
-                      {service.tipoServico === 'contrato' && service.valorARealizar > 0 && onCreateInvoice && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onCreateInvoice(service)}
-                          title="Criar Fatura Parcial"
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      )}
                       <Button
                         variant="ghost"
                         size="sm"
