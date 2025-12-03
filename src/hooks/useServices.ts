@@ -232,30 +232,24 @@ export const useServices = () => {
     const serviceLiquidacoes = liquidacoes[service.id] || [];
     const liquidadoCalculated = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
     
-    // Para contratos: não há débito, apenas valor a realizar
-    if (service.tipoServico === 'contrato') {
-      const valorARealizar = service.valorComIVA - service.valorFaturado;
-      
-      return {
-        ...service,
-        liquidado: liquidadoCalculated,
-        executadoEmDebito: 0, // Contratos não geram débito
-        diasEmAtraso: 0,
-        percentualLiquidado: service.valorComIVA > 0 ? (service.valorFaturado / service.valorComIVA) * 100 : 0,
-        valorARealizar,
-        statusContrato: service.valorFaturado === 0 ? 'nao_iniciado' : 
-                      service.valorFaturado >= service.valorComIVA ? 'concluido' : 'em_andamento',
-        liquidacoes: serviceLiquidacoes,
-      };
-    }
+    // Novo modelo simplificado:
+    // - valorComIVA = valor total da proposta
+    // - valorFaturado = valor efetivamente faturado (pode ser menor que o total)
+    // - valorNaoFaturado = valorComIVA - valorFaturado (calculado)
+    // - executadoEmDebito = valorFaturado - liquidado (débito é sobre o faturado)
     
-    // Para faturas: cálculo tradicional de débito
-    const executadoEmDebito = service.valorComIVA - liquidadoCalculated;
-    const percentualLiquidado = service.valorComIVA > 0 ? (liquidadoCalculated / service.valorComIVA) * 100 : 0;
+    const valorFaturado = service.valorFaturado || 0;
+    const valorNaoFaturado = service.valorComIVA - valorFaturado;
+    
+    // Débito é baseado no valor faturado menos o que foi liquidado
+    const executadoEmDebito = Math.max(0, valorFaturado - liquidadoCalculated);
+    
+    // Percentual liquidado é sobre o valor faturado (não o total da proposta)
+    const percentualLiquidado = valorFaturado > 0 ? (liquidadoCalculated / valorFaturado) * 100 : 0;
     
     // Calculate days overdue if invoice exists and not fully paid
     let diasEmAtraso = 0;
-    if (service.fatura && executadoEmDebito > 0) {
+    if (service.numeroFatura && executadoEmDebito > 0) {
       const [day, month, year] = service.data.split('/').map(Number);
       const serviceDate = new Date(year, month - 1, day);
       const today = new Date();
@@ -269,7 +263,7 @@ export const useServices = () => {
       executadoEmDebito,
       diasEmAtraso,
       percentualLiquidado,
-      valorARealizar: 0, // Faturas não têm valor a realizar
+      valorARealizar: valorNaoFaturado, // Valor não faturado
       liquidacoes: serviceLiquidacoes,
     };
   };
@@ -279,33 +273,40 @@ export const useServices = () => {
   }, [services, liquidacoes]);
 
   const dashboardMetrics = useMemo((): DashboardMetrics => {
-    const faturas = servicesWithCalculations.filter(s => s.tipoServico === 'fatura');
-    const contratos = servicesWithCalculations.filter(s => s.tipoServico === 'contrato');
+    // Novo modelo simplificado - todos os serviços
+    const allServices = servicesWithCalculations;
     
-    // Métricas de faturas (débitos reais)
-    const totalFaturado = faturas.reduce((sum, service) => sum + service.valorComIVA, 0);
-    const totalLiquidado = faturas.reduce((sum, service) => sum + service.liquidado, 0);
-    const totalEmDebito = faturas.reduce((sum, service) => sum + service.executadoEmDebito, 0);
-    const servicosEmAtraso = faturas.filter(service => service.diasEmAtraso > 0).length;
+    // Total da proposta (valor acordado)
+    const totalContratado = allServices.reduce((sum, service) => sum + service.valorComIVA, 0);
     
-    // Métricas de contratos (projeções)
-    const totalContratado = contratos.reduce((sum, service) => sum + service.valorComIVA, 0);
-    const totalJaFaturado = contratos.reduce((sum, service) => sum + service.valorFaturado, 0);
-    const totalARealizar = contratos.reduce((sum, service) => sum + service.valorARealizar, 0);
+    // Total efetivamente faturado
+    const totalFaturado = allServices.reduce((sum, service) => sum + (service.valorFaturado || 0), 0);
+    
+    // Total não faturado (diferença entre proposta e faturado)
+    const totalARealizar = allServices.reduce((sum, service) => sum + service.valorARealizar, 0);
+    
+    // Total liquidado (pagamentos recebidos)
+    const totalLiquidado = allServices.reduce((sum, service) => sum + service.liquidado, 0);
+    
+    // Total em débito (faturado - liquidado)
+    const totalEmDebito = allServices.reduce((sum, service) => sum + service.executadoEmDebito, 0);
+    
+    // Serviços em atraso
+    const servicosEmAtraso = allServices.filter(service => service.diasEmAtraso > 0).length;
     
     return {
-      // Faturas
+      // Métricas de faturamento
       totalFaturado,
       totalLiquidado,
       totalEmDebito,
       percentualLiquidado: totalFaturado > 0 ? (totalLiquidado / totalFaturado) * 100 : 0,
       servicosEmAtraso,
       
-      // Contratos
+      // Métricas de propostas/contratos
       totalContratado,
       totalARealizar,
-      totalJaFaturado,
-      percentualFaturado: totalContratado > 0 ? (totalJaFaturado / totalContratado) * 100 : 0,
+      totalJaFaturado: totalFaturado,
+      percentualFaturado: totalContratado > 0 ? (totalFaturado / totalContratado) * 100 : 0,
     };
   }, [servicesWithCalculations]);
 
