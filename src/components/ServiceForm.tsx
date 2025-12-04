@@ -27,7 +27,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ServiceFormProps {
@@ -35,13 +35,19 @@ interface ServiceFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (service: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]) => void;
   editingService?: Service | null;
+  existingLiquidacoes?: Liquidacao[];
+  onUpdateLiquidacao?: (liquidacaoId: string, updates: Partial<Liquidacao>) => void;
+  onRemoveLiquidacao?: (liquidacaoId: string) => void;
 }
 
 export const ServiceForm = ({ 
   open, 
   onOpenChange, 
   onSubmit, 
-  editingService 
+  editingService,
+  existingLiquidacoes = [],
+  onUpdateLiquidacao,
+  onRemoveLiquidacao 
 }: ServiceFormProps) => {
   const { toast } = useToast();
   
@@ -66,6 +72,12 @@ export const ServiceForm = ({
 
   const [liquidacoes, setLiquidacoes] = useState<Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]>([]);
   const [novaLiquidacao, setNovaLiquidacao] = useState({
+    valor: '',
+    dataPagamento: '',
+    observacoes: ''
+  });
+  const [editingLiquidacaoId, setEditingLiquidacaoId] = useState<string | null>(null);
+  const [editingLiquidacaoData, setEditingLiquidacaoData] = useState({
     valor: '',
     dataPagamento: '',
     observacoes: ''
@@ -127,7 +139,55 @@ export const ServiceForm = ({
     setLiquidacoes(prev => prev.filter((_, i) => i !== index));
   };
 
-  const totalLiquidado = liquidacoes.reduce((total, liq) => total + liq.valor, 0);
+  const totalLiquidadoNovas = liquidacoes.reduce((total, liq) => total + liq.valor, 0);
+  const totalLiquidadoExistentes = existingLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+  const totalLiquidado = totalLiquidadoNovas + totalLiquidadoExistentes;
+
+  const handleStartEditLiquidacao = (liquidacao: Liquidacao) => {
+    setEditingLiquidacaoId(liquidacao.id);
+    setEditingLiquidacaoData({
+      valor: liquidacao.valor.toString(),
+      dataPagamento: liquidacao.dataPagamento,
+      observacoes: liquidacao.observacoes || ''
+    });
+  };
+
+  const handleCancelEditLiquidacao = () => {
+    setEditingLiquidacaoId(null);
+    setEditingLiquidacaoData({ valor: '', dataPagamento: '', observacoes: '' });
+  };
+
+  const handleSaveEditLiquidacao = () => {
+    if (editingLiquidacaoId && onUpdateLiquidacao) {
+      onUpdateLiquidacao(editingLiquidacaoId, {
+        valor: parseFloat(editingLiquidacaoData.valor) || 0,
+        dataPagamento: editingLiquidacaoData.dataPagamento,
+        observacoes: editingLiquidacaoData.observacoes || undefined
+      });
+      handleCancelEditLiquidacao();
+      toast({
+        title: "Pagamento atualizado",
+        description: "Os dados do pagamento foram atualizados com sucesso.",
+      });
+    }
+  };
+
+  const handleEditDataPagamentoChange = (value: string) => {
+    const cleaned = value.replace(/[^\d/]/g, '');
+    let masked = cleaned;
+    if (cleaned.length >= 2 && !cleaned.includes('/')) {
+      masked = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+    }
+    if (cleaned.length >= 5 && cleaned.indexOf('/') === 2) {
+      const parts = cleaned.split('/');
+      if (parts[1] && parts[1].length >= 2) {
+        masked = parts[0] + '/' + parts[1].slice(0, 2) + '/' + (parts[1].slice(2) + (parts[2] || '')).slice(0, 4);
+      }
+    }
+    if (masked.length <= 10) {
+      setEditingLiquidacaoData(prev => ({ ...prev, dataPagamento: masked }));
+    }
+  };
 
   const handleDataPagamentoChange = (value: string) => {
     const cleaned = value.replace(/[^\d/]/g, '');
@@ -439,17 +499,53 @@ export const ServiceForm = ({
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Liquidações (Opcional)</CardTitle>
+                  <CardTitle className="text-lg">Liquidações</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Adicione pagamentos parciais ou totais referentes ao valor faturado
+                    Histórico de pagamentos referentes ao valor faturado. Total: €{totalLiquidado.toFixed(2)}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {liquidacoes.length > 0 && (
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium">Pagamentos Adicionados:</Label>
-                          {liquidacoes.map((liquidacao, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                  {/* Liquidações existentes (do banco de dados) */}
+                  {existingLiquidacoes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Pagamentos Registrados:</Label>
+                      {existingLiquidacoes.map((liquidacao) => (
+                        <div key={liquidacao.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                          {editingLiquidacaoId === liquidacao.id ? (
+                            <>
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  placeholder="Valor"
+                                  value={editingLiquidacaoData.valor}
+                                  onChange={(e) => setEditingLiquidacaoData(prev => ({ ...prev, valor: e.target.value }))}
+                                />
+                                <Input
+                                  type="text"
+                                  placeholder="DD/MM/AAAA"
+                                  value={editingLiquidacaoData.dataPagamento}
+                                  onChange={(e) => handleEditDataPagamentoChange(e.target.value)}
+                                  maxLength={10}
+                                />
+                                <Input
+                                  placeholder="Observações"
+                                  value={editingLiquidacaoData.observacoes}
+                                  onChange={(e) => setEditingLiquidacaoData(prev => ({ ...prev, observacoes: e.target.value }))}
+                                />
+                              </div>
+                              <div className="flex gap-1 ml-2">
+                                <Button type="button" variant="ghost" size="sm" onClick={handleSaveEditLiquidacao}>
+                                  <Check className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button type="button" variant="ghost" size="sm" onClick={handleCancelEditLiquidacao}>
+                                  <X className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
                               <div className="flex-1">
                                 <div className="flex items-center gap-4">
                                   <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
@@ -459,21 +555,60 @@ export const ServiceForm = ({
                                   <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
                                 )}
                               </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveLiquidacao(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          <div className="text-sm font-medium text-right">
-                            Total Liquidado: €{totalLiquidado.toFixed(2)}
-                          </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleStartEditLiquidacao(liquidacao)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                {onRemoveLiquidacao && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onRemoveLiquidacao(liquidacao.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
-                      )}
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Novas liquidações (ainda não salvas) */}
+                  {liquidacoes.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Novos Pagamentos (a adicionar):</Label>
+                      {liquidacoes.map((liquidacao, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4">
+                              <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
+                              <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                            </div>
+                            {liquidacao.observacoes && (
+                              <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveLiquidacao(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
                         <div className="space-y-2">

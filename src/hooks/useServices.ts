@@ -416,6 +416,34 @@ export const useServices = () => {
     }
   };
 
+  const updateLiquidacao = async (liquidacaoId: string, serviceId: string, updates: Partial<Liquidacao>) => {
+    // Update local state immediately
+    setLiquidacoes(prev => ({
+      ...prev,
+      [serviceId]: (prev[serviceId] || []).map(l => 
+        l.id === liquidacaoId ? { ...l, ...updates } : l
+      )
+    }));
+    
+    try {
+      const updateData: any = {};
+      if (updates.valor !== undefined) updateData.valor = updates.valor;
+      if (updates.dataPagamento !== undefined) updateData.data_pagamento = updates.dataPagamento;
+      if (updates.observacoes !== undefined) updateData.observacoes = updates.observacoes;
+      
+      const { error } = await supabase
+        .from('liquidacoes')
+        .update(updateData)
+        .eq('id', liquidacaoId);
+      
+      if (error) {
+        console.error('Error updating liquidacao in database:', error);
+      }
+    } catch (error) {
+      console.error('Error updating liquidacao:', error);
+    }
+  };
+
   return {
     services: servicesWithCalculations,
     dashboardMetrics,
@@ -424,6 +452,8 @@ export const useServices = () => {
     deleteService,
     addLiquidacao,
     removeLiquidacao,
+    updateLiquidacao,
     isLoading,
+    liquidacoes,
   };
 };
