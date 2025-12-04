@@ -194,7 +194,7 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
       createdAt: new Date(row.created_at),
       tipoServico: (row as any).tipo_servico || 'fatura',
       contratoId: (row as any).contrato_id || undefined,
-      valorFaturado: (row as any).valor_faturado ? parseFloat((row as any).valor_faturado.toString()) : 0,
+      valorFaturado: parseFloat(((row as any).valor_faturado ?? 0).toString()),
       numeroFatura: (row as any).numero_fatura || undefined,
     })) || initialServices;
   } catch (error) {

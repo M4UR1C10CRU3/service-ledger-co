@@ -558,20 +558,24 @@ export const ServiceForm = ({
                               <div className="flex gap-1">
                                 <Button
                                   type="button"
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => handleStartEditLiquidacao(liquidacao)}
+                                  title="Editar pagamento"
+                                  className="h-8 w-8 p-0"
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  <Pencil className="h-4 w-4 text-blue-600" />
                                 </Button>
                                 {onRemoveLiquidacao && (
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
                                     onClick={() => onRemoveLiquidacao(liquidacao.id)}
+                                    title="Remover pagamento"
+                                    className="h-8 w-8 p-0"
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-4 w-4 text-red-600" />
                                   </Button>
                                 )}
                               </div>
