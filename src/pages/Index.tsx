@@ -41,7 +41,9 @@ const Index = () => {
     deleteService, 
     addLiquidacao, 
     removeLiquidacao,
-    isLoading 
+    updateLiquidacao,
+    isLoading,
+    liquidacoes 
   } = useServices();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
@@ -152,6 +154,17 @@ const Index = () => {
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         editingService={editingService}
+        existingLiquidacoes={editingService ? liquidacoes[editingService.id] || [] : []}
+        onUpdateLiquidacao={(liquidacaoId, updates) => {
+          if (editingService) {
+            updateLiquidacao(liquidacaoId, editingService.id, updates);
+          }
+        }}
+        onRemoveLiquidacao={(liquidacaoId) => {
+          if (editingService) {
+            removeLiquidacao(liquidacaoId, editingService.id);
+          }
+        }}
       />
 
       <ServiceDetailDialog
