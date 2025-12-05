@@ -31,7 +31,8 @@ export interface Liquidacao {
 export interface ServiceCalculations {
   executadoEmDebito: number; // Para faturas: valorComIVA - liquidado; Para contratos: 0
   diasEmAtraso: number;
-  percentualLiquidado: number; // (liquidado / valorComIVA) * 100
+  percentualLiquidado: number; // (liquidado / valorFaturado) * 100
+  percentualFaturado: number; // (valorFaturado / valorComIVA) * 100 - progresso da faturação
   valorARealizar: number; // Para contratos: valorComIVA - valorFaturado; Para faturas: 0
   statusContrato?: 'nao_iniciado' | 'em_andamento' | 'concluido'; // Para contratos
 }
