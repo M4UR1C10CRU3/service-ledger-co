@@ -171,6 +171,7 @@ const Index = () => {
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         service={selectedService}
+        allServices={services}
         onAddLiquidacao={handleAddLiquidacao}
         onRemoveLiquidacao={handleRemoveLiquidacao}
       />

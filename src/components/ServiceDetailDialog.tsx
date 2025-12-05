@@ -14,6 +14,7 @@ interface ServiceDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service: ServiceWithCalculations | null;
+  allServices: ServiceWithCalculations[];
   onAddLiquidacao: (liquidacao: Omit<Liquidacao, 'id' | 'createdAt'>) => void;
   onRemoveLiquidacao: (liquidacaoId: string) => void;
 }
@@ -22,10 +23,24 @@ export const ServiceDetailDialog = ({
   open,
   onOpenChange,
   service,
+  allServices,
   onAddLiquidacao,
   onRemoveLiquidacao
 }: ServiceDetailDialogProps) => {
   if (!service) return null;
+
+  // Para contratos: encontrar faturas vinculadas
+  const faturasVinculadas = service.tipoServico === 'contrato' 
+    ? allServices.filter(s => s.contratoId === service.id)
+    : [];
+
+  // Calcular status correto do contrato
+  const getStatusContrato = () => {
+    if (service.tipoServico !== 'contrato') return '';
+    if (service.valorFaturado === 0) return 'Não Iniciado';
+    if (service.valorFaturado >= service.valorComIVA) return 'Concluído';
+    return 'Em Andamento';
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,8 +100,7 @@ export const ServiceDetailDialog = ({
                   </span>
                   <p>
                     {service.tipoServico === 'contrato' 
-                      ? (service.statusContrato === 'nao_iniciado' ? 'Não Iniciado' :
-                         service.statusContrato === 'em_andamento' ? 'Em Andamento' : 'Concluído')
+                      ? getStatusContrato()
                       : (service.fatura || 'Não faturado')
                     }
                   </p>
@@ -168,9 +182,29 @@ export const ServiceDetailDialog = ({
                   {/* Situação de Pagamentos (sobre o faturado) */}
                   <div className="border-t pt-4">
                     <h4 className="text-sm font-semibold text-muted-foreground mb-3">Pagamentos (sobre o faturado)</h4>
+                    
+                    {/* Lista de faturas vinculadas com seus pagamentos */}
+                    {faturasVinculadas.length > 0 && (
+                      <div className="mb-4 space-y-2">
+                        <span className="text-sm font-medium text-muted-foreground">Faturas vinculadas:</span>
+                        <div className="space-y-1">
+                          {faturasVinculadas.map(fatura => (
+                            <div key={fatura.id} className="flex justify-between items-center p-2 bg-muted/50 rounded text-sm">
+                              <span className="font-medium">{fatura.numeroFatura || 'Sem número'}</span>
+                              <div className="flex gap-4">
+                                <span>Valor: €{fatura.valorComIVA.toFixed(2)}</span>
+                                <span className="text-green-600">Liquidado: €{fatura.liquidado.toFixed(2)}</span>
+                                <span className="text-red-600">Débito: €{fatura.executadoEmDebito.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <span className="font-medium text-sm text-muted-foreground">Liquidado</span>
+                        <span className="font-medium text-sm text-muted-foreground">Total Liquidado</span>
                         <p className="text-lg text-green-600">€{service.liquidado.toFixed(2)}</p>
                       </div>
                       <div>
@@ -178,7 +212,7 @@ export const ServiceDetailDialog = ({
                         <p className="text-lg text-green-600">{service.percentualLiquidado.toFixed(1)}%</p>
                       </div>
                       <div>
-                        <span className="font-medium text-sm text-muted-foreground">Em Débito</span>
+                        <span className="font-medium text-sm text-muted-foreground">Total Em Débito</span>
                         <p className="text-lg text-red-600">€{service.executadoEmDebito.toFixed(2)}</p>
                       </div>
                       <div>
