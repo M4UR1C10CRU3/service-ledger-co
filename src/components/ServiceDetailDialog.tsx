@@ -141,22 +141,55 @@ export const ServiceDetailDialog = ({
             </CardHeader>
             <CardContent>
               {service.tipoServico === 'contrato' ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-6">
+                  {/* Valores do Contrato */}
                   <div>
-                    <span className="font-medium text-sm text-muted-foreground">Valor Contratado</span>
-                    <p className="text-lg font-bold">€{service.valorComIVA.toFixed(2)}</p>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Contrato</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">Valor Contratado</span>
+                        <p className="text-lg font-bold">€{service.valorComIVA.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">Já Faturado</span>
+                        <p className="text-lg text-blue-600">€{service.valorFaturado.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">A Realizar</span>
+                        <p className="text-lg text-orange-600">€{service.valorARealizar.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">% Faturado</span>
+                        <p className="text-lg">{service.percentualFaturado.toFixed(1)}%</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium text-sm text-muted-foreground">Já Faturado</span>
-                    <p className="text-lg text-blue-600">€{service.valorFaturado.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-sm text-muted-foreground">A Realizar</span>
-                    <p className="text-lg text-orange-600">€{service.valorARealizar.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-sm text-muted-foreground">% Faturado</span>
-                    <p className="text-lg">{service.percentualFaturado.toFixed(1)}%</p>
+                  
+                  {/* Situação de Pagamentos (sobre o faturado) */}
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Pagamentos (sobre o faturado)</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">Liquidado</span>
+                        <p className="text-lg text-green-600">€{service.liquidado.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">% Liquidado</span>
+                        <p className="text-lg text-green-600">{service.percentualLiquidado.toFixed(1)}%</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">Em Débito</span>
+                        <p className="text-lg text-red-600">€{service.executadoEmDebito.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-sm text-muted-foreground">% Em Débito</span>
+                        <p className="text-lg text-red-600">
+                          {service.valorFaturado > 0 
+                            ? ((service.executadoEmDebito / service.valorFaturado) * 100).toFixed(1) 
+                            : '0.0'}%
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
