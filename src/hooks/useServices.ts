@@ -247,6 +247,9 @@ export const useServices = () => {
     // Percentual liquidado é sobre o valor faturado (não o total da proposta)
     const percentualLiquidado = valorFaturado > 0 ? (liquidadoCalculated / valorFaturado) * 100 : 0;
     
+    // Percentual faturado é sobre o valor total da proposta (para contratos)
+    const percentualFaturado = service.valorComIVA > 0 ? (valorFaturado / service.valorComIVA) * 100 : 0;
+    
     // Calculate days overdue if invoice exists and not fully paid
     let diasEmAtraso = 0;
     if (service.numeroFatura && executadoEmDebito > 0) {
@@ -263,6 +266,7 @@ export const useServices = () => {
       executadoEmDebito,
       diasEmAtraso,
       percentualLiquidado,
+      percentualFaturado,
       valorARealizar: valorNaoFaturado, // Valor não faturado
       liquidacoes: serviceLiquidacoes,
     };

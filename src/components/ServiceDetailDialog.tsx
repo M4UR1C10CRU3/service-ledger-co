@@ -156,7 +156,7 @@ export const ServiceDetailDialog = ({
                   </div>
                   <div>
                     <span className="font-medium text-sm text-muted-foreground">% Faturado</span>
-                    <p className="text-lg">{service.percentualLiquidado.toFixed(1)}%</p>
+                    <p className="text-lg">{service.percentualFaturado.toFixed(1)}%</p>
                   </div>
                 </div>
               ) : (
@@ -219,7 +219,7 @@ export const ServiceDetailDialog = ({
                     </div>
                     <div>
                       <p className="text-sm font-medium">Progresso:</p>
-                      <p className="text-lg">{service.percentualLiquidado.toFixed(1)}% faturado</p>
+                      <p className="text-lg">{service.percentualFaturado.toFixed(1)}% faturado</p>
                     </div>
                   </div>
                 </div>
