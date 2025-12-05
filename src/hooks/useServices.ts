@@ -229,8 +229,20 @@ export const useServices = () => {
   }, []);
 
   const calculateServiceMetrics = (service: Service): ServiceWithCalculations => {
-    const serviceLiquidacoes = liquidacoes[service.id] || [];
-    const liquidadoCalculated = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+    let serviceLiquidacoes = liquidacoes[service.id] || [];
+    let liquidadoCalculated = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+    
+    // Para contratos: agregar liquidações das faturas vinculadas
+    if (service.tipoServico === 'contrato') {
+      // Encontrar todas as faturas vinculadas a este contrato
+      const faturasVinculadas = services.filter(s => s.contratoId === service.id);
+      
+      // Somar liquidações de todas as faturas vinculadas
+      for (const fatura of faturasVinculadas) {
+        const faturaLiquidacoes = liquidacoes[fatura.id] || [];
+        liquidadoCalculated += faturaLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+      }
+    }
     
     // Novo modelo simplificado:
     // - valorComIVA = valor total da proposta
