@@ -107,6 +107,8 @@ const saveServiceToDatabase = async (service: Service) => {
         contrato_id: service.contratoId || null,
         valor_faturado: service.valorFaturado || 0,
         numero_fatura: service.numeroFatura || null,
+        telefone: service.telefone || null,
+        email: service.email || null,
         created_at: service.createdAt.toISOString(),
       }, {
         onConflict: 'service_id',
@@ -196,6 +198,8 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
       contratoId: (row as any).contrato_id || undefined,
       valorFaturado: parseFloat(((row as any).valor_faturado ?? 0).toString()),
       numeroFatura: (row as any).numero_fatura || undefined,
+      telefone: (row as any).telefone || undefined,
+      email: (row as any).email || undefined,
     })) || initialServices;
   } catch (error) {
     console.error('Error loading services from database:', error);

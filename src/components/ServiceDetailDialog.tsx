@@ -1,5 +1,6 @@
 import { ServiceWithCalculations, Liquidacao } from '@/types/service';
 import { LiquidacoesManager } from './LiquidacoesManager';
+import { formatEUR } from '@/lib/formatters';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Phone, Mail } from 'lucide-react';
 
 interface ServiceDetailDialogProps {
   open: boolean;
@@ -76,6 +78,26 @@ export const ServiceDetailDialog = ({
                   <span className="font-medium">Cliente:</span>
                   <p>{service.cliente}</p>
                 </div>
+                {/* Contactos do cliente */}
+                {(service.telefone || service.email) && (
+                  <div>
+                    <span className="font-medium">Contactos:</span>
+                    <div className="flex flex-col gap-1 mt-1">
+                      {service.telefone && (
+                        <a href={`tel:${service.telefone}`} className="flex items-center gap-2 text-primary hover:underline">
+                          <Phone className="h-4 w-4" />
+                          {service.telefone}
+                        </a>
+                      )}
+                      {service.email && (
+                        <a href={`mailto:${service.email}`} className="flex items-center gap-2 text-primary hover:underline">
+                          <Mail className="h-4 w-4" />
+                          {service.email}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {service.tipoServico === 'fatura' && service.contratoId && (
                   <div>
                     <span className="font-medium">Contrato Pai:</span>
@@ -117,10 +139,10 @@ export const ServiceDetailDialog = ({
                 {service.tipoServico === 'contrato' && (
                   <>
                     <Badge variant="outline">
-                      Valor a Realizar: €{service.valorARealizar.toFixed(2)}
+                      Valor a Realizar: {formatEUR(service.valorARealizar)}
                     </Badge>
                     <Badge variant="default">
-                      Já Faturado: €{service.valorFaturado.toFixed(2)}
+                      Já Faturado: {formatEUR(service.valorFaturado)}
                     </Badge>
                   </>
                 )}
@@ -134,7 +156,7 @@ export const ServiceDetailDialog = ({
                     )}
                     {service.executadoEmDebito > 0 && (
                       <Badge variant="destructive">
-                        Em Débito: €{service.executadoEmDebito.toFixed(2)}
+                        Em Débito: {formatEUR(service.executadoEmDebito)}
                       </Badge>
                     )}
                     {service.diasEmAtraso > 0 && (
@@ -162,19 +184,19 @@ export const ServiceDetailDialog = ({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">Valor Contratado</span>
-                        <p className="text-lg font-bold">€{service.valorComIVA.toFixed(2)}</p>
+                        <p className="text-lg font-bold">{formatEUR(service.valorComIVA)}</p>
                       </div>
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">Já Faturado</span>
-                        <p className="text-lg text-blue-600">€{service.valorFaturado.toFixed(2)}</p>
+                        <p className="text-lg text-blue-600">{formatEUR(service.valorFaturado)}</p>
                       </div>
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">A Realizar</span>
-                        <p className="text-lg text-orange-600">€{service.valorARealizar.toFixed(2)}</p>
+                        <p className="text-lg text-orange-600">{formatEUR(service.valorARealizar)}</p>
                       </div>
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">% Faturado</span>
-                        <p className="text-lg">{service.percentualFaturado.toFixed(1)}%</p>
+                        <p className="text-lg">{service.percentualFaturado.toFixed(1).replace('.', ',')}%</p>
                       </div>
                     </div>
                   </div>
@@ -192,9 +214,9 @@ export const ServiceDetailDialog = ({
                             <div key={fatura.id} className="flex justify-between items-center p-2 bg-muted/50 rounded text-sm">
                               <span className="font-medium">{fatura.numeroFatura || 'Sem número'}</span>
                               <div className="flex gap-4">
-                                <span>Valor: €{fatura.valorComIVA.toFixed(2)}</span>
-                                <span className="text-green-600">Liquidado: €{fatura.liquidado.toFixed(2)}</span>
-                                <span className="text-red-600">Débito: €{fatura.executadoEmDebito.toFixed(2)}</span>
+                                <span>Valor: {formatEUR(fatura.valorComIVA)}</span>
+                                <span className="text-green-600">Liquidado: {formatEUR(fatura.liquidado)}</span>
+                                <span className="text-red-600">Débito: {formatEUR(fatura.executadoEmDebito)}</span>
                               </div>
                             </div>
                           ))}
@@ -205,22 +227,22 @@ export const ServiceDetailDialog = ({
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">Total Liquidado</span>
-                        <p className="text-lg text-green-600">€{service.liquidado.toFixed(2)}</p>
+                        <p className="text-lg text-green-600">{formatEUR(service.liquidado)}</p>
                       </div>
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">% Liquidado</span>
-                        <p className="text-lg text-green-600">{service.percentualLiquidado.toFixed(1)}%</p>
+                        <p className="text-lg text-green-600">{service.percentualLiquidado.toFixed(1).replace('.', ',')}%</p>
                       </div>
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">Total Em Débito</span>
-                        <p className="text-lg text-red-600">€{service.executadoEmDebito.toFixed(2)}</p>
+                        <p className="text-lg text-red-600">{formatEUR(service.executadoEmDebito)}</p>
                       </div>
                       <div>
                         <span className="font-medium text-sm text-muted-foreground">% Em Débito</span>
                         <p className="text-lg text-red-600">
                           {service.valorFaturado > 0 
-                            ? ((service.executadoEmDebito / service.valorFaturado) * 100).toFixed(1) 
-                            : '0.0'}%
+                            ? ((service.executadoEmDebito / service.valorFaturado) * 100).toFixed(1).replace('.', ',') 
+                            : '0,0'}%
                         </p>
                       </div>
                     </div>
@@ -230,23 +252,23 @@ export const ServiceDetailDialog = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <span className="font-medium text-sm text-muted-foreground">Com IVA</span>
-                    <p className="text-lg font-bold">€{service.valorComIVA.toFixed(2)}</p>
+                    <p className="text-lg font-bold">{formatEUR(service.valorComIVA)}</p>
                   </div>
                   <div>
                     <span className="font-medium text-sm text-muted-foreground">Sem IVA</span>
-                    <p className="text-lg">€{service.valorSemIVA.toFixed(2)}</p>
+                    <p className="text-lg">{formatEUR(service.valorSemIVA)}</p>
                   </div>
                   <div>
                     <span className="font-medium text-sm text-muted-foreground">Liquidado</span>
-                    <p className="text-lg text-green-600">€{service.liquidado.toFixed(2)}</p>
+                    <p className="text-lg text-green-600">{formatEUR(service.liquidado)}</p>
                   </div>
                   <div>
                     <span className="font-medium text-sm text-muted-foreground">Em Débito</span>
-                    <p className="text-lg text-red-600">€{service.executadoEmDebito.toFixed(2)}</p>
+                    <p className="text-lg text-red-600">{formatEUR(service.executadoEmDebito)}</p>
                   </div>
                   <div className="md:col-span-2">
                     <span className="font-medium text-sm text-muted-foreground">% Liquidado</span>
-                    <p className="text-lg">{service.percentualLiquidado.toFixed(1)}%</p>
+                    <p className="text-lg">{service.percentualLiquidado.toFixed(1).replace('.', ',')}%</p>
                   </div>
                 </div>
               )}
@@ -286,7 +308,7 @@ export const ServiceDetailDialog = ({
                     </div>
                     <div>
                       <p className="text-sm font-medium">Progresso:</p>
-                      <p className="text-lg">{service.percentualFaturado.toFixed(1)}% faturado</p>
+                      <p className="text-lg">{service.percentualFaturado.toFixed(1).replace('.', ',')}% faturado</p>
                     </div>
                   </div>
                 </div>
