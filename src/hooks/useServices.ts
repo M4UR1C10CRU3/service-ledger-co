@@ -234,7 +234,9 @@ export const useServices = () => {
 
   const calculateServiceMetrics = (service: Service): ServiceWithCalculations => {
     let serviceLiquidacoes = liquidacoes[service.id] || [];
-    let liquidadoCalculated = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+    
+    // Calcular valor liquidado a partir das liquidações registradas
+    let liquidadoFromLiquidacoes = serviceLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
     
     // Para contratos: agregar liquidações das faturas vinculadas
     if (service.tipoServico === 'contrato') {
@@ -244,9 +246,15 @@ export const useServices = () => {
       // Somar liquidações de todas as faturas vinculadas
       for (const fatura of faturasVinculadas) {
         const faturaLiquidacoes = liquidacoes[fatura.id] || [];
-        liquidadoCalculated += faturaLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
+        liquidadoFromLiquidacoes += faturaLiquidacoes.reduce((total, liq) => total + liq.valor, 0);
       }
     }
+    
+    // Usar o valor de liquidações registradas, ou o valor do campo liquidado do serviço como fallback
+    // (para dados legados onde o valor foi preenchido diretamente sem registrar liquidações)
+    const liquidadoCalculated = liquidadoFromLiquidacoes > 0 
+      ? liquidadoFromLiquidacoes 
+      : service.liquidado;
     
     // Novo modelo simplificado:
     // - valorComIVA = valor total da proposta
