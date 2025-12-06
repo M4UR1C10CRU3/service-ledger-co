@@ -86,6 +86,16 @@ export const serviceFormSchema = z.object({
   contratoId: z.string().optional(),
   valorFaturado: z.number().min(0).optional(),
   numeroFatura: z.string().max(100).optional(),
+  telefone: z
+    .string()
+    .max(20, { message: "Telefone deve ter no máximo 20 caracteres" })
+    .optional(),
+  email: z
+    .string()
+    .email({ message: "Email inválido" })
+    .max(255, { message: "Email deve ter no máximo 255 caracteres" })
+    .optional()
+    .or(z.literal('')),
 });
 
 export const liquidacaoSchema = z.object({

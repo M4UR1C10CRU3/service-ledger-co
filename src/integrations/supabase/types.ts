@@ -93,6 +93,7 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           data: string
+          email: string | null
           fatura: string | null
           id: string
           liquidado: number
@@ -101,6 +102,7 @@ export type Database = {
           resumo: string | null
           service_id: string
           servico: string
+          telefone: string | null
           tipo_servico: string
           updated_at: string
           valor_com_iva: number
@@ -113,6 +115,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           data: string
+          email?: string | null
           fatura?: string | null
           id?: string
           liquidado?: number
@@ -121,6 +124,7 @@ export type Database = {
           resumo?: string | null
           service_id: string
           servico: string
+          telefone?: string | null
           tipo_servico?: string
           updated_at?: string
           valor_com_iva?: number
@@ -133,6 +137,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           data?: string
+          email?: string | null
           fatura?: string | null
           id?: string
           liquidado?: number
@@ -141,6 +146,7 @@ export type Database = {
           resumo?: string | null
           service_id?: string
           servico?: string
+          telefone?: string | null
           tipo_servico?: string
           updated_at?: string
           valor_com_iva?: number

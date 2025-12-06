@@ -17,6 +17,10 @@ export interface Service {
   contratoId?: string; // ID do contrato pai (quando for fatura)
   valorFaturado: number; // Para contratos: valor já faturado
   numeroFatura?: string; // Para faturas: número da fatura
+  
+  // Campos de contacto do cliente
+  telefone?: string;
+  email?: string;
 }
 
 export interface Liquidacao {

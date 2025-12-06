@@ -67,6 +67,8 @@ export const ServiceForm = ({
       contratoId: '',
       valorFaturado: 0,
       numeroFatura: '',
+      telefone: '',
+      email: '',
     },
   });
 
@@ -100,6 +102,8 @@ export const ServiceForm = ({
         contratoId: editingService.contratoId || '',
         valorFaturado: editingService.valorFaturado || 0,
         numeroFatura: editingService.numeroFatura || '',
+        telefone: editingService.telefone || '',
+        email: editingService.email || '',
       });
       setLiquidacoes([]);
     } else {
@@ -282,6 +286,34 @@ export const ServiceForm = ({
                       <FormLabel>Cliente</FormLabel>
                       <FormControl>
                         <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone (opcional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="+351 912 345 678" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email (opcional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="cliente@email.com" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
