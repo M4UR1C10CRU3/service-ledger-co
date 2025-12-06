@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Liquidacao } from '@/types/service';
 import { liquidacaoSchema, type LiquidacaoFormData } from '@/lib/validations';
+import { formatEUR } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 interface LiquidacoesManagerProps {
   serviceId: string;
   liquidacoes: Liquidacao[];
+  valorLiquidadoLegado?: number; // Valor legado quando não há liquidações registradas
   onAddLiquidacao: (liquidacao: Omit<Liquidacao, 'id' | 'createdAt'>) => void;
   onRemoveLiquidacao: (liquidacaoId: string) => void;
 }
@@ -28,6 +30,7 @@ interface LiquidacoesManagerProps {
 export const LiquidacoesManager = ({ 
   serviceId, 
   liquidacoes, 
+  valorLiquidadoLegado = 0,
   onAddLiquidacao, 
   onRemoveLiquidacao 
 }: LiquidacoesManagerProps) => {
@@ -74,16 +77,32 @@ export const LiquidacoesManager = ({
   };
 
   const totalLiquidado = liquidacoes.reduce((total, liq) => total + liq.valor, 0);
+  
+  // Se não há liquidações mas há valor legado, mostrar aviso
+  const hasLegadoValue = liquidacoes.length === 0 && valorLiquidadoLegado > 0;
+  const displayTotal = hasLegadoValue ? valorLiquidadoLegado : totalLiquidado;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Histórico de Liquidações</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Total liquidado: €{totalLiquidado.toFixed(2)}
+          Total liquidado: {formatEUR(displayTotal)}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Aviso para valores legados sem histórico detalhado */}
+        {hasLegadoValue && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Valor já liquidado:</strong> {formatEUR(valorLiquidadoLegado)}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Este valor foi registado sem histórico detalhado. Novos pagamentos serão adicionados ao histórico abaixo.
+            </p>
+          </div>
+        )}
+        
         {liquidacoes.length > 0 && (
           <div className="space-y-2">
             <h4 className="font-medium">Pagamentos registrados:</h4>
@@ -91,7 +110,7 @@ export const LiquidacoesManager = ({
               <div key={liquidacao.id} className="flex items-center justify-between p-3 border rounded">
                 <div className="flex-1">
                   <div className="flex items-center gap-4">
-                    <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
+                    <span className="font-medium">{formatEUR(liquidacao.valor)}</span>
                     <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
                   </div>
                   {liquidacao.observacoes && (

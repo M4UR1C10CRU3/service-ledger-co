@@ -280,6 +280,7 @@ export const ServiceDetailDialog = ({
             <LiquidacoesManager
               serviceId={service.id}
               liquidacoes={service.liquidacoes}
+              valorLiquidadoLegado={service.liquidacoes.length === 0 ? service.liquidado : 0}
               onAddLiquidacao={onAddLiquidacao}
               onRemoveLiquidacao={(liquidacaoId) => onRemoveLiquidacao(liquidacaoId)}
             />
