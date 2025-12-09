@@ -35,6 +35,57 @@ export type Database = {
         }
         Relationships: []
       }
+      clientes: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          morada_codigo_postal: string | null
+          morada_complemento: string | null
+          morada_concelho: string | null
+          morada_distrito: string | null
+          morada_numero: string | null
+          morada_pais: string | null
+          morada_rua: string | null
+          nif: string | null
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          morada_codigo_postal?: string | null
+          morada_complemento?: string | null
+          morada_concelho?: string | null
+          morada_distrito?: string | null
+          morada_numero?: string | null
+          morada_pais?: string | null
+          morada_rua?: string | null
+          nif?: string | null
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          morada_codigo_postal?: string | null
+          morada_complemento?: string | null
+          morada_concelho?: string | null
+          morada_distrito?: string | null
+          morada_numero?: string | null
+          morada_pais?: string | null
+          morada_rua?: string | null
+          nif?: string | null
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       liquidacoes: {
         Row: {
           created_at: string
@@ -90,6 +141,7 @@ export type Database = {
         Row: {
           a_realizar: boolean
           cliente: string
+          cliente_id: string | null
           contrato_id: string | null
           created_at: string
           data: string
@@ -112,6 +164,7 @@ export type Database = {
         Insert: {
           a_realizar?: boolean
           cliente: string
+          cliente_id?: string | null
           contrato_id?: string | null
           created_at?: string
           data: string
@@ -134,6 +187,7 @@ export type Database = {
         Update: {
           a_realizar?: boolean
           cliente?: string
+          cliente_id?: string | null
           contrato_id?: string | null
           created_at?: string
           data?: string
@@ -153,7 +207,15 @@ export type Database = {
           valor_faturado?: number | null
           valor_sem_iva?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "services_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

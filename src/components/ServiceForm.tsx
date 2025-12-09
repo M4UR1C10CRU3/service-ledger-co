@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Service, Liquidacao } from '@/types/service';
+import { Cliente, ClienteFormData } from '@/types/cliente';
 import { serviceFormSchema, liquidacaoSchema, type ServiceFormData, type LiquidacaoFormData } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ import {
 } from '@/components/ui/form';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ClienteSelector } from './ClienteSelector';
 
 interface ServiceFormProps {
   open: boolean;
@@ -38,6 +40,8 @@ interface ServiceFormProps {
   existingLiquidacoes?: Liquidacao[];
   onUpdateLiquidacao?: (liquidacaoId: string, updates: Partial<Liquidacao>) => void;
   onRemoveLiquidacao?: (liquidacaoId: string) => void;
+  clientes: Cliente[];
+  onCreateCliente: (data: ClienteFormData) => Promise<Cliente | null>;
 }
 
 export const ServiceForm = ({ 
@@ -47,9 +51,12 @@ export const ServiceForm = ({
   editingService,
   existingLiquidacoes = [],
   onUpdateLiquidacao,
-  onRemoveLiquidacao 
+  onRemoveLiquidacao,
+  clientes,
+  onCreateCliente,
 }: ServiceFormProps) => {
   const { toast } = useToast();
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
@@ -106,11 +113,26 @@ export const ServiceForm = ({
         email: editingService.email || '',
       });
       setLiquidacoes([]);
+      // Tentar encontrar o cliente correspondente
+      const cliente = clientes.find(c => c.nome === editingService.cliente);
+      setSelectedCliente(cliente || null);
     } else {
       form.reset();
       setLiquidacoes([]);
+      setSelectedCliente(null);
     }
-  }, [editingService, form]);
+  }, [editingService, form, clientes]);
+
+  // Preencher dados do cliente quando selecionado
+  const handleClienteSelect = (cliente: Cliente | null, name: string) => {
+    setSelectedCliente(cliente);
+    form.setValue('cliente', name);
+    
+    if (cliente) {
+      form.setValue('telefone', cliente.telefone || '');
+      form.setValue('email', cliente.email || '');
+    }
+  };
 
   const handleAddLiquidacao = () => {
     try {
@@ -285,7 +307,13 @@ export const ServiceForm = ({
                     <FormItem>
                       <FormLabel>Cliente</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <ClienteSelector
+                          clientes={clientes}
+                          selectedCliente={selectedCliente}
+                          clienteName={field.value}
+                          onClienteSelect={handleClienteSelect}
+                          onCreateCliente={onCreateCliente}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

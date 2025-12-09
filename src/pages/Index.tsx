@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices } from '@/hooks/useServices';
+import { useClientes } from '@/hooks/useClientes';
 import { Service, ServiceWithCalculations } from '@/types/service';
 import { Header } from '@/components/Header';
 import { DashboardCards } from '@/components/DashboardCards';
@@ -45,6 +46,8 @@ const Index = () => {
     isLoading,
     liquidacoes 
   } = useServices();
+  
+  const { clientes, addCliente } = useClientes();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -165,6 +168,8 @@ const Index = () => {
             removeLiquidacao(liquidacaoId, editingService.id);
           }
         }}
+        clientes={clientes}
+        onCreateCliente={addCliente}
       />
 
       <ServiceDetailDialog
