@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices } from '@/hooks/useServices';
 import { useClientes } from '@/hooks/useClientes';
@@ -11,6 +11,7 @@ import { ServiceForm } from '@/components/ServiceForm';
 import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
+import { DateFilter } from '@/components/DateFilter';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -54,6 +55,26 @@ const Index = () => {
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceWithCalculations | null>(null);
+  
+  // Date filter state
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+
+  // Filter services by year and month
+  const filteredServices = useMemo(() => {
+    return services.filter((service) => {
+      // Data format is DD/MM/YYYY
+      const parts = service.data.split('/');
+      if (parts.length !== 3) return true;
+      
+      const [day, month, year] = parts;
+      
+      if (selectedYear && year !== selectedYear) return false;
+      if (selectedMonth && month !== selectedMonth) return false;
+      
+      return true;
+    });
+  }, [services, selectedYear, selectedMonth]);
   const [selectedContract, setSelectedContract] = useState<ServiceWithCalculations | null>(null);
 
   const handleAddService = () => {
@@ -143,9 +164,16 @@ const Index = () => {
       
       <main className="container mx-auto px-6 py-6 space-y-6">
         <DashboardCards metrics={dashboardMetrics} />
-        <ServiceChart services={services} />
-        <ServiceTable 
+        <DateFilter
           services={services}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          onYearChange={setSelectedYear}
+          onMonthChange={setSelectedMonth}
+        />
+        <ServiceChart services={filteredServices} />
+        <ServiceTable 
+          services={filteredServices}
           onEditService={handleEditService}
           onDeleteService={handleDeleteService}
           onViewService={handleViewService}
