@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Service, Liquidacao } from '@/types/service';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { serviceFormSchema, liquidacaoSchema, type ServiceFormData, type LiquidacaoFormData } from '@/lib/validations';
+import { formatInputValue, parseFormattedNumber, formatNumber } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -368,13 +369,14 @@ export const ServiceForm = ({
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
                       <FormLabel>
-                        Resumo do Serviço ({resumo?.length || 0}/40)
+                        Resumo do Serviço ({resumo?.length || 0}/150)
                       </FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
                           className="resize-none"
                           rows={2}
+                          maxLength={150}
                         />
                       </FormControl>
                       <FormMessage />
@@ -404,11 +406,15 @@ export const ServiceForm = ({
                       <FormLabel>Valor Total da Proposta com IVA (€)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0,00"
+                          value={field.value ? formatNumber(field.value) : ''}
+                          onChange={(e) => {
+                            const formatted = formatInputValue(e.target.value);
+                            e.target.value = formatted;
+                            field.onChange(parseFormattedNumber(formatted));
+                          }}
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
@@ -427,11 +433,15 @@ export const ServiceForm = ({
                       <FormLabel>Valor Total da Proposta sem IVA (€)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0,00"
+                          value={field.value ? formatNumber(field.value) : ''}
+                          onChange={(e) => {
+                            const formatted = formatInputValue(e.target.value);
+                            e.target.value = formatted;
+                            field.onChange(parseFormattedNumber(formatted));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -473,12 +483,15 @@ export const ServiceForm = ({
                       <FormLabel>Valor Faturado com IVA (€)</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          value={field.value || 0}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0,00"
+                          value={field.value ? formatNumber(field.value) : ''}
+                          onChange={(e) => {
+                            const formatted = formatInputValue(e.target.value);
+                            e.target.value = formatted;
+                            field.onChange(parseFormattedNumber(formatted));
+                          }}
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
