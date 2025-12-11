@@ -65,7 +65,7 @@ export const serviceFormSchema = z.object({
     .string()
     .trim()
     .min(1, { message: "Resumo é obrigatório" })
-    .max(40, { message: "Resumo deve ter no máximo 40 caracteres" }),
+    .max(150, { message: "Resumo deve ter no máximo 150 caracteres" }),
   proposta: z
     .string()
     .max(100, { message: "Proposta deve ter no máximo 100 caracteres" })
@@ -129,7 +129,7 @@ export const invoiceFormSchema = z.object({
   resumo: z
     .string()
     .trim()
-    .max(40, { message: "Resumo deve ter no máximo 40 caracteres" })
+    .max(150, { message: "Resumo deve ter no máximo 150 caracteres" })
     .optional(),
 });
 
