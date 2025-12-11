@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -11,53 +11,32 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
-  const mountedRef = useRef(true);
 
   useEffect(() => {
-    mountedRef.current = true;
-    
-    const initializeAuth = async () => {
-      try {
-        // Check for existing session first
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-        }
-        
-        if (mountedRef.current) {
+    let mounted = true;
+
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        if (mounted) {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
           setLoading(false);
-          setInitialized(true);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mountedRef.current) {
-          setLoading(false);
-          setInitialized(true);
-        }
-      }
-    };
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (mountedRef.current) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          if (initialized) {
-            setLoading(false);
-          }
         }
       }
     );
 
-    initializeAuth();
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (mounted) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        setLoading(false);
+      }
+    });
 
     return () => {
-      mountedRef.current = false;
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
