@@ -260,16 +260,21 @@ export const useServices = () => {
     // - valorComIVA = valor total da proposta
     // - valorFaturado = valor efetivamente faturado (pode ser menor que o total)
     // - valorNaoFaturado = valorComIVA - valorFaturado (calculado)
-    // - executadoEmDebito = valorFaturado - liquidado (débito é sobre o faturado)
+    // - executadoEmDebito: Para faturas = valorComIVA - liquidado; Para contratos = 0
     
     const valorFaturado = service.valorFaturado || 0;
     const valorNaoFaturado = service.valorComIVA - valorFaturado;
     
-    // Débito é baseado no valor faturado menos o que foi liquidado
-    const executadoEmDebito = Math.max(0, valorFaturado - liquidadoCalculated);
+    // Débito: para faturas é baseado no valorComIVA menos o que foi liquidado
+    // Para contratos o débito é 0 (o débito real está nas faturas vinculadas)
+    const executadoEmDebito = service.tipoServico === 'fatura' 
+      ? Math.max(0, service.valorComIVA - liquidadoCalculated)
+      : 0;
     
-    // Percentual liquidado é sobre o valor faturado (não o total da proposta)
-    const percentualLiquidado = valorFaturado > 0 ? (liquidadoCalculated / valorFaturado) * 100 : 0;
+    // Percentual liquidado: para faturas é sobre valorComIVA; para contratos é sobre valorFaturado
+    const percentualLiquidado = service.tipoServico === 'fatura'
+      ? (service.valorComIVA > 0 ? (liquidadoCalculated / service.valorComIVA) * 100 : 0)
+      : (valorFaturado > 0 ? (liquidadoCalculated / valorFaturado) * 100 : 0);
     
     // Percentual faturado é sobre o valor total da proposta (para contratos)
     const percentualFaturado = service.valorComIVA > 0 ? (valorFaturado / service.valorComIVA) * 100 : 0;
