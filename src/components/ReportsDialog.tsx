@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ServiceWithCalculations } from '@/types/service';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,8 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { FileText, Download } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import logoObrajusta from '@/assets/logo-obrajusta.png';
 
 interface ReportsDialogProps {
   open: boolean;
@@ -42,8 +44,38 @@ type ReportType =
   | 'movimento-mensal'
   | 'projecao';
 
+const REPORT_TITLES: Record<ReportType, string> = {
+  'faturados': 'Valores Faturados',
+  'nao-faturados': 'Valores Não Faturados',
+  'geral': 'Relatório Geral Mensal',
+  'movimento-mensal': 'Movimento Mensal',
+  'projecao': 'Projeção de Valores a Realizar',
+};
+
 export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false }: ReportsDialogProps) => {
   const [selectedReport, setSelectedReport] = useState<ReportType>('faturados');
+  const [userName, setUserName] = useState<string>('');
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('nome')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserName(profile.nome);
+        }
+      }
+    };
+    
+    if (open) {
+      fetchUserName();
+    }
+  }, [open]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-PT', {
@@ -56,15 +88,53 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
     return `${value.toFixed(1)}%`;
   };
 
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('pt-PT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
   const handleExportPDF = () => {
     window.print();
   };
 
+  const getReportHeader = () => (
+    <div className="report-header print-only hidden print:flex flex-col items-center mb-8 pb-4 border-b-2 border-primary">
+      <img src={logoObrajusta} alt="Obrajusta" className="h-16 mb-4" />
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-primary">OBRAJUSTA II, Lda</h1>
+        <p className="text-sm text-muted-foreground">Gestão de Serviços e Faturação</p>
+      </div>
+      <div className="mt-4 text-center">
+        <h2 className="text-xl font-semibold">{REPORT_TITLES[selectedReport]}</h2>
+      </div>
+    </div>
+  );
+
+  const getReportFooter = () => (
+    <div className="report-footer print-only hidden print:block mt-8 pt-4 border-t-2 border-primary text-sm text-muted-foreground">
+      <div className="flex justify-between items-center">
+        <div>
+          <p><strong>Data de Emissão:</strong> {formatDate(new Date())}</p>
+          <p><strong>Emitido por:</strong> {userName || 'Utilizador do Sistema'}</p>
+        </div>
+        <div className="text-right">
+          <p>OBRAJUSTA II, Lda</p>
+          <p>Documento gerado automaticamente</p>
+        </div>
+      </div>
+    </div>
+  );
+
   const getValoresFaturadosTable = () => {
     const { clientData, totals } = getValoresFaturadosReport(services);
     return (
-      <Card>
-        <CardHeader>
+      <Card className="print:shadow-none print:border-none">
+        <CardHeader className="no-print">
           <CardTitle>Relatório - Valores Faturados</CardTitle>
           <p className="text-sm text-muted-foreground">Análise detalhada de todas as faturas emitidas</p>
         </CardHeader>
@@ -111,8 +181,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getValoresNaoFaturadosTable = () => {
     const { clientData, totals } = getValoresNaoFaturadosReport(services);
     return (
-      <Card>
-        <CardHeader>
+      <Card className="print:shadow-none print:border-none">
+        <CardHeader className="no-print">
           <CardTitle>Relatório - Valores Não Faturados</CardTitle>
           <p className="text-sm text-muted-foreground">Serviços com proposta emitida mas sem fatura</p>
         </CardHeader>
@@ -159,8 +229,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getRelatorioGeralTable = () => {
     const { monthData, totals } = getRelatorioGeralReport(services);
     return (
-      <Card>
-        <CardHeader>
+      <Card className="print:shadow-none print:border-none">
+        <CardHeader className="no-print">
           <CardTitle>Relatório Geral Mensal</CardTitle>
           <p className="text-sm text-muted-foreground">Movimento geral separado por mês com totais</p>
         </CardHeader>
@@ -207,8 +277,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getMovimentoMensalTable = () => {
     const monthData = getMovimentoMensalReport(services);
     return (
-      <Card>
-        <CardHeader>
+      <Card className="print:shadow-none print:border-none">
+        <CardHeader className="no-print">
           <CardTitle>Movimento Mensal</CardTitle>
         </CardHeader>
         <CardContent className="overflow-auto">
@@ -240,8 +310,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getProjecaoValoresTable = () => {
     const { clientData, totals } = getProjecaoValoresReport(services);
     return (
-      <Card>
-        <CardHeader>
+      <Card className="print:shadow-none print:border-none">
+        <CardHeader className="no-print">
           <CardTitle>Relatório - Projeção de Valores a Realizar</CardTitle>
           <p className="text-sm text-muted-foreground">Contratos com saldo ainda não faturado</p>
         </CardHeader>
@@ -307,40 +377,99 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <FileText className="w-6 h-6" />
-            Relatórios Financeiros
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b">
-          <div className="w-full sm:w-auto">
-            <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
-            <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
-              <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
-                <SelectValue placeholder="Selecione o tipo de relatório" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-[100]">
-                <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
-                <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
-                <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
-                <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
-                <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
-              </SelectContent>
-            </Select>
+    <>
+      {/* Print Styles */}
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4;
+              margin: 15mm;
+            }
+            
+            body * {
+              visibility: hidden;
+            }
+            
+            .print-container, .print-container * {
+              visibility: visible;
+            }
+            
+            .print-container {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              padding: 0;
+            }
+            
+            .no-print {
+              display: none !important;
+            }
+            
+            .print-only {
+              display: flex !important;
+            }
+            
+            .print\\:shadow-none {
+              box-shadow: none !important;
+            }
+            
+            .print\\:border-none {
+              border: none !important;
+            }
+            
+            table {
+              width: 100%;
+              font-size: 10pt;
+            }
+            
+            th, td {
+              padding: 6px 8px !important;
+            }
+          }
+        `}
+      </style>
+      
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
+          <DialogHeader className="no-print">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <FileText className="w-6 h-6" />
+              Relatórios Financeiros
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b no-print">
+            <div className="w-full sm:w-auto">
+              <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
+              <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
+                <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
+                  <SelectValue placeholder="Selecione o tipo de relatório" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-[100]">
+                  <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
+                  <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
+                  <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
+                  <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
+                  <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" size="default" className="w-full sm:w-auto" onClick={handleExportPDF}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
           </div>
-          <Button variant="outline" size="default" className="w-full sm:w-auto" onClick={handleExportPDF}>
-            <Download className="w-4 h-4 mr-2" />
-            Exportar PDF
-          </Button>
-        </div>
-        <ScrollArea className="flex-1 pr-4">
-          <div className="py-4">{renderReport()}</div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+          <ScrollArea className="flex-1 pr-4">
+            <div className="py-4 print-container">
+              {getReportHeader()}
+              {renderReport()}
+              {getReportFooter()}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
