@@ -98,43 +98,166 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
     }).format(date);
   };
 
-  const handleExportPDF = () => {
-    window.print();
+  const generatePrintHTML = () => {
+    const reportContent = document.getElementById('report-content');
+    if (!reportContent) return '';
+    
+    const currentDate = formatDate(new Date());
+    const reportTitle = REPORT_TITLES[selectedReport];
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="pt">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${reportTitle} - Obrajusta II</title>
+        <style>
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #1a1a2e;
+            background: white;
+            padding: 20px;
+          }
+          
+          .header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #0259dd;
+          }
+          
+          .header img {
+            height: 60px;
+            margin-bottom: 15px;
+          }
+          
+          .header h1 {
+            font-size: 20pt;
+            color: #0259dd;
+            margin-bottom: 5px;
+          }
+          
+          .header p {
+            font-size: 10pt;
+            color: #666;
+          }
+          
+          .header h2 {
+            font-size: 14pt;
+            margin-top: 15px;
+            color: #1a1a2e;
+          }
+          
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 9pt;
+          }
+          
+          th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+          }
+          
+          th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #1a1a2e;
+          }
+          
+          tfoot td {
+            background-color: #f0f0f0;
+            font-weight: bold;
+          }
+          
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #0259dd;
+            font-size: 9pt;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+          }
+          
+          .footer-left p,
+          .footer-right p {
+            margin: 3px 0;
+          }
+          
+          .footer-right {
+            text-align: right;
+          }
+          
+          @media print {
+            body {
+              padding: 0;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${logoObrajusta}" alt="Obrajusta" />
+          <h1>OBRAJUSTA II, Lda</h1>
+          <p>Gestão de Serviços e Faturação</p>
+          <h2>${reportTitle}</h2>
+        </div>
+        
+        <div class="content">
+          ${reportContent.innerHTML}
+        </div>
+        
+        <div class="footer">
+          <div class="footer-left">
+            <p><strong>Data de Emissão:</strong> ${currentDate}</p>
+            <p><strong>Emitido por:</strong> ${userName || 'Utilizador do Sistema'}</p>
+          </div>
+          <div class="footer-right">
+            <p>OBRAJUSTA II, Lda</p>
+            <p>Documento gerado automaticamente</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   };
 
-  const getReportHeader = () => (
-    <div className="report-header print-only hidden print:flex flex-col items-center mb-8 pb-4 border-b-2 border-primary">
-      <img src={logoObrajusta} alt="Obrajusta" className="h-16 mb-4" />
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-primary">OBRAJUSTA II, Lda</h1>
-        <p className="text-sm text-muted-foreground">Gestão de Serviços e Faturação</p>
-      </div>
-      <div className="mt-4 text-center">
-        <h2 className="text-xl font-semibold">{REPORT_TITLES[selectedReport]}</h2>
-      </div>
-    </div>
-  );
-
-  const getReportFooter = () => (
-    <div className="report-footer print-only hidden print:block mt-8 pt-4 border-t-2 border-primary text-sm text-muted-foreground">
-      <div className="flex justify-between items-center">
-        <div>
-          <p><strong>Data de Emissão:</strong> {formatDate(new Date())}</p>
-          <p><strong>Emitido por:</strong> {userName || 'Utilizador do Sistema'}</p>
-        </div>
-        <div className="text-right">
-          <p>OBRAJUSTA II, Lda</p>
-          <p>Documento gerado automaticamente</p>
-        </div>
-      </div>
-    </div>
-  );
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(generatePrintHTML());
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+  };
 
   const getValoresFaturadosTable = () => {
     const { clientData, totals } = getValoresFaturadosReport(services);
     return (
-      <Card className="print:shadow-none print:border-none">
-        <CardHeader className="no-print">
+      <Card>
+        <CardHeader>
           <CardTitle>Relatório - Valores Faturados</CardTitle>
           <p className="text-sm text-muted-foreground">Análise detalhada de todas as faturas emitidas</p>
         </CardHeader>
@@ -181,8 +304,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getValoresNaoFaturadosTable = () => {
     const { clientData, totals } = getValoresNaoFaturadosReport(services);
     return (
-      <Card className="print:shadow-none print:border-none">
-        <CardHeader className="no-print">
+      <Card>
+        <CardHeader>
           <CardTitle>Relatório - Valores Não Faturados</CardTitle>
           <p className="text-sm text-muted-foreground">Serviços com proposta emitida mas sem fatura</p>
         </CardHeader>
@@ -229,8 +352,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getRelatorioGeralTable = () => {
     const { monthData, totals } = getRelatorioGeralReport(services);
     return (
-      <Card className="print:shadow-none print:border-none">
-        <CardHeader className="no-print">
+      <Card>
+        <CardHeader>
           <CardTitle>Relatório Geral Mensal</CardTitle>
           <p className="text-sm text-muted-foreground">Movimento geral separado por mês com totais</p>
         </CardHeader>
@@ -277,8 +400,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getMovimentoMensalTable = () => {
     const monthData = getMovimentoMensalReport(services);
     return (
-      <Card className="print:shadow-none print:border-none">
-        <CardHeader className="no-print">
+      <Card>
+        <CardHeader>
           <CardTitle>Movimento Mensal</CardTitle>
         </CardHeader>
         <CardContent className="overflow-auto">
@@ -310,8 +433,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const getProjecaoValoresTable = () => {
     const { clientData, totals } = getProjecaoValoresReport(services);
     return (
-      <Card className="print:shadow-none print:border-none">
-        <CardHeader className="no-print">
+      <Card>
+        <CardHeader>
           <CardTitle>Relatório - Projeção de Valores a Realizar</CardTitle>
           <p className="text-sm text-muted-foreground">Contratos com saldo ainda não faturado</p>
         </CardHeader>
@@ -377,99 +500,42 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   return (
-    <>
-      {/* Print Styles */}
-      <style>
-        {`
-          @media print {
-            @page {
-              size: A4;
-              margin: 15mm;
-            }
-            
-            body * {
-              visibility: hidden;
-            }
-            
-            .print-container, .print-container * {
-              visibility: visible;
-            }
-            
-            .print-container {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              padding: 0;
-            }
-            
-            .no-print {
-              display: none !important;
-            }
-            
-            .print-only {
-              display: flex !important;
-            }
-            
-            .print\\:shadow-none {
-              box-shadow: none !important;
-            }
-            
-            .print\\:border-none {
-              border: none !important;
-            }
-            
-            table {
-              width: 100%;
-              font-size: 10pt;
-            }
-            
-            th, td {
-              padding: 6px 8px !important;
-            }
-          }
-        `}
-      </style>
-      
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
-          <DialogHeader className="no-print">
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <FileText className="w-6 h-6" />
-              Relatórios Financeiros
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b no-print">
-            <div className="w-full sm:w-auto">
-              <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
-              <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
-                <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
-                  <SelectValue placeholder="Selecione o tipo de relatório" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-[100]">
-                  <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
-                  <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
-                  <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
-                  <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
-                  <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button variant="outline" size="default" className="w-full sm:w-auto" onClick={handleExportPDF}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar PDF
-            </Button>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <FileText className="w-6 h-6" />
+            Relatórios Financeiros
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b">
+          <div className="w-full sm:w-auto">
+            <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
+            <Select value={selectedReport} onValueChange={(value: ReportType) => setSelectedReport(value)}>
+              <SelectTrigger className="w-full sm:w-[350px] bg-background border-2">
+                <SelectValue placeholder="Selecione o tipo de relatório" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100]">
+                <SelectItem value="faturados">📊 Valores Faturados</SelectItem>
+                <SelectItem value="nao-faturados">📋 Valores Não Faturados</SelectItem>
+                <SelectItem value="geral">📈 Relatório Geral Mensal</SelectItem>
+                <SelectItem value="movimento-mensal">📅 Movimento Mensal</SelectItem>
+                <SelectItem value="projecao">🎯 Projeção de Valores a Realizar</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <ScrollArea className="flex-1 pr-4">
-            <div className="py-4 print-container">
-              {getReportHeader()}
-              {renderReport()}
-              {getReportFooter()}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-    </>
+          <Button variant="outline" size="default" className="w-full sm:w-auto" onClick={handleExportPDF}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
+        </div>
+        <ScrollArea className="flex-1 pr-4">
+          <div className="py-4" id="report-content">
+            {renderReport()}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 };
 
