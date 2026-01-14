@@ -35,9 +35,9 @@ export const DateFilter = ({
   onYearChange,
   onMonthChange,
 }: DateFilterProps) => {
-  // Extract unique years from services
+  // Extract unique years from services and always include 2026
   const availableYears = useMemo(() => {
-    const years = new Set<string>();
+    const years = new Set<string>(['2026']); // Always include 2026
     services.forEach((service) => {
       // Data format is DD/MM/YYYY
       const parts = service.data.split('/');
