@@ -45,6 +45,7 @@ import {
   Mail,
   MapPin,
   LogOut,
+  Copy,
 } from 'lucide-react';
 
 export default function Clientes() {
@@ -115,6 +116,29 @@ export default function Clientes() {
       resetForm();
     }
     setIsFormOpen(true);
+  };
+
+  const handleDuplicateCliente = (cliente: Cliente) => {
+    // Preenche o formulário com os dados do cliente, mas sem ID (cria um novo)
+    setEditingCliente(null); // Importante: não estamos editando, estamos criando
+    setFormData({
+      nome: `${cliente.nome} (Cópia)`,
+      telefone: cliente.telefone || '',
+      email: cliente.email || '',
+      nif: '', // NIF deve ser único, então deixamos vazio
+      moradaRua: cliente.moradaRua || '',
+      moradaNumero: cliente.moradaNumero || '',
+      moradaComplemento: cliente.moradaComplemento || '',
+      moradaConcelho: cliente.moradaConcelho || '',
+      moradaCodigoPostal: cliente.moradaCodigoPostal || '',
+      moradaDistrito: cliente.moradaDistrito || '',
+      moradaPais: cliente.moradaPais || 'Portugal',
+    });
+    setIsFormOpen(true);
+    toast({
+      title: "Duplicar cliente",
+      description: "Dados copiados. Faça as alterações necessárias e guarde.",
+    });
   };
 
   const handleCloseForm = () => {
@@ -345,6 +369,14 @@ export default function Clientes() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDuplicateCliente(cliente)}
+                              title="Duplicar"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

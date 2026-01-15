@@ -91,6 +91,26 @@ const Index = () => {
     setIsFormOpen(true);
   };
 
+  const handleDuplicateService = (service: ServiceWithCalculations) => {
+    // Cria uma cópia do serviço para edição, sem ID (será criado novo)
+    const duplicatedService = {
+      ...service,
+      id: '', // Limpa o ID para criar novo
+      resumo: service.resumo ? `${service.resumo} (Cópia)` : '(Cópia)',
+      numeroFatura: '', // Limpa número da fatura
+      liquidado: 0, // Novo serviço começa sem liquidações
+      valorFaturado: 0, // Começa sem valor faturado
+      data: new Date().toLocaleDateString('pt-PT'), // Data atual
+    } as Service;
+    
+    setEditingService(duplicatedService);
+    setIsFormOpen(true);
+    toast({
+      title: "Duplicar serviço",
+      description: "Dados copiados. Faça as alterações necessárias e guarde.",
+    });
+  };
+
   const handleViewService = (service: ServiceWithCalculations) => {
     setSelectedService(service);
     setIsDetailOpen(true);
@@ -129,7 +149,10 @@ const Index = () => {
   };
 
   const handleFormSubmit = (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: any[]) => {
-    if (editingService) {
+    // Verifica se é edição real (tem id) ou duplicação/novo (sem id)
+    const isRealEdit = editingService && editingService.id;
+    
+    if (isRealEdit) {
       updateService(editingService.id, serviceData);
       toast({
         title: "Serviço atualizado",
@@ -138,8 +161,10 @@ const Index = () => {
     } else {
       addService(serviceData, liquidacoes);
       toast({
-        title: "Serviço adicionado",
-        description: "O novo serviço foi adicionado com sucesso.",
+        title: editingService ? "Serviço duplicado" : "Serviço adicionado",
+        description: editingService 
+          ? "A cópia do serviço foi criada com sucesso."
+          : "O novo serviço foi adicionado com sucesso.",
       });
     }
     setEditingService(null);
@@ -177,6 +202,7 @@ const Index = () => {
           onEditService={handleEditService}
           onDeleteService={handleDeleteService}
           onViewService={handleViewService}
+          onDuplicateService={handleDuplicateService}
         />
       </main>
 
