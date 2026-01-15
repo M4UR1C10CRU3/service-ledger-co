@@ -69,6 +69,11 @@ export const ServiceTable = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {services.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-muted-foreground">Nenhum serviço encontrado para o período selecionado</p>
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -158,6 +163,7 @@ export const ServiceTable = ({
             </TableBody>
           </Table>
         </div>
+        )}
       </CardContent>
     </Card>
   );

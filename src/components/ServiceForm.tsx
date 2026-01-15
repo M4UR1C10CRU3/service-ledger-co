@@ -409,11 +409,22 @@ export const ServiceForm = ({
                           type="text"
                           inputMode="decimal"
                           placeholder="0,00"
-                          value={field.value ? formatNumber(field.value) : ''}
+                          defaultValue={field.value ? formatNumber(field.value) : ''}
+                          key={`valorComIVA-${editingService?.id || 'new'}`}
                           onChange={(e) => {
                             const formatted = formatInputValue(e.target.value);
-                            e.target.value = formatted;
+                            if (formatted !== e.target.value) {
+                              const cursorPos = e.target.selectionStart;
+                              e.target.value = formatted;
+                              e.target.setSelectionRange(cursorPos, cursorPos);
+                            }
                             field.onChange(parseFormattedNumber(formatted));
+                          }}
+                          onBlur={(e) => {
+                            const value = parseFormattedNumber(e.target.value);
+                            if (value) {
+                              e.target.value = formatNumber(value);
+                            }
                           }}
                         />
                       </FormControl>
@@ -436,11 +447,22 @@ export const ServiceForm = ({
                           type="text"
                           inputMode="decimal"
                           placeholder="0,00"
-                          value={field.value ? formatNumber(field.value) : ''}
+                          defaultValue={field.value ? formatNumber(field.value) : ''}
+                          key={`valorSemIVA-${editingService?.id || 'new'}`}
                           onChange={(e) => {
                             const formatted = formatInputValue(e.target.value);
-                            e.target.value = formatted;
+                            if (formatted !== e.target.value) {
+                              const cursorPos = e.target.selectionStart;
+                              e.target.value = formatted;
+                              e.target.setSelectionRange(cursorPos, cursorPos);
+                            }
                             field.onChange(parseFormattedNumber(formatted));
+                          }}
+                          onBlur={(e) => {
+                            const value = parseFormattedNumber(e.target.value);
+                            if (value) {
+                              e.target.value = formatNumber(value);
+                            }
                           }}
                         />
                       </FormControl>
@@ -486,11 +508,22 @@ export const ServiceForm = ({
                           type="text"
                           inputMode="decimal"
                           placeholder="0,00"
-                          value={field.value ? formatNumber(field.value) : ''}
+                          defaultValue={field.value ? formatNumber(field.value) : ''}
+                          key={`valorFaturado-${editingService?.id || 'new'}`}
                           onChange={(e) => {
                             const formatted = formatInputValue(e.target.value);
-                            e.target.value = formatted;
+                            if (formatted !== e.target.value) {
+                              const cursorPos = e.target.selectionStart;
+                              e.target.value = formatted;
+                              e.target.setSelectionRange(cursorPos, cursorPos);
+                            }
                             field.onChange(parseFormattedNumber(formatted));
+                          }}
+                          onBlur={(e) => {
+                            const value = parseFormattedNumber(e.target.value);
+                            if (value) {
+                              e.target.value = formatNumber(value);
+                            }
                           }}
                         />
                       </FormControl>

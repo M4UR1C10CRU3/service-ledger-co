@@ -19,6 +19,30 @@ interface ServiceChartProps {
 }
 
 export const ServiceChart = ({ services }: ServiceChartProps) => {
+  // If no services, show empty state
+  if (!services || services.length === 0) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Valores por Cliente</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-[300px]">
+            <p className="text-muted-foreground">Nenhum serviço encontrado para o período selecionado</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribuição Geral</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-[300px]">
+            <p className="text-muted-foreground">Nenhum serviço encontrado para o período selecionado</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Prepare data for bar chart (by client)
   const clientData = services.reduce((acc, service) => {
     const existing = acc.find(item => item.cliente === service.cliente);
