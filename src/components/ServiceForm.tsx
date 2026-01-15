@@ -250,15 +250,21 @@ export const ServiceForm = ({
 
   const resumo = form.watch('resumo');
 
+  // Determina se é duplicação (tem editingService mas sem id válido)
+  const isDuplicating = editingService && !editingService.id;
+  const isEditing = editingService && editingService.id;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
-            {editingService ? 'Editar Serviço' : 'Novo Serviço'}
+            {isDuplicating ? 'Duplicar Serviço' : isEditing ? 'Editar Serviço' : 'Novo Serviço'}
           </DialogTitle>
           <DialogDescription>
-            Preencha os dados do serviço. Os cálculos serão feitos automaticamente.
+            {isDuplicating 
+              ? 'Dados copiados do serviço original. Faça as alterações necessárias.'
+              : 'Preencha os dados do serviço. Os cálculos serão feitos automaticamente.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -786,7 +792,7 @@ export const ServiceForm = ({
             Cancelar
           </Button>
           <Button type="submit" form="service-form">
-            {editingService ? 'Atualizar Serviço' : 'Adicionar Serviço'}
+            {isDuplicating ? 'Criar Cópia' : isEditing ? 'Atualizar Serviço' : 'Adicionar Serviço'}
           </Button>
         </DialogFooter>
       </DialogContent>

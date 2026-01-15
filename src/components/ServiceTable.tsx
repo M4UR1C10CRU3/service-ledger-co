@@ -2,7 +2,7 @@ import { ServiceWithCalculations } from '@/types/service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Edit, Trash2, Eye, Copy } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,13 +17,15 @@ interface ServiceTableProps {
   onEditService: (service: ServiceWithCalculations) => void;
   onDeleteService: (id: string) => void;
   onViewService: (service: ServiceWithCalculations) => void;
+  onDuplicateService?: (service: ServiceWithCalculations) => void;
 }
 
 export const ServiceTable = ({ 
   services, 
   onEditService, 
   onDeleteService, 
-  onViewService
+  onViewService,
+  onDuplicateService,
 }: ServiceTableProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-PT', {
@@ -140,6 +142,16 @@ export const ServiceTable = ({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
+                      {onDuplicateService && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDuplicateService(service)}
+                          title="Duplicar"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
