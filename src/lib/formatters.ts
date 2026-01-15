@@ -46,7 +46,7 @@ export const parseFormattedNumber = (value: string): number => {
 
 /**
  * Formata o valor enquanto o usuário digita
- * Mantém apenas números e vírgula
+ * Mantém apenas números e vírgula - SEM formatação de milhar para evitar cursor jumping
  */
 export const formatInputValue = (value: string): string => {
   // Remove tudo exceto números e vírgula
@@ -61,12 +61,6 @@ export const formatInputValue = (value: string): string => {
   // Limita a 2 casas decimais
   if (parts.length === 2 && parts[1].length > 2) {
     cleaned = parts[0] + ',' + parts[1].slice(0, 2);
-  }
-  
-  // Adiciona separadores de milhar na parte inteira
-  if (parts[0].length > 3) {
-    const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    cleaned = parts.length > 1 ? intPart + ',' + parts[1] : intPart;
   }
   
   return cleaned;
