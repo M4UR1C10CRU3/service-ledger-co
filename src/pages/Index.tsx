@@ -45,6 +45,7 @@ const Index = () => {
     removeLiquidacao,
     updateLiquidacao,
     isLoading,
+    isInitialized,
     liquidacoes 
   } = useServices();
   
@@ -60,8 +61,11 @@ const Index = () => {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
 
-  // Filter services by year and month
+  // Filter services by year and month - only after data is loaded
   const filteredServices = useMemo(() => {
+    // Don't filter until data is initialized
+    if (!isInitialized) return [];
+    
     return services.filter((service) => {
       // Data format is DD/MM/YYYY
       const parts = service.data.split('/');
@@ -74,7 +78,7 @@ const Index = () => {
       
       return true;
     });
-  }, [services, selectedYear, selectedMonth]);
+  }, [services, selectedYear, selectedMonth, isInitialized]);
   const [selectedContract, setSelectedContract] = useState<ServiceWithCalculations | null>(null);
 
   const handleAddService = () => {
@@ -178,6 +182,27 @@ const Index = () => {
       variant: "destructive",
     });
   };
+
+  // Show loading state while data is being loaded
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header 
+          onAddService={handleAddService} 
+          onOpenReports={handleOpenReports}
+          userName={userName}
+        />
+        <main className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+              <p className="text-muted-foreground">A carregar serviços...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -208,25 +208,32 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
 };
 
 export const useServices = () => {
-  const [services, setServices] = useState<Service[]>(initialServices);
+  const [services, setServices] = useState<Service[]>([]);
   const [liquidacoes, setLiquidacoes] = useState<Record<string, Liquidacao[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load services from database on mount
   useEffect(() => {
     const loadServices = async () => {
       setIsLoading(true);
-      const servicesFromDb = await loadServicesFromDatabase();
-      setServices(servicesFromDb);
-      
-      // Load liquidacoes for each service
-      const allLiquidacoes: Record<string, Liquidacao[]> = {};
-      for (const service of servicesFromDb) {
-        const serviceLiquidacoes = await loadLiquidacoesFromDatabase(service.id);
-        allLiquidacoes[service.id] = serviceLiquidacoes;
+      try {
+        const servicesFromDb = await loadServicesFromDatabase();
+        setServices(servicesFromDb);
+        
+        // Load liquidacoes for each service
+        const allLiquidacoes: Record<string, Liquidacao[]> = {};
+        for (const service of servicesFromDb) {
+          const serviceLiquidacoes = await loadLiquidacoesFromDatabase(service.id);
+          allLiquidacoes[service.id] = serviceLiquidacoes;
+        }
+        setLiquidacoes(allLiquidacoes);
+      } catch (error) {
+        console.error('Error loading services:', error);
+      } finally {
+        setIsLoading(false);
+        setIsInitialized(true);
       }
-      setLiquidacoes(allLiquidacoes);
-      setIsLoading(false);
     };
 
     loadServices();
@@ -487,6 +494,7 @@ export const useServices = () => {
     removeLiquidacao,
     updateLiquidacao,
     isLoading,
+    isInitialized,
     liquidacoes,
   };
 };
