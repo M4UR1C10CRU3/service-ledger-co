@@ -415,8 +415,7 @@ export const ServiceForm = ({
                           type="text"
                           inputMode="decimal"
                           placeholder="0,00"
-                          defaultValue={field.value ? formatNumber(field.value) : ''}
-                          key={`valorComIVA-${editingService?.id || 'new'}`}
+                          value={field.value ? formatNumber(field.value) : ''}
                           onChange={(e) => {
                             const formatted = formatInputValue(e.target.value);
                             if (formatted !== e.target.value) {
@@ -426,16 +425,10 @@ export const ServiceForm = ({
                             }
                             field.onChange(parseFormattedNumber(formatted));
                           }}
-                          onBlur={(e) => {
-                            const value = parseFormattedNumber(e.target.value);
-                            if (value) {
-                              e.target.value = formatNumber(value);
-                            }
-                          }}
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
-                        Valor total acordado na proposta
+                        Valor total acordado na proposta (calculado automaticamente ou edite manualmente)
                       </p>
                       <FormMessage />
                     </FormItem>
@@ -462,7 +455,15 @@ export const ServiceForm = ({
                               e.target.value = formatted;
                               e.target.setSelectionRange(cursorPos, cursorPos);
                             }
-                            field.onChange(parseFormattedNumber(formatted));
+                            const valorSemIVA = parseFormattedNumber(formatted);
+                            field.onChange(valorSemIVA);
+                            
+                            // Calcula automaticamente o valor com IVA (23%)
+                            if (valorSemIVA > 0) {
+                              const valorComIVA = Math.round(valorSemIVA * 1.23 * 100) / 100;
+                              form.setValue('valorComIVA', valorComIVA);
+                              form.setValue('valorFaturado', valorComIVA);
+                            }
                           }}
                           onBlur={(e) => {
                             const value = parseFormattedNumber(e.target.value);
@@ -472,6 +473,9 @@ export const ServiceForm = ({
                           }}
                         />
                       </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Ao preencher, os valores com IVA (23%) são calculados automaticamente
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -514,8 +518,7 @@ export const ServiceForm = ({
                           type="text"
                           inputMode="decimal"
                           placeholder="0,00"
-                          defaultValue={field.value ? formatNumber(field.value) : ''}
-                          key={`valorFaturado-${editingService?.id || 'new'}`}
+                          value={field.value ? formatNumber(field.value) : ''}
                           onChange={(e) => {
                             const formatted = formatInputValue(e.target.value);
                             if (formatted !== e.target.value) {
@@ -525,16 +528,10 @@ export const ServiceForm = ({
                             }
                             field.onChange(parseFormattedNumber(formatted));
                           }}
-                          onBlur={(e) => {
-                            const value = parseFormattedNumber(e.target.value);
-                            if (value) {
-                              e.target.value = formatNumber(value);
-                            }
-                          }}
                         />
                       </FormControl>
                       <p className="text-xs text-muted-foreground">
-                        Valor efetivamente faturado (pode ser menor que o total)
+                        Calculado automaticamente ou edite se o valor faturado for diferente
                       </p>
                       <FormMessage />
                     </FormItem>
