@@ -35,38 +35,22 @@ export const ServiceTable = ({
   };
 
   const getStatusBadge = (service: ServiceWithCalculations) => {
-    const valorFaturado = service.valorFaturado || 0;
-    
-    // Sem fatura emitida
-    if (!service.numeroFatura && valorFaturado === 0) {
-      return <Badge variant="outline">Não Faturado</Badge>;
-    }
-    
-    // Totalmente liquidado
-    if (valorFaturado > 0 && service.executadoEmDebito === 0) {
+    // Totalmente liquidado (sem débito pendente)
+    if (service.executadoEmDebito === 0) {
       return <Badge className="status-paid">Liquidado</Badge>;
     }
     
-    // Em débito/atraso - cores baseadas nos dias
-    if (service.diasEmAtraso > 0) {
-      // Acima de 90 dias - Vermelho
-      if (service.diasEmAtraso > 90) {
-        return <Badge className="bg-red-600 text-white hover:bg-red-700">Em Débito ({service.diasEmAtraso}d)</Badge>;
-      }
-      // Entre 31 e 90 dias - Laranja
-      if (service.diasEmAtraso > 30) {
-        return <Badge className="bg-orange-500 text-white hover:bg-orange-600">Em Débito ({service.diasEmAtraso}d)</Badge>;
-      }
-      // Até 30 dias - Amarelo
-      return <Badge className="bg-yellow-500 text-black hover:bg-yellow-600">Em Débito ({service.diasEmAtraso}d)</Badge>;
+    // Em débito - cores baseadas nos dias de atraso
+    // Acima de 90 dias - Vermelho
+    if (service.diasEmAtraso > 90) {
+      return <Badge className="bg-red-600 text-white hover:bg-red-700">Em Débito ({service.diasEmAtraso}d)</Badge>;
     }
-    
-    // Parcialmente faturado ou pendente
-    if (service.valorARealizar > 0 && valorFaturado > 0) {
-      return <Badge className="bg-blue-100 text-blue-800">Parcial</Badge>;
+    // Entre 31 e 90 dias - Laranja
+    if (service.diasEmAtraso > 30) {
+      return <Badge className="bg-orange-500 text-white hover:bg-orange-600">Em Débito ({service.diasEmAtraso}d)</Badge>;
     }
-    
-    return <Badge className="status-pending">Pendente</Badge>;
+    // Até 30 dias - Amarelo
+    return <Badge className="bg-yellow-500 text-black hover:bg-yellow-600">Em Débito ({service.diasEmAtraso}d)</Badge>;
   };
 
   return (
