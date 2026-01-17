@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Liquidacao } from '@/types/service';
+import { Liquidacao, FormaPagamento } from '@/types/service';
 import { liquidacaoSchema, type LiquidacaoFormData } from '@/lib/validations';
 import { formatEUR } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 interface LiquidacoesManagerProps {
@@ -41,15 +48,24 @@ export const LiquidacoesManager = ({
     defaultValues: {
       valor: 0,
       dataPagamento: '',
+      formaPagamento: undefined,
       observacoes: '',
     },
   });
+
+  const formaPagamentoLabels: Record<FormaPagamento, string> = {
+    cheque: 'Cheque',
+    multibanco: 'Multibanco',
+    numerario: 'Numerário',
+    transferencia: 'Transferência',
+  };
 
   const handleAddLiquidacao = (data: LiquidacaoFormData) => {
     onAddLiquidacao({
       serviceId,
       valor: data.valor,
       dataPagamento: data.dataPagamento,
+      formaPagamento: data.formaPagamento,
       observacoes: data.observacoes,
     });
     form.reset();
@@ -112,6 +128,11 @@ export const LiquidacoesManager = ({
                   <div className="flex items-center gap-4">
                     <span className="font-medium">{formatEUR(liquidacao.valor)}</span>
                     <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                    {liquidacao.formaPagamento && (
+                      <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                        {formaPagamentoLabels[liquidacao.formaPagamento]}
+                      </span>
+                    )}
                   </div>
                   {liquidacao.observacoes && (
                     <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
@@ -133,7 +154,7 @@ export const LiquidacoesManager = ({
           <h4 className="font-medium mb-3">Registrar novo pagamento:</h4>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleAddLiquidacao)} className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <FormField
                   control={form.control}
                   name="valor"
@@ -170,6 +191,30 @@ export const LiquidacoesManager = ({
                           maxLength={10}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="formaPagamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Forma de Pagamento</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-background z-50">
+                          <SelectItem value="cheque">Cheque</SelectItem>
+                          <SelectItem value="multibanco">Multibanco</SelectItem>
+                          <SelectItem value="numerario">Numerário</SelectItem>
+                          <SelectItem value="transferencia">Transferência</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

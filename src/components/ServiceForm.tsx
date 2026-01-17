@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Service, Liquidacao } from '@/types/service';
+import { Service, Liquidacao, FormaPagamento } from '@/types/service';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { serviceFormSchema, liquidacaoSchema, type ServiceFormData, type LiquidacaoFormData } from '@/lib/validations';
 import { formatInputValue, parseFormattedNumber, formatNumber } from '@/lib/formatters';
@@ -29,6 +29,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ClienteSelector } from './ClienteSelector';
@@ -84,12 +91,14 @@ export const ServiceForm = ({
   const [novaLiquidacao, setNovaLiquidacao] = useState({
     valor: '',
     dataPagamento: '',
+    formaPagamento: '' as FormaPagamento | '',
     observacoes: ''
   });
   const [editingLiquidacaoId, setEditingLiquidacaoId] = useState<string | null>(null);
   const [editingLiquidacaoData, setEditingLiquidacaoData] = useState({
     valor: '',
     dataPagamento: '',
+    formaPagamento: '' as FormaPagamento | '',
     observacoes: ''
   });
 
@@ -140,6 +149,7 @@ export const ServiceForm = ({
       const validated = liquidacaoSchema.parse({
         valor: parseFloat(novaLiquidacao.valor),
         dataPagamento: novaLiquidacao.dataPagamento,
+        formaPagamento: novaLiquidacao.formaPagamento || undefined,
         observacoes: novaLiquidacao.observacoes || undefined,
       }) as Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>;
       
@@ -147,6 +157,7 @@ export const ServiceForm = ({
       setNovaLiquidacao({
         valor: '',
         dataPagamento: '',
+        formaPagamento: '',
         observacoes: ''
       });
       toast({
@@ -175,13 +186,14 @@ export const ServiceForm = ({
     setEditingLiquidacaoData({
       valor: liquidacao.valor.toString(),
       dataPagamento: liquidacao.dataPagamento,
+      formaPagamento: liquidacao.formaPagamento || '',
       observacoes: liquidacao.observacoes || ''
     });
   };
 
   const handleCancelEditLiquidacao = () => {
     setEditingLiquidacaoId(null);
-    setEditingLiquidacaoData({ valor: '', dataPagamento: '', observacoes: '' });
+    setEditingLiquidacaoData({ valor: '', dataPagamento: '', formaPagamento: '', observacoes: '' });
   };
 
   const handleSaveEditLiquidacao = () => {
@@ -189,6 +201,7 @@ export const ServiceForm = ({
       onUpdateLiquidacao(editingLiquidacaoId, {
         valor: parseFloat(editingLiquidacaoData.valor) || 0,
         dataPagamento: editingLiquidacaoData.dataPagamento,
+        formaPagamento: editingLiquidacaoData.formaPagamento || undefined,
         observacoes: editingLiquidacaoData.observacoes || undefined
       });
       handleCancelEditLiquidacao();
@@ -197,6 +210,13 @@ export const ServiceForm = ({
         description: "Os dados do pagamento foram atualizados com sucesso.",
       });
     }
+  };
+
+  const formaPagamentoLabels: Record<FormaPagamento, string> = {
+    cheque: 'Cheque',
+    multibanco: 'Multibanco',
+    numerario: 'Numerário',
+    transferencia: 'Transferência',
   };
 
   const handleEditDataPagamentoChange = (value: string) => {
@@ -244,6 +264,7 @@ export const ServiceForm = ({
     setNovaLiquidacao({
       valor: '',
       dataPagamento: '',
+      formaPagamento: '',
       observacoes: ''
     });
   };
@@ -622,7 +643,7 @@ export const ServiceForm = ({
                         <div key={liquidacao.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
                           {editingLiquidacaoId === liquidacao.id ? (
                             <>
-                              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -638,6 +659,23 @@ export const ServiceForm = ({
                                   onChange={(e) => handleEditDataPagamentoChange(e.target.value)}
                                   maxLength={10}
                                 />
+                                <Select
+                                  value={editingLiquidacaoData.formaPagamento}
+                                  onValueChange={(value) => setEditingLiquidacaoData(prev => ({ 
+                                    ...prev, 
+                                    formaPagamento: value as FormaPagamento
+                                  }))}
+                                >
+                                  <SelectTrigger className="bg-background">
+                                    <SelectValue placeholder="Forma pgto..." />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background z-50">
+                                    <SelectItem value="cheque">Cheque</SelectItem>
+                                    <SelectItem value="multibanco">Multibanco</SelectItem>
+                                    <SelectItem value="numerario">Numerário</SelectItem>
+                                    <SelectItem value="transferencia">Transferência</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <Input
                                   placeholder="Observações"
                                   value={editingLiquidacaoData.observacoes}
@@ -659,6 +697,11 @@ export const ServiceForm = ({
                                 <div className="flex items-center gap-4">
                                   <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
                                   <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                                  {liquidacao.formaPagamento && (
+                                    <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                                      {formaPagamentoLabels[liquidacao.formaPagamento]}
+                                    </span>
+                                  )}
                                 </div>
                                 {liquidacao.observacoes && (
                                   <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
@@ -705,6 +748,11 @@ export const ServiceForm = ({
                             <div className="flex items-center gap-4">
                               <span className="font-medium">€{liquidacao.valor.toFixed(2)}</span>
                               <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                              {liquidacao.formaPagamento && (
+                                <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                                  {formaPagamentoLabels[liquidacao.formaPagamento]}
+                                </span>
+                              )}
                             </div>
                             {liquidacao.observacoes && (
                               <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
@@ -723,7 +771,7 @@ export const ServiceForm = ({
                     </div>
                   )}
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-md bg-muted/20">
                         <div className="space-y-2">
                           <Label htmlFor="valorLiquidacao">Valor (€)</Label>
                           <Input
@@ -753,6 +801,27 @@ export const ServiceForm = ({
                         </div>
 
                         <div className="space-y-2">
+                          <Label htmlFor="formaPagamento">Forma de Pagamento</Label>
+                          <Select
+                            value={novaLiquidacao.formaPagamento}
+                            onValueChange={(value) => setNovaLiquidacao(prev => ({ 
+                              ...prev, 
+                              formaPagamento: value as FormaPagamento
+                            }))}
+                          >
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background z-50">
+                              <SelectItem value="cheque">Cheque</SelectItem>
+                              <SelectItem value="multibanco">Multibanco</SelectItem>
+                              <SelectItem value="numerario">Numerário</SelectItem>
+                              <SelectItem value="transferencia">Transferência</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
                           <Label htmlFor="observacoes">Observações</Label>
                           <Input
                             id="observacoes"
@@ -766,7 +835,7 @@ export const ServiceForm = ({
                           />
                         </div>
 
-                        <div className="md:col-span-3">
+                        <div className="md:col-span-2 lg:col-span-4">
                           <Button
                             type="button"
                             variant="outline"
