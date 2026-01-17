@@ -23,11 +23,14 @@ export interface Service {
   email?: string;
 }
 
+export type FormaPagamento = 'cheque' | 'multibanco' | 'numerario' | 'transferencia';
+
 export interface Liquidacao {
   id: string;
   serviceId: string;
   valor: number;
   dataPagamento: string; // Data in DD/MM/YYYY format
+  formaPagamento?: FormaPagamento;
   observacoes?: string;
   createdAt: Date;
 }

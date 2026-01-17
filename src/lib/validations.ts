@@ -104,6 +104,7 @@ export const liquidacaoSchema = z.object({
     .min(0.01, { message: "Valor deve ser maior que zero" })
     .max(999999999, { message: "Valor muito alto" }),
   dataPagamento: dateSchema,
+  formaPagamento: z.enum(['cheque', 'multibanco', 'numerario', 'transferencia']).optional(),
   observacoes: z
     .string()
     .trim()
