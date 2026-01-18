@@ -801,7 +801,7 @@ export const ServiceForm = ({
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="formaPagamento">Forma de Pagamento</Label>
+                          <Label htmlFor="formaPagamento">Pagamento</Label>
                           <Select
                             value={novaLiquidacao.formaPagamento}
                             onValueChange={(value) => setNovaLiquidacao(prev => ({ 
