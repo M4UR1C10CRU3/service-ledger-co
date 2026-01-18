@@ -41,15 +41,15 @@ export const ServiceTable = ({
     }
     
     // Em débito - cores baseadas nos dias de atraso
-    // Acima de 90 dias - Vermelho
-    if (service.diasEmAtraso > 90) {
+    // Acima de 91 dias - Vermelho
+    if (service.diasEmAtraso >= 91) {
       return <Badge className="bg-red-600 text-white hover:bg-red-700">Em Débito ({service.diasEmAtraso}d)</Badge>;
     }
     // Entre 31 e 90 dias - Laranja
-    if (service.diasEmAtraso > 30) {
+    if (service.diasEmAtraso >= 31) {
       return <Badge className="bg-orange-500 text-white hover:bg-orange-600">Em Débito ({service.diasEmAtraso}d)</Badge>;
     }
-    // Até 30 dias - Amarelo
+    // Entre 1 e 30 dias - Amarelo
     return <Badge className="bg-yellow-500 text-black hover:bg-yellow-600">Em Débito ({service.diasEmAtraso}d)</Badge>;
   };
 
