@@ -75,76 +75,65 @@ export const DateFilter = ({
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex flex-col gap-4">
-          {/* First row - Period filters */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span className="text-sm font-medium">Filtrar por período:</span>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={selectedYear || ''}
-                onValueChange={(value) => onYearChange(value || null)}
-              >
-                <SelectTrigger className="w-[130px] bg-background">
-                  <SelectValue placeholder="Ano" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  {availableYears.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={selectedMonth || ''}
-                onValueChange={(value) => onMonthChange(value || null)}
-              >
-                <SelectTrigger className="w-[150px] bg-background">
-                  <SelectValue placeholder="Mês" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  {MONTHS.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          {/* Period filter */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Período:</span>
+            <Select
+              value={selectedYear || ''}
+              onValueChange={(value) => onYearChange(value || null)}
+            >
+              <SelectTrigger className="w-[100px] bg-background">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedMonth || ''}
+              onValueChange={(value) => onMonthChange(value || null)}
+            >
+              <SelectTrigger className="w-[130px] bg-background">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                {MONTHS.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Second row - Client search and debt filter */}
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Search className="h-4 w-4" />
-              <span className="text-sm font-medium">Filtrar por cliente:</span>
-            </div>
-            
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Pesquisar cliente..."
-                value={clienteSearch}
-                onChange={(e) => onClienteSearchChange(e.target.value)}
-                className="w-[200px] pl-3"
-              />
-            </div>
+          {/* Client search */}
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Cliente:</span>
+            <Input
+              type="text"
+              placeholder="Pesquisar..."
+              value={clienteSearch}
+              onChange={(e) => onClienteSearchChange(e.target.value)}
+              className="w-[160px]"
+            />
+          </div>
 
-            <div className="flex items-center gap-2 text-muted-foreground ml-4">
-              <Clock className="h-4 w-4" />
-              <span className="text-sm font-medium">Débito:</span>
-            </div>
-            
+          {/* Debt filter */}
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Débito:</span>
             <Select
               value={debitoFilter || ''}
               onValueChange={(value) => onDebitoFilterChange(value || null)}
             >
-              <SelectTrigger className="w-[180px] bg-background">
+              <SelectTrigger className="w-[160px] bg-background">
                 <SelectValue placeholder="Tempo em atraso" />
               </SelectTrigger>
               <SelectContent className="bg-background z-50">
@@ -155,19 +144,20 @@ export const DateFilter = ({
                 ))}
               </SelectContent>
             </Select>
-
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-muted-foreground hover:text-foreground ml-auto"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Limpar filtros
-              </Button>
-            )}
           </div>
+
+          {/* Clear filters button */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Limpar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
