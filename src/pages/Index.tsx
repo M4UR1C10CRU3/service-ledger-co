@@ -60,8 +60,10 @@ const Index = () => {
   // Date filter state
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [clienteSearch, setClienteSearch] = useState<string>('');
+  const [debitoFilter, setDebitoFilter] = useState<string | null>(null);
 
-  // Filter services by year and month - only after data is loaded
+  // Filter services by year, month, client and debt status - only after data is loaded
   const filteredServices = useMemo(() => {
     // Don't filter until data is initialized
     if (!isInitialized) return [];
@@ -76,9 +78,32 @@ const Index = () => {
       if (selectedYear && year !== selectedYear) return false;
       if (selectedMonth && month !== selectedMonth) return false;
       
+      // Filter by client name
+      if (clienteSearch && !service.cliente.toLowerCase().includes(clienteSearch.toLowerCase())) {
+        return false;
+      }
+      
+      // Filter by debt time
+      if (debitoFilter) {
+        // Only include services with debt
+        if (service.executadoEmDebito <= 0) return false;
+        
+        switch (debitoFilter) {
+          case 'ate30':
+            if (service.diasEmAtraso < 1 || service.diasEmAtraso > 30) return false;
+            break;
+          case '31a90':
+            if (service.diasEmAtraso < 31 || service.diasEmAtraso > 90) return false;
+            break;
+          case 'acima90':
+            if (service.diasEmAtraso <= 90) return false;
+            break;
+        }
+      }
+      
       return true;
     });
-  }, [services, selectedYear, selectedMonth, isInitialized]);
+  }, [services, selectedYear, selectedMonth, clienteSearch, debitoFilter, isInitialized]);
   const [selectedContract, setSelectedContract] = useState<ServiceWithCalculations | null>(null);
 
   const handleAddService = () => {
@@ -218,8 +243,12 @@ const Index = () => {
           services={services}
           selectedYear={selectedYear}
           selectedMonth={selectedMonth}
+          clienteSearch={clienteSearch}
+          debitoFilter={debitoFilter}
           onYearChange={setSelectedYear}
           onMonthChange={setSelectedMonth}
+          onClienteSearchChange={setClienteSearch}
+          onDebitoFilterChange={setDebitoFilter}
         />
         <ServiceChart services={filteredServices} />
         <ServiceTable 
