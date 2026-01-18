@@ -201,7 +201,7 @@ export const LiquidacoesManager = ({
                   name="formaPagamento"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Forma de Pagamento</FormLabel>
+                      <FormLabel>Pagamento</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''}>
                         <FormControl>
                           <SelectTrigger className="bg-background">
