@@ -286,9 +286,9 @@ export const useServices = () => {
     // Percentual faturado é sobre o valor total da proposta (para contratos)
     const percentualFaturado = service.valorComIVA > 0 ? (valorFaturado / service.valorComIVA) * 100 : 0;
     
-    // Calculate days overdue if invoice exists and not fully paid
+    // Calculate days overdue if there is debt pending
     let diasEmAtraso = 0;
-    if (service.numeroFatura && executadoEmDebito > 0) {
+    if (executadoEmDebito > 0) {
       const [day, month, year] = service.data.split('/').map(Number);
       const serviceDate = new Date(year, month - 1, day);
       const today = new Date();
