@@ -81,7 +81,7 @@ export const DateFilter = ({
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">Período:</span>
             <Select
-              value={selectedYear || ''}
+              value={selectedYear ?? undefined}
               onValueChange={(value) => onYearChange(value || null)}
             >
               <SelectTrigger className="w-[100px] bg-background">
@@ -96,7 +96,7 @@ export const DateFilter = ({
               </SelectContent>
             </Select>
             <Select
-              value={selectedMonth || ''}
+              value={selectedMonth ?? undefined}
               onValueChange={(value) => onMonthChange(value || null)}
             >
               <SelectTrigger className="w-[130px] bg-background">
@@ -130,7 +130,7 @@ export const DateFilter = ({
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">Débito:</span>
             <Select
-              value={debitoFilter || ''}
+              value={debitoFilter ?? undefined}
               onValueChange={(value) => onDebitoFilterChange(value || null)}
             >
               <SelectTrigger className="w-[160px] bg-background">
