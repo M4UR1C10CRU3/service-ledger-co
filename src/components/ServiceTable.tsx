@@ -73,59 +73,59 @@ export const ServiceTable = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[100px]">Data</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="w-[200px]">Resumo</TableHead>
-                <TableHead className="w-[100px]">Proposta</TableHead>
-                <TableHead className="w-[100px]">Fatura</TableHead>
-                <TableHead className="text-right w-[120px]">Valor Total</TableHead>
-                <TableHead className="text-right w-[120px]">FT</TableHead>
-                <TableHead className="text-right w-[120px]">NFT</TableHead>
-                <TableHead className="text-right w-[120px]">Liquidado</TableHead>
-                <TableHead className="text-right w-[120px]">Em Débito</TableHead>
-                <TableHead className="w-[130px]">Status</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
+                <TableHead className="w-[100px] text-center">Data</TableHead>
+                <TableHead className="text-center">Serviço</TableHead>
+                <TableHead className="text-center">Cliente</TableHead>
+                <TableHead className="w-[200px] text-center">Resumo</TableHead>
+                <TableHead className="w-[100px] text-center">Proposta</TableHead>
+                <TableHead className="w-[100px] text-center">Fatura</TableHead>
+                <TableHead className="w-[120px] text-center">Valor Total</TableHead>
+                <TableHead className="w-[120px] text-center">FT</TableHead>
+                <TableHead className="w-[120px] text-center">NFT</TableHead>
+                <TableHead className="w-[120px] text-center">Liquidado</TableHead>
+                <TableHead className="w-[120px] text-center">Em Débito</TableHead>
+                <TableHead className="w-[130px] text-center">Status</TableHead>
+                <TableHead className="w-[100px] text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {services.map((service) => (
                 <TableRow key={service.id}>
-                  <TableCell className="font-mono text-sm">{service.data}</TableCell>
-                  <TableCell className="font-medium">{service.servico}</TableCell>
-                  <TableCell>{service.cliente}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="font-mono text-sm text-center">{service.data}</TableCell>
+                  <TableCell className="font-medium text-center">{service.servico}</TableCell>
+                  <TableCell className="text-center">{service.cliente}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground text-center">
                     {service.resumo}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{service.proposta || '—'}</TableCell>
-                  <TableCell className="font-mono text-sm">
+                  <TableCell className="font-mono text-sm text-center">{service.proposta || '—'}</TableCell>
+                  <TableCell className="font-mono text-sm text-center">
                     {service.numeroFatura || '—'}
                   </TableCell>
-                  <TableCell className="table-cell-currency">
+                  <TableCell className="text-center font-mono">
                     {formatCurrency(service.valorComIVA)}
                   </TableCell>
-                  <TableCell className="table-cell-currency">
+                  <TableCell className="text-center font-mono">
                     <span className={service.valorFaturado > 0 ? "text-green-600" : ""}>
                       {formatCurrency(service.valorFaturado || 0)}
                     </span>
                   </TableCell>
-                  <TableCell className="table-cell-currency">
+                  <TableCell className="text-center font-mono">
                     <span className={service.valorARealizar > 0 ? "text-orange-600" : ""}>
                       {formatCurrency(service.valorARealizar)}
                     </span>
                   </TableCell>
-                  <TableCell className="table-cell-currency">
+                  <TableCell className="text-center font-mono">
                     {formatCurrency(service.liquidado)}
                   </TableCell>
-                  <TableCell className="table-cell-currency">
+                  <TableCell className="text-center font-mono">
                     <span className={service.executadoEmDebito > 0 ? "text-danger" : ""}>
                       {formatCurrency(service.executadoEmDebito)}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {getStatusBadge(service)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <div className="flex space-x-1">
                       <Button
                         variant="ghost"
