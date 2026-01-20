@@ -140,6 +140,7 @@ const loadLiquidacoesFromDatabase = async (serviceId: string): Promise<Liquidaca
       serviceId: row.service_id,
       valor: parseFloat(row.valor.toString()),
       dataPagamento: row.data_pagamento,
+      formaPagamento: (row as any).forma_pagamento || undefined,
       observacoes: row.observacoes || undefined,
       createdAt: new Date(row.created_at),
     })) || [];
@@ -157,6 +158,7 @@ const saveLiquidacaoToDatabase = async (liquidacao: Omit<Liquidacao, 'id'>) => {
         service_id: liquidacao.serviceId,
         valor: liquidacao.valor,
         data_pagamento: liquidacao.dataPagamento,
+        forma_pagamento: liquidacao.formaPagamento || null,
         observacoes: liquidacao.observacoes,
         created_at: liquidacao.createdAt.toISOString(),
       });
@@ -469,6 +471,7 @@ export const useServices = () => {
       const updateData: any = {};
       if (updates.valor !== undefined) updateData.valor = updates.valor;
       if (updates.dataPagamento !== undefined) updateData.data_pagamento = updates.dataPagamento;
+      if (updates.formaPagamento !== undefined) updateData.forma_pagamento = updates.formaPagamento;
       if (updates.observacoes !== undefined) updateData.observacoes = updates.observacoes;
       
       const { error } = await supabase

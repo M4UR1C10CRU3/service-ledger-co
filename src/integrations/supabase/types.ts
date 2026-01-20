@@ -90,6 +90,7 @@ export type Database = {
         Row: {
           created_at: string
           data_pagamento: string
+          forma_pagamento: string | null
           id: string
           observacoes: string | null
           service_id: string
@@ -99,6 +100,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data_pagamento: string
+          forma_pagamento?: string | null
           id?: string
           observacoes?: string | null
           service_id: string
@@ -108,6 +110,7 @@ export type Database = {
         Update: {
           created_at?: string
           data_pagamento?: string
+          forma_pagamento?: string | null
           id?: string
           observacoes?: string | null
           service_id?: string
