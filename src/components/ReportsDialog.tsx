@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ServiceWithCalculations } from '@/types/service';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,21 @@ import {
   TableRow,
   TableFooter,
 } from '@/components/ui/table';
-import { FileText, Download } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { FileText, Download, Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import logoObrajusta from '@/assets/logo-obrajusta.png';
 
@@ -80,6 +94,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const [selectedCliente, setSelectedCliente] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [debitoTimeFilter, setDebitoTimeFilter] = useState<DebitoTimeFilter>('todos');
+  const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
 
   // Obter anos e clientes únicos dos serviços
   const availableYears = [...new Set(services.map(s => {
@@ -680,20 +695,67 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             </Select>
           </div>
 
-          {/* Cliente */}
+          {/* Cliente - com busca autocomplete */}
           <div>
             <Label className="text-xs font-medium mb-1 block">Cliente</Label>
-            <Select value={selectedCliente ?? undefined} onValueChange={(value) => setSelectedCliente(value === 'todos' ? null : value)}>
-              <SelectTrigger className="w-full bg-background">
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-[100] max-h-[200px]">
-                <SelectItem value="todos">Todos os Clientes</SelectItem>
-                {availableClientes.map(cliente => (
-                  <SelectItem key={cliente} value={cliente}>{cliente}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={clientePopoverOpen}
+                  className="w-full justify-between bg-background font-normal h-10"
+                >
+                  <span className="truncate">
+                    {selectedCliente || "Todos os Clientes"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0 z-[100]" align="start">
+                <Command>
+                  <CommandInput placeholder="Pesquisar cliente..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="todos"
+                        onSelect={() => {
+                          setSelectedCliente(null);
+                          setClientePopoverOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            !selectedCliente ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        Todos os Clientes
+                      </CommandItem>
+                      {availableClientes.map((cliente) => (
+                        <CommandItem
+                          key={cliente}
+                          value={cliente}
+                          onSelect={() => {
+                            setSelectedCliente(cliente);
+                            setClientePopoverOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedCliente === cliente ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {cliente}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Status */}
