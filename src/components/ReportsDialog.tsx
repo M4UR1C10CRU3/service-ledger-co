@@ -44,6 +44,9 @@ type ReportType =
   | 'movimento-mensal'
   | 'projecao';
 
+type StatusFilter = 'todos' | 'debitos' | 'liquidados';
+type DebitoTimeFilter = 'todos' | 'ate30' | '31a90' | 'acima90';
+
 const REPORT_TITLES: Record<ReportType, string> = {
   'faturados': 'Valores Faturados',
   'nao-faturados': 'Valores Não Faturados',
@@ -52,9 +55,112 @@ const REPORT_TITLES: Record<ReportType, string> = {
   'projecao': 'Projeção de Valores a Realizar',
 };
 
+const MONTHS = [
+  { value: '01', label: 'Janeiro' },
+  { value: '02', label: 'Fevereiro' },
+  { value: '03', label: 'Março' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Maio' },
+  { value: '06', label: 'Junho' },
+  { value: '07', label: 'Julho' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+];
+
 export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false }: ReportsDialogProps) => {
   const [selectedReport, setSelectedReport] = useState<ReportType>('faturados');
   const [userName, setUserName] = useState<string>('');
+  
+  // Novos filtros
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedCliente, setSelectedCliente] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [debitoTimeFilter, setDebitoTimeFilter] = useState<DebitoTimeFilter>('todos');
+
+  // Obter anos e clientes únicos dos serviços
+  const availableYears = [...new Set(services.map(s => {
+    const parts = s.data.split('/');
+    return parts.length === 3 ? parts[2] : '';
+  }).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+
+  const availableClientes = [...new Set(services.map(s => s.cliente))].sort((a, b) => a.localeCompare(b));
+
+  // Filtrar serviços com base nos filtros selecionados
+  const filteredServices = services.filter(service => {
+    // Filtro por ano
+    if (selectedYear) {
+      const parts = service.data.split('/');
+      if (parts.length !== 3 || parts[2] !== selectedYear) return false;
+    }
+    
+    // Filtro por mês
+    if (selectedMonth) {
+      const parts = service.data.split('/');
+      if (parts.length !== 3 || parts[1] !== selectedMonth) return false;
+    }
+    
+    // Filtro por cliente
+    if (selectedCliente && service.cliente !== selectedCliente) return false;
+    
+    // Filtro por status (débitos/liquidados)
+    if (statusFilter === 'debitos') {
+      if (service.executadoEmDebito <= 0) return false;
+    } else if (statusFilter === 'liquidados') {
+      if (service.executadoEmDebito > 0) return false;
+    }
+    
+    // Filtro por tempo de débito (apenas quando status é débitos)
+    if (statusFilter === 'debitos' && debitoTimeFilter !== 'todos') {
+      switch (debitoTimeFilter) {
+        case 'ate30':
+          if (service.diasEmAtraso < 1 || service.diasEmAtraso > 30) return false;
+          break;
+        case '31a90':
+          if (service.diasEmAtraso < 31 || service.diasEmAtraso > 90) return false;
+          break;
+        case 'acima90':
+          if (service.diasEmAtraso <= 90) return false;
+          break;
+      }
+    }
+    
+    return true;
+  });
+
+  // Gerar subtítulo do filtro para o PDF
+  const getFilterSubtitle = () => {
+    const parts: string[] = [];
+    
+    if (selectedMonth && selectedYear) {
+      const monthName = MONTHS.find(m => m.value === selectedMonth)?.label;
+      parts.push(`${monthName} de ${selectedYear}`);
+    } else if (selectedYear) {
+      parts.push(`Ano ${selectedYear}`);
+    } else if (selectedMonth) {
+      const monthName = MONTHS.find(m => m.value === selectedMonth)?.label;
+      parts.push(`Mês: ${monthName}`);
+    }
+    
+    if (selectedCliente) {
+      parts.push(`Cliente: ${selectedCliente}`);
+    }
+    
+    if (statusFilter === 'debitos') {
+      let debitoLabel = 'Em Débito';
+      if (debitoTimeFilter === 'ate30') debitoLabel += ' (até 30 dias)';
+      else if (debitoTimeFilter === '31a90') debitoLabel += ' (31 a 90 dias)';
+      else if (debitoTimeFilter === 'acima90') debitoLabel += ' (acima de 90 dias)';
+      parts.push(debitoLabel);
+    } else if (statusFilter === 'liquidados') {
+      parts.push('Apenas Liquidados');
+    }
+    
+    return parts.length > 0 ? parts.join(' | ') : 'Todos os registros';
+  };
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -164,6 +270,13 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             color: #1a1a2e;
           }
           
+          .header .filter-subtitle {
+            font-size: 10pt;
+            margin-top: 8px;
+            color: #555;
+            font-style: italic;
+          }
+          
           table {
             width: 100%;
             border-collapse: collapse;
@@ -220,6 +333,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
           <h1>OBRAJUSTA II, Lda</h1>
           <p>Gestão de Serviços e Faturação</p>
           <h2>${reportTitle}</h2>
+          <p class="filter-subtitle">${getFilterSubtitle()}</p>
         </div>
         
         <div class="content">
@@ -254,7 +368,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getValoresFaturadosTable = () => {
-    const { clientData, totals } = getValoresFaturadosReport(services);
+    const { clientData, totals } = getValoresFaturadosReport(filteredServices);
     return (
       <Card>
         <CardHeader>
@@ -302,7 +416,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getValoresNaoFaturadosTable = () => {
-    const { clientData, totals } = getValoresNaoFaturadosReport(services);
+    const { clientData, totals } = getValoresNaoFaturadosReport(filteredServices);
     return (
       <Card>
         <CardHeader>
@@ -350,7 +464,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getRelatorioGeralTable = () => {
-    const { monthData, totals } = getRelatorioGeralReport(services);
+    const { monthData, totals } = getRelatorioGeralReport(filteredServices);
     return (
       <Card>
         <CardHeader>
@@ -398,7 +512,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getMovimentoMensalTable = () => {
-    const monthData = getMovimentoMensalReport(services);
+    const monthData = getMovimentoMensalReport(filteredServices);
     return (
       <Card>
         <CardHeader>
@@ -431,7 +545,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getProjecaoValoresTable = () => {
-    const { clientData, totals } = getProjecaoValoresReport(services);
+    const { clientData, totals } = getProjecaoValoresReport(filteredServices);
     return (
       <Card>
         <CardHeader>
@@ -508,6 +622,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             Relatórios Financeiros
           </DialogTitle>
         </DialogHeader>
+        
+        {/* Tipo de Relatório e Exportar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b">
           <div className="w-full sm:w-auto">
             <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
@@ -529,6 +645,101 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             Exportar PDF
           </Button>
         </div>
+
+        {/* Filtros Avançados */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 py-4 border-b">
+          {/* Ano */}
+          <div>
+            <Label className="text-xs font-medium mb-1 block">Ano</Label>
+            <Select value={selectedYear ?? undefined} onValueChange={(value) => setSelectedYear(value === 'todos' ? null : value)}>
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100]">
+                <SelectItem value="todos">Todos os Anos</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Mês */}
+          <div>
+            <Label className="text-xs font-medium mb-1 block">Mês</Label>
+            <Select value={selectedMonth ?? undefined} onValueChange={(value) => setSelectedMonth(value === 'todos' ? null : value)}>
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100]">
+                <SelectItem value="todos">Todos os Meses</SelectItem>
+                {MONTHS.map(month => (
+                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Cliente */}
+          <div>
+            <Label className="text-xs font-medium mb-1 block">Cliente</Label>
+            <Select value={selectedCliente ?? undefined} onValueChange={(value) => setSelectedCliente(value === 'todos' ? null : value)}>
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100] max-h-[200px]">
+                <SelectItem value="todos">Todos os Clientes</SelectItem>
+                {availableClientes.map(cliente => (
+                  <SelectItem key={cliente} value={cliente}>{cliente}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status */}
+          <div>
+            <Label className="text-xs font-medium mb-1 block">Status</Label>
+            <Select value={statusFilter} onValueChange={(value: StatusFilter) => {
+              setStatusFilter(value);
+              if (value !== 'debitos') setDebitoTimeFilter('todos');
+            }}>
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100]">
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="debitos">Apenas Débitos</SelectItem>
+                <SelectItem value="liquidados">Apenas Liquidados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Tempo de Débito (apenas visível quando status = debitos) */}
+          <div>
+            <Label className="text-xs font-medium mb-1 block">Tempo Débito</Label>
+            <Select 
+              value={debitoTimeFilter} 
+              onValueChange={(value: DebitoTimeFilter) => setDebitoTimeFilter(value)}
+              disabled={statusFilter !== 'debitos'}
+            >
+              <SelectTrigger className="w-full bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-[100]">
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="ate30">Até 30 dias</SelectItem>
+                <SelectItem value="31a90">31 a 90 dias</SelectItem>
+                <SelectItem value="acima90">Acima de 90 dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Subtítulo com filtros aplicados */}
+        <div className="py-2 text-sm text-muted-foreground italic">
+          Filtro: {getFilterSubtitle()} ({filteredServices.length} registros)
+        </div>
+
         <ScrollArea className="flex-1 pr-4">
           <div className="py-4" id="report-content">
             {renderReport()}
