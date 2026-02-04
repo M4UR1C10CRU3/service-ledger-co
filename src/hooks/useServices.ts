@@ -87,35 +87,71 @@ const initialServices: Service[] = [
 ];
 
 // Helper functions for database operations
-const saveServiceToDatabase = async (service: Service) => {
+const saveServiceToDatabase = async (service: Service, empresaId: string) => {
   try {
-    const { error } = await supabase
+    // Primeiro verificar se existe
+    const { data: existing } = await supabase
       .from('services')
-      .upsert({
-        service_id: service.id,
-        data: service.data,
-        servico: service.servico,
-        cliente: service.cliente,
-        resumo: service.resumo,
-        proposta: service.proposta,
-        fatura: service.fatura,
-        valor_com_iva: service.valorComIVA,
-        valor_sem_iva: service.valorSemIVA,
-        liquidado: service.liquidado,
-        a_realizar: service.aRealizar,
-        tipo_servico: service.tipoServico,
-        contrato_id: service.contratoId || null,
-        valor_faturado: service.valorFaturado || 0,
-        numero_fatura: service.numeroFatura || null,
-        telefone: service.telefone || null,
-        email: service.email || null,
-        created_at: service.createdAt.toISOString(),
-      }, {
-        onConflict: 'service_id',
-      });
+      .select('id')
+      .eq('service_id', service.id)
+      .single();
     
-    if (error) {
-      console.error('Error saving service to database:', error);
+    if (existing) {
+      // Update
+      const { error } = await supabase
+        .from('services')
+        .update({
+          data: service.data,
+          servico: service.servico,
+          cliente: service.cliente,
+          resumo: service.resumo,
+          proposta: service.proposta,
+          fatura: service.fatura,
+          valor_com_iva: service.valorComIVA,
+          valor_sem_iva: service.valorSemIVA,
+          liquidado: service.liquidado,
+          a_realizar: service.aRealizar,
+          tipo_servico: service.tipoServico,
+          contrato_id: service.contratoId || null,
+          valor_faturado: service.valorFaturado || 0,
+          numero_fatura: service.numeroFatura || null,
+          telefone: service.telefone || null,
+          email: service.email || null,
+        })
+        .eq('service_id', service.id);
+      
+      if (error) {
+        console.error('Error updating service in database:', error);
+      }
+    } else {
+      // Insert
+      const { error } = await supabase
+        .from('services')
+        .insert({
+          service_id: service.id,
+          data: service.data,
+          servico: service.servico,
+          cliente: service.cliente,
+          resumo: service.resumo,
+          proposta: service.proposta,
+          fatura: service.fatura,
+          valor_com_iva: service.valorComIVA,
+          valor_sem_iva: service.valorSemIVA,
+          liquidado: service.liquidado,
+          a_realizar: service.aRealizar,
+          tipo_servico: service.tipoServico,
+          contrato_id: service.contratoId || null,
+          valor_faturado: service.valorFaturado || 0,
+          numero_fatura: service.numeroFatura || null,
+          telefone: service.telefone || null,
+          email: service.email || null,
+          empresa_id: empresaId,
+          created_at: service.createdAt.toISOString(),
+        });
+      
+      if (error) {
+        console.error('Error inserting service in database:', error);
+      }
     }
   } catch (error) {
     console.error('Error saving service to database:', error);
@@ -171,12 +207,19 @@ const saveLiquidacaoToDatabase = async (liquidacao: Omit<Liquidacao, 'id'>) => {
   }
 };
 
-const loadServicesFromDatabase = async (): Promise<Service[]> => {
+const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('services')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    // Filtrar por empresa se especificado
+    if (empresaId) {
+      query = query.eq('empresa_id', empresaId);
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error loading services from database:', error);
@@ -202,6 +245,7 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
       numeroFatura: (row as any).numero_fatura || undefined,
       telefone: (row as any).telefone || undefined,
       email: (row as any).email || undefined,
+      empresaId: (row as any).empresa_id || undefined,
     })) || initialServices;
   } catch (error) {
     console.error('Error loading services from database:', error);
@@ -209,18 +253,49 @@ const loadServicesFromDatabase = async (): Promise<Service[]> => {
   }
 };
 
-export const useServices = () => {
+export const useServices = (empresaId?: string) => {
   const [services, setServices] = useState<Service[]>([]);
   const [liquidacoes, setLiquidacoes] = useState<Record<string, Liquidacao[]>>({});
+  const [currentEmpresaId, setCurrentEmpresaId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Carregar empresa ID do localStorage se não fornecido
+  useEffect(() => {
+    const loadEmpresaId = async () => {
+      if (empresaId) {
+        setCurrentEmpresaId(empresaId);
+        return;
+      }
+      
+      // Obter empresa do localStorage
+      const savedSlug = localStorage.getItem('selectedEmpresa');
+      if (savedSlug) {
+        try {
+          const { data } = await supabase
+            .from('empresas')
+            .select('id')
+            .eq('slug', savedSlug)
+            .single();
+          
+          if (data) {
+            setCurrentEmpresaId(data.id);
+          }
+        } catch (error) {
+          console.error('Error loading empresa id:', error);
+        }
+      }
+    };
+    
+    loadEmpresaId();
+  }, [empresaId]);
 
   // Load services from database on mount
   useEffect(() => {
     const loadServices = async () => {
       setIsLoading(true);
       try {
-        const servicesFromDb = await loadServicesFromDatabase();
+        const servicesFromDb = await loadServicesFromDatabase(currentEmpresaId || undefined);
         setServices(servicesFromDb);
         
         // Load liquidacoes for each service
@@ -238,8 +313,10 @@ export const useServices = () => {
       }
     };
 
-    loadServices();
-  }, []);
+    if (currentEmpresaId) {
+      loadServices();
+    }
+  }, [currentEmpresaId]);
 
   const calculateServiceMetrics = (service: Service): ServiceWithCalculations => {
     let serviceLiquidacoes = liquidacoes[service.id] || [];
@@ -352,7 +429,12 @@ export const useServices = () => {
     };
   }, [servicesWithCalculations]);
 
-  const addService = async (service: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]) => {
+  const addService = async (service: Omit<Service, 'id' | 'createdAt'>, liquidacoesData?: Omit<Liquidacao, 'id' | 'createdAt' | 'serviceId'>[]) => {
+    if (!currentEmpresaId) {
+      console.error('No empresa selected');
+      return;
+    }
+    
     const newService: Service = {
       ...service,
       id: Date.now().toString(),
@@ -361,11 +443,11 @@ export const useServices = () => {
       valorFaturado: service.valorFaturado || 0,
     };
     setServices(prev => [...prev, newService]);
-    await saveServiceToDatabase(newService);
+    await saveServiceToDatabase(newService, currentEmpresaId);
     
     // Adicionar liquidações se fornecidas
-    if (liquidacoes && liquidacoes.length > 0) {
-      for (const liquidacao of liquidacoes) {
+    if (liquidacoesData && liquidacoesData.length > 0) {
+      for (const liquidacao of liquidacoesData) {
         await addLiquidacao({
           serviceId: newService.id,
           valor: liquidacao.valor,
@@ -380,7 +462,9 @@ export const useServices = () => {
     setServices(prev => prev.map(service => {
       if (service.id === id) {
         const updatedService = { ...service, ...updates };
-        saveServiceToDatabase(updatedService);
+        if (currentEmpresaId) {
+          saveServiceToDatabase(updatedService, currentEmpresaId);
+        }
         return updatedService;
       }
       return service;

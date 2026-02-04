@@ -21,6 +21,9 @@ export interface Service {
   // Campos de contacto do cliente
   telefone?: string;
   email?: string;
+  
+  // ID da empresa
+  empresaId?: string;
 }
 
 export type FormaPagamento = 'cheque' | 'multibanco' | 'numerario' | 'transferencia';

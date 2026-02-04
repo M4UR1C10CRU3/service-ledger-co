@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useServices } from '@/hooks/useServices';
 import { useClientes } from '@/hooks/useClientes';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 import { Service, ServiceWithCalculations } from '@/types/service';
 import { Header } from '@/components/Header';
 import { DashboardCards } from '@/components/DashboardCards';
@@ -13,9 +14,22 @@ import { ReportsDialog } from '@/components/ReportsDialog';
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
 import { DateFilter } from '@/components/DateFilter';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const [userName, setUserName] = useState<string>('');
+  const { empresa } = useEmpresa();
+  const navigate = useNavigate();
+  
+  // Redirecionar se não há empresa selecionada
+  useEffect(() => {
+    if (!empresa) {
+      const savedEmpresa = localStorage.getItem('selectedEmpresa');
+      if (!savedEmpresa) {
+        navigate('/empresa');
+      }
+    }
+  }, [empresa, navigate]);
   
   useEffect(() => {
     // Get user profile
@@ -47,7 +61,7 @@ const Index = () => {
     isLoading,
     isInitialized,
     liquidacoes 
-  } = useServices();
+  } = useServices(empresa?.id);
   
   const { clientes, addCliente } = useClientes();
   const [isFormOpen, setIsFormOpen] = useState(false);

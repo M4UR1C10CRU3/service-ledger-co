@@ -42,7 +42,7 @@ import {
 import { FileText, Download, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import logoObrajusta from '@/assets/logo-obrajusta.png';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 interface ReportsDialogProps {
   open: boolean;
@@ -87,6 +87,7 @@ const MONTHS = [
 export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false }: ReportsDialogProps) => {
   const [selectedReport, setSelectedReport] = useState<ReportType>('faturados');
   const [userName, setUserName] = useState<string>('');
+  const { empresa, getLogo } = useEmpresa();
   
   // Novos filtros
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
@@ -95,6 +96,10 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [debitoTimeFilter, setDebitoTimeFilter] = useState<DebitoTimeFilter>('todos');
   const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
+  
+  const logo = getLogo();
+  const empresaNome = empresa?.nomeLegal || 'OBRAJUSTA II, Lda';
+  const empresaCor = empresa?.corPrimaria || '#0259dd';
 
   // Obter anos e clientes únicos dos serviços
   const availableYears = [...new Set(services.map(s => {
@@ -260,7 +265,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             align-items: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 2px solid #0259dd;
+            border-bottom: 2px solid ${empresaCor};
           }
           
           .header img {
@@ -270,7 +275,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
           
           .header h1 {
             font-size: 20pt;
-            color: #0259dd;
+            color: ${empresaCor};
             margin-bottom: 5px;
           }
           
@@ -319,7 +324,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
           .footer {
             margin-top: 40px;
             padding-top: 20px;
-            border-top: 2px solid #0259dd;
+            border-top: 2px solid ${empresaCor};
             font-size: 9pt;
             color: #666;
             display: flex;
@@ -344,8 +349,8 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
       </head>
       <body>
         <div class="header">
-          <img src="${logoObrajusta}" alt="Obrajusta" />
-          <h1>OBRAJUSTA II, Lda</h1>
+          <img src="${logo}" alt="${empresa?.nome || 'Empresa'}" />
+          <h1>${empresaNome}</h1>
           <p>Gestão de Serviços e Faturação</p>
           <h2>${reportTitle}</h2>
           <p class="filter-subtitle">${getFilterSubtitle()}</p>
@@ -361,7 +366,7 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
             <p><strong>Emitido por:</strong> ${userName || 'Utilizador do Sistema'}</p>
           </div>
           <div class="footer-right">
-            <p>OBRAJUSTA II, Lda</p>
+            <p>${empresaNome}</p>
             <p>Documento gerado automaticamente</p>
           </div>
         </div>

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientes } from '@/hooks/useClientes';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import logoObrajusta from '@/assets/logo-obrajusta.png';
 import {
   ArrowLeft,
   Plus,
@@ -51,7 +51,21 @@ import {
 export default function Clientes() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { empresa, getLogo } = useEmpresa();
   const { clientes, isLoading, addCliente, updateCliente, deleteCliente, refreshClientes } = useClientes();
+  
+  const logo = getLogo();
+  const empresaNome = empresa?.nome || 'Sistema';
+  
+  // Redirecionar se não há empresa selecionada
+  useEffect(() => {
+    if (!empresa) {
+      const savedEmpresa = localStorage.getItem('selectedEmpresa');
+      if (!savedEmpresa) {
+        navigate('/empresa');
+      }
+    }
+  }, [empresa, navigate]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -251,18 +265,18 @@ export default function Clientes() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img 
-              src={logoObrajusta} 
-              alt="Obrajusta Logo" 
+              src={logo} 
+              alt={`${empresaNome} Logo`} 
               className="w-12 h-12 object-contain"
             />
             <div>
-              <h1 className="text-xl font-bold text-foreground">Obrajusta II</h1>
+              <h1 className="text-xl font-bold text-foreground">{empresaNome}</h1>
               <p className="text-sm text-muted-foreground">Gestão de Clientes</p>
             </div>
           </div>
           
           <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar
             </Button>
