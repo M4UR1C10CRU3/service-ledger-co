@@ -10,12 +10,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { loginSchema, signupSchema, LoginFormData, SignupFormData } from '@/lib/validations';
-import logoObrajusta from '@/assets/logo-obrajusta.png';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { empresa, getLogo } = useEmpresa();
+  
+  // Se não há empresa selecionada, redirecionar para seleção
+  useEffect(() => {
+    if (!empresa) {
+      const savedEmpresa = localStorage.getItem('selectedEmpresa');
+      if (!savedEmpresa) {
+        navigate('/empresa');
+      }
+    }
+  }, [empresa, navigate]);
   
   // Login form
   const loginForm = useForm<LoginFormData>({
@@ -40,7 +51,7 @@ export default function Auth() {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/');
+        navigate('/dashboard');
       }
     });
   }, [navigate]);
@@ -59,9 +70,9 @@ export default function Auth() {
       if (data.session) {
         toast({
           title: "Login realizado com sucesso!",
-          description: "Bem-vindo de volta.",
+          description: `Bem-vindo de volta ao ${empresa?.nome || 'sistema'}.`,
         });
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error: any) {
       toast({
@@ -85,7 +96,7 @@ export default function Auth() {
           data: {
             nome: values.nome,
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -109,24 +120,41 @@ export default function Auth() {
     }
   };
 
+  const logo = getLogo();
+  const empresaNome = empresa?.nome || 'Sistema';
+  const empresaNomeLegal = empresa?.nomeLegal || 'Gestão de Serviços';
+
+  // Cores dinâmicas baseadas na empresa
+  const primaryColor = empresa?.corPrimaria || '#3b82f6';
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor}10 0%, hsl(var(--background)) 50%, ${primaryColor}05 100%)`
+      }}
+    >
       <div className="w-full max-w-md space-y-6">
         {/* Logo and Welcome */}
         <div className="text-center space-y-4">
           <div className="flex justify-center mb-6">
-            <img 
-              src={logoObrajusta} 
-              alt="Obrajusta Logo" 
-              className="h-20 w-auto"
-            />
+            <div 
+              className="bg-white rounded-2xl p-4 shadow-lg"
+              style={{ boxShadow: `0 4px 20px ${primaryColor}30` }}
+            >
+              <img 
+                src={logo} 
+                alt={`${empresaNome} Logo`} 
+                className="h-20 w-auto"
+              />
+            </div>
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Bem-vindo ao módulo de gestão financeira
             </h1>
             <p className="text-lg text-muted-foreground mt-2">
-              Obrajusta Business Intelligence
+              {empresaNomeLegal}
             </p>
           </div>
         </div>
@@ -176,7 +204,11 @@ export default function Auth() {
                     )}
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading}
+                  >
                     {loading ? 'Entrando...' : 'Entrar'}
                   </Button>
                 </form>
@@ -229,7 +261,11 @@ export default function Auth() {
                     </p>
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={loading}
+                  >
                     {loading ? 'Criando conta...' : 'Criar conta'}
                   </Button>
                 </form>
@@ -237,6 +273,17 @@ export default function Auth() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Link para trocar empresa */}
+        <div className="text-center">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/empresa')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            ← Trocar empresa
+          </Button>
+        </div>
       </div>
     </div>
   );
