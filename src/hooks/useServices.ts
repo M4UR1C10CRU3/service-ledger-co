@@ -256,46 +256,73 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
 export const useServices = (empresaId?: string) => {
   const [services, setServices] = useState<Service[]>([]);
   const [liquidacoes, setLiquidacoes] = useState<Record<string, Liquidacao[]>>({});
-  const [currentEmpresaId, setCurrentEmpresaId] = useState<string | null>(null);
+  const [currentEmpresaId, setCurrentEmpresaId] = useState<string | null>(empresaId || null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [empresaIdLoaded, setEmpresaIdLoaded] = useState(false);
 
-  // Carregar empresa ID do localStorage se não fornecido
+  // Atualizar currentEmpresaId quando empresaId prop mudar
+  useEffect(() => {
+    if (empresaId) {
+      console.log('useServices: empresaId from prop:', empresaId);
+      setCurrentEmpresaId(empresaId);
+      setEmpresaIdLoaded(true);
+    }
+  }, [empresaId]);
+
+  // Carregar empresa ID do localStorage se não fornecido via prop
   useEffect(() => {
     const loadEmpresaId = async () => {
+      // Se já temos empresaId via prop, não precisamos buscar do localStorage
       if (empresaId) {
-        setCurrentEmpresaId(empresaId);
         return;
       }
       
       // Obter empresa do localStorage
       const savedSlug = localStorage.getItem('selectedEmpresa');
+      console.log('useServices: Loading empresa from localStorage, slug:', savedSlug);
+      
       if (savedSlug) {
         try {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('empresas')
             .select('id')
             .eq('slug', savedSlug)
             .single();
           
+          if (error) {
+            console.error('Error fetching empresa by slug:', error);
+          }
+          
           if (data) {
+            console.log('useServices: Found empresa id:', data.id);
             setCurrentEmpresaId(data.id);
           }
         } catch (error) {
           console.error('Error loading empresa id:', error);
         }
       }
+      setEmpresaIdLoaded(true);
     };
     
     loadEmpresaId();
   }, [empresaId]);
 
-  // Load services from database on mount
+  // Load services from database when empresa is set
   useEffect(() => {
     const loadServices = async () => {
+      if (!currentEmpresaId) {
+        console.log('useServices: No empresa ID, skipping load');
+        setIsInitialized(true);
+        return;
+      }
+      
+      console.log('useServices: Loading services for empresa:', currentEmpresaId);
       setIsLoading(true);
+      
       try {
-        const servicesFromDb = await loadServicesFromDatabase(currentEmpresaId || undefined);
+        const servicesFromDb = await loadServicesFromDatabase(currentEmpresaId);
+        console.log('useServices: Loaded', servicesFromDb.length, 'services');
         setServices(servicesFromDb);
         
         // Load liquidacoes for each service
@@ -313,10 +340,11 @@ export const useServices = (empresaId?: string) => {
       }
     };
 
-    if (currentEmpresaId) {
+    // Só carregar quando tivermos tentado obter o empresaId
+    if (empresaIdLoaded || currentEmpresaId) {
       loadServices();
     }
-  }, [currentEmpresaId]);
+  }, [currentEmpresaId, empresaIdLoaded]);
 
   const calculateServiceMetrics = (service: Service): ServiceWithCalculations => {
     let serviceLiquidacoes = liquidacoes[service.id] || [];
