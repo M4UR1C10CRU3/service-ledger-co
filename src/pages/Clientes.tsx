@@ -459,6 +459,7 @@ export default function Clientes() {
                 <Input
                   id="telefone"
                   type="tel"
+                  maxLength={50}
                   value={formData.telefone}
                   onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                   placeholder="+351 912 345 678"
