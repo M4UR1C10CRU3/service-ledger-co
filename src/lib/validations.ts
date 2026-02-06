@@ -68,11 +68,15 @@ export const serviceFormSchema = z.object({
     .max(150, { message: "Resumo deve ter no máximo 150 caracteres" }),
   proposta: z
     .string()
-    .max(100, { message: "Proposta deve ter no máximo 100 caracteres" })
+    .max(500, { message: "Propostas devem ter no máximo 500 caracteres" })
+    .optional(),
+  contrato: z
+    .string()
+    .max(500, { message: "Contratos devem ter no máximo 500 caracteres" })
     .optional(),
   fatura: z
     .string()
-    .max(100, { message: "Fatura deve ter no máximo 100 caracteres" }),
+    .max(500, { message: "Faturas devem ter no máximo 500 caracteres" }),
   valorComIVA: z
     .number()
     .min(0, { message: "Valor deve ser positivo" })
@@ -88,7 +92,7 @@ export const serviceFormSchema = z.object({
   numeroFatura: z.string().max(100).optional(),
   telefone: z
     .string()
-    .max(20, { message: "Telefone deve ter no máximo 20 caracteres" })
+    .max(40, { message: "Telefone deve ter no máximo 40 caracteres" })
     .optional(),
   email: z
     .string()
