@@ -195,6 +195,7 @@ export type Database = {
           a_realizar: boolean
           cliente: string
           cliente_id: string | null
+          contrato: string | null
           contrato_id: string | null
           created_at: string
           data: string
@@ -219,6 +220,7 @@ export type Database = {
           a_realizar?: boolean
           cliente: string
           cliente_id?: string | null
+          contrato?: string | null
           contrato_id?: string | null
           created_at?: string
           data: string
@@ -243,6 +245,7 @@ export type Database = {
           a_realizar?: boolean
           cliente?: string
           cliente_id?: string | null
+          contrato?: string | null
           contrato_id?: string | null
           created_at?: string
           data?: string

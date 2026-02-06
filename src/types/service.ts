@@ -4,8 +4,9 @@ export interface Service {
   servico: string;
   cliente: string;
   resumo: string; // Max 40 characters
-  proposta?: string; // Optional - pode ser vazia
+  proposta?: string; // Pode conter múltiplas propostas separadas por "; "
   fatura: string;
+  contrato?: string; // Pode conter múltiplos contratos separados por "; "
   valorComIVA: number;
   valorSemIVA: number;
   liquidado: number; // Calculado automaticamente pela soma das liquidações

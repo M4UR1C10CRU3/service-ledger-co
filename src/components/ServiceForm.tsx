@@ -39,6 +39,7 @@ import {
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ClienteSelector } from './ClienteSelector';
+import { MultiValueInput } from './MultiValueInput';
 
 interface ServiceFormProps {
   open: boolean;
@@ -74,6 +75,7 @@ export const ServiceForm = ({
       cliente: '',
       resumo: '',
       proposta: '',
+      contrato: '',
       fatura: '',
       valorComIVA: 0,
       valorSemIVA: 0,
@@ -111,6 +113,7 @@ export const ServiceForm = ({
         cliente: editingService.cliente,
         resumo: editingService.resumo,
         proposta: editingService.proposta || '',
+        contrato: (editingService as any).contrato || '',
         fatura: editingService.fatura,
         valorComIVA: editingService.valorComIVA,
         valorSemIVA: editingService.valorSemIVA,
@@ -416,9 +419,31 @@ export const ServiceForm = ({
                   name="proposta"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Proposta</FormLabel>
+                      <FormLabel>Propostas</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Número da proposta" />
+                        <MultiValueInput
+                          values={field.value ? field.value.split('; ').filter(Boolean) : []}
+                          onChange={(vals) => field.onChange(vals.join('; '))}
+                          placeholder="Adicionar proposta..."
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="contrato"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contratos</FormLabel>
+                      <FormControl>
+                        <MultiValueInput
+                          values={field.value ? field.value.split('; ').filter(Boolean) : []}
+                          onChange={(vals) => field.onChange(vals.join('; '))}
+                          placeholder="Adicionar contrato..."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -516,11 +541,12 @@ export const ServiceForm = ({
                   name="numeroFatura"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Número da Fatura (opcional)</FormLabel>
+                      <FormLabel>Números de Fatura (opcional)</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Ex: 17/2025"
+                        <MultiValueInput
+                          values={field.value ? field.value.split('; ').filter(Boolean) : []}
+                          onChange={(vals) => field.onChange(vals.join('; '))}
+                          placeholder="Adicionar fatura..."
                         />
                       </FormControl>
                       <FormMessage />
