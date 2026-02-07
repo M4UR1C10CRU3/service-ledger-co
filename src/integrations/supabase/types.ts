@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts_payable: {
+        Row: {
+          acrescimo: number
+          categoria: string
+          centro_custo: string | null
+          comprovante_url: string | null
+          created_at: string
+          data_emissao: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          desconto: number
+          descricao: string | null
+          empresa_id: string
+          forma_pagamento: string
+          id: string
+          metodo_pagamento: string | null
+          numero_documento: string | null
+          observacoes: string | null
+          projeto: string | null
+          status: string
+          supplier_id: string
+          tipo_lancamento: string
+          updated_at: string
+          valor_bruto: number
+          valor_liquido: number
+          vincular_estoque: boolean
+        }
+        Insert: {
+          acrescimo?: number
+          categoria: string
+          centro_custo?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_emissao?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          desconto?: number
+          descricao?: string | null
+          empresa_id: string
+          forma_pagamento: string
+          id?: string
+          metodo_pagamento?: string | null
+          numero_documento?: string | null
+          observacoes?: string | null
+          projeto?: string | null
+          status?: string
+          supplier_id: string
+          tipo_lancamento: string
+          updated_at?: string
+          valor_bruto?: number
+          valor_liquido?: number
+          vincular_estoque?: boolean
+        }
+        Update: {
+          acrescimo?: number
+          categoria?: string
+          centro_custo?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_emissao?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          desconto?: number
+          descricao?: string | null
+          empresa_id?: string
+          forma_pagamento?: string
+          id?: string
+          metodo_pagamento?: string | null
+          numero_documento?: string | null
+          observacoes?: string | null
+          projeto?: string | null
+          status?: string
+          supplier_id?: string
+          tipo_lancamento?: string
+          updated_at?: string
+          valor_bruto?: number
+          valor_liquido?: number
+          vincular_estoque?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_payable_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backups: {
         Row: {
           backup_data: Json
