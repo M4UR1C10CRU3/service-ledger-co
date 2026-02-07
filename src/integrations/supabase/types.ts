@@ -283,6 +283,101 @@ export type Database = {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          agencia: string | null
+          bairro: string | null
+          banco: string | null
+          categoria: string
+          cep: string | null
+          cidade: string | null
+          cnpj_cpf: string
+          complemento: string | null
+          conta: string | null
+          contato_principal: string | null
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          empresa_id: string
+          estado: string | null
+          id: string
+          logradouro: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          observacoes: string | null
+          razao_social: string
+          status: string
+          telefone: string | null
+          telefone_secundario: string | null
+          tipo_pessoa: string
+          updated_at: string
+        }
+        Insert: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          categoria?: string
+          cep?: string | null
+          cidade?: string | null
+          cnpj_cpf: string
+          complemento?: string | null
+          conta?: string | null
+          contato_principal?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id: string
+          estado?: string | null
+          id?: string
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          razao_social: string
+          status?: string
+          telefone?: string | null
+          telefone_secundario?: string | null
+          tipo_pessoa?: string
+          updated_at?: string
+        }
+        Update: {
+          agencia?: string | null
+          bairro?: string | null
+          banco?: string | null
+          categoria?: string
+          cep?: string | null
+          cidade?: string | null
+          cnpj_cpf?: string
+          complemento?: string | null
+          conta?: string | null
+          contato_principal?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          empresa_id?: string
+          estado?: string | null
+          id?: string
+          logradouro?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacoes?: string | null
+          razao_social?: string
+          status?: string
+          telefone?: string | null
+          telefone_secundario?: string | null
+          tipo_pessoa?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

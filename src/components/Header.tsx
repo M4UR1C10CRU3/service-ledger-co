@@ -1,4 +1,4 @@
-import { FileText, Plus, LogOut, Users, Building2 } from 'lucide-react';
+import { FileText, Plus, LogOut, Users, Building2, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -70,6 +70,10 @@ export const Header = ({ onAddService, onOpenReports, userName }: HeaderProps) =
           <Button variant="outline" size="sm" onClick={() => navigate('/clientes')}>
             <Users className="w-4 h-4 mr-2" />
             Clientes
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/fornecedores')}>
+            <Truck className="w-4 h-4 mr-2" />
+            Fornecedores
           </Button>
           <Button variant="outline" size="sm" onClick={onOpenReports}>
             <FileText className="w-4 h-4 mr-2" />
