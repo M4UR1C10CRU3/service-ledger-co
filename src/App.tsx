@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
 import ContasPagar from "./pages/ContasPagar";
+import ContasPagarDashboard from "./pages/ContasPagarDashboard";
 import SelectEmpresa from "./pages/SelectEmpresa";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
               <Route path="/fornecedores" element={<ProtectedRoute><Fornecedores /></ProtectedRoute>} />
               <Route path="/contas-pagar" element={<ProtectedRoute><ContasPagar /></ProtectedRoute>} />
+              <Route path="/contas-pagar/dashboard" element={<ProtectedRoute><ContasPagarDashboard /></ProtectedRoute>} />
               <Route path="/" element={<Navigate to="/empresa" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
