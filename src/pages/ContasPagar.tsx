@@ -1,22 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import {
   AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
-  TIPO_LANCAMENTO_LABELS, STATUS_LABELS, CATEGORIAS_POR_TIPO,
 } from '@/types/accountPayable';
 import { AccountPayableFormDialog } from '@/components/AccountPayableFormDialog';
+import { AccountsPayableFilters, FiltersState, initialFilters } from '@/components/contas-pagar/AccountsPayableFilters';
+import { AccountsPayableTable, SortField, SortDir } from '@/components/contas-pagar/AccountsPayableTable';
+import { AccountDetailDialog } from '@/components/contas-pagar/AccountDetailDialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -24,31 +20,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  ArrowLeft, Plus, Search, Pencil, Trash2, Receipt, LogOut,
-  ChevronLeft, ChevronRight,
+  ArrowLeft, Plus, Receipt, LogOut, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
-function statusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'liquidado': return 'default';
-    case 'pendente': return 'secondary';
-    case 'vencido': return 'destructive';
-    case 'cancelado': return 'outline';
-    default: return 'secondary';
-  }
-}
-
 function formatCurrency(v: number): string {
   return v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
-}
-
-function getCategoriaLabel(tipo: string, cat: string): string {
-  const list = CATEGORIAS_POR_TIPO[tipo];
-  if (!list) return cat;
-  const found = list.find(c => c.value === cat);
-  return found?.label || cat;
 }
 
 export default function ContasPagar() {
@@ -68,37 +46,99 @@ export default function ContasPagar() {
     }
   }, [empresa, navigate]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterTipo, setFilterTipo] = useState<string>('all');
+  // Filters
+  const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [page, setPage] = useState(1);
 
+  // Sort
+  const [sortField, setSortField] = useState<SortField>('dataVencimento');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  // Dialogs
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AccountPayable | null>(null);
   const [accountToDelete, setAccountToDelete] = useState<AccountPayable | null>(null);
+  const [viewingAccount, setViewingAccount] = useState<AccountPayable | null>(null);
   const [formData, setFormData] = useState<AccountPayableFormData>({ ...emptyAccountPayableForm });
 
+  // Filtering + sorting
   const filtered = useMemo(() => {
     let result = accounts;
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
+
+    if (filters.searchTerm) {
+      const q = filters.searchTerm.toLowerCase();
       result = result.filter(a =>
         a.supplierName?.toLowerCase().includes(q) ||
         a.descricao?.toLowerCase().includes(q) ||
         a.numeroDocumento?.toLowerCase().includes(q)
       );
     }
-    if (filterStatus !== 'all') result = result.filter(a => a.status === filterStatus);
-    if (filterTipo !== 'all') result = result.filter(a => a.tipoLancamento === filterTipo);
+    if (filters.filterStatus !== 'all') result = result.filter(a => a.status === filters.filterStatus);
+    if (filters.filterTipo !== 'all') result = result.filter(a => a.tipoLancamento === filters.filterTipo);
+    if (filters.filterSupplier !== 'all') result = result.filter(a => a.supplierId === filters.filterSupplier);
+    if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
+
+    if (filters.dateFrom) {
+      const from = filters.dateFrom.toISOString().split('T')[0];
+      result = result.filter(a => {
+        const d = a.dataVencimento || a.dataEmissao;
+        return d >= from;
+      });
+    }
+    if (filters.dateTo) {
+      const to = filters.dateTo.toISOString().split('T')[0];
+      result = result.filter(a => {
+        const d = a.dataVencimento || a.dataEmissao;
+        return d <= to;
+      });
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      switch (sortField) {
+        case 'supplierName':
+          cmp = (a.supplierName || '').localeCompare(b.supplierName || '');
+          break;
+        case 'dataEmissao':
+          cmp = a.dataEmissao.localeCompare(b.dataEmissao);
+          break;
+        case 'valorLiquido':
+          cmp = a.valorLiquido - b.valorLiquido;
+          break;
+        case 'dataVencimento': {
+          const da = a.dataVencimento || a.dataEmissao;
+          const db = b.dataVencimento || b.dataEmissao;
+          cmp = da.localeCompare(db);
+          break;
+        }
+        case 'status':
+          cmp = a.status.localeCompare(b.status);
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
     return result;
-  }, [accounts, searchTerm, filterStatus, filterTipo]);
+  }, [accounts, filters, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [searchTerm, filterStatus, filterTipo]);
+  useEffect(() => { setPage(1); }, [filters, sortField, sortDir]);
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
+  // Form handlers
   const resetForm = () => { setFormData({ ...emptyAccountPayableForm }); setEditingAccount(null); };
 
   const handleOpenForm = (account?: AccountPayable) => {
@@ -166,14 +206,20 @@ export default function ContasPagar() {
     setAccountToDelete(null);
   };
 
+  const handleLiquidar = (account: AccountPayable) => {
+    // For now, open edit form pre-filled to change to à vista
+    handleOpenForm(account);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/auth');
   };
 
   // Summary totals
-  const totalPendente = filtered.filter(a => a.status === 'pendente').reduce((s, a) => s + a.valorLiquido, 0);
+  const totalPendente = filtered.filter(a => a.status === 'pendente' || a.status === 'parcial').reduce((s, a) => s + a.valorLiquido, 0);
   const totalLiquidado = filtered.filter(a => a.status === 'liquidado').reduce((s, a) => s + a.valorLiquido, 0);
+  const totalVencido = filtered.filter(a => a.status === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,7 +246,7 @@ export default function ContasPagar() {
 
       <main className="p-6 space-y-6">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Total Lançamentos</p>
@@ -211,6 +257,12 @@ export default function ContasPagar() {
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">Total Pendente</p>
               <p className="text-2xl font-bold text-warning">{formatCurrency(totalPendente)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Total Vencido</p>
+              <p className="text-2xl font-bold text-destructive">{formatCurrency(totalVencido)}</p>
             </CardContent>
           </Card>
           <Card>
@@ -237,101 +289,46 @@ export default function ContasPagar() {
           </CardHeader>
           <CardContent>
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-3 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input placeholder="Pesquisar por fornecedor, descrição ou nº documento..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-              </div>
-              <Select value={filterTipo} onValueChange={setFilterTipo}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Tipos</SelectItem>
-                  {Object.entries(TIPO_LANCAMENTO_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <AccountsPayableFilters filters={filters} onFiltersChange={setFilters} suppliers={suppliers} />
 
             {/* Table */}
-            {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-            ) : paginated.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchTerm || filterStatus !== 'all' || filterTipo !== 'all' ? 'Nenhum lançamento encontrado.' : 'Nenhum lançamento cadastrado.'}
-              </div>
-            ) : (
-              <>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fornecedor</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Emissão</TableHead>
-                        <TableHead className="text-right">Valor Líq.</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[100px]">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginated.map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="font-medium">{a.supplierName || '-'}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{TIPO_LANCAMENTO_LABELS[a.tipoLancamento]}</Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">{getCategoriaLabel(a.tipoLancamento, a.categoria)}</TableCell>
-                          <TableCell className="text-sm">{format(new Date(a.dataEmissao), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(a.valorLiquido)}</TableCell>
-                          <TableCell className="text-sm">
-                            {a.dataVencimento ? format(new Date(a.dataVencimento), 'dd/MM/yyyy') : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant(a.status)}>{STATUS_LABELS[a.status]}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenForm(a)} title="Editar">
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => { setAccountToDelete(a); setIsDeleteOpen(true); }} title="Remover">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+            <div className="mt-6">
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+              ) : paginated.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {filters.searchTerm || filters.filterStatus !== 'all' || filters.filterTipo !== 'all'
+                    ? 'Nenhum lançamento encontrado.' : 'Nenhum lançamento cadastrado.'}
                 </div>
+              ) : (
+                <>
+                  <AccountsPayableTable
+                    accounts={paginated}
+                    sortField={sortField}
+                    sortDir={sortDir}
+                    onSort={handleSort}
+                    onView={(a) => { setViewingAccount(a); setIsDetailOpen(true); }}
+                    onLiquidar={handleLiquidar}
+                    onEdit={(a) => handleOpenForm(a)}
+                    onDelete={(a) => { setAccountToDelete(a); setIsDeleteOpen(true); }}
+                  />
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm text-muted-foreground">Página {page} de {totalPages}</span>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <span className="text-sm text-muted-foreground">Página {page} de {totalPages}</span>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>
@@ -345,6 +342,13 @@ export default function ContasPagar() {
         onSubmit={handleSubmit}
         isEditing={!!editingAccount}
         suppliers={suppliers}
+      />
+
+      {/* Detail Dialog */}
+      <AccountDetailDialog
+        account={viewingAccount}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
       />
 
       {/* Delete Dialog */}
