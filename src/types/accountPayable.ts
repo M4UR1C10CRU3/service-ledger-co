@@ -17,7 +17,7 @@ export interface AccountPayable {
   dataVencimento: string | null;
   metodoPagamento: string | null;
   comprovanteUrl: string | null;
-  status: 'pendente' | 'liquidado' | 'vencido' | 'cancelado';
+  status: 'pendente' | 'liquidado' | 'vencido' | 'parcial' | 'cancelado';
   centroCusto: string | null;
   projeto: string | null;
   observacoes: string | null;
@@ -84,8 +84,15 @@ export const STATUS_LABELS: Record<string, string> = {
   pendente: 'Pendente',
   liquidado: 'Liquidado',
   vencido: 'Vencido',
+  parcial: 'Parcial',
   cancelado: 'Cancelado',
 };
+
+export const ALL_CATEGORIAS = [
+  ...CATEGORIAS_POR_TIPO.compra,
+  ...CATEGORIAS_POR_TIPO.despesa_fixa,
+  ...CATEGORIAS_POR_TIPO.custo_investimento,
+];
 
 export const emptyAccountPayableForm: AccountPayableFormData = {
   supplierId: '',
