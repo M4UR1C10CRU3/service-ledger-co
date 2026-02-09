@@ -2,90 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { Service, ServiceWithCalculations, DashboardMetrics, Liquidacao } from '@/types/service';
 import { supabase } from '@/integrations/supabase/client';
 
-// Sample data based on the user's example
-const initialServices: Service[] = [
-  {
-    id: '1',
-    data: '01/09/2025',
-    servico: 'Consultoria Financeira',
-    cliente: 'Cliente A',
-    resumo: 'Revisão fiscal anual',
-    proposta: 'P-101',
-    fatura: 'F-2001',
-    valorComIVA: 2000.00,
-    valorSemIVA: 1626.02,
-    liquidado: 2000.00,
-    aRealizar: false,
-    createdAt: new Date('2025-09-01'),
-    tipoServico: 'fatura',
-    valorFaturado: 0,
-  },
-  {
-    id: '2',
-    data: '05/09/2025',
-    servico: 'Apoio Contabilístico',
-    cliente: 'Cliente B',
-    resumo: 'Balancete mensal',
-    proposta: 'P-102',
-    fatura: 'F-2002',
-    valorComIVA: 1500.00,
-    valorSemIVA: 1219.51,
-    liquidado: 1000.00,
-    aRealizar: false,
-    createdAt: new Date('2025-09-05'),
-    tipoServico: 'fatura',
-    valorFaturado: 0,
-  },
-  {
-    id: '3',
-    data: '10/09/2025',
-    servico: 'Construção Edifício Comercial',
-    cliente: 'Cliente C',
-    resumo: 'Obra completa de 24 meses',
-    proposta: 'P-103',
-    fatura: '',
-    valorComIVA: 100000.00,
-    valorSemIVA: 81301.00,
-    liquidado: 0.00,
-    aRealizar: true,
-    createdAt: new Date('2025-09-10'),
-    tipoServico: 'contrato',
-    valorFaturado: 0,
-  },
-  {
-    id: '4',
-    data: '12/09/2025',
-    servico: 'Limpeza Pós-Obra',
-    cliente: 'Cliente D',
-    resumo: 'Conclusão edifício',
-    proposta: 'P-104',
-    fatura: 'F-2003',
-    valorComIVA: 4000.00,
-    valorSemIVA: 3252.03,
-    liquidado: 2000.00,
-    aRealizar: false,
-    createdAt: new Date('2025-09-12'),
-    tipoServico: 'fatura',
-    valorFaturado: 0,
-  },
-  {
-    id: '5',
-    data: '15/09/2025',
-    servico: 'Formação Equipa',
-    cliente: 'Cliente E',
-    resumo: 'Workshop fiscal',
-    proposta: 'P-105',
-    fatura: 'F-2004',
-    valorComIVA: 1200.00,
-    valorSemIVA: 975.61,
-    liquidado: 0.00,
-    aRealizar: false,
-    createdAt: new Date('2025-09-15'),
-    tipoServico: 'fatura',
-    valorFaturado: 0,
-  },
-];
-
 // Helper functions for database operations
 const saveServiceToDatabase = async (service: Service, empresaId: string) => {
   try {
@@ -225,7 +141,7 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
     
     if (error) {
       console.error('Error loading services from database:', error);
-      return initialServices;
+      return [];
     }
     
     return data?.map(row => ({
@@ -249,10 +165,10 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
       telefone: (row as any).telefone || undefined,
       email: (row as any).email || undefined,
       empresaId: (row as any).empresa_id || undefined,
-    })) || initialServices;
+    })) || [];
   } catch (error) {
     console.error('Error loading services from database:', error);
-    return initialServices;
+    return [];
   }
 };
 
