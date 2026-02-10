@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { AccountPayable, AccountPayableFormData } from '@/types/accountPayable';
+import { LiquidacaoData } from '@/components/contas-pagar/LiquidarContaDialog';
 
 function mapRow(row: any, supplierName?: string): AccountPayable {
   return {
@@ -146,5 +147,57 @@ export function useAccountsPayable() {
     return false;
   };
 
-  return { accounts, isLoading, addAccount, updateAccount, deleteAccount, refreshAccounts: fetchAccounts };
+  const liquidarAccount = async (data: LiquidacaoData): Promise<boolean> => {
+    if (!empresa) return false;
+
+    // Insert payment record
+    const { error: payError } = await supabase.from('account_payments').insert({
+      account_payable_id: data.accountPayableId,
+      empresa_id: empresa.id,
+      data_pagamento: data.dataPagamento.toISOString().split('T')[0],
+      valor_original: data.valorOriginal,
+      juros: data.juros,
+      multa: data.multa,
+      desconto: data.desconto,
+      valor_pago: data.valorPago,
+      metodo_pagamento: data.metodoPagamento,
+      observacoes: data.observacoes || null,
+    });
+
+    if (payError) {
+      console.error('Error creating payment:', payError);
+      return false;
+    }
+
+    // Calculate total paid for this account
+    const { data: payments } = await supabase
+      .from('account_payments')
+      .select('valor_pago')
+      .eq('account_payable_id', data.accountPayableId);
+
+    const totalPaid = (payments || []).reduce((s: number, p: any) => s + Number(p.valor_pago), 0);
+
+    // Find the account to compare
+    const account = accounts.find(a => a.id === data.accountPayableId);
+    const newStatus = account && totalPaid >= account.valorLiquido ? 'liquidado' : 'parcial';
+
+    const { error: updError } = await supabase
+      .from('accounts_payable')
+      .update({
+        status: newStatus,
+        data_pagamento: newStatus === 'liquidado' ? data.dataPagamento.toISOString().split('T')[0] : null,
+        metodo_pagamento: data.metodoPagamento,
+      })
+      .eq('id', data.accountPayableId);
+
+    if (updError) {
+      console.error('Error updating account status:', updError);
+      return false;
+    }
+
+    await fetchAccounts();
+    return true;
+  };
+
+  return { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount, refreshAccounts: fetchAccounts };
 }

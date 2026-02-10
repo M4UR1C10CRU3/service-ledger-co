@@ -11,6 +11,8 @@ import { AccountPayableFormDialog } from '@/components/AccountPayableFormDialog'
 import { AccountsPayableFilters, FiltersState, initialFilters } from '@/components/contas-pagar/AccountsPayableFilters';
 import { AccountsPayableTable, SortField, SortDir } from '@/components/contas-pagar/AccountsPayableTable';
 import { AccountDetailDialog } from '@/components/contas-pagar/AccountDetailDialog';
+import { LiquidarContaDialog } from '@/components/contas-pagar/LiquidarContaDialog';
+import { ContasPagarReportsDialog } from '@/components/contas-pagar/ContasPagarReportsDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -20,7 +22,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  ArrowLeft, Plus, Receipt, LogOut, ChevronLeft, ChevronRight,
+  ArrowLeft, Plus, Receipt, LogOut, ChevronLeft, ChevronRight, BarChart3,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -33,7 +35,7 @@ export default function ContasPagar() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { empresa, getLogo } = useEmpresa();
-  const { accounts, isLoading, addAccount, updateAccount, deleteAccount } = useAccountsPayable();
+  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
   const { suppliers } = useSuppliers();
 
   const logo = getLogo();
@@ -58,9 +60,12 @@ export default function ContasPagar() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isLiquidarOpen, setIsLiquidarOpen] = useState(false);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AccountPayable | null>(null);
   const [accountToDelete, setAccountToDelete] = useState<AccountPayable | null>(null);
   const [viewingAccount, setViewingAccount] = useState<AccountPayable | null>(null);
+  const [liquidarAccount_, setLiquidarAccount] = useState<AccountPayable | null>(null);
   const [formData, setFormData] = useState<AccountPayableFormData>({ ...emptyAccountPayableForm });
 
   // Filtering + sorting
@@ -207,8 +212,17 @@ export default function ContasPagar() {
   };
 
   const handleLiquidar = (account: AccountPayable) => {
-    // For now, open edit form pre-filled to change to à vista
-    handleOpenForm(account);
+    setLiquidarAccount(account);
+    setIsLiquidarOpen(true);
+  };
+
+  const handleConfirmLiquidar = async (data: import('@/components/contas-pagar/LiquidarContaDialog').LiquidacaoData): Promise<boolean> => {
+    const ok = await liquidarAccount(data);
+    toast(ok
+      ? { title: 'Conta liquidada', description: 'Pagamento registrado com sucesso.' }
+      : { title: 'Erro', description: 'Não foi possível liquidar.', variant: 'destructive' }
+    );
+    return ok;
   };
 
   const handleLogout = async () => {
@@ -282,9 +296,14 @@ export default function ContasPagar() {
                 <CardTitle>Lançamentos</CardTitle>
                 <span className="text-sm text-muted-foreground">({filtered.length})</span>
               </div>
-              <Button onClick={() => handleOpenForm()} size="sm">
-                <Plus className="w-4 h-4 mr-2" /> Nova Conta
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsReportsOpen(true)}>
+                  <BarChart3 className="w-4 h-4 mr-2" /> Relatórios
+                </Button>
+                <Button onClick={() => handleOpenForm()} size="sm">
+                  <Plus className="w-4 h-4 mr-2" /> Nova Conta
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -366,6 +385,21 @@ export default function ContasPagar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Liquidar Dialog */}
+      <LiquidarContaDialog
+        account={liquidarAccount_}
+        open={isLiquidarOpen}
+        onOpenChange={(o) => { setIsLiquidarOpen(o); if (!o) setLiquidarAccount(null); }}
+        onConfirm={handleConfirmLiquidar}
+      />
+
+      {/* Reports Dialog */}
+      <ContasPagarReportsDialog
+        open={isReportsOpen}
+        onOpenChange={setIsReportsOpen}
+        accounts={accounts}
+      />
     </div>
   );
 }
