@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Trash2, Plus } from 'lucide-react';
 import {
   Form,
@@ -46,7 +47,7 @@ export const LiquidacoesManager = ({
 }: LiquidacoesManagerProps) => {
   const { toast } = useToast();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormaPagamento, setEditFormaPagamento] = useState<FormaPagamento | undefined>(undefined);
+  const [editData, setEditData] = useState({ valor: '', dataPagamento: '', formaPagamento: '' as FormaPagamento | '', observacoes: '' });
   
   const form = useForm<LiquidacaoFormData>({
     resolver: zodResolver(liquidacaoSchema),
@@ -128,18 +129,48 @@ export const LiquidacoesManager = ({
           <div className="space-y-2">
             <h4 className="font-medium">Pagamentos registrados:</h4>
             {liquidacoes.map((liquidacao) => (
-              <div key={liquidacao.id} className="flex items-center justify-between p-3 border rounded">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <span className="font-medium">{formatEUR(liquidacao.valor)}</span>
-                    <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
-                    {editingId === liquidacao.id ? (
-                      <div className="flex items-center gap-2">
-                        <Select 
-                          onValueChange={(v) => setEditFormaPagamento(v as FormaPagamento)} 
-                          value={editFormaPagamento || ''}
+              <div key={liquidacao.id} className="p-3 border rounded space-y-2">
+                {editingId === liquidacao.id ? (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-xs">Valor (€)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={editData.valor}
+                          onChange={(e) => setEditData(prev => ({ ...prev, valor: e.target.value }))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Data</Label>
+                        <Input
+                          type="text"
+                          placeholder="DD/MM/AAAA"
+                          value={editData.dataPagamento}
+                          onChange={(e) => {
+                            const cleaned = e.target.value.replace(/[^\d/]/g, '');
+                            let masked = cleaned;
+                            if (cleaned.length >= 2 && !cleaned.includes('/')) masked = cleaned.slice(0, 2) + '/' + cleaned.slice(2);
+                            if (cleaned.length >= 5 && cleaned.indexOf('/') === 2) {
+                              const parts = cleaned.split('/');
+                              if (parts[1] && parts[1].length >= 2) masked = parts[0] + '/' + parts[1].slice(0, 2) + '/' + (parts[1].slice(2) + (parts[2] || '')).slice(0, 4);
+                            }
+                            if (masked.length <= 10) setEditData(prev => ({ ...prev, dataPagamento: masked }));
+                          }}
+                          maxLength={10}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Pagamento</Label>
+                        <Select
+                          value={editData.formaPagamento}
+                          onValueChange={(v) => setEditData(prev => ({ ...prev, formaPagamento: v as FormaPagamento }))}
                         >
-                          <SelectTrigger className="bg-background w-[160px] h-8 text-xs">
+                          <SelectTrigger className="bg-background h-8 text-sm">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent className="bg-background z-50">
@@ -149,59 +180,79 @@ export const LiquidacoesManager = ({
                             <SelectItem value="transferencia">Transferência</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button variant="ghost" size="sm" onClick={() => {
-                          if (editFormaPagamento && onUpdateLiquidacao) {
-                            onUpdateLiquidacao(liquidacao.id, serviceId, { formaPagamento: editFormaPagamento });
-                            toast({ title: "Liquidação atualizada", description: "Forma de pagamento corrigida" });
-                          }
-                          setEditingId(null);
-                        }}>
-                          <Check className="w-4 h-4 text-green-600" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
-                          <X className="w-4 h-4 text-red-600" />
-                        </Button>
                       </div>
-                    ) : (
-                      <>
-                        {liquidacao.formaPagamento ? (
+                      <div>
+                        <Label className="text-xs">Observações</Label>
+                        <Input
+                          value={editData.observacoes}
+                          onChange={(e) => setEditData(prev => ({ ...prev, observacoes: e.target.value }))}
+                          className="h-8 text-sm"
+                          placeholder="Opcional"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => setEditingId(null)}>
+                        <X className="w-3 h-3 mr-1" /> Cancelar
+                      </Button>
+                      <Button size="sm" onClick={() => {
+                        if (onUpdateLiquidacao) {
+                          onUpdateLiquidacao(liquidacao.id, serviceId, {
+                            valor: parseFloat(editData.valor) || liquidacao.valor,
+                            dataPagamento: editData.dataPagamento || liquidacao.dataPagamento,
+                            formaPagamento: (editData.formaPagamento as FormaPagamento) || undefined,
+                            observacoes: editData.observacoes || undefined,
+                          });
+                          toast({ title: "Liquidação atualizada" });
+                        }
+                        setEditingId(null);
+                      }}>
+                        <Check className="w-3 h-3 mr-1" /> Guardar
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <span className="font-medium">{formatEUR(liquidacao.valor)}</span>
+                        <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
+                        {liquidacao.formaPagamento && (
                           <span className="text-xs bg-muted px-2 py-0.5 rounded">
                             {formaPagamentoLabels[liquidacao.formaPagamento]}
                           </span>
-                        ) : (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="h-6 text-xs"
-                            onClick={() => { setEditingId(liquidacao.id); setEditFormaPagamento(undefined); }}
-                          >
-                            <Pencil className="w-3 h-3 mr-1" /> Adicionar forma
-                          </Button>
                         )}
-                        {liquidacao.formaPagamento && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 w-6 p-0"
-                            onClick={() => { setEditingId(liquidacao.id); setEditFormaPagamento(liquidacao.formaPagamento); }}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </>
-                    )}
+                      </div>
+                      {liquidacao.observacoes && (
+                        <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingId(liquidacao.id);
+                          setEditData({
+                            valor: liquidacao.valor.toString(),
+                            dataPagamento: liquidacao.dataPagamento,
+                            formaPagamento: liquidacao.formaPagamento || '',
+                            observacoes: liquidacao.observacoes || '',
+                          });
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveLiquidacao(liquidacao.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  {liquidacao.observacoes && (
-                    <p className="text-sm text-muted-foreground mt-1">{liquidacao.observacoes}</p>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onRemoveLiquidacao(liquidacao.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                )}
               </div>
             ))}
           </div>
