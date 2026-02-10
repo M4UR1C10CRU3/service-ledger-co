@@ -399,6 +399,7 @@ export const useServices = (empresaId?: string) => {
           serviceId: newService.id,
           valor: liquidacao.valor,
           dataPagamento: liquidacao.dataPagamento,
+          formaPagamento: liquidacao.formaPagamento,
           observacoes: liquidacao.observacoes
         });
       }
