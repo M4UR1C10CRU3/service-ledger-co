@@ -118,18 +118,22 @@ export const ServiceDetailDialog = ({
                 </div>
                 <div>
                   <span className="font-medium">
-                    {service.tipoServico === 'contrato' ? 'Status do Contrato:' : 'Fatura:'}
+                    {service.tipoServico === 'contrato' ? 'Status do Contrato:' : 'Faturado:'}
                   </span>
                   <p>
                     {service.tipoServico === 'contrato' 
                       ? getStatusContrato()
-                      : (service.fatura || service.numeroFatura || 'Não faturado')
+                      : (() => {
+                          if (!service.numeroFatura) return 'NFT';
+                          if (service.valorFaturado >= service.valorComIVA) return 'Faturado na totalidade';
+                          return 'Faturado parcialmente';
+                        })()
                     }
                   </p>
                 </div>
                 {service.tipoServico === 'fatura' && service.numeroFatura && (
                   <div>
-                    <span className="font-medium">Número da Fatura:</span>
+                    <span className="font-medium">Nº Fatura:</span>
                     <p>{service.numeroFatura}</p>
                   </div>
                 )}
