@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_payments: {
+        Row: {
+          account_payable_id: string
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string
+          desconto: number
+          empresa_id: string
+          id: string
+          juros: number
+          metodo_pagamento: string | null
+          multa: number
+          observacoes: string | null
+          updated_at: string
+          valor_original: number
+          valor_pago: number
+        }
+        Insert: {
+          account_payable_id: string
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string
+          desconto?: number
+          empresa_id: string
+          id?: string
+          juros?: number
+          metodo_pagamento?: string | null
+          multa?: number
+          observacoes?: string | null
+          updated_at?: string
+          valor_original?: number
+          valor_pago?: number
+        }
+        Update: {
+          account_payable_id?: string
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string
+          desconto?: number
+          empresa_id?: string
+          id?: string
+          juros?: number
+          metodo_pagamento?: string | null
+          multa?: number
+          observacoes?: string | null
+          updated_at?: string
+          valor_original?: number
+          valor_pago?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_payments_account_payable_id_fkey"
+            columns: ["account_payable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_payments_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts_payable: {
         Row: {
           acrescimo: number
