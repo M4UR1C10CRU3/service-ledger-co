@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Liquidacao, FormaPagamento } from '@/types/service';
+import { Pencil, Check, X } from 'lucide-react';
 import { liquidacaoSchema, type LiquidacaoFormData } from '@/lib/validations';
 import { formatEUR } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
@@ -29,9 +30,10 @@ import { useToast } from '@/hooks/use-toast';
 interface LiquidacoesManagerProps {
   serviceId: string;
   liquidacoes: Liquidacao[];
-  valorLiquidadoLegado?: number; // Valor legado quando não há liquidações registradas
+  valorLiquidadoLegado?: number;
   onAddLiquidacao: (liquidacao: Omit<Liquidacao, 'id' | 'createdAt'>) => void;
   onRemoveLiquidacao: (liquidacaoId: string) => void;
+  onUpdateLiquidacao?: (liquidacaoId: string, serviceId: string, updates: Partial<Liquidacao>) => void;
 }
 
 export const LiquidacoesManager = ({ 
@@ -39,9 +41,12 @@ export const LiquidacoesManager = ({
   liquidacoes, 
   valorLiquidadoLegado = 0,
   onAddLiquidacao, 
-  onRemoveLiquidacao 
+  onRemoveLiquidacao,
+  onUpdateLiquidacao,
 }: LiquidacoesManagerProps) => {
   const { toast } = useToast();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFormaPagamento, setEditFormaPagamento] = useState<FormaPagamento | undefined>(undefined);
   
   const form = useForm<LiquidacaoFormData>({
     resolver: zodResolver(liquidacaoSchema),
@@ -125,13 +130,65 @@ export const LiquidacoesManager = ({
             {liquidacoes.map((liquidacao) => (
               <div key={liquidacao.id} className="flex items-center justify-between p-3 border rounded">
                 <div className="flex-1">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
                     <span className="font-medium">{formatEUR(liquidacao.valor)}</span>
                     <span className="text-sm text-muted-foreground">{liquidacao.dataPagamento}</span>
-                    {liquidacao.formaPagamento && (
-                      <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                        {formaPagamentoLabels[liquidacao.formaPagamento]}
-                      </span>
+                    {editingId === liquidacao.id ? (
+                      <div className="flex items-center gap-2">
+                        <Select 
+                          onValueChange={(v) => setEditFormaPagamento(v as FormaPagamento)} 
+                          value={editFormaPagamento || ''}
+                        >
+                          <SelectTrigger className="bg-background w-[160px] h-8 text-xs">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background z-50">
+                            <SelectItem value="cheque">Cheque</SelectItem>
+                            <SelectItem value="multibanco">Multibanco</SelectItem>
+                            <SelectItem value="numerario">Numerário</SelectItem>
+                            <SelectItem value="transferencia">Transferência</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          if (editFormaPagamento && onUpdateLiquidacao) {
+                            onUpdateLiquidacao(liquidacao.id, serviceId, { formaPagamento: editFormaPagamento });
+                            toast({ title: "Liquidação atualizada", description: "Forma de pagamento corrigida" });
+                          }
+                          setEditingId(null);
+                        }}>
+                          <Check className="w-4 h-4 text-green-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                          <X className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        {liquidacao.formaPagamento ? (
+                          <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                            {formaPagamentoLabels[liquidacao.formaPagamento]}
+                          </span>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-6 text-xs"
+                            onClick={() => { setEditingId(liquidacao.id); setEditFormaPagamento(undefined); }}
+                          >
+                            <Pencil className="w-3 h-3 mr-1" /> Adicionar forma
+                          </Button>
+                        )}
+                        {liquidacao.formaPagamento && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0"
+                            onClick={() => { setEditingId(liquidacao.id); setEditFormaPagamento(liquidacao.formaPagamento); }}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                   {liquidacao.observacoes && (

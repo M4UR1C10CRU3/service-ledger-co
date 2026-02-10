@@ -301,6 +301,7 @@ const Index = () => {
         allServices={services}
         onAddLiquidacao={handleAddLiquidacao}
         onRemoveLiquidacao={handleRemoveLiquidacao}
+        onUpdateLiquidacao={updateLiquidacao}
       />
 
       <ReportsDialog 
