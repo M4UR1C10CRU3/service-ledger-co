@@ -123,7 +123,7 @@ export const ServiceDetailDialog = ({
                   <p>
                     {service.tipoServico === 'contrato' 
                       ? getStatusContrato()
-                      : (service.fatura || 'Não faturado')
+                      : (service.fatura || service.numeroFatura || 'Não faturado')
                     }
                   </p>
                 </div>
