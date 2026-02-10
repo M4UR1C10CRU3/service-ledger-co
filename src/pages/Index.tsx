@@ -191,18 +191,30 @@ const Index = () => {
     });
   };
 
-  const handleFormSubmit = (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoes?: any[]) => {
+  const handleFormSubmit = async (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoesData?: any[]) => {
     // Verifica se é edição real (tem id) ou duplicação/novo (sem id)
     const isRealEdit = editingService && editingService.id;
     
     if (isRealEdit) {
       updateService(editingService.id, serviceData);
+      // Salvar novas liquidações adicionadas durante a edição
+      if (liquidacoesData && liquidacoesData.length > 0) {
+        for (const liq of liquidacoesData) {
+          await addLiquidacao({
+            serviceId: editingService.id,
+            valor: liq.valor,
+            dataPagamento: liq.dataPagamento,
+            formaPagamento: liq.formaPagamento,
+            observacoes: liq.observacoes,
+          });
+        }
+      }
       toast({
         title: "Serviço atualizado",
         description: "O serviço foi atualizado com sucesso.",
       });
     } else {
-      addService(serviceData, liquidacoes);
+      addService(serviceData, liquidacoesData);
       toast({
         title: editingService ? "Serviço duplicado" : "Serviço adicionado",
         description: editingService 
