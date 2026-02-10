@@ -99,7 +99,9 @@ export const ServiceTable = ({
                   </TableCell>
                   <TableCell className="font-mono text-sm text-center">{service.proposta || '—'}</TableCell>
                   <TableCell className="font-mono text-sm text-center">
-                    {service.numeroFatura || '—'}
+                    {service.numeroFatura
+                      ? service.numeroFatura.split('; ').map(entry => entry.split('|')[0]).join('; ')
+                      : '—'}
                   </TableCell>
                   <TableCell className="text-center font-mono">
                     {formatCurrency(service.valorComIVA)}
