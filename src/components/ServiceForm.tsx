@@ -5,6 +5,7 @@ import { Service, Liquidacao, FormaPagamento } from '@/types/service';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { serviceFormSchema, liquidacaoSchema, type ServiceFormData, type LiquidacaoFormData } from '@/lib/validations';
 import { formatInputValue, parseFormattedNumber, formatNumber } from '@/lib/formatters';
+import { InvoiceHistoryInput, InvoiceEntry, serializeInvoiceEntries, parseInvoiceEntries, calcTotalFaturado } from '@/components/InvoiceHistoryInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,7 +67,7 @@ export const ServiceForm = ({
 }: ServiceFormProps) => {
   const { toast } = useToast();
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
-  
+  const [invoiceEntries, setInvoiceEntries] = useState<InvoiceEntry[]>([]);
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
@@ -126,12 +127,15 @@ export const ServiceForm = ({
         email: editingService.email || '',
       });
       setLiquidacoes([]);
+      // Carregar invoice entries do campo numeroFatura
+      setInvoiceEntries(parseInvoiceEntries(editingService.numeroFatura));
       // Tentar encontrar o cliente correspondente
       const cliente = clientes.find(c => c.nome === editingService.cliente);
       setSelectedCliente(cliente || null);
     } else {
       form.reset();
       setLiquidacoes([]);
+      setInvoiceEntries([]);
       setSelectedCliente(null);
     }
   }, [editingService, form, clientes]);
@@ -257,13 +261,20 @@ export const ServiceForm = ({
   };
 
   const handleFormSubmit = (data: ServiceFormData) => {
+    // Compute valorFaturado and numeroFatura from invoice entries
+    const computedValorFaturado = calcTotalFaturado(invoiceEntries);
+    const computedNumeroFatura = serializeInvoiceEntries(invoiceEntries);
+    
     onSubmit({
       ...data,
+      valorFaturado: computedValorFaturado,
+      numeroFatura: computedNumeroFatura || undefined,
       liquidado: totalLiquidado
     } as Omit<Service, 'id' | 'createdAt'>, liquidacoes);
     onOpenChange(false);
     form.reset();
     setLiquidacoes([]);
+    setInvoiceEntries([]);
     setNovaLiquidacao({
       valor: '',
       dataPagamento: '',
@@ -532,63 +543,28 @@ export const ServiceForm = ({
                 <div className="md:col-span-2">
                   <h4 className="text-sm font-medium mb-3">Faturamento</h4>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Se houver fatura emitida, informe o número e valor faturado. O valor pode ser menor que o total da proposta.
+                    Adicione cada fatura com o respetivo número e valor. O total faturado é calculado automaticamente.
                   </p>
+                  <InvoiceHistoryInput
+                    entries={invoiceEntries}
+                    onChange={(entries) => {
+                      setInvoiceEntries(entries);
+                      form.setValue('valorFaturado', calcTotalFaturado(entries));
+                      form.setValue('numeroFatura', serializeInvoiceEntries(entries));
+                    }}
+                  />
+                  {invoiceEntries.length > 0 && (
+                    <div className="mt-2 p-2 bg-muted rounded-md flex justify-between items-center text-sm">
+                      <span className="font-medium">Total Faturado:</span>
+                      <span className="font-bold">€{formatNumber(calcTotalFaturado(invoiceEntries))}</span>
+                    </div>
+                  )}
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="numeroFatura"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Números de Fatura (opcional)</FormLabel>
-                      <FormControl>
-                        <MultiValueInput
-                          values={field.value ? field.value.split('; ').filter(Boolean) : []}
-                          onChange={(vals) => field.onChange(vals.join('; '))}
-                          placeholder="Adicionar fatura..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="valorFaturado"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Valor Faturado com IVA (€)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="0,00"
-                          value={field.value ? formatNumber(field.value) : ''}
-                          onChange={(e) => {
-                            const formatted = formatInputValue(e.target.value);
-                            if (formatted !== e.target.value) {
-                              const cursorPos = e.target.selectionStart;
-                              e.target.value = formatted;
-                              e.target.setSelectionRange(cursorPos, cursorPos);
-                            }
-                            field.onChange(parseFormattedNumber(formatted));
-                          }}
-                        />
-                      </FormControl>
-                      <p className="text-xs text-muted-foreground">
-                        Calculado automaticamente ou edite se o valor faturado for diferente
-                      </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 {/* Calculated value display */}
                 {(() => {
                   const valorTotal = form.watch('valorComIVA') || 0;
-                  const valorFat = form.watch('valorFaturado') || 0;
+                  const valorFat = calcTotalFaturado(invoiceEntries);
                   const valorNaoFaturado = Math.max(0, valorTotal - valorFat);
                   
                   if (valorTotal > 0 && valorFat > 0 && valorNaoFaturado > 0) {
@@ -616,6 +592,30 @@ export const ServiceForm = ({
                     <FormItem className="hidden">
                       <FormControl>
                         <Input {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="numeroFatura"
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="valorFaturado"
+                  render={({ field }) => (
+                    <FormItem className="hidden">
+                      <FormControl>
+                        <Input type="hidden" value={field.value} onChange={field.onChange} />
                       </FormControl>
                     </FormItem>
                   )}

@@ -1,6 +1,7 @@
 import { ServiceWithCalculations, Liquidacao } from '@/types/service';
 import { LiquidacoesManager } from './LiquidacoesManager';
 import { formatEUR } from '@/lib/formatters';
+import { parseInvoiceEntries } from '@/components/InvoiceHistoryInput';
 import {
   Dialog,
   DialogContent,
@@ -132,9 +133,16 @@ export const ServiceDetailDialog = ({
                   </p>
                 </div>
                 {service.tipoServico === 'fatura' && service.numeroFatura && (
-                  <div>
-                    <span className="font-medium">Nº Fatura:</span>
-                    <p>{service.numeroFatura}</p>
+                  <div className="md:col-span-2">
+                    <span className="font-medium">Histórico de Faturas:</span>
+                    <div className="mt-2 space-y-1">
+                      {parseInvoiceEntries(service.numeroFatura).map((entry, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-2 bg-muted/50 rounded text-sm">
+                          <span className="font-medium">Fatura: {entry.numero}</span>
+                          <span>{formatEUR(entry.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
