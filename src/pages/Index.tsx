@@ -192,37 +192,46 @@ const Index = () => {
   };
 
   const handleFormSubmit = async (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoesData?: any[]) => {
-    // Verifica se é edição real (tem id) ou duplicação/novo (sem id)
-    const isRealEdit = editingService && editingService.id;
-    
-    if (isRealEdit) {
-      updateService(editingService.id, serviceData);
-      // Salvar novas liquidações adicionadas durante a edição
-      if (liquidacoesData && liquidacoesData.length > 0) {
-        for (const liq of liquidacoesData) {
-          await addLiquidacao({
-            serviceId: editingService.id,
-            valor: liq.valor,
-            dataPagamento: liq.dataPagamento,
-            formaPagamento: liq.formaPagamento,
-            observacoes: liq.observacoes,
-          });
+    try {
+      // Verifica se é edição real (tem id) ou duplicação/novo (sem id)
+      const isRealEdit = editingService && editingService.id;
+      
+      if (isRealEdit) {
+        updateService(editingService.id, serviceData);
+        // Salvar novas liquidações adicionadas durante a edição
+        if (liquidacoesData && liquidacoesData.length > 0) {
+          for (const liq of liquidacoesData) {
+            await addLiquidacao({
+              serviceId: editingService.id,
+              valor: liq.valor,
+              dataPagamento: liq.dataPagamento,
+              formaPagamento: liq.formaPagamento,
+              observacoes: liq.observacoes,
+            });
+          }
         }
+        toast({
+          title: "Serviço atualizado",
+          description: "O serviço foi atualizado com sucesso.",
+        });
+      } else {
+        addService(serviceData, liquidacoesData);
+        toast({
+          title: editingService ? "Serviço duplicado" : "Serviço adicionado",
+          description: editingService 
+            ? "A cópia do serviço foi criada com sucesso."
+            : "O novo serviço foi adicionado com sucesso.",
+        });
       }
+      setEditingService(null);
+    } catch (error) {
+      console.error('Erro ao guardar serviço:', error);
       toast({
-        title: "Serviço atualizado",
-        description: "O serviço foi atualizado com sucesso.",
-      });
-    } else {
-      addService(serviceData, liquidacoesData);
-      toast({
-        title: editingService ? "Serviço duplicado" : "Serviço adicionado",
-        description: editingService 
-          ? "A cópia do serviço foi criada com sucesso."
-          : "O novo serviço foi adicionado com sucesso.",
+        title: "Erro ao guardar",
+        description: "Ocorreu um erro ao guardar o serviço. Tente novamente.",
+        variant: "destructive",
       });
     }
-    setEditingService(null);
   };
 
   const handleDeleteService = (id: string) => {
