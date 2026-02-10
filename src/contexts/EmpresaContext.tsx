@@ -29,104 +29,48 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Carregar empresas disponíveis
-  useEffect(() => {
-    const loadEmpresas = async () => {
-      try {
-        // Tentar carregar do Supabase se autenticado
-        const { data: session } = await supabase.auth.getSession();
-        
-        if (session?.session) {
-          const { data, error } = await supabase
-            .from('empresas')
-            .select('*')
-            .order('nome');
+  // Carregar empresas do Supabase
+  const loadEmpresasFromDb = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('empresas')
+        .select('*')
+        .order('nome');
 
-          if (!error && data) {
-            const empresasFormatted = data.map((e: any) => ({
-              id: e.id,
-              slug: e.slug,
-              nome: e.nome,
-              nomeLegal: e.nome_legal,
-              logoPath: e.logo_path,
-              corPrimaria: e.cor_primaria,
-              corSecundaria: e.cor_secundaria,
-              corAccent: e.cor_accent,
-              createdAt: new Date(e.created_at),
-              updatedAt: new Date(e.updated_at),
-            }));
-            setEmpresas(empresasFormatted);
-          }
-        } else {
-          // Fallback: empresas estáticas quando não autenticado
-          setEmpresas([
-            {
-              id: 'static-obrajusta',
-              slug: 'obrajusta',
-              nome: 'Obrajusta',
-              nomeLegal: 'OBRAJUSTA II, Lda',
-              logoPath: '/assets/logo-obrajusta.png',
-              corPrimaria: '#3b82f6',
-              corSecundaria: '#1e40af',
-              corAccent: '#60a5fa',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-            {
-              id: 'static-tudocasa',
-              slug: 'tudocasa',
-              nome: 'Tudo Casa',
-              nomeLegal: 'Tudo Casa - Warm Lda',
-              logoPath: '/assets/logo-tudocasa.png',
-              corPrimaria: '#ff6b00',
-              corSecundaria: '#000000',
-              corAccent: '#ffd700',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          ]);
-        }
-      } catch (error) {
-        console.error('Error loading empresas:', error);
-        // Fallback estático
-        setEmpresas([
-          {
-            id: 'static-obrajusta',
-            slug: 'obrajusta',
-            nome: 'Obrajusta',
-            nomeLegal: 'OBRAJUSTA II, Lda',
-            logoPath: '/assets/logo-obrajusta.png',
-            corPrimaria: '#3b82f6',
-            corSecundaria: '#1e40af',
-            corAccent: '#60a5fa',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: 'static-tudocasa',
-            slug: 'tudocasa',
-            nome: 'Tudo Casa',
-            nomeLegal: 'Tudo Casa - Warm Lda',
-            logoPath: '/assets/logo-tudocasa.png',
-            corPrimaria: '#ff6b00',
-            corSecundaria: '#000000',
-            corAccent: '#ffd700',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
+      if (!error && data && data.length > 0) {
+        const empresasFormatted = data.map((e: any) => ({
+          id: e.id,
+          slug: e.slug,
+          nome: e.nome,
+          nomeLegal: e.nome_legal,
+          logoPath: e.logo_path,
+          corPrimaria: e.cor_primaria,
+          corSecundaria: e.cor_secundaria,
+          corAccent: e.cor_accent,
+          createdAt: new Date(e.created_at),
+          updatedAt: new Date(e.updated_at),
+        }));
+        setEmpresas(empresasFormatted);
       }
-    };
-
-    loadEmpresas();
-    
-    // Recuperar empresa do localStorage
-    const savedEmpresaSlug = localStorage.getItem('selectedEmpresa');
-    if (savedEmpresaSlug) {
-      // Será definida após carregar empresas
+    } catch (error) {
+      console.error('Error loading empresas:', error);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Carregar empresas e escutar mudanças de autenticação
+  useEffect(() => {
+    loadEmpresasFromDb();
+
+    // Recarregar empresas quando o utilizador fizer login
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        loadEmpresasFromDb();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Quando empresas carregarem, restaurar seleção do localStorage
