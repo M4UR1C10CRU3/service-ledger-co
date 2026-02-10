@@ -20,6 +20,7 @@ interface ServiceDetailDialogProps {
   allServices: ServiceWithCalculations[];
   onAddLiquidacao: (liquidacao: Omit<Liquidacao, 'id' | 'createdAt'>) => void;
   onRemoveLiquidacao: (liquidacaoId: string) => void;
+  onUpdateLiquidacao?: (liquidacaoId: string, serviceId: string, updates: Partial<Liquidacao>) => void;
 }
 
 export const ServiceDetailDialog = ({
@@ -28,7 +29,8 @@ export const ServiceDetailDialog = ({
   service,
   allServices,
   onAddLiquidacao,
-  onRemoveLiquidacao
+  onRemoveLiquidacao,
+  onUpdateLiquidacao,
 }: ServiceDetailDialogProps) => {
   if (!service) return null;
 
@@ -295,6 +297,7 @@ export const ServiceDetailDialog = ({
               valorLiquidadoLegado={service.liquidacoes.length === 0 ? service.liquidado : 0}
               onAddLiquidacao={onAddLiquidacao}
               onRemoveLiquidacao={(liquidacaoId) => onRemoveLiquidacao(liquidacaoId)}
+              onUpdateLiquidacao={onUpdateLiquidacao}
             />
           )}
           
