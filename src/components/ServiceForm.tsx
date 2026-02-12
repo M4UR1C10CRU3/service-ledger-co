@@ -68,6 +68,7 @@ export const ServiceForm = ({
   const { toast } = useToast();
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [invoiceEntries, setInvoiceEntries] = useState<InvoiceEntry[]>([]);
+  const [creditNoteEntries, setCreditNoteEntries] = useState<InvoiceEntry[]>([]);
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
@@ -129,6 +130,8 @@ export const ServiceForm = ({
       setLiquidacoes([]);
       // Carregar invoice entries do campo numeroFatura
       setInvoiceEntries(parseInvoiceEntries(editingService.numeroFatura));
+      // Carregar credit note entries
+      setCreditNoteEntries(parseInvoiceEntries(editingService.notaCredito));
       // Tentar encontrar o cliente correspondente
       const cliente = clientes.find(c => c.nome === editingService.cliente);
       setSelectedCliente(cliente || null);
@@ -136,6 +139,7 @@ export const ServiceForm = ({
       form.reset();
       setLiquidacoes([]);
       setInvoiceEntries([]);
+      setCreditNoteEntries([]);
       setSelectedCliente(null);
     }
   }, [editingService, form, clientes]);
@@ -264,17 +268,20 @@ export const ServiceForm = ({
     // Compute valorFaturado and numeroFatura from invoice entries
     const computedValorFaturado = calcTotalFaturado(invoiceEntries);
     const computedNumeroFatura = serializeInvoiceEntries(invoiceEntries);
+    const computedNotaCredito = serializeInvoiceEntries(creditNoteEntries);
     
     onSubmit({
       ...data,
       valorFaturado: computedValorFaturado,
       numeroFatura: computedNumeroFatura || undefined,
+      notaCredito: computedNotaCredito || undefined,
       liquidado: totalLiquidado
     } as Omit<Service, 'id' | 'createdAt'>, liquidacoes);
     onOpenChange(false);
     form.reset();
     setLiquidacoes([]);
     setInvoiceEntries([]);
+    setCreditNoteEntries([]);
     setNovaLiquidacao({
       valor: '',
       dataPagamento: '',
@@ -557,6 +564,31 @@ export const ServiceForm = ({
                     <div className="mt-2 p-2 bg-muted rounded-md flex justify-between items-center text-sm">
                       <span className="font-medium">Total Faturado:</span>
                       <span className="font-bold">€{formatNumber(calcTotalFaturado(invoiceEntries))}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Separator className="md:col-span-2 my-2" />
+
+                <div className="md:col-span-2">
+                  <h4 className="text-sm font-medium mb-3">Notas de Crédito</h4>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Adicione cada nota de crédito com o respetivo número e valor. O valor será debitado ao total do serviço.
+                  </p>
+                  <InvoiceHistoryInput
+                    entries={creditNoteEntries}
+                    onChange={(entries) => {
+                      setCreditNoteEntries(entries);
+                    }}
+                    labelNumero="Nº Nota de Crédito"
+                    labelValor="Valor (€)"
+                    placeholderNumero="Nº da nota de crédito..."
+                    entryPrefix="NC"
+                  />
+                  {creditNoteEntries.length > 0 && (
+                    <div className="mt-2 p-2 bg-muted rounded-md flex justify-between items-center text-sm">
+                      <span className="font-medium">Total Notas de Crédito:</span>
+                      <span className="font-bold text-destructive">-€{formatNumber(calcTotalFaturado(creditNoteEntries))}</span>
                     </div>
                   )}
                 </div>

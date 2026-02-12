@@ -366,6 +366,7 @@ export type Database = {
           fatura: string | null
           id: string
           liquidado: number
+          nota_credito: string | null
           numero_fatura: string | null
           proposta: string | null
           resumo: string | null
@@ -391,6 +392,7 @@ export type Database = {
           fatura?: string | null
           id?: string
           liquidado?: number
+          nota_credito?: string | null
           numero_fatura?: string | null
           proposta?: string | null
           resumo?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           fatura?: string | null
           id?: string
           liquidado?: number
+          nota_credito?: string | null
           numero_fatura?: string | null
           proposta?: string | null
           resumo?: string | null

@@ -23,6 +23,9 @@ export interface Service {
   telefone?: string;
   email?: string;
   
+  // Nota de crédito (formato: "NC1/2026|500; NC2/2026|300")
+  notaCredito?: string;
+  
   // ID da empresa
   empresaId?: string;
 }
