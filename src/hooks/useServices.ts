@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Service, ServiceWithCalculations, DashboardMetrics, Liquidacao } from '@/types/service';
+import { parseInvoiceEntries, calcTotalFaturado } from '@/components/InvoiceHistoryInput';
 import { supabase } from '@/integrations/supabase/client';
 
 // Helper functions for database operations
@@ -21,7 +22,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
           servico: service.servico,
           cliente: service.cliente,
           resumo: service.resumo,
-          proposta: service.proposta,
+           proposta: service.proposta,
           fatura: service.fatura,
           contrato: (service as any).contrato || null,
           valor_com_iva: service.valorComIVA,
@@ -34,6 +35,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
           numero_fatura: service.numeroFatura || null,
           telefone: service.telefone || null,
           email: service.email || null,
+          nota_credito: service.notaCredito || null,
         })
         .eq('service_id', service.id);
       
@@ -63,6 +65,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
           numero_fatura: service.numeroFatura || null,
           telefone: service.telefone || null,
           email: service.email || null,
+          nota_credito: service.notaCredito || null,
           empresa_id: empresaId,
           created_at: service.createdAt.toISOString(),
         });
@@ -164,6 +167,7 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
       numeroFatura: (row as any).numero_fatura || undefined,
       telefone: (row as any).telefone || undefined,
       email: (row as any).email || undefined,
+      notaCredito: (row as any).nota_credito || undefined,
       empresaId: (row as any).empresa_id || undefined,
     })) || [];
   } catch (error) {
@@ -298,10 +302,15 @@ export const useServices = (empresaId?: string) => {
     const valorFaturado = service.valorFaturado || 0;
     const valorNaoFaturado = service.valorComIVA - valorFaturado;
     
-    // Débito: para faturas é baseado no valorComIVA menos o que foi liquidado
+    // Calcular total de notas de crédito
+    const totalNotasCredito = service.notaCredito 
+      ? calcTotalFaturado(parseInvoiceEntries(service.notaCredito))
+      : 0;
+    
+    // Débito: para faturas é baseado no valorComIVA menos notas de crédito menos o que foi liquidado
     // Para contratos o débito é 0 (o débito real está nas faturas vinculadas)
     const executadoEmDebito = service.tipoServico === 'fatura' 
-      ? Math.max(0, service.valorComIVA - liquidadoCalculated)
+      ? Math.max(0, service.valorComIVA - totalNotasCredito - liquidadoCalculated)
       : 0;
     
     // Percentual liquidado: para faturas é sobre valorComIVA; para contratos é sobre valorFaturado

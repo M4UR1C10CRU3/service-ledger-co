@@ -12,6 +12,10 @@ export interface InvoiceEntry {
 interface InvoiceHistoryInputProps {
   entries: InvoiceEntry[];
   onChange: (entries: InvoiceEntry[]) => void;
+  labelNumero?: string;
+  labelValor?: string;
+  placeholderNumero?: string;
+  entryPrefix?: string;
 }
 
 /**
@@ -44,7 +48,14 @@ export const calcTotalFaturado = (entries: InvoiceEntry[]): number => {
   return entries.reduce((sum, e) => sum + e.valor, 0);
 };
 
-export const InvoiceHistoryInput = ({ entries, onChange }: InvoiceHistoryInputProps) => {
+export const InvoiceHistoryInput = ({ 
+  entries, 
+  onChange, 
+  labelNumero = 'Nº Fatura',
+  labelValor = 'Valor com IVA (€)',
+  placeholderNumero = 'Nº da fatura...',
+  entryPrefix = 'Fatura',
+}: InvoiceHistoryInputProps) => {
   const [novoNumero, setNovoNumero] = useState('');
   const [novoValor, setNovoValor] = useState('');
 
@@ -74,7 +85,7 @@ export const InvoiceHistoryInput = ({ entries, onChange }: InvoiceHistoryInputPr
         <div className="space-y-2">
           {entries.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded-md text-sm">
-              <span className="font-medium flex-1">Fatura: {entry.numero}</span>
+              <span className="font-medium flex-1">{entryPrefix}: {entry.numero}</span>
               <span className="text-muted-foreground">€{formatNumber(entry.valor)}</span>
               <Button
                 type="button"
@@ -94,10 +105,10 @@ export const InvoiceHistoryInput = ({ entries, onChange }: InvoiceHistoryInputPr
       <div className="flex items-end gap-2">
         <div className="flex-1">
           {entries.length === 0 && (
-            <label className="text-sm font-medium mb-1 block">Nº Fatura</label>
+            <label className="text-sm font-medium mb-1 block">{labelNumero}</label>
           )}
           <Input
-            placeholder="Nº da fatura..."
+            placeholder={placeholderNumero}
             value={novoNumero}
             onChange={(e) => setNovoNumero(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -105,7 +116,7 @@ export const InvoiceHistoryInput = ({ entries, onChange }: InvoiceHistoryInputPr
         </div>
         <div className="flex-1">
           {entries.length === 0 && (
-            <label className="text-sm font-medium mb-1 block">Valor com IVA (€)</label>
+            <label className="text-sm font-medium mb-1 block">{labelValor}</label>
           )}
           <Input
             type="text"

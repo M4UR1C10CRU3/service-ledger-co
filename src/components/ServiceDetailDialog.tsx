@@ -147,6 +147,19 @@ export const ServiceDetailDialog = ({
                     </div>
                   </div>
                 )}
+                {service.tipoServico === 'fatura' && service.notaCredito && (
+                  <div className="md:col-span-2">
+                    <span className="font-medium">Notas de Crédito:</span>
+                    <div className="mt-2 space-y-1">
+                      {parseInvoiceEntries(service.notaCredito).map((entry, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-2 bg-destructive/10 rounded text-sm">
+                          <span className="font-medium">NC: {entry.numero}</span>
+                          <span className="text-destructive">-{formatEUR(entry.valor)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2 mt-4">

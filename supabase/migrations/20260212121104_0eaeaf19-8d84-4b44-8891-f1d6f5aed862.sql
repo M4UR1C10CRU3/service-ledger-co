@@ -1,0 +1,1 @@
+ALTER TABLE public.services ADD COLUMN nota_credito text DEFAULT NULL;
