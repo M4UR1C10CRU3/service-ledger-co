@@ -4,7 +4,6 @@ import { useServices } from '@/hooks/useServices';
 import { useClientes } from '@/hooks/useClientes';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { Service, ServiceWithCalculations } from '@/types/service';
-import { Header } from '@/components/Header';
 import { DashboardCards } from '@/components/DashboardCards';
 import { ServiceChart } from '@/components/ServiceChart';
 import { ServiceTable } from '@/components/ServiceTable';
@@ -13,56 +12,36 @@ import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
 import { DateFilter } from '@/components/DateFilter';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { Plus, FileText } from 'lucide-react';
 
 const Index = () => {
-  const [userName, setUserName] = useState<string>('');
   const { empresa } = useEmpresa();
   const navigate = useNavigate();
-  
-  // Redirecionar se não há empresa selecionada
+
   useEffect(() => {
     if (!empresa) {
       const savedEmpresa = localStorage.getItem('selectedEmpresa');
-      if (!savedEmpresa) {
-        navigate('/empresa');
-      }
+      if (!savedEmpresa) navigate('/empresa');
     }
   }, [empresa, navigate]);
-  
-  useEffect(() => {
-    // Get user profile
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        supabase
-          .from('profiles')
-          .select('nome')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data) {
-              setUserName(data.nome);
-            }
-          });
-      }
-    });
-  }, []);
 
-  const { 
-    services, 
-    dashboardMetrics, 
-    addService, 
-    updateService, 
-    deleteService, 
-    addLiquidacao, 
+  const {
+    services,
+    dashboardMetrics,
+    addService,
+    updateService,
+    deleteService,
+    addLiquidacao,
     removeLiquidacao,
     updateLiquidacao,
     isLoading,
     isInitialized,
-    liquidacoes 
+    liquidacoes,
   } = useServices(empresa?.id);
-  
+
   const { clientes, addCliente } = useClientes();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
@@ -70,230 +49,153 @@ const Index = () => {
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceWithCalculations | null>(null);
-  
+
   // Date filter state
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [clienteSearch, setClienteSearch] = useState<string>('');
   const [debitoFilter, setDebitoFilter] = useState<string | null>(null);
 
-  // Filter services by year, month, client and debt status - only after data is loaded
   const filteredServices = useMemo(() => {
-    // Don't filter until data is initialized
     if (!isInitialized) return [];
-    
     return services.filter((service) => {
-      // Data format is DD/MM/YYYY
       const parts = service.data.split('/');
       if (parts.length !== 3) return true;
-      
       const [day, month, year] = parts;
-      
       if (selectedYear && year !== selectedYear) return false;
       if (selectedMonth && month !== selectedMonth) return false;
-      
-      // Filter by client name
-      if (clienteSearch && !service.cliente.toLowerCase().includes(clienteSearch.toLowerCase())) {
-        return false;
-      }
-      
-      // Filter by debt time
+      if (clienteSearch && !service.cliente.toLowerCase().includes(clienteSearch.toLowerCase())) return false;
       if (debitoFilter) {
-        // Only include services with debt
         if (service.executadoEmDebito <= 0) return false;
-        
         switch (debitoFilter) {
-          case 'ate30':
-            if (service.diasEmAtraso < 1 || service.diasEmAtraso > 30) return false;
-            break;
-          case '31a90':
-            if (service.diasEmAtraso < 31 || service.diasEmAtraso > 90) return false;
-            break;
-          case 'acima90':
-            if (service.diasEmAtraso <= 90) return false;
-            break;
+          case 'ate30': if (service.diasEmAtraso < 1 || service.diasEmAtraso > 30) return false; break;
+          case '31a90': if (service.diasEmAtraso < 31 || service.diasEmAtraso > 90) return false; break;
+          case 'acima90': if (service.diasEmAtraso <= 90) return false; break;
         }
       }
-      
       return true;
     });
   }, [services, selectedYear, selectedMonth, clienteSearch, debitoFilter, isInitialized]);
+
   const [selectedContract, setSelectedContract] = useState<ServiceWithCalculations | null>(null);
 
-  const handleAddService = () => {
-    setEditingService(null);
-    setIsFormOpen(true);
-  };
-
-  const handleOpenReports = () => {
-    setIsReportsOpen(true);
-  };
-
-  const handleEditService = (service: Service) => {
-    setEditingService(service);
-    setIsFormOpen(true);
-  };
+  const handleAddService = () => { setEditingService(null); setIsFormOpen(true); };
+  const handleEditService = (service: Service) => { setEditingService(service); setIsFormOpen(true); };
 
   const handleDuplicateService = (service: ServiceWithCalculations) => {
-    // Cria uma cópia do serviço para edição, sem ID (será criado novo)
     const duplicatedService = {
       ...service,
-      id: '', // Limpa o ID para criar novo
+      id: '',
       resumo: service.resumo ? `${service.resumo} (Cópia)` : '(Cópia)',
-      numeroFatura: '', // Limpa número da fatura
-      liquidado: 0, // Novo serviço começa sem liquidações
-      valorFaturado: 0, // Começa sem valor faturado
-      data: new Date().toLocaleDateString('pt-PT'), // Data atual
+      numeroFatura: '',
+      liquidado: 0,
+      valorFaturado: 0,
+      data: new Date().toLocaleDateString('pt-PT'),
     } as Service;
-    
     setEditingService(duplicatedService);
     setIsFormOpen(true);
-    toast({
-      title: "Duplicar serviço",
-      description: "Dados copiados. Faça as alterações necessárias e guarde.",
-    });
+    toast({ title: "Duplicar serviço", description: "Dados copiados. Faça as alterações necessárias e guarde." });
   };
 
-  const handleViewService = (service: ServiceWithCalculations) => {
-    setSelectedService(service);
-    setIsDetailOpen(true);
-  };
+  const handleViewService = (service: ServiceWithCalculations) => { setSelectedService(service); setIsDetailOpen(true); };
 
   const handleAddLiquidacao = (liquidacao: any) => {
     addLiquidacao(liquidacao);
-    toast({
-      title: "Pagamento registrado",
-      description: "O pagamento foi registrado com sucesso.",
-    });
+    toast({ title: "Pagamento registrado", description: "O pagamento foi registrado com sucesso." });
   };
 
   const handleRemoveLiquidacao = (liquidacaoId: string) => {
     if (selectedService) {
       removeLiquidacao(liquidacaoId, selectedService.id);
-      toast({
-        title: "Pagamento removido",
-        description: "O pagamento foi removido com sucesso.",
-        variant: "destructive",
-      });
+      toast({ title: "Pagamento removido", description: "O pagamento foi removido com sucesso.", variant: "destructive" });
     }
   };
 
-  const handleCreateInvoice = (contract: ServiceWithCalculations) => {
-    setSelectedContract(contract);
-    setIsCreateInvoiceOpen(true);
-  };
+  const handleCreateInvoice = (contract: ServiceWithCalculations) => { setSelectedContract(contract); setIsCreateInvoiceOpen(true); };
 
   const handleCreateInvoiceSubmit = (invoiceData: any) => {
     addService(invoiceData);
-    toast({
-      title: "Fatura criada",
-      description: "A fatura parcial foi criada com sucesso.",
-    });
+    toast({ title: "Fatura criada", description: "A fatura parcial foi criada com sucesso." });
   };
 
   const handleFormSubmit = async (serviceData: Omit<Service, 'id' | 'createdAt'>, liquidacoesData?: any[]) => {
     try {
-      // Verifica se é edição real (tem id) ou duplicação/novo (sem id)
       const isRealEdit = editingService && editingService.id;
-      
       if (isRealEdit) {
         updateService(editingService.id, serviceData);
-        // Salvar novas liquidações adicionadas durante a edição
         if (liquidacoesData && liquidacoesData.length > 0) {
           for (const liq of liquidacoesData) {
-            await addLiquidacao({
-              serviceId: editingService.id,
-              valor: liq.valor,
-              dataPagamento: liq.dataPagamento,
-              formaPagamento: liq.formaPagamento,
-              observacoes: liq.observacoes,
-            });
+            await addLiquidacao({ serviceId: editingService.id, valor: liq.valor, dataPagamento: liq.dataPagamento, formaPagamento: liq.formaPagamento, observacoes: liq.observacoes });
           }
         }
-        toast({
-          title: "Serviço atualizado",
-          description: "O serviço foi atualizado com sucesso.",
-        });
+        toast({ title: "Serviço atualizado", description: "O serviço foi atualizado com sucesso." });
       } else {
         addService(serviceData, liquidacoesData);
-        toast({
-          title: editingService ? "Serviço duplicado" : "Serviço adicionado",
-          description: editingService 
-            ? "A cópia do serviço foi criada com sucesso."
-            : "O novo serviço foi adicionado com sucesso.",
-        });
+        toast({ title: editingService ? "Serviço duplicado" : "Serviço adicionado", description: editingService ? "A cópia do serviço foi criada com sucesso." : "O novo serviço foi adicionado com sucesso." });
       }
       setEditingService(null);
     } catch (error) {
       console.error('Erro ao guardar serviço:', error);
-      toast({
-        title: "Erro ao guardar",
-        description: "Ocorreu um erro ao guardar o serviço. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao guardar", description: "Ocorreu um erro ao guardar o serviço. Tente novamente.", variant: "destructive" });
     }
   };
 
   const handleDeleteService = (id: string) => {
     deleteService(id);
-    toast({
-      title: "Serviço removido",
-      description: "O serviço foi removido com sucesso.",
-      variant: "destructive",
-    });
+    toast({ title: "Serviço removido", description: "O serviço foi removido com sucesso.", variant: "destructive" });
   };
 
-  // Show loading state while data is being loaded
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header 
-          onAddService={handleAddService} 
-          onOpenReports={handleOpenReports}
-          userName={userName}
-        />
-        <main className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-              <p className="text-muted-foreground">A carregar serviços...</p>
-            </div>
-          </div>
-        </main>
+      <div className="p-6 flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">A carregar serviços...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        onAddService={handleAddService} 
-        onOpenReports={handleOpenReports}
-        userName={userName}
+    <div className="p-6 space-y-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Vendas / Serviços</h1>
+          <p className="text-sm text-muted-foreground">Gestão de serviços e faturação</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsReportsOpen(true)}>
+            <FileText className="w-4 h-4 mr-2" />
+            Relatórios
+          </Button>
+          <Button size="sm" onClick={handleAddService}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Serviço
+          </Button>
+        </div>
+      </div>
+
+      <DashboardCards metrics={dashboardMetrics} />
+      <DateFilter
+        services={services}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        clienteSearch={clienteSearch}
+        debitoFilter={debitoFilter}
+        onYearChange={setSelectedYear}
+        onMonthChange={setSelectedMonth}
+        onClienteSearchChange={setClienteSearch}
+        onDebitoFilterChange={setDebitoFilter}
       />
-      
-      <main className="container mx-auto px-6 py-6 space-y-6">
-        <DashboardCards metrics={dashboardMetrics} />
-        <DateFilter
-          services={services}
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
-          clienteSearch={clienteSearch}
-          debitoFilter={debitoFilter}
-          onYearChange={setSelectedYear}
-          onMonthChange={setSelectedMonth}
-          onClienteSearchChange={setClienteSearch}
-          onDebitoFilterChange={setDebitoFilter}
-        />
-        <ServiceChart services={filteredServices} />
-        <ServiceTable 
-          services={filteredServices}
-          onEditService={handleEditService}
-          onDeleteService={handleDeleteService}
-          onViewService={handleViewService}
-          onDuplicateService={handleDuplicateService}
-        />
-      </main>
+      <ServiceChart services={filteredServices} />
+      <ServiceTable
+        services={filteredServices}
+        onEditService={handleEditService}
+        onDeleteService={handleDeleteService}
+        onViewService={handleViewService}
+        onDuplicateService={handleDuplicateService}
+      />
 
       <ServiceForm
         open={isFormOpen}
@@ -301,16 +203,8 @@ const Index = () => {
         onSubmit={handleFormSubmit}
         editingService={editingService}
         existingLiquidacoes={editingService ? liquidacoes[editingService.id] || [] : []}
-        onUpdateLiquidacao={(liquidacaoId, updates) => {
-          if (editingService) {
-            updateLiquidacao(liquidacaoId, editingService.id, updates);
-          }
-        }}
-        onRemoveLiquidacao={(liquidacaoId) => {
-          if (editingService) {
-            removeLiquidacao(liquidacaoId, editingService.id);
-          }
-        }}
+        onUpdateLiquidacao={(liquidacaoId, updates) => { if (editingService) updateLiquidacao(liquidacaoId, editingService.id, updates); }}
+        onRemoveLiquidacao={(liquidacaoId) => { if (editingService) removeLiquidacao(liquidacaoId, editingService.id); }}
         clientes={clientes}
         onCreateCliente={addCliente}
       />
@@ -325,7 +219,7 @@ const Index = () => {
         onUpdateLiquidacao={updateLiquidacao}
       />
 
-      <ReportsDialog 
+      <ReportsDialog
         open={isReportsOpen}
         onOpenChange={setIsReportsOpen}
         services={services}

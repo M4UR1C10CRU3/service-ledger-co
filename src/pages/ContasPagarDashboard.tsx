@@ -143,32 +143,16 @@ export default function ContasPagarDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img src={logo} alt={`${empresaNome} Logo`} className="w-12 h-12 object-contain" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">{empresaNome}</h1>
-              <p className="text-sm text-muted-foreground">Dashboard — Contas a Pagar</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" onClick={() => navigate('/contas-pagar')}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Lançamentos
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard Principal
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" /> Sair
-            </Button>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard — Contas a Pagar</h1>
+          <p className="text-sm text-muted-foreground">Visão geral financeira</p>
         </div>
-      </header>
+      </div>
 
-      <main className="p-6 space-y-6">
-        {isLoading ? (
+      {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Carregando...</div>
         ) : (
           <>
@@ -314,7 +298,7 @@ export default function ContasPagarDashboard() {
             </div>
           </>
         )}
-      </main>
+      
     </div>
   );
 }

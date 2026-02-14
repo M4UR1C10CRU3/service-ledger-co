@@ -3,18 +3,29 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Clientes from "./pages/Clientes";
-import Fornecedores from "./pages/Fornecedores";
-import ContasPagar from "./pages/ContasPagar";
-import ContasPagarDashboard from "./pages/ContasPagarDashboard";
 import SelectEmpresa from "./pages/SelectEmpresa";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { EmpresaProvider } from "./contexts/EmpresaContext";
+import { AppLayout } from "./components/AppLayout";
+
+// Pages
+import DashboardGeral from "./pages/DashboardGeral";
+import Index from "./pages/Index";
+import Clientes from "./pages/Clientes";
+import Fornecedores from "./pages/Fornecedores";
+import ContasPagar from "./pages/ContasPagar";
+import ContasPagarDashboard from "./pages/ContasPagarDashboard";
+import PlaceholderPage from "./pages/PlaceholderPage";
 
 const queryClient = new QueryClient();
+
+const ProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <AppLayout>{children}</AppLayout>
+  </ProtectedRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -25,13 +36,31 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Public routes */}
               <Route path="/empresa" element={<SelectEmpresa />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-              <Route path="/fornecedores" element={<ProtectedRoute><Fornecedores /></ProtectedRoute>} />
-              <Route path="/contas-pagar" element={<ProtectedRoute><ContasPagar /></ProtectedRoute>} />
-              <Route path="/contas-pagar/dashboard" element={<ProtectedRoute><ContasPagarDashboard /></ProtectedRoute>} />
+
+              {/* Protected routes with sidebar layout */}
+              <Route path="/dashboard" element={<ProtectedWithLayout><DashboardGeral /></ProtectedWithLayout>} />
+              <Route path="/vendas" element={<ProtectedWithLayout><Index /></ProtectedWithLayout>} />
+              <Route path="/clientes" element={<ProtectedWithLayout><Clientes /></ProtectedWithLayout>} />
+              <Route path="/fornecedores" element={<ProtectedWithLayout><Fornecedores /></ProtectedWithLayout>} />
+              <Route path="/contas-pagar" element={<ProtectedWithLayout><ContasPagar /></ProtectedWithLayout>} />
+              <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><ContasPagarDashboard /></ProtectedWithLayout>} />
+
+              {/* Placeholder routes for future pages */}
+              <Route path="/propostas" element={<ProtectedWithLayout><PlaceholderPage title="Propostas" /></ProtectedWithLayout>} />
+              <Route path="/follow-up" element={<ProtectedWithLayout><PlaceholderPage title="Follow-up" /></ProtectedWithLayout>} />
+              <Route path="/stocks" element={<ProtectedWithLayout><PlaceholderPage title="Gestão de Stocks" /></ProtectedWithLayout>} />
+              <Route path="/produtos" element={<ProtectedWithLayout><PlaceholderPage title="Cadastro de Produtos" /></ProtectedWithLayout>} />
+              <Route path="/ordens-servico" element={<ProtectedWithLayout><PlaceholderPage title="Ordens de Serviço" /></ProtectedWithLayout>} />
+              <Route path="/receitas" element={<ProtectedWithLayout><PlaceholderPage title="Receitas" /></ProtectedWithLayout>} />
+              <Route path="/debitos" element={<ProtectedWithLayout><PlaceholderPage title="Débitos" /></ProtectedWithLayout>} />
+              <Route path="/colaboradores" element={<ProtectedWithLayout><PlaceholderPage title="Colaboradores" /></ProtectedWithLayout>} />
+              <Route path="/subempreiteiros" element={<ProtectedWithLayout><PlaceholderPage title="Subempreiteiros" /></ProtectedWithLayout>} />
+              <Route path="/configuracoes" element={<ProtectedWithLayout><PlaceholderPage title="Configurações" /></ProtectedWithLayout>} />
+
+              {/* Redirects */}
               <Route path="/" element={<Navigate to="/empresa" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

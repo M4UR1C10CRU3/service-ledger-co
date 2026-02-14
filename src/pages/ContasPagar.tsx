@@ -236,29 +236,16 @@ export default function ContasPagar() {
   const totalVencido = filtered.filter(a => a.status === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img src={logo} alt={`${empresaNome} Logo`} className="w-12 h-12 object-contain" />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">{empresaNome}</h1>
-              <p className="text-sm text-muted-foreground">Contas a Pagar</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" /> Sair
-            </Button>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
+          <p className="text-sm text-muted-foreground">Gestão de lançamentos</p>
         </div>
-      </header>
+      </div>
 
-      <main className="p-6 space-y-6">
+      {/* Content */}
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -350,7 +337,7 @@ export default function ContasPagar() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      
 
       {/* Form Dialog */}
       <AccountPayableFormDialog
