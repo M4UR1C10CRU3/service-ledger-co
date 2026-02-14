@@ -1,0 +1,570 @@
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useEmpresa } from '@/contexts/EmpresaContext';
+import { supabase } from '@/integrations/supabase/client';
+import { formatEUR } from '@/lib/formatters';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Banknote, CreditCard, Building2, ArrowUpRight, ArrowDownRight,
+  Plus, ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown,
+  Wallet, Filter, BarChart3,
+} from 'lucide-react';
+
+type FlowType = 'numerario' | 'multibanco' | 'transferencia';
+type MovementType = 'entrada' | 'saida';
+type SourceType = 'venda' | 'recebimento' | 'pagamento_fornecedor' | 'pagamento_despesa' | 'ajuste_manual' | 'sangria' | 'reforco' | 'transferencia_interna';
+
+interface CashFlow {
+  id: string;
+  empresa_id: string;
+  flow_type: FlowType;
+  movement_type: MovementType;
+  amount: number;
+  source_type: SourceType;
+  source_id: string | null;
+  description: string;
+  reference: string | null;
+  transaction_date: string;
+  notes: string | null;
+  balance_after: number;
+  created_at: string;
+}
+
+const flowConfig = {
+  numerario: {
+    name: 'Numerário',
+    icon: Banknote,
+    emoji: '💵',
+    borderClass: 'border-l-emerald-500',
+    iconBg: 'bg-emerald-100',
+    iconColor: 'text-emerald-600',
+  },
+  multibanco: {
+    name: 'Multibanco',
+    icon: CreditCard,
+    emoji: '💳',
+    borderClass: 'border-l-blue-500',
+    iconBg: 'bg-blue-100',
+    iconColor: 'text-blue-600',
+  },
+  transferencia: {
+    name: 'Transferência',
+    icon: Building2,
+    emoji: '🏦',
+    borderClass: 'border-l-purple-500',
+    iconBg: 'bg-purple-100',
+    iconColor: 'text-purple-600',
+  },
+};
+
+const sourceLabels: Record<SourceType, string> = {
+  venda: 'Venda',
+  recebimento: 'Recebimento',
+  pagamento_fornecedor: 'Pgt. Fornecedor',
+  pagamento_despesa: 'Pgt. Despesa',
+  ajuste_manual: 'Ajuste Manual',
+  sangria: 'Sangria',
+  reforco: 'Reforço',
+  transferencia_interna: 'Transf. Interna',
+};
+
+function formatDatePT(dateStr: string) {
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function addDays(dateStr: string, days: number) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+const FluxoCaixa = () => {
+  const { empresa } = useEmpresa();
+  const { toast } = useToast();
+
+  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [movements, setMovements] = useState<CashFlow[]>([]);
+  const [balances, setBalances] = useState<Record<FlowType, number>>({ numerario: 0, multibanco: 0, transferencia: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [flowFilter, setFlowFilter] = useState<string>('all');
+
+  // New movement dialog
+  const [newDialog, setNewDialog] = useState(false);
+  const [newFlowType, setNewFlowType] = useState<FlowType>('numerario');
+  const [formData, setFormData] = useState({
+    flow_type: 'numerario' as FlowType,
+    movement_type: 'entrada' as MovementType,
+    amount: '',
+    source_type: 'ajuste_manual' as SourceType,
+    description: '',
+    reference: '',
+    transaction_date: todayISO(),
+    notes: '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!empresa?.id) return;
+    setIsLoading(true);
+
+    try {
+      // Load movements for the selected date
+      const { data: movs, error: movErr } = await supabase
+        .from('cash_flows')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .eq('transaction_date', selectedDate)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (movErr) console.error('Error loading movements:', movErr);
+      setMovements((movs as CashFlow[]) || []);
+
+      // Calculate balances up to selected date
+      const flows: FlowType[] = ['numerario', 'multibanco', 'transferencia'];
+      const newBalances: Record<FlowType, number> = { numerario: 0, multibanco: 0, transferencia: 0 };
+
+      for (const ft of flows) {
+        const { data: allMovs } = await supabase
+          .from('cash_flows')
+          .select('movement_type, amount')
+          .eq('empresa_id', empresa.id)
+          .eq('flow_type', ft)
+          .lte('transaction_date', selectedDate)
+          .is('deleted_at', null);
+
+        if (allMovs) {
+          newBalances[ft] = allMovs.reduce((sum, m) => {
+            return sum + (m.movement_type === 'entrada' ? Number(m.amount) : -Number(m.amount));
+          }, 0);
+        }
+      }
+      setBalances(newBalances);
+    } catch (err) {
+      console.error('Error loading cash flow data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [empresa?.id, selectedDate]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Day totals per flow
+  const dayStats = useMemo(() => {
+    const stats: Record<FlowType, { entradas: number; saidas: number }> = {
+      numerario: { entradas: 0, saidas: 0 },
+      multibanco: { entradas: 0, saidas: 0 },
+      transferencia: { entradas: 0, saidas: 0 },
+    };
+    for (const m of movements) {
+      const ft = m.flow_type as FlowType;
+      if (m.movement_type === 'entrada') stats[ft].entradas += Number(m.amount);
+      else stats[ft].saidas += Number(m.amount);
+    }
+    return stats;
+  }, [movements]);
+
+  const totalEntradas = Object.values(dayStats).reduce((s, v) => s + v.entradas, 0);
+  const totalSaidas = Object.values(dayStats).reduce((s, v) => s + v.saidas, 0);
+  const saldoGeral = balances.numerario + balances.multibanco + balances.transferencia;
+  const variacao = totalEntradas - totalSaidas;
+
+  const filteredMovements = useMemo(() => {
+    if (flowFilter === 'all') return movements;
+    return movements.filter(m => m.flow_type === flowFilter);
+  }, [movements, flowFilter]);
+
+  // Open new movement dialog
+  const openNewDialog = (ft?: FlowType) => {
+    setFormData({
+      flow_type: ft || 'numerario',
+      movement_type: 'entrada',
+      amount: '',
+      source_type: 'ajuste_manual',
+      description: '',
+      reference: '',
+      transaction_date: selectedDate,
+      notes: '',
+    });
+    setNewFlowType(ft || 'numerario');
+    setNewDialog(true);
+  };
+
+  const handleSave = async () => {
+    if (!empresa?.id || !formData.description || !formData.amount) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('cash_flows').insert({
+        empresa_id: empresa.id,
+        flow_type: formData.flow_type,
+        movement_type: formData.movement_type,
+        amount: parseFloat(formData.amount.replace(',', '.')),
+        source_type: formData.source_type,
+        description: formData.description,
+        reference: formData.reference || null,
+        transaction_date: formData.transaction_date,
+        notes: formData.notes || null,
+      });
+
+      if (error) throw error;
+
+      toast({ title: 'Lançamento registado com sucesso' });
+      setNewDialog(false);
+      loadData();
+    } catch (err) {
+      console.error('Error saving movement:', err);
+      toast({ title: 'Erro ao registar lançamento', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isToday = selectedDate === todayISO();
+  const isFuture = selectedDate > todayISO();
+
+  if (isLoading && movements.length === 0) {
+    return (
+      <div className="p-6 flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">A carregar fluxo de caixa...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Wallet className="h-6 w-6 text-primary" />
+            Fluxo de Caixa
+          </h1>
+          <p className="text-sm text-muted-foreground">Controlo de movimentações financeiras</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="w-[160px] h-9"
+            />
+          </div>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSelectedDate(addDays(selectedDate, 1))} disabled={isFuture}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          {!isToday && (
+            <Button variant="outline" size="sm" onClick={() => setSelectedDate(todayISO())}>
+              Hoje
+            </Button>
+          )}
+          <Button size="sm" onClick={() => openNewDialog()}>
+            <Plus className="h-4 w-4 mr-1" />
+            Lançamento
+          </Button>
+        </div>
+      </div>
+
+      {/* Flow cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {(['numerario', 'multibanco', 'transferencia'] as FlowType[]).map(ft => {
+          const cfg = flowConfig[ft];
+          const Icon = cfg.icon;
+          const ds = dayStats[ft];
+          return (
+            <Card key={ft} className={`border-l-4 ${cfg.borderClass}`}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-2 rounded-lg ${cfg.iconBg}`}>
+                      <Icon className={`h-5 w-5 ${cfg.iconColor}`} />
+                    </div>
+                    <h3 className="font-semibold text-foreground">{cfg.name}</h3>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-1">Saldo Atual</p>
+                <p className="text-2xl font-bold text-foreground mb-3">{formatEUR(balances[ft])}</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-emerald-600">
+                      <ArrowUpRight className="h-3.5 w-3.5" /> Entradas
+                    </span>
+                    <span className="font-medium text-emerald-600">{formatEUR(ds.entradas)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-destructive">
+                      <ArrowDownRight className="h-3.5 w-3.5" /> Saídas
+                    </span>
+                    <span className="font-medium text-destructive">{formatEUR(ds.saidas)}</span>
+                  </div>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setFlowFilter(flowFilter === ft ? 'all' : ft)}>
+                    {flowFilter === ft ? 'Mostrar Todos' : 'Ver Movimentos'}
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs" onClick={() => openNewDialog(ft)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Consolidated summary */}
+      <Card>
+        <CardContent className="py-3 px-4">
+          <div className="flex flex-wrap items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <span className="text-muted-foreground">Entradas:</span>
+              <span className="font-bold text-emerald-600">{formatEUR(totalEntradas)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-destructive" />
+              <span className="text-muted-foreground">Saídas:</span>
+              <span className="font-bold text-destructive">{formatEUR(totalSaidas)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Saldo Geral:</span>
+              <span className="font-bold text-foreground">{formatEUR(saldoGeral)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Variação:</span>
+              <span className={`font-bold ${variacao >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                {variacao >= 0 ? '+' : ''}{formatEUR(variacao)}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filter */}
+      {flowFilter !== 'all' && (
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Filtrado por:</span>
+          <Badge variant="outline">{flowConfig[flowFilter as FlowType].emoji} {flowConfig[flowFilter as FlowType].name}</Badge>
+          <Button variant="ghost" size="sm" onClick={() => setFlowFilter('all')}>Limpar</Button>
+        </div>
+      )}
+
+      {/* Movements table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">
+            Movimentações — {formatDatePT(selectedDate)}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Fluxo</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Referência</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredMovements.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Wallet className="h-8 w-8" />
+                      <p className="font-medium">Sem movimentações</p>
+                      <p className="text-sm">Nenhuma movimentação registada para este dia.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredMovements.map(m => {
+                  const cfg = flowConfig[m.flow_type as FlowType];
+                  const isEntry = m.movement_type === 'entrada';
+                  return (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <Badge variant="outline" className={isEntry
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-red-50 text-red-700 border-red-200'
+                        }>
+                          {isEntry ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+                          {isEntry ? 'Entrada' : 'Saída'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="flex items-center gap-1.5 text-sm">
+                          <cfg.icon className={`h-4 w-4 ${cfg.iconColor}`} />
+                          {cfg.name}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm font-medium text-foreground">{m.description}</p>
+                        {m.notes && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{m.notes}</p>}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">{sourceLabels[m.source_type as SourceType] || m.source_type}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-mono text-muted-foreground">{m.reference || '—'}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={`font-mono font-bold ${isEntry ? 'text-emerald-600' : 'text-destructive'}`}>
+                          {isEntry ? '+' : '-'}{formatEUR(Number(m.amount))}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* New Movement Dialog */}
+      <Dialog open={newDialog} onOpenChange={o => !isSaving && setNewDialog(o)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Novo Lançamento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Fluxo de Caixa</Label>
+                <Select value={formData.flow_type} onValueChange={v => setFormData(p => ({ ...p, flow_type: v as FlowType }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="numerario">💵 Numerário</SelectItem>
+                    <SelectItem value="multibanco">💳 Multibanco</SelectItem>
+                    <SelectItem value="transferencia">🏦 Transferência</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Tipo</Label>
+                <Select value={formData.movement_type} onValueChange={v => setFormData(p => ({ ...p, movement_type: v as MovementType }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="entrada">↗️ Entrada</SelectItem>
+                    <SelectItem value="saida">↘️ Saída</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Origem</Label>
+                <Select value={formData.source_type} onValueChange={v => setFormData(p => ({ ...p, source_type: v as SourceType }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ajuste_manual">Ajuste Manual</SelectItem>
+                    <SelectItem value="venda">Venda</SelectItem>
+                    <SelectItem value="recebimento">Recebimento</SelectItem>
+                    <SelectItem value="pagamento_fornecedor">Pgt. Fornecedor</SelectItem>
+                    <SelectItem value="pagamento_despesa">Pgt. Despesa</SelectItem>
+                    <SelectItem value="sangria">Sangria</SelectItem>
+                    <SelectItem value="reforco">Reforço</SelectItem>
+                    <SelectItem value="transferencia_interna">Transf. Interna</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input
+                  type="date"
+                  value={formData.transaction_date}
+                  onChange={e => setFormData(p => ({ ...p, transaction_date: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Valor (€) *</Label>
+              <Input
+                placeholder="0,00"
+                value={formData.amount}
+                onChange={e => setFormData(p => ({ ...p, amount: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label>Descrição *</Label>
+              <Input
+                placeholder="Ex: Reforço de caixa, Sangria, Pagamento..."
+                value={formData.description}
+                onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label>Referência (opcional)</Label>
+              <Input
+                placeholder="Nº documento, referência bancária..."
+                value={formData.reference}
+                onChange={e => setFormData(p => ({ ...p, reference: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label>Observações (opcional)</Label>
+              <Textarea
+                placeholder="Informações adicionais..."
+                value={formData.notes}
+                onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewDialog(false)} disabled={isSaving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'A registar...' : 'Registar Lançamento'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default FluxoCaixa;
