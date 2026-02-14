@@ -5,7 +5,7 @@ import {
   Factory, Receipt, ClipboardList,
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
   UsersRound, HardHat, Handshake,
-  Settings, LogOut, Building2, ChevronDown,
+  Settings, LogOut, Building2, ChevronDown, History,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -73,6 +73,7 @@ const sections: NavSection[] = [
       { title: 'Contas a Pagar', url: '/contas-pagar', icon: CreditCard },
       { title: 'Dashboard CP', url: '/contas-pagar/dashboard', icon: BarChart3 },
       { title: 'Débitos', url: '/debitos', icon: AlertTriangle },
+      { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History },
     ],
   },
   {
