@@ -416,6 +416,11 @@ const FluxoCaixa = () => {
                 filteredMovements.map(m => {
                   const cfg = flowConfig[m.flow_type as FlowType];
                   const isEntry = m.movement_type === 'entrada';
+                  // Parse rich description (format: "Recebimento de X | Serviço: Y | Fatura: Z | ...")
+                  const parts = m.description.split(' | ');
+                  const mainDesc = parts[0] || m.description;
+                  const details = parts.slice(1);
+                  
                   return (
                     <TableRow key={m.id}>
                       <TableCell>
@@ -433,9 +438,16 @@ const FluxoCaixa = () => {
                           {cfg.name}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <p className="text-sm font-medium text-foreground">{m.description}</p>
-                        {m.notes && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{m.notes}</p>}
+                      <TableCell className="max-w-[350px]">
+                        <p className="text-sm font-medium text-foreground">{mainDesc}</p>
+                        {details.length > 0 && (
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                            {details.map((d, i) => (
+                              <span key={i} className="text-xs text-muted-foreground">{d.trim()}</span>
+                            ))}
+                          </div>
+                        )}
+                        {m.notes && <p className="text-xs text-muted-foreground/70 italic mt-0.5">{m.notes}</p>}
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-muted-foreground">{sourceLabels[m.source_type as SourceType] || m.source_type}</span>
