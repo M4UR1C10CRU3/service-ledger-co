@@ -74,6 +74,7 @@ const sections: NavSection[] = [
       { title: 'Dashboard CP', url: '/contas-pagar/dashboard', icon: BarChart3 },
       { title: 'Débitos', url: '/debitos', icon: AlertTriangle },
       { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History },
+      { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet },
     ],
   },
   {

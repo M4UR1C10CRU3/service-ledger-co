@@ -197,6 +197,68 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_flows: {
+        Row: {
+          amount: number
+          balance_after: number | null
+          created_at: string
+          deleted_at: string | null
+          description: string
+          empresa_id: string
+          flow_type: string
+          id: string
+          movement_type: string
+          notes: string | null
+          reference: string | null
+          source_id: string | null
+          source_type: string
+          transaction_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          empresa_id: string
+          flow_type: string
+          id?: string
+          movement_type: string
+          notes?: string | null
+          reference?: string | null
+          source_id?: string | null
+          source_type: string
+          transaction_date?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          empresa_id?: string
+          flow_type?: string
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          reference?: string | null
+          source_id?: string | null
+          source_type?: string
+          transaction_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_flows_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           created_at: string
@@ -600,6 +662,10 @@ export type Database = {
     Functions: {
       calcular_valor_faturado: {
         Args: { contrato_service_id: string }
+        Returns: number
+      }
+      calculate_flow_balance: {
+        Args: { p_date?: string; p_empresa_id: string; p_flow_type: string }
         Returns: number
       }
     }
