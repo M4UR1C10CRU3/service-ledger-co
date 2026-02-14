@@ -72,6 +72,16 @@ All colors MUST be HSL.
     --chart-pending: 49 100% 50%;
     --chart-overdue: 22 89% 54%;
 
+    /* Sidebar */
+    --sidebar-background: 219 100% 15%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 219 96% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 219 100% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 219 100% 22%;
+    --sidebar-ring: 219 96% 43%;
+
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
     --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success-light)));
