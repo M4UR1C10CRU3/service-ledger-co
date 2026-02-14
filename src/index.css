@@ -139,6 +139,16 @@ All colors MUST be HSL.
     --chart-paid: 74 75% 54%;
     --chart-pending: 49 100% 50%;
     --chart-overdue: 22 89% 54%;
+
+    /* Sidebar dark mode */
+    --sidebar-background: 219 100% 10%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-primary: 219 96% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 219 100% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 219 100% 18%;
+    --sidebar-ring: 219 96% 43%;
   }
 }
 
