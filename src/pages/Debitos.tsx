@@ -231,6 +231,10 @@ const Debitos = () => {
           <p className="text-sm text-muted-foreground">Serviços com valores em aberto</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/historico-cobrancas')}>
+            <Clock className="h-4 w-4 mr-1" />
+            Histórico
+          </Button>
           <Button variant="outline" size="sm" onClick={() => {
             const selected = debitosFiltrados.filter(d => selectedIds.has(d.id));
             openEmailDialog(selected.length > 0 ? selected : []);
