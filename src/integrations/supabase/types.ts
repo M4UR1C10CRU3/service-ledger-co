@@ -248,6 +248,56 @@ export type Database = {
         }
         Relationships: []
       }
+      email_history: {
+        Row: {
+          cliente_email: string
+          cliente_nome: string
+          created_at: string | null
+          dias_atraso: number | null
+          email_subject: string | null
+          email_type: string | null
+          empresa_id: string
+          id: string
+          sent_at: string | null
+          service_id: string
+          valor_debito: number | null
+        }
+        Insert: {
+          cliente_email: string
+          cliente_nome: string
+          created_at?: string | null
+          dias_atraso?: number | null
+          email_subject?: string | null
+          email_type?: string | null
+          empresa_id: string
+          id?: string
+          sent_at?: string | null
+          service_id: string
+          valor_debito?: number | null
+        }
+        Update: {
+          cliente_email?: string
+          cliente_nome?: string
+          created_at?: string | null
+          dias_atraso?: number | null
+          email_subject?: string | null
+          email_type?: string | null
+          empresa_id?: string
+          id?: string
+          sent_at?: string | null
+          service_id?: string
+          valor_debito?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_history_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           cor_accent: string | null
