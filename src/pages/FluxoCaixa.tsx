@@ -24,9 +24,11 @@ import {
   Wallet, Filter, BarChart3,
 } from 'lucide-react';
 
+// --- Types ---
 type FlowType = 'numerario' | 'multibanco' | 'transferencia';
 type MovementType = 'entrada' | 'saida';
 type SourceType = 'venda' | 'recebimento' | 'pagamento_fornecedor' | 'pagamento_despesa' | 'ajuste_manual' | 'sangria' | 'reforco' | 'transferencia_interna';
+type PeriodType = 'dia' | 'semana' | 'mes_atual' | 'mes_anterior' | 'personalizado';
 
 interface CashFlow {
   id: string;
@@ -44,6 +46,7 @@ interface CashFlow {
   created_at: string;
 }
 
+// --- Config ---
 const flowConfig = {
   numerario: {
     name: 'Numerário',
@@ -82,6 +85,15 @@ const sourceLabels: Record<SourceType, string> = {
   transferencia_interna: 'Transf. Interna',
 };
 
+const periodLabels: Record<PeriodType, string> = {
+  dia: 'Dia',
+  semana: 'Última Semana',
+  mes_atual: 'Mês Atual',
+  mes_anterior: 'Mês Anterior',
+  personalizado: 'Personalizado',
+};
+
+// --- Helpers ---
 function formatDatePT(dateStr: string) {
   const [y, m, d] = dateStr.split('-');
   return `${d}/${m}/${y}`;
@@ -97,19 +109,62 @@ function addDays(dateStr: string, days: number) {
   return d.toISOString().split('T')[0];
 }
 
+function getDateRange(period: PeriodType, refDate: string): { from: string; to: string } {
+  const today = todayISO();
+  switch (period) {
+    case 'dia':
+      return { from: refDate, to: refDate };
+    case 'semana': {
+      const to = refDate;
+      const from = addDays(refDate, -6);
+      return { from, to };
+    }
+    case 'mes_atual': {
+      const [y, m] = today.split('-');
+      const from = `${y}-${m}-01`;
+      const lastDay = new Date(Number(y), Number(m), 0).getDate();
+      const to = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+      return { from, to };
+    }
+    case 'mes_anterior': {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const from = `${y}-${m}-01`;
+      const lastDay = new Date(y, d.getMonth() + 1, 0).getDate();
+      const to = `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+      return { from, to };
+    }
+    case 'personalizado':
+      return { from: refDate, to: refDate };
+    default:
+      return { from: refDate, to: refDate };
+  }
+}
+
+function formatPeriodLabel(period: PeriodType, from: string, to: string): string {
+  if (period === 'dia') return formatDatePT(from);
+  return `${formatDatePT(from)} — ${formatDatePT(to)}`;
+}
+
+// --- Component ---
 const FluxoCaixa = () => {
   const { empresa } = useEmpresa();
   const { toast } = useToast();
 
-  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [selectedDate, setSelectedDate] = useState('');
+  const [period, setPeriod] = useState<PeriodType>('dia');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
   const [movements, setMovements] = useState<CashFlow[]>([]);
   const [balances, setBalances] = useState<Record<FlowType, number>>({ numerario: 0, multibanco: 0, transferencia: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [flowFilter, setFlowFilter] = useState<string>('all');
 
-  // New movement dialog
+  // New movement dialog state
   const [newDialog, setNewDialog] = useState(false);
-  const [newFlowType, setNewFlowType] = useState<FlowType>('numerario');
   const [formData, setFormData] = useState({
     flow_type: 'numerario' as FlowType,
     movement_type: 'entrada' as MovementType,
@@ -122,24 +177,59 @@ const FluxoCaixa = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Compute effective date range
+  const dateRange = useMemo(() => {
+    if (!selectedDate) return { from: todayISO(), to: todayISO() };
+    if (period === 'personalizado') {
+      return { from: customFrom || selectedDate, to: customTo || selectedDate };
+    }
+    return getDateRange(period, selectedDate);
+  }, [period, selectedDate, customFrom, customTo]);
+
+  // On mount: find last date with movements
+  useEffect(() => {
+    if (!empresa?.id || isInitialized) return;
+
+    const findLastDate = async () => {
+      const { data } = await supabase
+        .from('cash_flows')
+        .select('transaction_date')
+        .eq('empresa_id', empresa.id)
+        .is('deleted_at', null)
+        .order('transaction_date', { ascending: false })
+        .limit(1);
+
+      const lastDate = data?.[0]?.transaction_date || todayISO();
+      setSelectedDate(lastDate);
+      setIsInitialized(true);
+    };
+
+    findLastDate();
+  }, [empresa?.id, isInitialized]);
+
+  // Load data when date range changes
   const loadData = useCallback(async () => {
-    if (!empresa?.id) return;
+    if (!empresa?.id || !selectedDate) return;
     setIsLoading(true);
 
     try {
-      // Load movements for the selected date
+      const { from, to } = dateRange;
+
+      // Load movements for the period
       const { data: movs, error: movErr } = await supabase
         .from('cash_flows')
         .select('*')
         .eq('empresa_id', empresa.id)
-        .eq('transaction_date', selectedDate)
+        .gte('transaction_date', from)
+        .lte('transaction_date', to)
         .is('deleted_at', null)
+        .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (movErr) console.error('Error loading movements:', movErr);
       setMovements((movs as CashFlow[]) || []);
 
-      // Calculate balances up to selected date
+      // Calculate balances up to the end of the period
       const flows: FlowType[] = ['numerario', 'multibanco', 'transferencia'];
       const newBalances: Record<FlowType, number> = { numerario: 0, multibanco: 0, transferencia: 0 };
 
@@ -149,7 +239,7 @@ const FluxoCaixa = () => {
           .select('movement_type, amount')
           .eq('empresa_id', empresa.id)
           .eq('flow_type', ft)
-          .lte('transaction_date', selectedDate)
+          .lte('transaction_date', to)
           .is('deleted_at', null);
 
         if (allMovs) {
@@ -164,11 +254,13 @@ const FluxoCaixa = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [empresa?.id, selectedDate]);
+  }, [empresa?.id, dateRange, selectedDate]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (isInitialized) loadData();
+  }, [loadData, isInitialized]);
 
-  // Day totals per flow
+  // Day/period totals per flow
   const dayStats = useMemo(() => {
     const stats: Record<FlowType, { entradas: number; saidas: number }> = {
       numerario: { entradas: 0, saidas: 0 },
@@ -193,6 +285,18 @@ const FluxoCaixa = () => {
     return movements.filter(m => m.flow_type === flowFilter);
   }, [movements, flowFilter]);
 
+  // Group movements by date for multi-day periods
+  const groupedMovements = useMemo(() => {
+    if (period === 'dia') return null; // No grouping needed for single day
+    const groups: Record<string, CashFlow[]> = {};
+    for (const m of filteredMovements) {
+      if (!groups[m.transaction_date]) groups[m.transaction_date] = [];
+      groups[m.transaction_date].push(m);
+    }
+    // Sort dates descending
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [filteredMovements, period]);
+
   // Open new movement dialog
   const openNewDialog = (ft?: FlowType) => {
     setFormData({
@@ -202,10 +306,9 @@ const FluxoCaixa = () => {
       source_type: 'ajuste_manual',
       description: '',
       reference: '',
-      transaction_date: selectedDate,
+      transaction_date: selectedDate || todayISO(),
       notes: '',
     });
-    setNewFlowType(ft || 'numerario');
     setNewDialog(true);
   };
 
@@ -242,10 +345,34 @@ const FluxoCaixa = () => {
     }
   };
 
-  const isToday = selectedDate === todayISO();
-  const isFuture = selectedDate > todayISO();
+  // Period navigation
+  const navigatePeriod = (direction: -1 | 1) => {
+    if (period === 'dia') {
+      setSelectedDate(addDays(selectedDate, direction));
+    } else if (period === 'semana') {
+      setSelectedDate(addDays(selectedDate, direction * 7));
+    } else if (period === 'mes_atual' || period === 'mes_anterior') {
+      const d = new Date(selectedDate);
+      d.setMonth(d.getMonth() + direction);
+      setSelectedDate(d.toISOString().split('T')[0]);
+    }
+  };
 
-  if (isLoading && movements.length === 0) {
+  const handlePeriodChange = (newPeriod: PeriodType) => {
+    setPeriod(newPeriod);
+    if (newPeriod === 'mes_atual') {
+      setSelectedDate(todayISO());
+    } else if (newPeriod === 'mes_anterior') {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 1);
+      setSelectedDate(d.toISOString().split('T')[0]);
+    } else if (newPeriod === 'personalizado') {
+      setCustomFrom(dateRange.from);
+      setCustomTo(dateRange.to);
+    }
+  };
+
+  if (!isInitialized || (isLoading && movements.length === 0)) {
     return (
       <div className="p-6 flex items-center justify-center py-12">
         <div className="text-center space-y-4">
@@ -267,33 +394,94 @@ const FluxoCaixa = () => {
           </h1>
           <p className="text-sm text-muted-foreground">Controlo de movimentações financeiras</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="w-[160px] h-9"
-            />
-          </div>
-          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setSelectedDate(addDays(selectedDate, 1))} disabled={isFuture}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          {!isToday && (
-            <Button variant="outline" size="sm" onClick={() => setSelectedDate(todayISO())}>
-              Hoje
-            </Button>
-          )}
-          <Button size="sm" onClick={() => openNewDialog()}>
-            <Plus className="h-4 w-4 mr-1" />
-            Lançamento
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => openNewDialog()}>
+          <Plus className="h-4 w-4 mr-1" />
+          Lançamento
+        </Button>
       </div>
+
+      {/* Period & Date Controls */}
+      <Card>
+        <CardContent className="py-3 px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            {/* Period selector */}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Select value={period} onValueChange={(v) => handlePeriodChange(v as PeriodType)}>
+                <SelectTrigger className="w-[170px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dia">📅 Dia</SelectItem>
+                  <SelectItem value="semana">📆 Última Semana</SelectItem>
+                  <SelectItem value="mes_atual">🗓️ Mês Atual</SelectItem>
+                  <SelectItem value="mes_anterior">🗓️ Mês Anterior</SelectItem>
+                  <SelectItem value="personalizado">🔧 Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Navigation arrows + date */}
+            {period !== 'personalizado' && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => navigatePeriod(-1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+
+                {period === 'dia' && (
+                  <Input
+                    type="date"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                    className="w-[160px] h-9"
+                  />
+                )}
+
+                {period !== 'dia' && (
+                  <span className="text-sm font-medium text-foreground px-2">
+                    {formatPeriodLabel(period, dateRange.from, dateRange.to)}
+                  </span>
+                )}
+
+                <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => navigatePeriod(1)} disabled={dateRange.to >= todayISO()}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {period === 'dia' && selectedDate !== todayISO() && (
+                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(todayISO())}>
+                    Hoje
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Custom date range */}
+            {period === 'personalizado' && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground">De:</Label>
+                <Input
+                  type="date"
+                  value={customFrom}
+                  onChange={e => setCustomFrom(e.target.value)}
+                  className="w-[150px] h-9"
+                />
+                <Label className="text-sm text-muted-foreground">Até:</Label>
+                <Input
+                  type="date"
+                  value={customTo}
+                  onChange={e => setCustomTo(e.target.value)}
+                  className="w-[150px] h-9"
+                />
+              </div>
+            )}
+
+            {/* Movement count */}
+            <Badge variant="secondary" className="ml-auto">
+              {filteredMovements.length} movimentação{filteredMovements.length !== 1 ? 'ões' : ''}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Flow cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -372,7 +560,7 @@ const FluxoCaixa = () => {
         </CardContent>
       </Card>
 
-      {/* Filter */}
+      {/* Filter indicator */}
       {flowFilter !== 'all' && (
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
@@ -386,13 +574,14 @@ const FluxoCaixa = () => {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">
-            Movimentações — {formatDatePT(selectedDate)}
+            Movimentações — {formatPeriodLabel(period, dateRange.from, dateRange.to)}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                {period !== 'dia' && <TableHead>Data</TableHead>}
                 <TableHead>Tipo</TableHead>
                 <TableHead>Fluxo</TableHead>
                 <TableHead>Descrição</TableHead>
@@ -404,65 +593,39 @@ const FluxoCaixa = () => {
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={period !== 'dia' ? 7 : 6} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Wallet className="h-8 w-8" />
                       <p className="font-medium">Sem movimentações</p>
-                      <p className="text-sm">Nenhuma movimentação registada para este dia.</p>
+                      <p className="text-sm">Nenhuma movimentação registada para este período.</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMovements.map(m => {
-                  const cfg = flowConfig[m.flow_type as FlowType];
-                  const isEntry = m.movement_type === 'entrada';
-                  // Parse rich description (format: "Recebimento de X | Serviço: Y | Fatura: Z | ...")
-                  const parts = m.description.split(' | ');
-                  const mainDesc = parts[0] || m.description;
-                  const details = parts.slice(1);
-                  
-                  return (
-                    <TableRow key={m.id}>
-                      <TableCell>
-                        <Badge variant="outline" className={isEntry
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-red-50 text-red-700 border-red-200'
-                        }>
-                          {isEntry ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
-                          {isEntry ? 'Entrada' : 'Saída'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex items-center gap-1.5 text-sm">
-                          <cfg.icon className={`h-4 w-4 ${cfg.iconColor}`} />
-                          {cfg.name}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[350px]">
-                        <p className="text-sm font-medium text-foreground">{mainDesc}</p>
-                        {details.length > 0 && (
-                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                            {details.map((d, i) => (
-                              <span key={i} className="text-xs text-muted-foreground">{d.trim()}</span>
-                            ))}
-                          </div>
-                        )}
-                        {m.notes && <p className="text-xs text-muted-foreground/70 italic mt-0.5">{m.notes}</p>}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs text-muted-foreground">{sourceLabels[m.source_type as SourceType] || m.source_type}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-xs font-mono text-muted-foreground">{m.reference || '—'}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={`font-mono font-bold ${isEntry ? 'text-emerald-600' : 'text-destructive'}`}>
-                          {isEntry ? '+' : '-'}{formatEUR(Number(m.amount))}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                <>
+                  {period !== 'dia' && groupedMovements ? (
+                    // Multi-day: grouped by date with subtotals
+                    groupedMovements.map(([date, dayMovs]) => {
+                      const dayTotal = dayMovs.reduce((sum, m) => {
+                        return sum + (m.movement_type === 'entrada' ? Number(m.amount) : -Number(m.amount));
+                      }, 0);
+                      return (
+                        <MovementDateGroup
+                          key={date}
+                          date={date}
+                          movements={dayMovs}
+                          dayTotal={dayTotal}
+                          showDate
+                        />
+                      );
+                    })
+                  ) : (
+                    // Single day: flat list
+                    filteredMovements.map(m => (
+                      <MovementRow key={m.id} movement={m} showDate={false} />
+                    ))
+                  )}
+                </>
               )}
             </TableBody>
           </Table>
@@ -578,5 +741,90 @@ const FluxoCaixa = () => {
     </div>
   );
 };
+
+// --- Sub-components ---
+
+function MovementRow({ movement: m, showDate }: { movement: CashFlow; showDate: boolean }) {
+  const cfg = flowConfig[m.flow_type as FlowType];
+  const isEntry = m.movement_type === 'entrada';
+  const parts = m.description.split(' | ');
+  const mainDesc = parts[0] || m.description;
+  const details = parts.slice(1);
+
+  return (
+    <TableRow>
+      {showDate && (
+        <TableCell className="text-sm font-medium text-foreground whitespace-nowrap">
+          {formatDatePT(m.transaction_date)}
+        </TableCell>
+      )}
+      <TableCell>
+        <Badge variant="outline" className={isEntry
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : 'bg-red-50 text-red-700 border-red-200'
+        }>
+          {isEntry ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+          {isEntry ? 'Entrada' : 'Saída'}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <span className="flex items-center gap-1.5 text-sm">
+          <cfg.icon className={`h-4 w-4 ${cfg.iconColor}`} />
+          {cfg.name}
+        </span>
+      </TableCell>
+      <TableCell className="max-w-[350px]">
+        <p className="text-sm font-medium text-foreground">{mainDesc}</p>
+        {details.length > 0 && (
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+            {details.map((d, i) => (
+              <span key={i} className="text-xs text-muted-foreground">{d.trim()}</span>
+            ))}
+          </div>
+        )}
+        {m.notes && <p className="text-xs text-muted-foreground/70 italic mt-0.5">{m.notes}</p>}
+      </TableCell>
+      <TableCell>
+        <span className="text-xs text-muted-foreground">{sourceLabels[m.source_type as SourceType] || m.source_type}</span>
+      </TableCell>
+      <TableCell>
+        <span className="text-xs font-mono text-muted-foreground">{m.reference || '—'}</span>
+      </TableCell>
+      <TableCell className="text-right">
+        <span className={`font-mono font-bold ${isEntry ? 'text-emerald-600' : 'text-destructive'}`}>
+          {isEntry ? '+' : '-'}{formatEUR(Number(m.amount))}
+        </span>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function MovementDateGroup({ date, movements, dayTotal, showDate }: {
+  date: string;
+  movements: CashFlow[];
+  dayTotal: number;
+  showDate: boolean;
+}) {
+  return (
+    <>
+      {/* Date header row */}
+      <TableRow className="bg-muted/50">
+        <TableCell colSpan={7} className="py-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">
+              📅 {formatDatePT(date)}
+            </span>
+            <span className={`text-sm font-bold ${dayTotal >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+              {dayTotal >= 0 ? '+' : ''}{formatEUR(dayTotal)}
+            </span>
+          </div>
+        </TableCell>
+      </TableRow>
+      {movements.map(m => (
+        <MovementRow key={m.id} movement={m} showDate={false} />
+      ))}
+    </>
+  );
+}
 
 export default FluxoCaixa;
