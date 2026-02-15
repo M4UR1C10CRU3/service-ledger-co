@@ -115,48 +115,51 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-sidebar-border">
-      <SidebarHeader className="p-4">
+      {/* Company Header */}
+      <SidebarHeader className="p-4 pb-3">
         <div
-          className="flex items-center gap-3 cursor-pointer"
+          className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate('/dashboard')}
         >
-          <img src={logo} alt={empresaNome} className="w-10 h-10 object-contain rounded-lg bg-white p-1" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/10 p-1.5 flex items-center justify-center shrink-0 ring-1 ring-white/10">
+            <img src={logo} alt={empresaNome} className="w-full h-full object-contain" />
+          </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-sidebar-foreground truncate">{empresaNome}</p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{empresa?.nomeLegal}</p>
+            <p className="text-sm font-bold text-sidebar-foreground truncate group-hover:text-white transition-colors">{empresaNome}</p>
+            <p className="text-[11px] text-sidebar-foreground/50 truncate">{empresa?.nomeLegal}</p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarSeparator />
+      <SidebarSeparator className="opacity-20" />
 
-      <SidebarContent className="px-2">
-        {/* Dashboard Geral */}
+      <SidebarContent className="px-2 pt-2">
+        {/* Dashboard */}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => navigate('/dashboard')}
               className={cn(
-                'w-full justify-start gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
-                isActive('/dashboard') && 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
+                'w-full justify-start gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200',
+                isActive('/dashboard') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
               )}
             >
               <LayoutDashboard className="h-4 w-4 shrink-0" />
-              <span>Dashboard Geral</span>
+              <span>Dashboard</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
 
-        <SidebarSeparator className="my-2" />
+        <SidebarSeparator className="my-2 opacity-10" />
 
         {/* Sections */}
         {sections.map((section) => (
           <Collapsible key={section.label} defaultOpen={sectionHasActive(section.items)}>
-            <SidebarGroup>
+            <SidebarGroup className="py-0.5">
               <CollapsibleTrigger className="w-full">
-                <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80 cursor-pointer">
+                <SidebarGroupLabel className="flex items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 hover:text-sidebar-foreground/70 cursor-pointer transition-colors">
                   <span className="flex items-center gap-2">
-                    <section.icon className="h-4 w-4" />
+                    <section.icon className="h-3.5 w-3.5" />
                     {section.label}
                   </span>
                   <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-180" />
@@ -170,8 +173,8 @@ export function AppSidebar() {
                         <SidebarMenuButton
                           onClick={() => navigate(item.url)}
                           className={cn(
-                            'w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
-                            isActive(item.url) && 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
+                            'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200',
+                            isActive(item.url) && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
                           )}
                         >
                           <item.icon className="h-4 w-4 shrink-0" />
@@ -187,26 +190,27 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarSeparator />
+      <SidebarSeparator className="opacity-20" />
 
-      <SidebarFooter className="p-3 space-y-1">
+      {/* Footer */}
+      <SidebarFooter className="p-3 space-y-0.5">
         <SidebarMenuButton
           onClick={handleChangeEmpresa}
-          className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
         >
           <Building2 className="h-4 w-4 shrink-0" />
           <span>Trocar Empresa</span>
         </SidebarMenuButton>
         <SidebarMenuButton
           onClick={() => navigate('/configuracoes')}
-          className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
         >
           <Settings className="h-4 w-4 shrink-0" />
           <span>Configurações</span>
         </SidebarMenuButton>
         <SidebarMenuButton
           onClick={handleLogout}
-          className="w-full justify-start gap-3 px-3 py-2 rounded-lg text-sm text-danger/80 hover:bg-danger/10 hover:text-danger"
+          className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-danger-light/80 hover:bg-danger/10 hover:text-danger-light transition-all"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           <span>Sair</span>

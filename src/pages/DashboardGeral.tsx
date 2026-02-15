@@ -68,65 +68,55 @@ const DashboardGeral = () => {
     <div className="p-6 space-y-6">
       {/* Page title */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Visão Geral</h1>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Resumo consolidado da empresa</p>
       </div>
 
-      {/* KPIs Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-success">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Faturado</CardTitle>
-            <Euro className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{fmt(dashboardMetrics.totalFaturado)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Faturas emitidas</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-primary">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Vendas / Serviços</CardTitle>
-            <Receipt className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{services.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">{servicosAtivos} ativos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-warning">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Em Débito</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{fmt(dashboardMetrics.totalEmDebito)}</div>
-            <p className="text-xs text-muted-foreground mt-1">{dashboardMetrics.servicosEmAtraso} em atraso</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-danger">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Alertas</CardTitle>
-            <Clock className="h-4 w-4 text-danger" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{contasVencidas.length + contasHoje.length}</div>
-            <div className="text-xs space-y-0.5 mt-1">
-              {contasVencidas.length > 0 && (
-                <p className="text-danger">{contasVencidas.length} conta(s) vencida(s)</p>
-              )}
-              {contasHoje.length > 0 && (
-                <p className="text-warning">{contasHoje.length} vence(m) hoje</p>
-              )}
-              {contasVencidas.length === 0 && contasHoje.length === 0 && (
-                <p className="text-success">Tudo em dia</p>
-              )}
+      {/* KPIs - Gradient Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Total Faturado - Green */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2.5 bg-white/20 rounded-xl">
+              <Euro className="h-5 w-5" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <p className="text-sm font-medium text-white/80 mb-1">Total em Débito</p>
+          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalEmDebito)}</p>
+        </div>
+
+        {/* Vendas / Serviços - Blue */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2.5 bg-white/20 rounded-xl">
+              <Users className="h-5 w-5" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-white/80 mb-1">Clientes</p>
+          <p className="text-3xl font-bold tracking-tight">{clientes.length}</p>
+        </div>
+
+        {/* Em Débito - Yellow/Orange */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-amber-400 to-amber-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2.5 bg-white/20 rounded-xl">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-white/80 mb-1">Vencido</p>
+          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalFaturado - dashboardMetrics.totalLiquidado - dashboardMetrics.totalEmDebito > 0 ? dashboardMetrics.totalFaturado - dashboardMetrics.totalLiquidado - dashboardMetrics.totalEmDebito : 0)}</p>
+        </div>
+
+        {/* Alertas - Red/Orange */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-orange-500 to-red-500 hover:shadow-xl transition-shadow duration-200">
+          <div className="flex items-center justify-between mb-3">
+            <div className="p-2.5 bg-white/20 rounded-xl">
+              <Receipt className="h-5 w-5" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-white/80 mb-1">Faturas Pendentes</p>
+          <p className="text-3xl font-bold tracking-tight">{contasVencidas.length + contasHoje.length}</p>
+        </div>
       </div>
 
       {/* Alert banner */}
@@ -152,6 +142,33 @@ const DashboardGeral = () => {
         </Card>
       )}
 
+      {/* Quick Access Cards */}
+      <div>
+        <h2 className="text-base font-semibold text-foreground mb-3">Atalhos Rápidos</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickCard
+            icon={AlertTriangle}
+            title="Gestão de Débitos"
+            onClick={() => navigate('/debitos')}
+          />
+          <QuickCard
+            icon={Users}
+            title="Novo Cliente"
+            onClick={() => navigate('/clientes')}
+          />
+          <QuickCard
+            icon={Receipt}
+            title="Relatórios"
+            onClick={() => navigate('/receitas')}
+          />
+          <QuickCard
+            icon={CreditCard}
+            title="Configurações"
+            onClick={() => navigate('/configuracoes')}
+          />
+        </div>
+      </div>
+
       {/* Area cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AreaCard
@@ -166,7 +183,7 @@ const DashboardGeral = () => {
           icon={ShoppingCart}
           title="Compras"
           stats={[`${suppliers.length} Fornecedores`, `${fmt(totalAPagar)} a pagar`]}
-          color="text-chart-overdue"
+          color="text-danger"
           bgColor="bg-danger-lighter"
           onClick={() => navigate('/fornecedores')}
         />
@@ -188,32 +205,67 @@ const DashboardGeral = () => {
         />
       </div>
 
-      {/* Chart */}
-      <ServiceChart services={services} />
-
-      {/* Recent activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">🕐 Atividades Recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {services.slice(0, 5).map((s) => (
-            <div key={s.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-              <div className="text-sm">
-                <span className="font-medium">{s.cliente}</span>
-                <span className="text-muted-foreground"> — {s.servico}</span>
+      {/* Two Column Layout: Activity + Upcoming */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent activity */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Atividade Recente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {services.slice(0, 5).map((s) => (
+              <div key={s.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <Receipt className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-foreground">{s.cliente}</span>
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">{s.servico}</p>
+                  </div>
+                </div>
+                <span className="text-sm font-mono text-muted-foreground">{fmt(s.valorComIVA)}</span>
               </div>
-              <span className="text-sm font-mono text-muted-foreground">{fmt(s.valorComIVA)}</span>
-            </div>
-          ))}
-          {services.length === 0 && (
-            <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma atividade recente</p>
-          )}
-        </CardContent>
-      </Card>
+            ))}
+            {services.length === 0 && (
+              <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma atividade recente</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Chart */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">Distribuição</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ServiceChart services={services} />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
+
+function QuickCard({ icon: Icon, title, onClick }: {
+  icon: React.ElementType;
+  title: string;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      className="cursor-pointer hover:shadow-md transition-all duration-200 group border-border/50"
+      onClick={onClick}
+    >
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className="p-2 rounded-xl bg-muted group-hover:bg-primary-lighter transition-colors">
+          <Icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+        </div>
+        <span className="text-sm font-medium text-foreground">{title}</span>
+      </CardContent>
+    </Card>
+  );
+}
 
 function AreaCard({ icon: Icon, title, stats, color, bgColor, onClick }: {
   icon: React.ElementType;
@@ -225,12 +277,12 @@ function AreaCard({ icon: Icon, title, stats, color, bgColor, onClick }: {
 }) {
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow group"
+      className="cursor-pointer hover:shadow-md transition-all duration-200 group border-border/50"
       onClick={onClick}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <div className={`p-2 rounded-lg ${bgColor}`}>
+          <div className={`p-2.5 rounded-xl ${bgColor}`}>
             <Icon className={`h-5 w-5 ${color}`} />
           </div>
           <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
