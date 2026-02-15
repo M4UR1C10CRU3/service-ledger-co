@@ -20,6 +20,7 @@ import ContasPagarDashboard from "./pages/ContasPagarDashboard";
 import Debitos from "./pages/Debitos";
 import HistoricoCobrancas from "./pages/HistoricoCobrancas";
 import FluxoCaixa from "./pages/FluxoCaixa";
+import Receitas from "./pages/Receitas";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 const queryClient = new QueryClient();
@@ -57,7 +58,7 @@ const App = () => (
               <Route path="/stocks" element={<ProtectedWithLayout><PlaceholderPage title="Gestão de Stocks" /></ProtectedWithLayout>} />
               <Route path="/produtos" element={<ProtectedWithLayout><PlaceholderPage title="Cadastro de Produtos" /></ProtectedWithLayout>} />
               <Route path="/ordens-servico" element={<ProtectedWithLayout><PlaceholderPage title="Ordens de Serviço" /></ProtectedWithLayout>} />
-              <Route path="/receitas" element={<ProtectedWithLayout><PlaceholderPage title="Receitas" /></ProtectedWithLayout>} />
+              <Route path="/receitas" element={<ProtectedWithLayout><Receitas /></ProtectedWithLayout>} />
               <Route path="/debitos" element={<ProtectedWithLayout><Debitos /></ProtectedWithLayout>} />
               <Route path="/historico-cobrancas" element={<ProtectedWithLayout><HistoricoCobrancas /></ProtectedWithLayout>} />
               <Route path="/fluxo-caixa" element={<ProtectedWithLayout><FluxoCaixa /></ProtectedWithLayout>} />
