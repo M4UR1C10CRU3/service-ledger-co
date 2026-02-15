@@ -371,6 +371,7 @@ export type Database = {
           codigo_postal: string | null
           concelho: string | null
           created_at: string
+          daily_hours: number | null
           department: string | null
           email: string | null
           empresa_id: string
@@ -395,6 +396,8 @@ export type Database = {
           updated_at: string
           utente: string | null
           whatsapp: string | null
+          work_schedule: Json | null
+          workdays_per_week: number | null
         }
         Insert: {
           activities_summary?: string | null
@@ -406,6 +409,7 @@ export type Database = {
           codigo_postal?: string | null
           concelho?: string | null
           created_at?: string
+          daily_hours?: number | null
           department?: string | null
           email?: string | null
           empresa_id: string
@@ -430,6 +434,8 @@ export type Database = {
           updated_at?: string
           utente?: string | null
           whatsapp?: string | null
+          work_schedule?: Json | null
+          workdays_per_week?: number | null
         }
         Update: {
           activities_summary?: string | null
@@ -441,6 +447,7 @@ export type Database = {
           codigo_postal?: string | null
           concelho?: string | null
           created_at?: string
+          daily_hours?: number | null
           department?: string | null
           email?: string | null
           empresa_id?: string
@@ -465,6 +472,8 @@ export type Database = {
           updated_at?: string
           utente?: string | null
           whatsapp?: string | null
+          work_schedule?: Json | null
+          workdays_per_week?: number | null
         }
         Relationships: [
           {
@@ -809,6 +818,78 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "suppliers_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_records: {
+        Row: {
+          balance: number | null
+          created_at: string
+          day_type: string
+          employee_id: string
+          empresa_id: string
+          entry_time: string | null
+          exit_time: string | null
+          expected_hours: number | null
+          id: string
+          lunch_exit_time: string | null
+          lunch_return_time: string | null
+          observations: string | null
+          overtime_hours: number | null
+          record_date: string
+          updated_at: string
+          worked_hours: number | null
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string
+          day_type?: string
+          employee_id: string
+          empresa_id: string
+          entry_time?: string | null
+          exit_time?: string | null
+          expected_hours?: number | null
+          id?: string
+          lunch_exit_time?: string | null
+          lunch_return_time?: string | null
+          observations?: string | null
+          overtime_hours?: number | null
+          record_date?: string
+          updated_at?: string
+          worked_hours?: number | null
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string
+          day_type?: string
+          employee_id?: string
+          empresa_id?: string
+          entry_time?: string | null
+          exit_time?: string | null
+          expected_hours?: number | null
+          id?: string
+          lunch_exit_time?: string | null
+          lunch_return_time?: string | null
+          observations?: string | null
+          overtime_hours?: number | null
+          record_date?: string
+          updated_at?: string
+          worked_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_records_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"

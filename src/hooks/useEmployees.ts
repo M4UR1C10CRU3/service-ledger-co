@@ -33,13 +33,10 @@ export interface Employee {
   passaporte: string | null;
   niss: string | null;
   utente: string | null;
-  benefits: {
-    vale_transporte: boolean;
-    vale_alimentacao: boolean;
-    plano_saude: boolean;
-    seguro_vida: boolean;
-    outros: string;
-  };
+  workdays_per_week: number | null;
+  daily_hours: number | null;
+  work_schedule: Record<string, boolean> | null;
+  benefits: any;
   status: string;
   created_at: string;
   updated_at: string;
