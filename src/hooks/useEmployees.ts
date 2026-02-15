@@ -17,12 +17,22 @@ export interface Employee {
   freguesia: string | null;
   concelho: string | null;
   codigo_postal: string | null;
+  pais: string | null;
   job_position_id: string | null;
   department: string | null;
   monthly_salary: number | null;
   nif: string | null;
   activities_summary: string | null;
   admission_date: string | null;
+  linkedin: string | null;
+  facebook: string | null;
+  instagram: string | null;
+  nacionalidade: string | null;
+  cartao_cidadao: string | null;
+  autorizacao_residencia: string | null;
+  passaporte: string | null;
+  niss: string | null;
+  utente: string | null;
   benefits: {
     vale_transporte: boolean;
     vale_alimentacao: boolean;

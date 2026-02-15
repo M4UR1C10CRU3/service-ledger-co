@@ -25,6 +25,31 @@ const DEPARTMENTS = [
   'Arquitetura', 'Produção', 'Financeiro', 'Recursos Humanos', 'Logística',
 ];
 
+const COUNTRIES = [
+  'Afeganistão','África do Sul','Albânia','Alemanha','Andorra','Angola','Antígua e Barbuda','Arábia Saudita','Argélia','Argentina','Arménia','Austrália','Áustria','Azerbaijão',
+  'Bahamas','Bangladeche','Barbados','Barém','Bélgica','Belize','Benim','Bielorrússia','Bolívia','Bósnia e Herzegovina','Botsuana','Brasil','Brunei','Bulgária','Burquina Faso','Burundi','Butão',
+  'Cabo Verde','Camarões','Camboja','Canadá','Catar','Cazaquistão','Chade','Chile','China','Chipre','Colômbia','Comores','Congo','Coreia do Norte','Coreia do Sul','Costa do Marfim','Costa Rica','Croácia','Cuba',
+  'Dinamarca','Dominica','Egito','Emirados Árabes Unidos','Equador','Eritreia','Eslováquia','Eslovénia','Espanha','Estados Unidos','Estónia','Etiópia',
+  'Fiji','Filipinas','Finlândia','França',
+  'Gabão','Gâmbia','Gana','Geórgia','Granada','Grécia','Guatemala','Guiana','Guiné','Guiné-Bissau','Guiné Equatorial',
+  'Haiti','Honduras','Hungria',
+  'Iémen','Ilhas Marshall','Ilhas Salomão','Índia','Indonésia','Irão','Iraque','Irlanda','Islândia','Israel','Itália',
+  'Jamaica','Japão','Jordânia',
+  'Kiribati','Kosovo','Kuwait',
+  'Laos','Lesoto','Letónia','Líbano','Libéria','Líbia','Listenstaine','Lituânia','Luxemburgo',
+  'Macedónia do Norte','Madagáscar','Malásia','Maláui','Maldivas','Mali','Malta','Marrocos','Maurícia','Mauritânia','México','Mianmar','Micronésia','Moçambique','Moldávia','Mónaco','Mongólia','Montenegro',
+  'Namíbia','Nauru','Nepal','Nicarágua','Níger','Nigéria','Noruega','Nova Zelândia',
+  'Omã',
+  'Países Baixos','Palau','Palestina','Panamá','Papua-Nova Guiné','Paquistão','Paraguai','Peru','Polónia','Portugal',
+  'Quénia','Quirguistão',
+  'Reino Unido','República Centro-Africana','República Checa','República Democrática do Congo','República Dominicana','Roménia','Ruanda','Rússia',
+  'Samoa','San Marino','Santa Lúcia','São Cristóvão e Neves','São Tomé e Príncipe','São Vicente e Granadinas','Senegal','Serra Leoa','Sérvia','Seicheles','Singapura','Síria','Somália','Sri Lanca','Suazilândia','Sudão','Sudão do Sul','Suécia','Suíça','Suriname',
+  'Tailândia','Taiwan','Tajiquistão','Tanzânia','Timor-Leste','Togo','Tonga','Trindade e Tobago','Tunísia','Turquemenistão','Turquia','Tuvalu',
+  'Ucrânia','Uganda','Uruguai','Usbequistão',
+  'Vanuatu','Vaticano','Venezuela','Vietname',
+  'Zâmbia','Zimbábue',
+];
+
 const defaultBenefits = {
   vale_transporte: false,
   vale_alimentacao: false,
@@ -40,11 +65,21 @@ const emptyForm = {
   whatsapp: '',
   birth_date: '',
   photo_url: '',
+  linkedin: '',
+  facebook: '',
+  instagram: '',
+  nacionalidade: '',
+  cartao_cidadao: '',
+  autorizacao_residencia: '',
+  passaporte: '',
+  niss: '',
+  utente: '',
   street: '',
   street_number: '',
   freguesia: '',
   concelho: '',
   codigo_postal: '',
+  pais: 'Portugal',
   job_position_id: '',
   department: '',
   monthly_salary: '',
@@ -75,11 +110,21 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         whatsapp: employee.whatsapp || '',
         birth_date: employee.birth_date || '',
         photo_url: employee.photo_url || '',
+        linkedin: employee.linkedin || '',
+        facebook: employee.facebook || '',
+        instagram: employee.instagram || '',
+        nacionalidade: employee.nacionalidade || '',
+        cartao_cidadao: employee.cartao_cidadao || '',
+        autorizacao_residencia: employee.autorizacao_residencia || '',
+        passaporte: employee.passaporte || '',
+        niss: employee.niss || '',
+        utente: employee.utente || '',
         street: employee.street || '',
         street_number: employee.street_number || '',
         freguesia: employee.freguesia || '',
         concelho: employee.concelho || '',
         codigo_postal: employee.codigo_postal || '',
+        pais: employee.pais || 'Portugal',
         job_position_id: employee.job_position_id || '',
         department: employee.department || '',
         monthly_salary: employee.monthly_salary?.toString() || '',
@@ -130,11 +175,21 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       whatsapp: form.whatsapp || null,
       birth_date: form.birth_date || null,
       photo_url: form.photo_url || null,
+      linkedin: form.linkedin || null,
+      facebook: form.facebook || null,
+      instagram: form.instagram || null,
+      nacionalidade: form.nacionalidade || null,
+      cartao_cidadao: form.cartao_cidadao || null,
+      autorizacao_residencia: form.autorizacao_residencia || null,
+      passaporte: form.passaporte || null,
+      niss: form.niss || null,
+      utente: form.utente || null,
       street: form.street || null,
       street_number: form.street_number || null,
       freguesia: form.freguesia || null,
       concelho: form.concelho || null,
       codigo_postal: form.codigo_postal || null,
+      pais: form.pais || null,
       job_position_id: form.job_position_id || null,
       department: form.department || null,
       monthly_salary: form.monthly_salary ? parseFloat(form.monthly_salary) : null,
@@ -219,6 +274,64 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                   <Label>Data de Nascimento</Label>
                   <Input type="date" value={form.birth_date} onChange={e => set('birth_date', e.target.value)} />
                 </div>
+                <div className="space-y-2">
+                  <Label>Nacionalidade</Label>
+                  <Select value={form.nacionalidade} onValueChange={v => set('nacionalidade', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o país..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {COUNTRIES.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>LinkedIn</Label>
+                  <Input value={form.linkedin} onChange={e => set('linkedin', e.target.value)} placeholder="https://linkedin.com/in/..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Facebook</Label>
+                  <Input value={form.facebook} onChange={e => set('facebook', e.target.value)} placeholder="https://facebook.com/..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Instagram</Label>
+                  <Input value={form.instagram} onChange={e => set('instagram', e.target.value)} placeholder="@utilizador" />
+                </div>
+              </div>
+            </section>
+
+            {/* Documentação */}
+            <section>
+              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Documentação</h3>
+              <Separator className="mb-4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cartão de Cidadão</Label>
+                  <Input value={form.cartao_cidadao} onChange={e => set('cartao_cidadao', e.target.value)} placeholder="Nº Cartão de Cidadão" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Autorização de Residência</Label>
+                  <Input value={form.autorizacao_residencia} onChange={e => set('autorizacao_residencia', e.target.value)} placeholder="Nº Autorização de Residência" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Passaporte</Label>
+                  <Input value={form.passaporte} onChange={e => set('passaporte', e.target.value)} placeholder="Nº Passaporte" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Contribuinte (NIF)</Label>
+                  <Input value={form.nif} onChange={e => set('nif', e.target.value)} placeholder="123456789" maxLength={9} />
+                  <p className="text-xs text-muted-foreground">9 dígitos</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>NISS</Label>
+                  <Input value={form.niss} onChange={e => set('niss', e.target.value)} placeholder="Nº Segurança Social" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Utente (SNS)</Label>
+                  <Input value={form.utente} onChange={e => set('utente', e.target.value)} placeholder="Nº Utente SNS" />
+                </div>
               </div>
             </section>
 
@@ -228,8 +341,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
               <Separator className="mb-4" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2 space-y-2">
-                  <Label>Rua</Label>
-                  <Input value={form.street} onChange={e => set('street', e.target.value)} placeholder="Nome da rua" />
+                  <Label>Rua / Avenida</Label>
+                  <Input value={form.street} onChange={e => set('street', e.target.value)} placeholder="Nome da rua ou avenida" />
                 </div>
                 <div className="space-y-2">
                   <Label>Número</Label>
@@ -246,6 +359,19 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                 <div className="space-y-2">
                   <Label>Código Postal</Label>
                   <Input value={form.codigo_postal} onChange={e => set('codigo_postal', e.target.value)} placeholder="1000-001" maxLength={8} />
+                </div>
+                <div className="space-y-2">
+                  <Label>País</Label>
+                  <Select value={form.pais} onValueChange={v => set('pais', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o país..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {COUNTRIES.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </section>
@@ -299,11 +425,6 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                   <Input type="number" step="0.01" min="0" value={form.monthly_salary} onChange={e => set('monthly_salary', e.target.value)} placeholder="0,00" />
                 </div>
                 <div className="space-y-2">
-                  <Label>NIF (Nº Contribuinte)</Label>
-                  <Input value={form.nif} onChange={e => set('nif', e.target.value)} placeholder="123456789" maxLength={9} />
-                  <p className="text-xs text-muted-foreground">9 dígitos</p>
-                </div>
-                <div className="space-y-2">
                   <Label>Data de Admissão</Label>
                   <Input type="date" value={form.admission_date} onChange={e => set('admission_date', e.target.value)} />
                 </div>
@@ -333,8 +454,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
               <Separator className="mb-4" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
-                  { key: 'vale_transporte', label: 'Vale Transporte' },
-                  { key: 'vale_alimentacao', label: 'Vale Alimentação' },
+                  { key: 'vale_transporte', label: 'Ajuda de Custo / Transporte' },
+                  { key: 'vale_alimentacao', label: 'Subsídio Alimentação' },
                   { key: 'plano_saude', label: 'Plano de Saúde' },
                   { key: 'seguro_vida', label: 'Seguro de Vida' },
                 ].map(b => (
