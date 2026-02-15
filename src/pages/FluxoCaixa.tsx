@@ -162,6 +162,9 @@ const FluxoCaixa = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [flowFilter, setFlowFilter] = useState<string>('all');
+  const [recentByFlow, setRecentByFlow] = useState<Record<FlowType, CashFlow[]>>({
+    numerario: [], multibanco: [], transferencia: [],
+  });
 
   // New movement dialog state
   const [newDialog, setNewDialog] = useState(false);
@@ -232,23 +235,37 @@ const FluxoCaixa = () => {
       // Calculate balances up to the end of the period
       const flows: FlowType[] = ['numerario', 'multibanco', 'transferencia'];
       const newBalances: Record<FlowType, number> = { numerario: 0, multibanco: 0, transferencia: 0 };
+      const newRecent: Record<FlowType, CashFlow[]> = { numerario: [], multibanco: [], transferencia: [] };
 
       for (const ft of flows) {
-        const { data: allMovs } = await supabase
-          .from('cash_flows')
-          .select('movement_type, amount')
-          .eq('empresa_id', empresa.id)
-          .eq('flow_type', ft)
-          .lte('transaction_date', to)
-          .is('deleted_at', null);
+        const [{ data: allMovs }, { data: recentMovs }] = await Promise.all([
+          supabase
+            .from('cash_flows')
+            .select('movement_type, amount')
+            .eq('empresa_id', empresa.id)
+            .eq('flow_type', ft)
+            .lte('transaction_date', to)
+            .is('deleted_at', null),
+          supabase
+            .from('cash_flows')
+            .select('*')
+            .eq('empresa_id', empresa.id)
+            .eq('flow_type', ft)
+            .is('deleted_at', null)
+            .order('transaction_date', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(15),
+        ]);
 
         if (allMovs) {
           newBalances[ft] = allMovs.reduce((sum, m) => {
             return sum + (m.movement_type === 'entrada' ? Number(m.amount) : -Number(m.amount));
           }, 0);
         }
+        newRecent[ft] = (recentMovs as CashFlow[]) || [];
       }
       setBalances(newBalances);
+      setRecentByFlow(newRecent);
     } catch (err) {
       console.error('Error loading cash flow data:', err);
     } finally {
@@ -524,6 +541,67 @@ const FluxoCaixa = () => {
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Recent 15 movements per flow */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {(['numerario', 'multibanco', 'transferencia'] as FlowType[]).map(ft => {
+          const cfg = flowConfig[ft];
+          const Icon = cfg.icon;
+          const recent = recentByFlow[ft];
+          const projectedBalance = recent.reduce((sum, m) => {
+            return sum + (m.movement_type === 'entrada' ? Number(m.amount) : -Number(m.amount));
+          }, 0);
+          // Use actual full balance for the projected display
+          const fullBalance = balances[ft];
+          return (
+            <Card key={`recent-${ft}`} className={`border-l-4 ${cfg.borderClass}`}>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`p-1.5 rounded-md ${cfg.iconBg}`}>
+                      <Icon className={`h-4 w-4 ${cfg.iconColor}`} />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">{cfg.name}</CardTitle>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saldo Projetado</p>
+                    <p className={`text-lg font-bold ${fullBalance >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                      {formatEUR(fullBalance)}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 pt-0">
+                <p className="text-xs text-muted-foreground mb-2">Últimos 15 movimentos</p>
+                {recent.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">Sem movimentos registados</p>
+                ) : (
+                  <div className="space-y-1 max-h-[360px] overflow-y-auto">
+                    {recent.map(m => {
+                      const isEntry = m.movement_type === 'entrada';
+                      const mainDesc = m.description.split(' | ')[0];
+                      return (
+                        <div key={m.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 text-xs border-b border-border/50 last:border-0">
+                          <span className={`shrink-0 ${isEntry ? 'text-emerald-600' : 'text-destructive'}`}>
+                            {isEntry ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">{mainDesc}</p>
+                            <p className="text-muted-foreground text-[10px]">{formatDatePT(m.transaction_date)}</p>
+                          </div>
+                          <span className={`shrink-0 font-mono font-bold ${isEntry ? 'text-emerald-600' : 'text-destructive'}`}>
+                            {isEntry ? '+' : '-'}{formatEUR(Number(m.amount))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
