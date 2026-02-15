@@ -20,6 +20,7 @@ import {
   METODOS_PAGAMENTO,
 } from '@/types/accountPayable';
 import { Supplier } from '@/types/supplier';
+import { CostCenter } from '@/hooks/useCostCenters';
 
 interface Props {
   open: boolean;
@@ -29,10 +30,11 @@ interface Props {
   onSubmit: () => void;
   isEditing: boolean;
   suppliers: Supplier[];
+  costCenters?: CostCenter[];
 }
 
 export function AccountPayableFormDialog({
-  open, onOpenChange, formData, setFormData, onSubmit, isEditing, suppliers,
+  open, onOpenChange, formData, setFormData, onSubmit, isEditing, suppliers, costCenters,
 }: Props) {
   const update = (partial: Partial<AccountPayableFormData>) => {
     const next = { ...formData, ...partial };
@@ -233,9 +235,24 @@ export function AccountPayableFormDialog({
           {/* Seção 4 - Extras */}
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Extras</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Centro de Custo</Label>
+              {costCenters && costCenters.length > 0 ? (
+                <Select value={formData.costCenterId} onValueChange={(v) => update({ costCenterId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {costCenters.map(cc => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={formData.centroCusto} onChange={(e) => update({ centroCusto: e.target.value })} placeholder="Ex: Administrativo" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo (texto)</Label>
               <Input value={formData.centroCusto} onChange={(e) => update({ centroCusto: e.target.value })} />
             </div>
             <div className="space-y-2">

@@ -70,8 +70,7 @@ const sections: NavSection[] = [
     icon: Wallet,
     items: [
       { title: 'Receitas', url: '/receitas', icon: TrendingUp },
-      { title: 'Contas a Pagar', url: '/contas-pagar', icon: CreditCard },
-      { title: 'Dashboard CP', url: '/contas-pagar/dashboard', icon: BarChart3 },
+      { title: 'Despesas', url: '/despesas', icon: CreditCard },
       { title: 'Débitos', url: '/debitos', icon: AlertTriangle },
       { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History },
       { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet },

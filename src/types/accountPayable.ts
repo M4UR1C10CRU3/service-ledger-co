@@ -22,6 +22,7 @@ export interface AccountPayable {
   projeto: string | null;
   observacoes: string | null;
   vincularEstoque: boolean;
+  costCenterId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,6 +45,7 @@ export interface AccountPayableFormData {
   projeto: string;
   observacoes: string;
   vincularEstoque: boolean;
+  costCenterId: string;
 }
 
 export const TIPO_LANCAMENTO_LABELS: Record<string, string> = {
@@ -112,4 +114,5 @@ export const emptyAccountPayableForm: AccountPayableFormData = {
   projeto: '',
   observacoes: '',
   vincularEstoque: false,
+  costCenterId: '',
 };

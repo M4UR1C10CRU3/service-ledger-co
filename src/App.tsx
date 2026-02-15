@@ -15,8 +15,7 @@ import DashboardGeral from "./pages/DashboardGeral";
 import Index from "./pages/Index";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
-import ContasPagar from "./pages/ContasPagar";
-import ContasPagarDashboard from "./pages/ContasPagarDashboard";
+import Despesas from "./pages/Despesas";
 import Debitos from "./pages/Debitos";
 import HistoricoCobrancas from "./pages/HistoricoCobrancas";
 import FluxoCaixa from "./pages/FluxoCaixa";
@@ -51,8 +50,9 @@ const App = () => (
               <Route path="/vendas" element={<ProtectedWithLayout><Index /></ProtectedWithLayout>} />
               <Route path="/clientes" element={<ProtectedWithLayout><Clientes /></ProtectedWithLayout>} />
               <Route path="/fornecedores" element={<ProtectedWithLayout><Fornecedores /></ProtectedWithLayout>} />
-              <Route path="/contas-pagar" element={<ProtectedWithLayout><ContasPagar /></ProtectedWithLayout>} />
-              <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><ContasPagarDashboard /></ProtectedWithLayout>} />
+              <Route path="/despesas" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
+              <Route path="/contas-pagar" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
+              <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
 
               {/* Placeholder routes for future pages */}
               <Route path="/propostas" element={<ProtectedWithLayout><PlaceholderPage title="Propostas" /></ProtectedWithLayout>} />

@@ -167,6 +167,7 @@ export default function ContasPagar() {
         projeto: account.projeto || '',
         observacoes: account.observacoes || '',
         vincularEstoque: account.vincularEstoque,
+        costCenterId: account.costCenterId || '',
       });
     } else {
       resetForm();
