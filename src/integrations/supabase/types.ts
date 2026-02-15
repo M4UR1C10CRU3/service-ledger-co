@@ -360,6 +360,99 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          activities_summary: string | null
+          admission_date: string | null
+          benefits: Json | null
+          birth_date: string | null
+          codigo_postal: string | null
+          concelho: string | null
+          created_at: string
+          department: string | null
+          email: string | null
+          empresa_id: string
+          freguesia: string | null
+          full_name: string
+          id: string
+          job_position_id: string | null
+          monthly_salary: number | null
+          nif: string | null
+          phone: string | null
+          photo_url: string | null
+          status: string
+          street: string | null
+          street_number: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          activities_summary?: string | null
+          admission_date?: string | null
+          benefits?: Json | null
+          birth_date?: string | null
+          codigo_postal?: string | null
+          concelho?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          empresa_id: string
+          freguesia?: string | null
+          full_name: string
+          id?: string
+          job_position_id?: string | null
+          monthly_salary?: number | null
+          nif?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          status?: string
+          street?: string | null
+          street_number?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          activities_summary?: string | null
+          admission_date?: string | null
+          benefits?: Json | null
+          birth_date?: string | null
+          codigo_postal?: string | null
+          concelho?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          empresa_id?: string
+          freguesia?: string | null
+          full_name?: string
+          id?: string
+          job_position_id?: string | null
+          monthly_salary?: number | null
+          nif?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          status?: string
+          street?: string | null
+          street_number?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_job_position_id_fkey"
+            columns: ["job_position_id"]
+            isOneToOne: false
+            referencedRelation: "job_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           cor_accent: string | null
@@ -398,6 +491,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      job_positions: {
+        Row: {
+          created_at: string
+          description: string | null
+          empresa_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          empresa_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          empresa_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_positions_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       liquidacoes: {
         Row: {
