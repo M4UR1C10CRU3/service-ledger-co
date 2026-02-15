@@ -83,13 +83,17 @@ export type Database = {
       accounts_payable: {
         Row: {
           acrescimo: number
+          alert_sent: boolean | null
+          alert_sent_at: string | null
           categoria: string
           centro_custo: string | null
           comprovante_url: string | null
+          cost_center_id: string | null
           created_at: string
           data_emissao: string
           data_pagamento: string | null
           data_vencimento: string | null
+          days_before_alert: number | null
           desconto: number
           descricao: string | null
           empresa_id: string
@@ -109,13 +113,17 @@ export type Database = {
         }
         Insert: {
           acrescimo?: number
+          alert_sent?: boolean | null
+          alert_sent_at?: string | null
           categoria: string
           centro_custo?: string | null
           comprovante_url?: string | null
+          cost_center_id?: string | null
           created_at?: string
           data_emissao?: string
           data_pagamento?: string | null
           data_vencimento?: string | null
+          days_before_alert?: number | null
           desconto?: number
           descricao?: string | null
           empresa_id: string
@@ -135,13 +143,17 @@ export type Database = {
         }
         Update: {
           acrescimo?: number
+          alert_sent?: boolean | null
+          alert_sent_at?: string | null
           categoria?: string
           centro_custo?: string | null
           comprovante_url?: string | null
+          cost_center_id?: string | null
           created_at?: string
           data_emissao?: string
           data_pagamento?: string | null
           data_vencimento?: string | null
+          days_before_alert?: number | null
           desconto?: number
           descricao?: string | null
           empresa_id?: string
@@ -161,6 +173,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "accounts_payable_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "accounts_payable_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
@@ -172,6 +191,113 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_logs: {
+        Row: {
+          account_payable_id: string | null
+          alert_type: string
+          channel: string
+          empresa_id: string
+          error_message: string | null
+          id: string
+          message: string | null
+          recipient: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          account_payable_id?: string | null
+          alert_type: string
+          channel: string
+          empresa_id: string
+          error_message?: string | null
+          id?: string
+          message?: string | null
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          account_payable_id?: string | null
+          alert_type?: string
+          channel?: string
+          empresa_id?: string
+          error_message?: string | null
+          id?: string
+          message?: string | null
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_logs_account_payable_id_fkey"
+            columns: ["account_payable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_logs_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_settings: {
+        Row: {
+          alert_email: string
+          alert_whatsapp: string | null
+          created_at: string | null
+          days_before_due: number | null
+          email_enabled: boolean | null
+          empresa_id: string
+          id: string
+          send_after_overdue: boolean | null
+          send_on_due_date: boolean | null
+          updated_at: string | null
+          whatsapp_enabled: boolean | null
+        }
+        Insert: {
+          alert_email: string
+          alert_whatsapp?: string | null
+          created_at?: string | null
+          days_before_due?: number | null
+          email_enabled?: boolean | null
+          empresa_id: string
+          id?: string
+          send_after_overdue?: boolean | null
+          send_on_due_date?: boolean | null
+          updated_at?: string | null
+          whatsapp_enabled?: boolean | null
+        }
+        Update: {
+          alert_email?: string
+          alert_whatsapp?: string | null
+          created_at?: string | null
+          days_before_due?: number | null
+          email_enabled?: boolean | null
+          empresa_id?: string
+          id?: string
+          send_after_overdue?: boolean | null
+          send_on_due_date?: boolean | null
+          updated_at?: string | null
+          whatsapp_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_settings_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -309,6 +435,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      cost_centers: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          empresa_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          empresa_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          empresa_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_history: {
         Row: {

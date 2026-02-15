@@ -29,6 +29,7 @@ function mapRow(row: any, supplierName?: string): AccountPayable {
     projeto: row.projeto,
     observacoes: row.observacoes,
     vincularEstoque: row.vincular_estoque,
+    costCenterId: row.cost_center_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -90,6 +91,7 @@ export function useAccountsPayable() {
       projeto: form.projeto.trim() || null,
       observacoes: form.observacoes.trim() || null,
       vincular_estoque: form.tipoLancamento === 'compra' ? form.vincularEstoque : false,
+      cost_center_id: form.costCenterId || null,
     });
 
     if (!error) {
@@ -127,6 +129,7 @@ export function useAccountsPayable() {
       projeto: form.projeto.trim() || null,
       observacoes: form.observacoes.trim() || null,
       vincular_estoque: form.tipoLancamento === 'compra' ? form.vincularEstoque : false,
+      cost_center_id: form.costCenterId || null,
     }).eq('id', id);
 
     if (!error) {
