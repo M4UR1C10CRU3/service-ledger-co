@@ -58,6 +58,11 @@ const defaultBenefits = {
   outros: '',
 };
 
+const defaultSchedule = {
+  monday: true, tuesday: true, wednesday: true,
+  thursday: true, friday: true, saturday: false, sunday: false,
+};
+
 const emptyForm = {
   full_name: '',
   email: '',
@@ -87,6 +92,8 @@ const emptyForm = {
   activities_summary: '',
   admission_date: '',
   benefits: { ...defaultBenefits },
+  workdays_per_week: '5',
+  work_schedule: { ...defaultSchedule },
   status: 'active',
 };
 
@@ -132,6 +139,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         activities_summary: employee.activities_summary || '',
         admission_date: employee.admission_date || '',
         benefits: employee.benefits || { ...defaultBenefits },
+        workdays_per_week: String(employee.workdays_per_week || 5),
+        work_schedule: (employee.work_schedule as any) || { ...defaultSchedule },
         status: employee.status || 'active',
       });
     } else {
@@ -197,6 +206,9 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       activities_summary: form.activities_summary || null,
       admission_date: form.admission_date || null,
       benefits: form.benefits,
+      workdays_per_week: parseInt(form.workdays_per_week) || 5,
+      daily_hours: 40 / (parseInt(form.workdays_per_week) || 5),
+      work_schedule: form.work_schedule,
       status: form.status,
     };
 
@@ -474,7 +486,75 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
               </div>
             </section>
 
-            {/* Botões */}
+            {/* Configuração de Jornada */}
+            <section>
+              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">⏰ Configuração de Jornada</h3>
+              <Separator className="mb-4" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Dias de Trabalho por Semana</Label>
+                  <Select
+                    value={form.workdays_per_week}
+                    onValueChange={v => {
+                      const days = parseInt(v);
+                      const newSchedule = { ...form.work_schedule };
+                      if (days === 5) {
+                        newSchedule.saturday = false;
+                      } else if (days === 6) {
+                        newSchedule.saturday = true;
+                      }
+                      newSchedule.sunday = false;
+                      set('workdays_per_week', v);
+                      set('work_schedule', newSchedule);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 dias (Seg-Sex) — 8h/dia</SelectItem>
+                      <SelectItem value="6">6 dias (Seg-Sáb) — 6,67h/dia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Carga Horária Diária</Label>
+                  <Input
+                    value={`${(40 / (parseInt(form.workdays_per_week) || 5)).toFixed(2)} horas`}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">40h ÷ {form.workdays_per_week || 5} dias</p>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label>Dias da Semana</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { key: 'monday', label: 'Segunda' },
+                      { key: 'tuesday', label: 'Terça' },
+                      { key: 'wednesday', label: 'Quarta' },
+                      { key: 'thursday', label: 'Quinta' },
+                      { key: 'friday', label: 'Sexta' },
+                      { key: 'saturday', label: 'Sábado' },
+                      { key: 'sunday', label: 'Domingo' },
+                    ].map(d => (
+                      <label key={d.key} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={form.work_schedule[d.key as keyof typeof form.work_schedule]}
+                          onCheckedChange={v => set('work_schedule', { ...form.work_schedule, [d.key]: !!v })}
+                          disabled={d.key === 'sunday'}
+                        />
+                        <span className={`text-sm ${d.key === 'sunday' ? 'text-muted-foreground' : ''}`}>{d.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="md:col-span-2 bg-accent/30 rounded-lg p-3">
+                  <p className="text-sm font-medium">📊 Resumo: <span className="font-bold">40h semanais</span> — {form.workdays_per_week || 5} dias — {(40 / (parseInt(form.workdays_per_week) || 5)).toFixed(1)}h/dia</p>
+                </div>
+              </div>
+            </section>
+
             <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar

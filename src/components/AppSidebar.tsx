@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Briefcase, Users, FileText, Target,
+  LayoutDashboard, Briefcase, Users, FileText, Target, Clock,
   ShoppingCart, Truck, Package, BoxSelect,
   Factory, Receipt, ClipboardList,
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
@@ -82,6 +82,7 @@ const sections: NavSection[] = [
     icon: UsersRound,
     items: [
       { title: 'Colaboradores', url: '/colaboradores', icon: HardHat },
+      { title: 'Controle de Ponto', url: '/controle-ponto', icon: Clock },
       { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake },
     ],
   },
