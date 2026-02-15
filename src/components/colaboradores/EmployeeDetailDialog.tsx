@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { User, Mail, Phone, MapPin, Briefcase, Calendar, CreditCard, Heart } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Calendar, CreditCard, Heart, FileText, Globe } from 'lucide-react';
 import { Employee } from '@/hooks/useEmployees';
 import { formatEUR } from '@/lib/formatters';
 import { format } from 'date-fns';
@@ -35,6 +35,9 @@ export function EmployeeDetailDialog({ open, onOpenChange, employee }: EmployeeD
   };
 
   const benefits = (employee.benefits || {}) as any;
+  const InfoItem = ({ label, value }: { label: string; value: string | null | undefined }) => (
+    <div><span className="text-muted-foreground">{label}:</span> <span className="font-medium">{value || '—'}</span></div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,10 +71,31 @@ export function EmployeeDetailDialog({ open, onOpenChange, employee }: EmployeeD
                 <User className="w-4 h-4" /> Dados Pessoais
               </h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">E-mail:</span> <span className="font-medium">{employee.email || '—'}</span></div>
-                <div><span className="text-muted-foreground">Telefone:</span> <span className="font-medium">{employee.phone || '—'}</span></div>
-                <div><span className="text-muted-foreground">WhatsApp:</span> <span className="font-medium">{employee.whatsapp || '—'}</span></div>
-                <div><span className="text-muted-foreground">Nascimento:</span> <span className="font-medium">{formatDate(employee.birth_date)}</span></div>
+                <InfoItem label="E-mail" value={employee.email} />
+                <InfoItem label="Telefone" value={employee.phone} />
+                <InfoItem label="WhatsApp" value={employee.whatsapp} />
+                <InfoItem label="Nascimento" value={formatDate(employee.birth_date)} />
+                <InfoItem label="Nacionalidade" value={employee.nacionalidade} />
+                {employee.linkedin && <InfoItem label="LinkedIn" value={employee.linkedin} />}
+                {employee.facebook && <InfoItem label="Facebook" value={employee.facebook} />}
+                {employee.instagram && <InfoItem label="Instagram" value={employee.instagram} />}
+              </div>
+            </section>
+
+            <Separator />
+
+            {/* Documentação */}
+            <section>
+              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4" /> Documentação
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <InfoItem label="Cartão de Cidadão" value={employee.cartao_cidadao} />
+                <InfoItem label="Autorização de Residência" value={employee.autorizacao_residencia} />
+                <InfoItem label="Passaporte" value={employee.passaporte} />
+                <InfoItem label="Contribuinte (NIF)" value={employee.nif} />
+                <InfoItem label="NISS" value={employee.niss} />
+                <InfoItem label="Utente (SNS)" value={employee.utente} />
               </div>
             </section>
 
@@ -87,6 +111,7 @@ export function EmployeeDetailDialog({ open, onOpenChange, employee }: EmployeeD
                 {employee.freguesia && <><br />{employee.freguesia}</>}
                 {employee.concelho && <>, {employee.concelho}</>}
                 {employee.codigo_postal && <> — {employee.codigo_postal}</>}
+                {employee.pais && <><br />{employee.pais}</>}
               </p>
             </section>
 
@@ -98,9 +123,8 @@ export function EmployeeDetailDialog({ open, onOpenChange, employee }: EmployeeD
                 <Briefcase className="w-4 h-4" /> Dados Profissionais
               </h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">NIF:</span> <span className="font-medium">{employee.nif || '—'}</span></div>
-                <div><span className="text-muted-foreground">Salário:</span> <span className="font-medium">{employee.monthly_salary ? formatEUR(employee.monthly_salary) : '—'}</span></div>
-                <div><span className="text-muted-foreground">Admissão:</span> <span className="font-medium">{formatDate(employee.admission_date)}</span></div>
+                <InfoItem label="Salário" value={employee.monthly_salary ? formatEUR(employee.monthly_salary) : null} />
+                <InfoItem label="Admissão" value={formatDate(employee.admission_date)} />
               </div>
               {employee.activities_summary && (
                 <div className="mt-3">
@@ -118,8 +142,8 @@ export function EmployeeDetailDialog({ open, onOpenChange, employee }: EmployeeD
                 <Heart className="w-4 h-4" /> Benefícios
               </h3>
               <div className="flex flex-wrap gap-2">
-                {benefits.vale_transporte && <Badge variant="secondary">Vale Transporte</Badge>}
-                {benefits.vale_alimentacao && <Badge variant="secondary">Vale Alimentação</Badge>}
+                {benefits.vale_transporte && <Badge variant="secondary">Ajuda de Custo / Transporte</Badge>}
+                {benefits.vale_alimentacao && <Badge variant="secondary">Subsídio Alimentação</Badge>}
                 {benefits.plano_saude && <Badge variant="secondary">Plano de Saúde</Badge>}
                 {benefits.seguro_vida && <Badge variant="secondary">Seguro de Vida</Badge>}
                 {!benefits.vale_transporte && !benefits.vale_alimentacao && !benefits.plano_saude && !benefits.seguro_vida && (

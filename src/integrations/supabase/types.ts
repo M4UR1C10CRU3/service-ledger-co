@@ -364,76 +364,106 @@ export type Database = {
         Row: {
           activities_summary: string | null
           admission_date: string | null
+          autorizacao_residencia: string | null
           benefits: Json | null
           birth_date: string | null
+          cartao_cidadao: string | null
           codigo_postal: string | null
           concelho: string | null
           created_at: string
           department: string | null
           email: string | null
           empresa_id: string
+          facebook: string | null
           freguesia: string | null
           full_name: string
           id: string
+          instagram: string | null
           job_position_id: string | null
+          linkedin: string | null
           monthly_salary: number | null
+          nacionalidade: string | null
           nif: string | null
+          niss: string | null
+          pais: string | null
+          passaporte: string | null
           phone: string | null
           photo_url: string | null
           status: string
           street: string | null
           street_number: string | null
           updated_at: string
+          utente: string | null
           whatsapp: string | null
         }
         Insert: {
           activities_summary?: string | null
           admission_date?: string | null
+          autorizacao_residencia?: string | null
           benefits?: Json | null
           birth_date?: string | null
+          cartao_cidadao?: string | null
           codigo_postal?: string | null
           concelho?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
           empresa_id: string
+          facebook?: string | null
           freguesia?: string | null
           full_name: string
           id?: string
+          instagram?: string | null
           job_position_id?: string | null
+          linkedin?: string | null
           monthly_salary?: number | null
+          nacionalidade?: string | null
           nif?: string | null
+          niss?: string | null
+          pais?: string | null
+          passaporte?: string | null
           phone?: string | null
           photo_url?: string | null
           status?: string
           street?: string | null
           street_number?: string | null
           updated_at?: string
+          utente?: string | null
           whatsapp?: string | null
         }
         Update: {
           activities_summary?: string | null
           admission_date?: string | null
+          autorizacao_residencia?: string | null
           benefits?: Json | null
           birth_date?: string | null
+          cartao_cidadao?: string | null
           codigo_postal?: string | null
           concelho?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
           empresa_id?: string
+          facebook?: string | null
           freguesia?: string | null
           full_name?: string
           id?: string
+          instagram?: string | null
           job_position_id?: string | null
+          linkedin?: string | null
           monthly_salary?: number | null
+          nacionalidade?: string | null
           nif?: string | null
+          niss?: string | null
+          pais?: string | null
+          passaporte?: string | null
           phone?: string | null
           photo_url?: string | null
           status?: string
           street?: string | null
           street_number?: string | null
           updated_at?: string
+          utente?: string | null
           whatsapp?: string | null
         }
         Relationships: [
