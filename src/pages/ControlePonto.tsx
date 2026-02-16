@@ -15,12 +15,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Clock, Calendar, User, Plus, Timer, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2,
+  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText,
 } from 'lucide-react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeRecords } from '@/hooks/useTimeRecords';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isToday, getDay } from 'date-fns';
+import { useEmpresa } from '@/contexts/EmpresaContext';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isToday, getDay, eachDayOfInterval } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
 
 const DAY_TYPES = [
   { value: 'normal', label: 'Normal' },
@@ -43,6 +45,7 @@ const DAY_INDEX_TO_NAME: Record<number, string> = {
 
 const ControlePonto = () => {
   const { employees } = useEmployees();
+  const { empresa, getLogo } = useEmpresa();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -78,6 +81,11 @@ const ControlePonto = () => {
     };
   }, [currentDate, viewMode]);
 
+  // Generate days in current period for the date selector
+  const periodDays = useMemo(() => {
+    return eachDayOfInterval({ start: parseISO(dateRange.start), end: parseISO(dateRange.end) });
+  }, [dateRange]);
+
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
 
@@ -92,7 +100,6 @@ const ControlePonto = () => {
     const schedule = selectedEmployee.work_schedule;
     const dayName = DAY_INDEX_TO_NAME[getDay(date)];
     if (schedule && dayName in schedule) return schedule[dayName];
-    // Default: weekdays only
     const dow = getDay(date);
     return dow >= 1 && dow <= 5;
   };
@@ -136,6 +143,31 @@ const ControlePonto = () => {
     setFormOpen(true);
   };
 
+  // When user changes date in the form, check if there's an existing record
+  const handleFormDateChange = (newDate: string) => {
+    setFormDate(newDate);
+    const existing = records.find(r => r.record_date === newDate);
+    if (existing) {
+      setEditingRecordId(existing.id);
+      setFormData({
+        entry_time: existing.entry_time?.slice(0, 5) || '',
+        lunch_exit_time: existing.lunch_exit_time?.slice(0, 5) || '',
+        lunch_return_time: existing.lunch_return_time?.slice(0, 5) || '',
+        exit_time: existing.exit_time?.slice(0, 5) || '',
+        overtime_hours: String(existing.overtime_hours || 0),
+        day_type: existing.day_type || 'normal',
+        observations: existing.observations || '',
+      });
+    } else {
+      setEditingRecordId(null);
+      setFormData({
+        entry_time: '08:00', lunch_exit_time: '12:00',
+        lunch_return_time: '13:00', exit_time: '17:00',
+        overtime_hours: '0', day_type: 'normal', observations: '',
+      });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     await deleteRecord.mutateAsync(id);
     setDeleteConfirmId(null);
@@ -169,6 +201,187 @@ const ControlePonto = () => {
     liberacao: { label: 'Liberação', className: 'bg-warning/10 text-warning' },
   };
 
+  // ========== PDF Report Generation ==========
+  const generateReport = async () => {
+    if (!selectedEmployee || !empresa) return;
+
+    // Get current user name
+    const { data: { user } } = await supabase.auth.getUser();
+    let emitterName = 'Utilizador';
+    if (user) {
+      const { data: profile } = await supabase.from('profiles').select('nome').eq('id', user.id).maybeSingle();
+      if (profile?.nome) emitterName = profile.nome;
+    }
+
+    const now = new Date();
+    const periodLabel = viewMode === 'week'
+      ? `${format(parseISO(dateRange.start), "dd 'de' MMMM", { locale: pt })} a ${format(parseISO(dateRange.end), "dd 'de' MMMM 'de' yyyy", { locale: pt })}`
+      : format(currentDate, "MMMM 'de' yyyy", { locale: pt });
+
+    const periodType = viewMode === 'week' ? 'Semanal' : 'Mensal';
+    const logoUrl = getLogo();
+    const emp = selectedEmployee;
+    const workdaysPerWeek = emp.workdays_per_week || 5;
+    const hoursPerDay = (40 / workdaysPerWeek).toFixed(1);
+    const schedule = workdaysPerWeek === 5 ? 'Seg-Sex' : workdaysPerWeek === 6 ? 'Seg-Sáb' : 'Personalizada';
+
+    const sortedRecords = [...records].sort((a, b) => a.record_date.localeCompare(b.record_date));
+
+    const dayTypeLabels: Record<string, string> = {
+      normal: 'Normal', feriado: 'Feriado', ferias: 'Férias',
+      folga: 'Folga', falta: 'Falta', liberacao: 'Liberação',
+    };
+
+    const tableRows = sortedRecords.map(r => {
+      const dateObj = parseISO(r.record_date);
+      return `<tr>
+        <td>${format(dateObj, 'dd/MM/yyyy')}</td>
+        <td>${format(dateObj, 'EEEE', { locale: pt })}</td>
+        <td style="text-align:center">${r.entry_time ? r.entry_time.slice(0, 5) : '—'}</td>
+        <td style="text-align:center">${r.lunch_exit_time ? r.lunch_exit_time.slice(0, 5) : '—'}</td>
+        <td style="text-align:center">${r.lunch_return_time ? r.lunch_return_time.slice(0, 5) : '—'}</td>
+        <td style="text-align:center">${r.exit_time ? r.exit_time.slice(0, 5) : '—'}</td>
+        <td style="text-align:right">${(r.worked_hours || 0).toFixed(1)}h</td>
+        <td style="text-align:right">${(r.expected_hours || 0).toFixed(1)}h</td>
+        <td style="text-align:right;color:${(r.balance || 0) >= 0 ? '#16a34a' : '#dc2626'}">${(r.balance || 0) >= 0 ? '+' : ''}${(r.balance || 0).toFixed(1)}h</td>
+        <td style="text-align:center">${dayTypeLabels[r.day_type] || r.day_type}</td>
+        <td style="font-size:8px">${r.observations || ''}</td>
+      </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Ponto - ${emp.full_name}</title>
+  <style>
+    @page { size: A4; margin: 15mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; color: #1a1a2e; line-height: 1.4; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid ${empresa.corPrimaria}; padding-bottom: 12px; margin-bottom: 16px; }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-left img { max-height: 50px; }
+    .company-name { font-size: 16px; font-weight: 700; color: ${empresa.corPrimaria}; }
+    .company-legal { font-size: 10px; color: #666; }
+    .report-title { font-size: 14px; font-weight: 700; text-align: right; color: #1a1a2e; }
+    .report-subtitle { font-size: 10px; color: #666; text-align: right; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .info-box { background: #f8f9fa; border-radius: 6px; padding: 10px 14px; border-left: 3px solid ${empresa.corPrimaria}; }
+    .info-box h4 { font-size: 9px; text-transform: uppercase; color: #888; margin-bottom: 4px; letter-spacing: 0.5px; }
+    .info-box p { font-size: 11px; font-weight: 600; color: #1a1a2e; }
+    .stats-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .stat-card { flex: 1; background: #f8f9fa; border-radius: 6px; padding: 8px 12px; text-align: center; }
+    .stat-card .value { font-size: 14px; font-weight: 700; color: ${empresa.corPrimaria}; }
+    .stat-card .label { font-size: 8px; text-transform: uppercase; color: #888; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+    th { background: ${empresa.corPrimaria}; color: white; padding: 6px 5px; font-size: 8px; text-transform: uppercase; letter-spacing: 0.3px; text-align: left; }
+    td { padding: 5px; border-bottom: 1px solid #eee; font-size: 9px; }
+    tr:nth-child(even) { background: #fafafa; }
+    .totals-row { background: #f0f0f0 !important; font-weight: 700; }
+    .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 8px; color: #888; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <img src="${logoUrl}" alt="Logo" />
+      <div>
+        <div class="company-name">${empresa.nome}</div>
+        <div class="company-legal">${empresa.nomeLegal || ''}</div>
+      </div>
+    </div>
+    <div>
+      <div class="report-title">Relatório de Ponto ${periodType}</div>
+      <div class="report-subtitle">${periodLabel} · ${sortedRecords.length} registo(s)</div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Colaborador</h4>
+      <p>${emp.full_name}</p>
+    </div>
+    <div class="info-box">
+      <h4>Departamento / Função</h4>
+      <p>${emp.department || 'N/D'} ${emp.job_position?.name ? '/ ' + emp.job_position.name : ''}</p>
+    </div>
+    <div class="info-box">
+      <h4>NIF</h4>
+      <p>${emp.nif || 'N/D'}</p>
+    </div>
+    <div class="info-box">
+      <h4>Escala de Trabalho</h4>
+      <p>${workdaysPerWeek} dias/semana · ${hoursPerDay}h/dia · ${schedule}</p>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="value">${stats.totalWorked.toFixed(1)}h</div>
+      <div class="label">Trabalhado</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">${stats.totalExpected.toFixed(1)}h</div>
+      <div class="label">Esperado</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" style="color:${stats.totalBalance >= 0 ? '#16a34a' : '#dc2626'}">${stats.totalBalance >= 0 ? '+' : ''}${stats.totalBalance.toFixed(1)}h</div>
+      <div class="label">Saldo</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">${stats.totalOvertime.toFixed(1)}h</div>
+      <div class="label">H. Extra</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">${stats.daysWorked}</div>
+      <div class="label">Dias Trab.</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Dia</th>
+        <th style="text-align:center">Entrada</th>
+        <th style="text-align:center">S. Almoço</th>
+        <th style="text-align:center">Retorno</th>
+        <th style="text-align:center">Saída</th>
+        <th style="text-align:right">Trab.</th>
+        <th style="text-align:right">Esp.</th>
+        <th style="text-align:right">Saldo</th>
+        <th style="text-align:center">Tipo</th>
+        <th>Obs.</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRows}
+      <tr class="totals-row">
+        <td colspan="6" style="text-align:right">Totais:</td>
+        <td style="text-align:right">${stats.totalWorked.toFixed(1)}h</td>
+        <td style="text-align:right">${stats.totalExpected.toFixed(1)}h</td>
+        <td style="text-align:right;color:${stats.totalBalance >= 0 ? '#16a34a' : '#dc2626'}">${stats.totalBalance >= 0 ? '+' : ''}${stats.totalBalance.toFixed(1)}h</td>
+        <td colspan="2"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <span>Emitido por: ${emitterName}</span>
+    <span>Data de emissão: ${format(now, "dd/MM/yyyy 'às' HH:mm", { locale: pt })}</span>
+  </div>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -177,10 +390,21 @@ const ControlePonto = () => {
           <h1 className="text-2xl font-bold text-foreground">Controle de Ponto</h1>
           <p className="text-sm text-muted-foreground">Registo de horários e jornadas</p>
         </div>
-        <Button onClick={() => handleOpenForm()} disabled={!selectedEmployeeId} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Registar Ponto
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={generateReport}
+            disabled={!selectedEmployeeId || records.length === 0}
+            className="gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Relatório PDF
+          </Button>
+          <Button onClick={() => handleOpenForm()} disabled={!selectedEmployeeId} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Registar Ponto
+          </Button>
+        </div>
       </div>
 
       {/* Employee Selector */}
@@ -444,7 +668,7 @@ const ControlePonto = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground">
-              Registar Ponto — {formDate ? format(parseISO(formDate), "dd 'de' MMMM yyyy", { locale: pt }) : ''}
+              {editingRecordId ? 'Editar' : 'Registar'} Ponto
             </DialogTitle>
           </DialogHeader>
 
@@ -459,6 +683,28 @@ const ControlePonto = () => {
                   <p className="text-muted-foreground">
                     {(selectedEmployee.workdays_per_week || 5)} dias/semana • {(40 / (selectedEmployee.workdays_per_week || 5)).toFixed(1)}h/dia
                   </p>
+                </div>
+
+                {/* Date Selector */}
+                <div className="space-y-2">
+                  <Label>Data do Registo</Label>
+                  <Select value={formDate} onValueChange={handleFormDateChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periodDays.map(day => {
+                        const val = format(day, 'yyyy-MM-dd');
+                        const hasRecord = records.some(r => r.record_date === val);
+                        return (
+                          <SelectItem key={val} value={val}>
+                            {format(day, "dd/MM/yyyy - EEEE", { locale: pt })}
+                            {hasRecord ? ' ✓' : ''}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {!works && formData.day_type === 'normal' && (
