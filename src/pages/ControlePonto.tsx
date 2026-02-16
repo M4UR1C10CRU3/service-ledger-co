@@ -10,8 +10,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Clock, Calendar, User, Plus, Timer, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, CheckCircle, Coffee,
+  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2,
 } from 'lucide-react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeRecords } from '@/hooks/useTimeRecords';
@@ -74,7 +78,10 @@ const ControlePonto = () => {
     };
   }, [currentDate, viewMode]);
 
-  const { records, isLoading, upsertRecord } = useTimeRecords(
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+
+  const { records, isLoading, upsertRecord, deleteRecord } = useTimeRecords(
     selectedEmployeeId || undefined,
     dateRange.start,
     dateRange.end
@@ -99,12 +106,16 @@ const ControlePonto = () => {
     return { totalWorked, totalExpected, totalBalance, totalOvertime, daysWorked };
   }, [records]);
 
-  const handleOpenForm = (date?: string) => {
+  const handleOpenForm = (date?: string, recordId?: string) => {
     const d = date || format(new Date(), 'yyyy-MM-dd');
     setFormDate(d);
 
-    const existing = records.find(r => r.record_date === d);
+    const existing = recordId
+      ? records.find(r => r.id === recordId)
+      : records.find(r => r.record_date === d);
+
     if (existing) {
+      setEditingRecordId(existing.id);
       setFormData({
         entry_time: existing.entry_time?.slice(0, 5) || '',
         lunch_exit_time: existing.lunch_exit_time?.slice(0, 5) || '',
@@ -115,6 +126,7 @@ const ControlePonto = () => {
         observations: existing.observations || '',
       });
     } else {
+      setEditingRecordId(null);
       setFormData({
         entry_time: '08:00', lunch_exit_time: '12:00',
         lunch_return_time: '13:00', exit_time: '17:00',
@@ -122,6 +134,11 @@ const ControlePonto = () => {
       });
     }
     setFormOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteRecord.mutateAsync(id);
+    setDeleteConfirmId(null);
   };
 
   const handleSubmit = async () => {
@@ -352,19 +369,16 @@ const ControlePonto = () => {
                     <TableHead className="text-right">Trabalhado</TableHead>
                     <TableHead className="text-right">Esperado</TableHead>
                     <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                  </TableRow>
-                </TableHeader>
+                     <TableHead>Tipo</TableHead>
+                     <TableHead className="text-center">Ações</TableHead>
+                   </TableRow>
+                 </TableHeader>
                 <TableBody>
                   {records.map(r => {
                     const dtc = dayTypeConfig[r.day_type] || dayTypeConfig.normal;
                     const dateObj = parseISO(r.record_date);
                     return (
-                      <TableRow
-                        key={r.id}
-                        className="cursor-pointer hover:bg-accent/30"
-                        onClick={() => handleOpenForm(r.record_date)}
-                      >
+                      <TableRow key={r.id} className="hover:bg-accent/30">
                         <TableCell className="font-medium">{format(dateObj, 'dd/MM/yyyy')}</TableCell>
                         <TableCell className="text-sm">
                           {format(dateObj, 'EEEE', { locale: pt })}
@@ -381,17 +395,41 @@ const ControlePonto = () => {
                         <TableCell>
                           <Badge variant="outline" className={dtc.className}>{dtc.label}</Badge>
                         </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleOpenForm(r.record_date, r.id)}
+                              title="Editar"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteConfirmId(r.id)}
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
                   {/* Totals row */}
-                  <TableRow className="bg-muted/50 font-semibold">
+                   <TableRow className="bg-muted/50 font-semibold">
                     <TableCell colSpan={6} className="text-right">Totais:</TableCell>
+
                     <TableCell className="text-right">{formatHours(stats.totalWorked)}</TableCell>
                     <TableCell className="text-right">{formatHours(stats.totalExpected)}</TableCell>
                     <TableCell className={`text-right ${stats.totalBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
                       {stats.totalBalance >= 0 ? '+' : ''}{formatHours(stats.totalBalance)}
                     </TableCell>
+                    <TableCell />
                     <TableCell />
                   </TableRow>
                 </TableBody>
@@ -485,17 +523,56 @@ const ControlePonto = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleSubmit} disabled={upsertRecord.isPending}>
-                    {upsertRecord.isPending ? 'A guardar...' : 'Guardar'}
-                  </Button>
+                <div className="flex justify-between pt-2">
+                  <div>
+                    {editingRecordId && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setFormOpen(false);
+                          setDeleteConfirmId(editingRecordId);
+                        }}
+                        className="gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Excluir
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setFormOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSubmit} disabled={upsertRecord.isPending}>
+                      {upsertRecord.isPending ? 'A guardar...' : 'Guardar'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={open => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registo de ponto? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteRecord.isPending ? 'A excluir...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
