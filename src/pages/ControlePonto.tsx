@@ -64,8 +64,8 @@ const ControlePonto = () => {
   const dateRange = useMemo(() => {
     if (viewMode === 'week') {
       return {
-        start: format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
-        end: format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+        start: format(startOfWeek(currentDate, { weekStartsOn: 6 }), 'yyyy-MM-dd'),
+        end: format(endOfWeek(currentDate, { weekStartsOn: 6 }), 'yyyy-MM-dd'),
       };
     }
     return {
