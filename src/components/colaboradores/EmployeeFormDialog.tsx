@@ -84,6 +84,7 @@ const emptyForm = {
   freguesia: '',
   concelho: '',
   codigo_postal: '',
+  complemento: '',
   pais: 'Portugal',
   job_position_id: '',
   department: '',
@@ -135,6 +136,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         freguesia: employee.freguesia || '',
         concelho: employee.concelho || '',
         codigo_postal: employee.codigo_postal || '',
+        complemento: (employee as any).complemento || '',
         pais: employee.pais || 'Portugal',
         job_position_id: employee.job_position_id || '',
         department: employee.department || '',
@@ -206,6 +208,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       freguesia: form.freguesia || null,
       concelho: form.concelho || null,
       codigo_postal: form.codigo_postal || null,
+      complemento: form.complemento || null,
       pais: form.pais || null,
       job_position_id: form.job_position_id || null,
       department: form.department || null,
@@ -371,6 +374,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                 <div className="space-y-2">
                   <Label>Número</Label>
                   <Input value={form.street_number} onChange={e => set('street_number', e.target.value)} placeholder="Nº" />
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <Label>Complemento</Label>
+                  <Input value={form.complemento} onChange={e => set('complemento', e.target.value)} placeholder="Apt, Bloco, Andar, etc." />
                 </div>
                 <div className="space-y-2">
                   <Label>Freguesia</Label>

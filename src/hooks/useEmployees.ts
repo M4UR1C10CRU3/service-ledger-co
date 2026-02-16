@@ -17,6 +17,7 @@ export interface Employee {
   freguesia: string | null;
   concelho: string | null;
   codigo_postal: string | null;
+  complemento: string | null;
   pais: string | null;
   job_position_id: string | null;
   department: string | null;
