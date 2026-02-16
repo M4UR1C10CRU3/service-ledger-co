@@ -536,6 +536,10 @@ export type Database = {
           concelho: string | null
           created_at: string
           daily_hours: number | null
+          default_entry_time: string | null
+          default_exit_time: string | null
+          default_lunch_exit_time: string | null
+          default_lunch_return_time: string | null
           department: string | null
           email: string | null
           empresa_id: string
@@ -574,6 +578,10 @@ export type Database = {
           concelho?: string | null
           created_at?: string
           daily_hours?: number | null
+          default_entry_time?: string | null
+          default_exit_time?: string | null
+          default_lunch_exit_time?: string | null
+          default_lunch_return_time?: string | null
           department?: string | null
           email?: string | null
           empresa_id: string
@@ -612,6 +620,10 @@ export type Database = {
           concelho?: string | null
           created_at?: string
           daily_hours?: number | null
+          default_entry_time?: string | null
+          default_exit_time?: string | null
+          default_lunch_exit_time?: string | null
+          default_lunch_return_time?: string | null
           department?: string | null
           email?: string | null
           empresa_id?: string
