@@ -36,6 +36,10 @@ export interface Employee {
   workdays_per_week: number | null;
   daily_hours: number | null;
   work_schedule: Record<string, boolean> | null;
+  default_entry_time: string | null;
+  default_lunch_exit_time: string | null;
+  default_lunch_return_time: string | null;
+  default_exit_time: string | null;
   benefits: any;
   status: string;
   created_at: string;

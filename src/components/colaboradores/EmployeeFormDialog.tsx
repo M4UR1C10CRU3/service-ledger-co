@@ -94,6 +94,10 @@ const emptyForm = {
   benefits: { ...defaultBenefits },
   workdays_per_week: '5',
   work_schedule: { ...defaultSchedule },
+  default_entry_time: '08:00',
+  default_lunch_exit_time: '12:00',
+  default_lunch_return_time: '13:00',
+  default_exit_time: '17:00',
   status: 'active',
 };
 
@@ -141,6 +145,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         benefits: employee.benefits || { ...defaultBenefits },
         workdays_per_week: String(employee.workdays_per_week || 5),
         work_schedule: (employee.work_schedule as any) || { ...defaultSchedule },
+        default_entry_time: employee.default_entry_time || '08:00',
+        default_lunch_exit_time: employee.default_lunch_exit_time || '12:00',
+        default_lunch_return_time: employee.default_lunch_return_time || '13:00',
+        default_exit_time: employee.default_exit_time || '17:00',
         status: employee.status || 'active',
       });
     } else {
@@ -209,6 +217,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       workdays_per_week: parseInt(form.workdays_per_week) || 5,
       daily_hours: 40 / (parseInt(form.workdays_per_week) || 5),
       work_schedule: form.work_schedule,
+      default_entry_time: form.default_entry_time || null,
+      default_lunch_exit_time: form.default_lunch_exit_time || null,
+      default_lunch_return_time: form.default_lunch_return_time || null,
+      default_exit_time: form.default_exit_time || null,
       status: form.status,
     };
 
@@ -490,6 +502,26 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
             <section>
               <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">⏰ Configuração de Jornada</h3>
               <Separator className="mb-4" />
+
+              {/* Horário Padrão */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="space-y-2">
+                  <Label>Entrada</Label>
+                  <Input type="time" value={form.default_entry_time} onChange={e => set('default_entry_time', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Saída Almoço</Label>
+                  <Input type="time" value={form.default_lunch_exit_time} onChange={e => set('default_lunch_exit_time', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Retorno Almoço</Label>
+                  <Input type="time" value={form.default_lunch_return_time} onChange={e => set('default_lunch_return_time', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Saída</Label>
+                  <Input type="time" value={form.default_exit_time} onChange={e => set('default_exit_time', e.target.value)} />
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Dias de Trabalho por Semana</Label>
