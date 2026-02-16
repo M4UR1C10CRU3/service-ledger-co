@@ -533,6 +533,7 @@ export type Database = {
           birth_date: string | null
           cartao_cidadao: string | null
           codigo_postal: string | null
+          complemento: string | null
           concelho: string | null
           created_at: string
           daily_hours: number | null
@@ -575,6 +576,7 @@ export type Database = {
           birth_date?: string | null
           cartao_cidadao?: string | null
           codigo_postal?: string | null
+          complemento?: string | null
           concelho?: string | null
           created_at?: string
           daily_hours?: number | null
@@ -617,6 +619,7 @@ export type Database = {
           birth_date?: string | null
           cartao_cidadao?: string | null
           codigo_postal?: string | null
+          complemento?: string | null
           concelho?: string | null
           created_at?: string
           daily_hours?: number | null
