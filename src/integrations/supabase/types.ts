@@ -1054,13 +1054,17 @@ export type Database = {
           email: string | null
           empresa_id: string
           estado: string | null
+          gamas: string[] | null
+          iban: string | null
           id: string
           logradouro: string | null
           nome_fantasia: string | null
           numero: string | null
           observacoes: string | null
+          pais: string | null
           razao_social: string
           status: string
+          swift_bic: string | null
           telefone: string | null
           telefone_secundario: string | null
           tipo_pessoa: string
@@ -1082,13 +1086,17 @@ export type Database = {
           email?: string | null
           empresa_id: string
           estado?: string | null
+          gamas?: string[] | null
+          iban?: string | null
           id?: string
           logradouro?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           observacoes?: string | null
+          pais?: string | null
           razao_social: string
           status?: string
+          swift_bic?: string | null
           telefone?: string | null
           telefone_secundario?: string | null
           tipo_pessoa?: string
@@ -1110,13 +1118,17 @@ export type Database = {
           email?: string | null
           empresa_id?: string
           estado?: string | null
+          gamas?: string[] | null
+          iban?: string | null
           id?: string
           logradouro?: string | null
           nome_fantasia?: string | null
           numero?: string | null
           observacoes?: string | null
+          pais?: string | null
           razao_social?: string
           status?: string
+          swift_bic?: string | null
           telefone?: string | null
           telefone_secundario?: string | null
           tipo_pessoa?: string

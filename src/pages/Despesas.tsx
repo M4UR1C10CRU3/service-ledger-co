@@ -58,7 +58,7 @@ export default function Despesas() {
   const { toast } = useToast();
   const { empresa } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
-  const { suppliers } = useSuppliers();
+  const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
 
@@ -606,6 +606,7 @@ export default function Despesas() {
         onSubmit={handleSubmit} isEditing={!!editingAccount}
         suppliers={suppliers} costCenters={costCenters}
         articles={articles} onAddCostCenter={addCostCenter}
+        onAddSupplier={addSupplier}
       />
       <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

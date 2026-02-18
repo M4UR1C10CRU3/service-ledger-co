@@ -26,11 +26,46 @@ function mapRow(row: any): Supplier {
     banco: row.banco,
     agencia: row.agencia,
     conta: row.conta,
+    iban: row.iban,
+    swiftBic: row.swift_bic,
+    pais: row.pais,
+    gamas: row.gamas || [],
     observacoes: row.observacoes,
     status: row.status,
     deletedAt: row.deleted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function formToRow(form: SupplierFormData, empresaId: string) {
+  return {
+    empresa_id: empresaId,
+    tipo_pessoa: form.tipoPessoa,
+    razao_social: form.razaoSocial.trim(),
+    nome_fantasia: form.nomeFantasia.trim() || null,
+    cnpj_cpf: form.cnpjCpf.trim(),
+    categoria: form.categoria,
+    telefone: form.telefone.trim() || null,
+    telefone_secundario: form.telefoneSecundario.trim() || null,
+    email: form.email.trim() || null,
+    contato_principal: form.contatoPrincipal.trim() || null,
+    cep: form.cep.trim() || null,
+    logradouro: form.logradouro.trim() || null,
+    numero: form.numero.trim() || null,
+    complemento: form.complemento.trim() || null,
+    bairro: form.bairro.trim() || null,
+    cidade: form.cidade.trim() || null,
+    estado: form.estado.trim() || null,
+    banco: form.banco.trim() || null,
+    agencia: form.agencia.trim() || null,
+    conta: form.conta.trim() || null,
+    iban: form.iban.trim() || null,
+    swift_bic: form.swiftBic.trim() || null,
+    pais: form.pais.trim() || 'Portugal',
+    gamas: form.gamas,
+    observacoes: form.observacoes.trim() || null,
+    status: form.status,
   };
 }
 
@@ -59,64 +94,23 @@ export function useSuppliers() {
     fetchSuppliers();
   }, [fetchSuppliers]);
 
-  const addSupplier = async (form: SupplierFormData): Promise<boolean> => {
-    if (!empresa) return false;
-    const { error } = await supabase.from('suppliers').insert({
-      empresa_id: empresa.id,
-      tipo_pessoa: form.tipoPessoa,
-      razao_social: form.razaoSocial.trim(),
-      nome_fantasia: form.nomeFantasia.trim() || null,
-      cnpj_cpf: form.cnpjCpf.trim(),
-      categoria: form.categoria,
-      telefone: form.telefone.trim() || null,
-      telefone_secundario: form.telefoneSecundario.trim() || null,
-      email: form.email.trim() || null,
-      contato_principal: form.contatoPrincipal.trim() || null,
-      cep: form.cep.trim() || null,
-      logradouro: form.logradouro.trim() || null,
-      numero: form.numero.trim() || null,
-      complemento: form.complemento.trim() || null,
-      bairro: form.bairro.trim() || null,
-      cidade: form.cidade.trim() || null,
-      estado: form.estado.trim() || null,
-      banco: form.banco.trim() || null,
-      agencia: form.agencia.trim() || null,
-      conta: form.conta.trim() || null,
-      observacoes: form.observacoes.trim() || null,
-      status: form.status,
-    });
-    if (!error) {
+  const addSupplier = async (form: SupplierFormData): Promise<Supplier | null> => {
+    if (!empresa) return null;
+    const row = formToRow(form, empresa.id);
+    const { data, error } = await supabase.from('suppliers').insert(row).select().single();
+    if (!error && data) {
+      const newSupplier = mapRow(data);
       await fetchSuppliers();
-      return true;
+      return newSupplier;
     }
     console.error('Error adding supplier:', error);
-    return false;
+    return null;
   };
 
   const updateSupplier = async (id: string, form: SupplierFormData): Promise<boolean> => {
-    const { error } = await supabase.from('suppliers').update({
-      tipo_pessoa: form.tipoPessoa,
-      razao_social: form.razaoSocial.trim(),
-      nome_fantasia: form.nomeFantasia.trim() || null,
-      cnpj_cpf: form.cnpjCpf.trim(),
-      categoria: form.categoria,
-      telefone: form.telefone.trim() || null,
-      telefone_secundario: form.telefoneSecundario.trim() || null,
-      email: form.email.trim() || null,
-      contato_principal: form.contatoPrincipal.trim() || null,
-      cep: form.cep.trim() || null,
-      logradouro: form.logradouro.trim() || null,
-      numero: form.numero.trim() || null,
-      complemento: form.complemento.trim() || null,
-      bairro: form.bairro.trim() || null,
-      cidade: form.cidade.trim() || null,
-      estado: form.estado.trim() || null,
-      banco: form.banco.trim() || null,
-      agencia: form.agencia.trim() || null,
-      conta: form.conta.trim() || null,
-      observacoes: form.observacoes.trim() || null,
-      status: form.status,
-    }).eq('id', id);
+    if (!empresa) return false;
+    const { empresa_id, ...updates } = formToRow(form, empresa.id);
+    const { error } = await supabase.from('suppliers').update(updates).eq('id', id);
     if (!error) {
       await fetchSuppliers();
       return true;
@@ -126,7 +120,6 @@ export function useSuppliers() {
   };
 
   const deleteSupplier = async (id: string): Promise<boolean> => {
-    // Soft delete
     const { error } = await supabase
       .from('suppliers')
       .update({ deleted_at: new Date().toISOString() })
