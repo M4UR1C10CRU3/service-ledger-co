@@ -3,7 +3,7 @@ export interface AccountPayable {
   empresaId: string;
   supplierId: string;
   supplierName?: string;
-  tipoLancamento: 'compra' | 'despesa_fixa' | 'custo_investimento';
+  tipoLancamento: 'compra_revenda' | 'despesa' | 'compra' | 'despesa_fixa' | 'custo_investimento';
   categoria: string;
   descricao: string | null;
   numeroDocumento: string | null;
@@ -12,7 +12,9 @@ export interface AccountPayable {
   desconto: number;
   acrescimo: number;
   valorLiquido: number;
-  formaPagamento: 'a_vista' | 'a_prazo';
+  ivaRate: number;
+  ivaValue: number;
+  formaPagamento: 'imediato' | 'a_credito' | 'a_vista' | 'a_prazo';
   dataPagamento: string | null;
   dataVencimento: string | null;
   metodoPagamento: string | null;
@@ -23,38 +25,57 @@ export interface AccountPayable {
   observacoes: string | null;
   vincularEstoque: boolean;
   costCenterId: string | null;
+  articleId: string | null;
+  quantity: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AccountPayableFormData {
   supplierId: string;
-  tipoLancamento: 'compra' | 'despesa_fixa' | 'custo_investimento';
+  tipoLancamento: 'compra_revenda' | 'despesa';
   categoria: string;
   descricao: string;
   numeroDocumento: string;
   dataEmissao: Date;
-  valorBruto: string;
-  desconto: string;
-  acrescimo: string;
-  formaPagamento: 'a_vista' | 'a_prazo';
+  valorBruto: string; // Valor Ilíquido
+  ivaRate: string; // '0' | '6' | '13' | '23'
+  ivaValue: string; // calculated
+  valorLiquido: string; // calculated total
+  formaPagamento: 'imediato' | 'a_credito';
   dataPagamento: Date;
   dataVencimento: Date;
   metodoPagamento: string;
-  centroCusto: string;
-  projeto: string;
   observacoes: string;
-  vincularEstoque: boolean;
   costCenterId: string;
+  articleId: string;
+  quantity: string;
 }
 
 export const TIPO_LANCAMENTO_LABELS: Record<string, string> = {
+  compra_revenda: 'Compra de Artigos para Revenda',
+  despesa: 'Despesa',
+  // Legacy
   compra: 'Compra',
   despesa_fixa: 'Despesa Fixa',
   custo_investimento: 'Custo/Investimento',
 };
 
+export const CATEGORIAS: { value: string; label: string }[] = [
+  { value: 'artigos_revenda', label: 'Artigos para Revenda' },
+  { value: 'outros', label: 'Outros' },
+];
+
+// Legacy categories kept for backward compatibility in reports/filters
 export const CATEGORIAS_POR_TIPO: Record<string, { value: string; label: string }[]> = {
+  compra_revenda: [
+    { value: 'artigos_revenda', label: 'Artigos para Revenda' },
+    { value: 'outros', label: 'Outros' },
+  ],
+  despesa: [
+    { value: 'artigos_revenda', label: 'Artigos para Revenda' },
+    { value: 'outros', label: 'Outros' },
+  ],
   compra: [
     { value: 'produtos_revenda', label: 'Produtos para Revenda' },
     { value: 'mercadorias', label: 'Mercadorias' },
@@ -74,12 +95,19 @@ export const CATEGORIAS_POR_TIPO: Record<string, { value: string; label: string 
   ],
 };
 
+export const IVA_OPTIONS = [
+  { value: '0', label: 'Isento (0%)' },
+  { value: '6', label: '6%' },
+  { value: '13', label: '13%' },
+  { value: '23', label: '23%' },
+];
+
 export const METODOS_PAGAMENTO = [
-  { value: 'dinheiro', label: 'Dinheiro' },
-  { value: 'pix', label: 'PIX' },
-  { value: 'transferencia', label: 'Transferência' },
-  { value: 'cartao', label: 'Cartão' },
-  { value: 'boleto', label: 'Boleto' },
+  { value: 'numerario', label: 'Numerário' },
+  { value: 'multibanco', label: 'Multibanco' },
+  { value: 'transferencia', label: 'Transferência Bancária' },
+  { value: 'cheque', label: 'Cheque' },
+  { value: 'permuta', label: 'Permuta' },
 ];
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -91,28 +119,38 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export const ALL_CATEGORIAS = [
-  ...CATEGORIAS_POR_TIPO.compra,
-  ...CATEGORIAS_POR_TIPO.despesa_fixa,
-  ...CATEGORIAS_POR_TIPO.custo_investimento,
+  ...CATEGORIAS,
+  // Legacy
+  { value: 'produtos_revenda', label: 'Produtos para Revenda' },
+  { value: 'mercadorias', label: 'Mercadorias' },
+  { value: 'agua', label: 'Água' },
+  { value: 'luz', label: 'Luz' },
+  { value: 'internet', label: 'Internet' },
+  { value: 'telecomunicacoes', label: 'Telecomunicações' },
+  { value: 'arrendamento', label: 'Arrendamento' },
+  { value: 'manutencao', label: 'Manutenção' },
+  { value: 'equipamentos', label: 'Equipamentos' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'reformas', label: 'Reformas' },
 ];
 
 export const emptyAccountPayableForm: AccountPayableFormData = {
   supplierId: '',
-  tipoLancamento: 'compra',
+  tipoLancamento: 'despesa',
   categoria: '',
   descricao: '',
   numeroDocumento: '',
   dataEmissao: new Date(),
   valorBruto: '',
-  desconto: '',
-  acrescimo: '',
-  formaPagamento: 'a_vista',
+  ivaRate: '23',
+  ivaValue: '',
+  valorLiquido: '',
+  formaPagamento: 'imediato',
   dataPagamento: new Date(),
   dataVencimento: new Date(),
   metodoPagamento: 'transferencia',
-  centroCusto: '',
-  projeto: '',
   observacoes: '',
-  vincularEstoque: false,
   costCenterId: '',
+  articleId: '',
+  quantity: '',
 };
