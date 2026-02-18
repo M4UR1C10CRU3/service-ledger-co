@@ -38,7 +38,7 @@ export default function ContasPagar() {
   const { toast } = useToast();
   const { empresa, getLogo } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
-  const { suppliers } = useSuppliers();
+  const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
 
@@ -384,6 +384,7 @@ export default function ContasPagar() {
         costCenters={costCenters}
         articles={articles}
         onAddCostCenter={addCostCenter}
+        onAddSupplier={addSupplier}
       />
 
       {/* Detail Dialog */}

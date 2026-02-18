@@ -1,3 +1,18 @@
+export const GAMAS_OPTIONS = [
+  'Pavimentos e Revestimentos',
+  'Equipamentos, Mobiliário e Louças Sanitárias',
+  'Mobiliário por Medida',
+  'Iluminação',
+  'Electrodomésticos',
+  "EPI's e Segurança",
+  'Equipamentos e Ferramentas',
+  'Artigos de Pintura',
+  'Climatização',
+  'Churrasqueiras e Fornos',
+  'Ferragens e Outros',
+  'Tubagens e Artigos de Canalização',
+] as const;
+
 export interface Supplier {
   id: string;
   empresaId: string;
@@ -5,7 +20,7 @@ export interface Supplier {
   razaoSocial: string;
   nomeFantasia: string | null;
   cnpjCpf: string;
-  categoria: 'materia_prima' | 'servicos' | 'utilidades' | 'arrendamentos' | 'outros';
+  categoria: string;
   telefone: string | null;
   telefoneSecundario: string | null;
   email: string | null;
@@ -20,6 +35,10 @@ export interface Supplier {
   banco: string | null;
   agencia: string | null;
   conta: string | null;
+  iban: string | null;
+  swiftBic: string | null;
+  pais: string | null;
+  gamas: string[];
   observacoes: string | null;
   status: 'ativo' | 'inativo';
   deletedAt: string | null;
@@ -32,7 +51,7 @@ export interface SupplierFormData {
   razaoSocial: string;
   nomeFantasia: string;
   cnpjCpf: string;
-  categoria: 'materia_prima' | 'servicos' | 'utilidades' | 'arrendamentos' | 'outros';
+  categoria: string;
   telefone: string;
   telefoneSecundario: string;
   email: string;
@@ -47,6 +66,10 @@ export interface SupplierFormData {
   banco: string;
   agencia: string;
   conta: string;
+  iban: string;
+  swiftBic: string;
+  pais: string;
+  gamas: string[];
   observacoes: string;
   status: 'ativo' | 'inativo';
 }
@@ -79,6 +102,10 @@ export const emptySupplierForm: SupplierFormData = {
   banco: '',
   agencia: '',
   conta: '',
+  iban: '',
+  swiftBic: '',
+  pais: 'Portugal',
+  gamas: [],
   observacoes: '',
   status: 'ativo',
 };
