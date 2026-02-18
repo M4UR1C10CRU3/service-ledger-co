@@ -6,6 +6,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
+import { useArticles } from '@/hooks/useArticles';
 import {
   AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
   CATEGORIAS_POR_TIPO,
@@ -58,7 +59,8 @@ export default function Despesas() {
   const { empresa } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
   const { suppliers } = useSuppliers();
-  const { costCenters } = useCostCenters();
+  const { costCenters, addCostCenter } = useCostCenters();
+  const { articles, updateArticleStock } = useArticles();
 
   useEffect(() => {
     if (!empresa) {
@@ -208,25 +210,33 @@ export default function Despesas() {
   const handleOpenForm = (account?: AccountPayable) => {
     if (account) {
       setEditingAccount(account);
+      const tipoMap: Record<string, 'compra_revenda' | 'despesa'> = {
+        compra: 'compra_revenda', compra_revenda: 'compra_revenda',
+        despesa: 'despesa', despesa_fixa: 'despesa', custo_investimento: 'despesa',
+      };
+      const fpMap: Record<string, 'imediato' | 'a_credito'> = {
+        a_vista: 'imediato', imediato: 'imediato',
+        a_prazo: 'a_credito', a_credito: 'a_credito',
+      };
       setFormData({
         supplierId: account.supplierId,
-        tipoLancamento: account.tipoLancamento,
+        tipoLancamento: tipoMap[account.tipoLancamento] || 'despesa',
         categoria: account.categoria,
         descricao: account.descricao || '',
         numeroDocumento: account.numeroDocumento || '',
         dataEmissao: new Date(account.dataEmissao),
         valorBruto: String(account.valorBruto),
-        desconto: String(account.desconto),
-        acrescimo: String(account.acrescimo),
-        formaPagamento: account.formaPagamento,
+        ivaRate: String(account.ivaRate || 0),
+        ivaValue: String(account.ivaValue || 0),
+        valorLiquido: String(account.valorLiquido),
+        formaPagamento: fpMap[account.formaPagamento] || 'imediato',
         dataPagamento: account.dataPagamento ? new Date(account.dataPagamento) : new Date(),
         dataVencimento: account.dataVencimento ? new Date(account.dataVencimento) : new Date(),
         metodoPagamento: account.metodoPagamento || 'transferencia',
-        centroCusto: account.centroCusto || '',
-        projeto: account.projeto || '',
         observacoes: account.observacoes || '',
-        vincularEstoque: account.vincularEstoque,
         costCenterId: account.costCenterId || '',
+        articleId: account.articleId || '',
+        quantity: account.quantity ? String(account.quantity) : '',
       });
     } else {
       resetForm();
@@ -244,17 +254,37 @@ export default function Despesas() {
       return;
     }
     if (!formData.valorBruto || parseFloat(formData.valorBruto) <= 0) {
-      toast({ title: 'Erro', description: 'Informe o valor bruto.', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
       return;
     }
-    const ok = editingAccount
-      ? await updateAccount(editingAccount.id, formData)
-      : await addAccount(formData);
-    toast(ok
-      ? { title: editingAccount ? 'Despesa atualizada' : 'Despesa cadastrada', description: 'Operação realizada com sucesso.' }
-      : { title: 'Erro', description: 'Não foi possível salvar.', variant: 'destructive' }
-    );
-    if (ok) { setIsFormOpen(false); resetForm(); }
+    if (formData.tipoLancamento === 'compra_revenda' && (!formData.quantity || parseFloat(formData.quantity) <= 0)) {
+      toast({ title: 'Erro', description: 'Informe a quantidade.', variant: 'destructive' });
+      return;
+    }
+
+    if (editingAccount) {
+      const ok = await updateAccount(editingAccount.id, formData);
+      toast(ok
+        ? { title: 'Registo atualizado', description: 'Operação realizada com sucesso.' }
+        : { title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' }
+      );
+      if (ok) { setIsFormOpen(false); resetForm(); }
+    } else {
+      const newId = await addAccount(formData);
+      if (newId) {
+        if (formData.tipoLancamento === 'compra_revenda' && formData.articleId) {
+          const qty = parseFloat(formData.quantity) || 0;
+          const bruto = parseFloat(formData.valorBruto) || 0;
+          const unitCost = qty > 0 ? bruto / qty : 0;
+          await updateArticleStock(formData.articleId, qty, unitCost, formData.supplierId, newId);
+        }
+        toast({ title: 'Registo guardado', description: 'Operação realizada com sucesso.' });
+        setIsFormOpen(false);
+        resetForm();
+      } else {
+        toast({ title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' });
+      }
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -575,6 +605,7 @@ export default function Despesas() {
         formData={formData} setFormData={setFormData}
         onSubmit={handleSubmit} isEditing={!!editingAccount}
         suppliers={suppliers} costCenters={costCenters}
+        articles={articles} onAddCostCenter={addCostCenter}
       />
       <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

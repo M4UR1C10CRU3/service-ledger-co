@@ -19,6 +19,8 @@ function mapRow(row: any, supplierName?: string): AccountPayable {
     desconto: Number(row.desconto),
     acrescimo: Number(row.acrescimo),
     valorLiquido: Number(row.valor_liquido),
+    ivaRate: Number(row.iva_rate || 0),
+    ivaValue: Number(row.iva_value || 0),
     formaPagamento: row.forma_pagamento,
     dataPagamento: row.data_pagamento,
     dataVencimento: row.data_vencimento,
@@ -30,6 +32,8 @@ function mapRow(row: any, supplierName?: string): AccountPayable {
     observacoes: row.observacoes,
     vincularEstoque: row.vincular_estoque,
     costCenterId: row.cost_center_id,
+    articleId: row.article_id,
+    quantity: Number(row.quantity || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -60,17 +64,17 @@ export function useAccountsPayable() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const addAccount = async (form: AccountPayableFormData): Promise<boolean> => {
-    if (!empresa) return false;
+  const addAccount = async (form: AccountPayableFormData): Promise<string | null> => {
+    if (!empresa) return null;
 
     const bruto = parseFloat(form.valorBruto) || 0;
-    const desc = parseFloat(form.desconto) || 0;
-    const acr = parseFloat(form.acrescimo) || 0;
-    const liquido = bruto - desc + acr;
+    const ivaRate = parseFloat(form.ivaRate) || 0;
+    const ivaValue = bruto * (ivaRate / 100);
+    const liquido = bruto + ivaValue;
 
-    const isAVista = form.formaPagamento === 'a_vista';
+    const isImediato = form.formaPagamento === 'imediato';
 
-    const { error } = await supabase.from('accounts_payable').insert({
+    const { data, error } = await supabase.from('accounts_payable').insert({
       empresa_id: empresa.id,
       supplier_id: form.supplierId,
       tipo_lancamento: form.tipoLancamento,
@@ -79,35 +83,37 @@ export function useAccountsPayable() {
       numero_documento: form.numeroDocumento.trim() || null,
       data_emissao: form.dataEmissao.toISOString().split('T')[0],
       valor_bruto: bruto,
-      desconto: desc,
-      acrescimo: acr,
+      desconto: 0,
+      acrescimo: 0,
       valor_liquido: liquido,
+      iva_rate: ivaRate,
+      iva_value: ivaValue,
       forma_pagamento: form.formaPagamento,
-      data_pagamento: isAVista ? form.dataPagamento.toISOString().split('T')[0] : null,
-      data_vencimento: !isAVista ? form.dataVencimento.toISOString().split('T')[0] : null,
-      metodo_pagamento: isAVista ? form.metodoPagamento : null,
-      status: isAVista ? 'liquidado' : 'pendente',
-      centro_custo: form.centroCusto.trim() || null,
-      projeto: form.projeto.trim() || null,
+      data_pagamento: isImediato ? form.dataPagamento.toISOString().split('T')[0] : null,
+      data_vencimento: !isImediato ? form.dataVencimento.toISOString().split('T')[0] : null,
+      metodo_pagamento: form.metodoPagamento,
+      status: isImediato ? 'liquidado' : 'pendente',
       observacoes: form.observacoes.trim() || null,
-      vincular_estoque: form.tipoLancamento === 'compra' ? form.vincularEstoque : false,
+      vincular_estoque: form.tipoLancamento === 'compra_revenda',
       cost_center_id: form.costCenterId || null,
-    });
+      article_id: form.articleId || null,
+      quantity: parseFloat(form.quantity) || 0,
+    }).select('id').single();
 
-    if (!error) {
+    if (!error && data) {
       await fetchAccounts();
-      return true;
+      return data.id;
     }
     console.error('Error adding account:', error);
-    return false;
+    return null;
   };
 
   const updateAccount = async (id: string, form: AccountPayableFormData): Promise<boolean> => {
     const bruto = parseFloat(form.valorBruto) || 0;
-    const desc = parseFloat(form.desconto) || 0;
-    const acr = parseFloat(form.acrescimo) || 0;
-    const liquido = bruto - desc + acr;
-    const isAVista = form.formaPagamento === 'a_vista';
+    const ivaRate = parseFloat(form.ivaRate) || 0;
+    const ivaValue = bruto * (ivaRate / 100);
+    const liquido = bruto + ivaValue;
+    const isImediato = form.formaPagamento === 'imediato';
 
     const { error } = await supabase.from('accounts_payable').update({
       supplier_id: form.supplierId,
@@ -117,19 +123,21 @@ export function useAccountsPayable() {
       numero_documento: form.numeroDocumento.trim() || null,
       data_emissao: form.dataEmissao.toISOString().split('T')[0],
       valor_bruto: bruto,
-      desconto: desc,
-      acrescimo: acr,
+      desconto: 0,
+      acrescimo: 0,
       valor_liquido: liquido,
+      iva_rate: ivaRate,
+      iva_value: ivaValue,
       forma_pagamento: form.formaPagamento,
-      data_pagamento: isAVista ? form.dataPagamento.toISOString().split('T')[0] : null,
-      data_vencimento: !isAVista ? form.dataVencimento.toISOString().split('T')[0] : null,
-      metodo_pagamento: isAVista ? form.metodoPagamento : null,
-      status: isAVista ? 'liquidado' : 'pendente',
-      centro_custo: form.centroCusto.trim() || null,
-      projeto: form.projeto.trim() || null,
+      data_pagamento: isImediato ? form.dataPagamento.toISOString().split('T')[0] : null,
+      data_vencimento: !isImediato ? form.dataVencimento.toISOString().split('T')[0] : null,
+      metodo_pagamento: form.metodoPagamento,
+      status: isImediato ? 'liquidado' : 'pendente',
       observacoes: form.observacoes.trim() || null,
-      vincular_estoque: form.tipoLancamento === 'compra' ? form.vincularEstoque : false,
+      vincular_estoque: form.tipoLancamento === 'compra_revenda',
       cost_center_id: form.costCenterId || null,
+      article_id: form.articleId || null,
+      quantity: parseFloat(form.quantity) || 0,
     }).eq('id', id);
 
     if (!error) {
@@ -153,7 +161,6 @@ export function useAccountsPayable() {
   const liquidarAccount = async (data: LiquidacaoData): Promise<boolean> => {
     if (!empresa) return false;
 
-    // Insert payment record
     const { error: payError } = await supabase.from('account_payments').insert({
       account_payable_id: data.accountPayableId,
       empresa_id: empresa.id,
@@ -172,15 +179,12 @@ export function useAccountsPayable() {
       return false;
     }
 
-    // Calculate total paid for this account
     const { data: payments } = await supabase
       .from('account_payments')
       .select('valor_pago')
       .eq('account_payable_id', data.accountPayableId);
 
     const totalPaid = (payments || []).reduce((s: number, p: any) => s + Number(p.valor_pago), 0);
-
-    // Find the account to compare
     const account = accounts.find(a => a.id === data.accountPayableId);
     const newStatus = account && totalPaid >= account.valorLiquido ? 'liquidado' : 'parcial';
 

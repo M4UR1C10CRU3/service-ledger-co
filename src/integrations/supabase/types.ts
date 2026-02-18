@@ -85,6 +85,7 @@ export type Database = {
           acrescimo: number
           alert_sent: boolean | null
           alert_sent_at: string | null
+          article_id: string | null
           categoria: string
           centro_custo: string | null
           comprovante_url: string | null
@@ -99,10 +100,13 @@ export type Database = {
           empresa_id: string
           forma_pagamento: string
           id: string
+          iva_rate: number | null
+          iva_value: number | null
           metodo_pagamento: string | null
           numero_documento: string | null
           observacoes: string | null
           projeto: string | null
+          quantity: number | null
           status: string
           supplier_id: string
           tipo_lancamento: string
@@ -115,6 +119,7 @@ export type Database = {
           acrescimo?: number
           alert_sent?: boolean | null
           alert_sent_at?: string | null
+          article_id?: string | null
           categoria: string
           centro_custo?: string | null
           comprovante_url?: string | null
@@ -129,10 +134,13 @@ export type Database = {
           empresa_id: string
           forma_pagamento: string
           id?: string
+          iva_rate?: number | null
+          iva_value?: number | null
           metodo_pagamento?: string | null
           numero_documento?: string | null
           observacoes?: string | null
           projeto?: string | null
+          quantity?: number | null
           status?: string
           supplier_id: string
           tipo_lancamento: string
@@ -145,6 +153,7 @@ export type Database = {
           acrescimo?: number
           alert_sent?: boolean | null
           alert_sent_at?: string | null
+          article_id?: string | null
           categoria?: string
           centro_custo?: string | null
           comprovante_url?: string | null
@@ -159,10 +168,13 @@ export type Database = {
           empresa_id?: string
           forma_pagamento?: string
           id?: string
+          iva_rate?: number | null
+          iva_value?: number | null
           metodo_pagamento?: string | null
           numero_documento?: string | null
           observacoes?: string | null
           projeto?: string | null
+          quantity?: number | null
           status?: string
           supplier_id?: string
           tipo_lancamento?: string
@@ -172,6 +184,13 @@ export type Database = {
           vincular_estoque?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "accounts_payable_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accounts_payable_cost_center_id_fkey"
             columns: ["cost_center_id"]
@@ -298,6 +317,57 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: true
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      articles: {
+        Row: {
+          cost_price: number
+          created_at: string
+          current_stock: number
+          description: string
+          empresa_id: string
+          id: string
+          reference_code: string
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cost_price?: number
+          created_at?: string
+          current_stock?: number
+          description: string
+          empresa_id: string
+          id?: string
+          reference_code: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          current_stock?: number
+          description?: string
+          empresa_id?: string
+          id?: string
+          reference_code?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "articles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "articles_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -902,6 +972,64 @@ export type Database = {
           },
           {
             foreignKeyName: "services_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movements: {
+        Row: {
+          account_payable_id: string | null
+          article_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+          movement_type: string
+          notes: string | null
+          quantity: number
+          unit_cost: number
+        }
+        Insert: {
+          account_payable_id?: string | null
+          article_id: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          quantity: number
+          unit_cost?: number
+        }
+        Update: {
+          account_payable_id?: string | null
+          article_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          quantity?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_account_payable_id_fkey"
+            columns: ["account_payable_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
