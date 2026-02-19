@@ -80,7 +80,6 @@ export function useSuppliers() {
     const { data, error } = await supabase
       .from('suppliers')
       .select('*')
-      .eq('empresa_id', empresa.id)
       .is('deleted_at', null)
       .order('razao_social');
 
