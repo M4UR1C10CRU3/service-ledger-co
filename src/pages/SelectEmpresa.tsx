@@ -2,10 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import logoObrajusta from '@/assets/logo-obrajusta.png';
 import logoTudocasa from '@/assets/logo-tudocasa.png';
+import logoResiserv from '@/assets/logo-resiserv.jpg';
 
 const logoMap: Record<string, string> = {
   obrajusta: logoObrajusta,
+  'obrajusta-gestao': logoObrajusta,
   tudocasa: logoTudocasa,
+  'tudocasa-matrizchamer': logoTudocasa,
+  resiserv: logoResiserv,
 };
 
 const SelectEmpresa = () => {
