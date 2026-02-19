@@ -24,7 +24,7 @@ const logoMap: Record<string, string> = {
   obrajusta: logoObrajusta,
   'obrajusta-gestao': logoObrajusta,
   tudocasa: logoTudocasa,
-  'tudocasa-matrizchamer': logoTudocasa,
+  'tudocasa-matrizcharme': logoTudocasa,
   resiserv: logoResiserv,
 };
 
