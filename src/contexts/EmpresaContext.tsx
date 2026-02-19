@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Logos importados
 import logoObrajusta from '@/assets/logo-obrajusta.png';
 import logoTudocasa from '@/assets/logo-tudocasa.png';
+import logoResiserv from '@/assets/logo-resiserv.jpg';
 
 interface EmpresaContextType {
   empresa: Empresa | null;
@@ -21,7 +22,10 @@ const EmpresaContext = createContext<EmpresaContextType | undefined>(undefined);
 // Mapeamento de logos por slug
 const logoMap: Record<string, string> = {
   obrajusta: logoObrajusta,
+  'obrajusta-gestao': logoObrajusta,
   tudocasa: logoTudocasa,
+  'tudocasa-matrizchamer': logoTudocasa,
+  resiserv: logoResiserv,
 };
 
 export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
