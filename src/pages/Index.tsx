@@ -18,15 +18,16 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, FileText } from 'lucide-react';
 
 const Index = () => {
-  const { empresa } = useEmpresa();
+  const { empresa, isLoading: empresaLoading } = useEmpresa();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const savedEmpresa = localStorage.getItem('selectedEmpresa');
       if (!savedEmpresa) navigate('/empresa');
     }
-  }, [empresa, navigate]);
+  }, [empresa, empresaLoading, navigate]);
 
   const {
     services,

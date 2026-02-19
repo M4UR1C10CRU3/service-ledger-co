@@ -58,10 +58,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
     // Safety timeout - ensure we don't stay in loading forever
     authTimeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('Auth check timeout - forcing completion');
-        setLoading(false);
-        setAuthChecked(true);
+      if (mounted) {
+        setLoading(prev => {
+          if (prev) {
+            console.warn('Auth check timeout - forcing completion');
+            setAuthChecked(true);
+            return false;
+          }
+          return prev;
+        });
       }
     }, 5000);
 

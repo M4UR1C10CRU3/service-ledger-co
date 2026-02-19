@@ -19,14 +19,15 @@ const fmt = (v: number) =>
 
 const DashboardGeral = () => {
   const navigate = useNavigate();
-  const { empresa } = useEmpresa();
+  const { empresa, isLoading: empresaLoading } = useEmpresa();
 
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const saved = localStorage.getItem('selectedEmpresa');
       if (!saved) navigate('/empresa');
     }
-  }, [empresa, navigate]);
+  }, [empresa, empresaLoading, navigate]);
 
   const { services, dashboardMetrics, isInitialized } = useServices(empresa?.id);
   const { clientes } = useClientes();

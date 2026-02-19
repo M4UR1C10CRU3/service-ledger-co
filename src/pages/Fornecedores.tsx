@@ -30,10 +30,11 @@ const PAGE_SIZE = 10;
 export default function Fornecedores() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
 
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const saved = localStorage.getItem('selectedEmpresa');
       if (!saved) navigate('/empresa');

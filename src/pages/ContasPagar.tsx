@@ -36,7 +36,7 @@ function formatCurrency(v: number): string {
 export default function ContasPagar() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
@@ -46,11 +46,12 @@ export default function ContasPagar() {
   const empresaNome = empresa?.nome || 'Sistema';
 
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const saved = localStorage.getItem('selectedEmpresa');
       if (!saved) navigate('/empresa');
     }
-  }, [empresa, navigate]);
+  }, [empresa, empresaLoading, navigate]);
 
   // Filters
   const [filters, setFilters] = useState<FiltersState>(initialFilters);

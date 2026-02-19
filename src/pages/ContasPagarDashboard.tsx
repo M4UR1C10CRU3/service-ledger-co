@@ -38,18 +38,19 @@ function getCatLabel(cat: string): string {
 
 export default function ContasPagarDashboard() {
   const navigate = useNavigate();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { accounts, isLoading } = useAccountsPayable();
 
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
 
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const saved = localStorage.getItem('selectedEmpresa');
       if (!saved) navigate('/empresa');
     }
-  }, [empresa, navigate]);
+  }, [empresa, empresaLoading, navigate]);
 
   const today = useMemo(() => {
     const d = new Date();

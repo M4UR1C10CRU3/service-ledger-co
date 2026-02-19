@@ -51,7 +51,7 @@ import {
 export default function Clientes() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { clientes, isLoading, addCliente, updateCliente, deleteCliente, refreshClientes } = useClientes();
   
   const logo = getLogo();
@@ -59,13 +59,14 @@ export default function Clientes() {
   
   // Redirecionar se não há empresa selecionada
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const savedEmpresa = localStorage.getItem('selectedEmpresa');
       if (!savedEmpresa) {
         navigate('/empresa');
       }
     }
-  }, [empresa, navigate]);
+  }, [empresa, empresaLoading, navigate]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);

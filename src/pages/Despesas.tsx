@@ -56,18 +56,19 @@ function getCatLabel(cat: string): string {
 export default function Despesas() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { empresa } = useEmpresa();
+  const { empresa, isLoading: empresaLoading } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
 
   useEffect(() => {
+    if (empresaLoading) return;
     if (!empresa) {
       const saved = localStorage.getItem('selectedEmpresa');
       if (!saved) navigate('/empresa');
     }
-  }, [empresa, navigate]);
+  }, [empresa, empresaLoading, navigate]);
 
   // Filters
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
