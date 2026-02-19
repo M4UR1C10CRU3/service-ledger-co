@@ -8,7 +8,7 @@ const logoMap: Record<string, string> = {
   obrajusta: logoObrajusta,
   'obrajusta-gestao': logoObrajusta,
   tudocasa: logoTudocasa,
-  'tudocasa-matrizchamer': logoTudocasa,
+  'tudocasa-matrizcharme': logoTudocasa,
   resiserv: logoResiserv,
 };
 
@@ -30,32 +30,30 @@ const SelectEmpresa = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 overflow-hidden">
       {/* Header */}
-      <div className="text-center mb-14">
-        <h1 className="text-5xl font-bold text-white mb-3 tracking-tight">Bem-vindo</h1>
-        <p className="text-slate-400 text-lg">Selecione a empresa para continuar</p>
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">Bem-vindo</h1>
+        <p className="text-slate-400 text-sm">Selecione a empresa para continuar</p>
       </div>
 
-      {/* Company Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
+      {/* Company Cards - compact grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 max-w-6xl w-full">
         {empresas.map((empresa) => {
           const logo = logoMap[empresa.slug] || logoObrajusta;
           return (
             <div
               key={empresa.id}
               onClick={() => handleSelectEmpresa(empresa)}
-              className="group relative bg-white rounded-2xl shadow-xl p-8 cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+              className="group relative bg-white rounded-xl shadow-lg p-4 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
-              {/* Hover border overlay */}
               <div
-                className="absolute inset-0 rounded-2xl border-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                className="absolute inset-0 rounded-xl border-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                 style={{ borderColor: empresa.corPrimaria }}
               />
 
               <div className="flex flex-col items-center">
-                {/* Logo */}
-                <div className="w-28 h-28 mb-6 rounded-2xl overflow-hidden bg-slate-50 p-4 flex items-center justify-center">
+                <div className="w-16 h-16 mb-3 rounded-xl overflow-hidden bg-slate-50 p-2 flex items-center justify-center">
                   <img
                     src={logo}
                     alt={`${empresa.nome} Logo`}
@@ -63,23 +61,14 @@ const SelectEmpresa = () => {
                   />
                 </div>
 
-                {/* Name */}
-                <h3 className="text-2xl font-bold text-slate-900 mb-1">{empresa.nome}</h3>
-                <p className="text-slate-500 text-sm mb-6">{empresa.nomeLegal}</p>
+                <h3 className="text-base font-bold text-slate-900 mb-0.5 text-center leading-tight">{empresa.nome}</h3>
+                <p className="text-slate-500 text-[11px] mb-3 text-center leading-tight">{empresa.nomeLegal}</p>
 
-                {/* Stats placeholder - brief info */}
-                <div className="w-full space-y-2 mb-6 text-sm">
-                  <div className="flex justify-between text-slate-500 border-b border-slate-100 pb-2">
-                    <span>Gestão integrada</span>
-                  </div>
-                </div>
-
-                {/* CTA Button */}
                 <button
-                  className="w-full px-6 py-3 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 text-base"
+                  className="w-full px-3 py-2 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm"
                   style={{ backgroundColor: empresa.corPrimaria }}
                 >
-                  Acessar Sistema
+                  Acessar
                 </button>
               </div>
             </div>
@@ -87,8 +76,7 @@ const SelectEmpresa = () => {
         })}
       </div>
 
-      {/* Footer */}
-      <p className="text-slate-600 text-sm mt-14">
+      <p className="text-slate-600 text-xs mt-6">
         Sistema de Gestão Multi-Empresa
       </p>
     </div>
