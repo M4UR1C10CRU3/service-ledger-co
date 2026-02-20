@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SupplierFormData, emptySupplierForm, GAMAS_OPTIONS } from '@/types/supplier';
-import { MapPin, Landmark, Package } from 'lucide-react';
-
+import { MapPin, Landmark, Package, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -19,6 +20,8 @@ interface Props {
 }
 
 export function SupplierFormDialog({ open, onOpenChange, formData, setFormData, onSubmit, isEditing }: Props) {
+  const [novaGama, setNovaGama] = useState('');
+  const [customGamas, setCustomGamas] = useState<string[]>([]);
   const update = (partial: Partial<SupplierFormData>) => setFormData({ ...formData, ...partial });
 
   const toggleGama = (gama: string) => {
@@ -28,6 +31,21 @@ export function SupplierFormDialog({ open, onOpenChange, formData, setFormData, 
     } else {
       update({ gamas: [...current, gama] });
     }
+  };
+
+  const allGamas = [...GAMAS_OPTIONS, ...customGamas.filter(g => !GAMAS_OPTIONS.includes(g as any))];
+
+  const handleAddGama = () => {
+    const trimmed = novaGama.trim();
+    if (!trimmed) return;
+    if (allGamas.some(g => g.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error('Esta gama já existe');
+      return;
+    }
+    setCustomGamas(prev => [...prev, trimmed]);
+    update({ gamas: [...(formData.gamas || []), trimmed] });
+    setNovaGama('');
+    toast.success(`Gama "${trimmed}" adicionada`);
   };
 
   const isPessoaColectiva = formData.tipoPessoa === 'juridica';
@@ -170,7 +188,7 @@ export function SupplierFormDialog({ open, onOpenChange, formData, setFormData, 
               <Package className="w-4 h-4" /> Gamas Fornecidas
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {GAMAS_OPTIONS.map((gama) => (
+              {allGamas.map((gama) => (
                 <div key={gama} className="flex items-center gap-2">
                   <Checkbox
                     id={`gama-${gama}`}
@@ -180,6 +198,18 @@ export function SupplierFormDialog({ open, onOpenChange, formData, setFormData, 
                   <Label htmlFor={`gama-${gama}`} className="font-normal text-sm cursor-pointer">{gama}</Label>
                 </div>
               ))}
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <Input
+                value={novaGama}
+                onChange={(e) => setNovaGama(e.target.value)}
+                placeholder="Nova gama..."
+                className="flex-1"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddGama(); } }}
+              />
+              <Button type="button" variant="outline" size="sm" onClick={handleAddGama}>
+                <Plus className="w-4 h-4 mr-1" /> Adicionar
+              </Button>
             </div>
           </div>
 
