@@ -278,12 +278,12 @@ export function AccountPayableFormDialog({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Valor Ilíquido *</Label>
-                <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" className="font-mono" />
+                <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" />
               </div>
               <div className="space-y-2">
                 <Label>IVA</Label>
                 <Select value={formData.ivaRate} onValueChange={(v) => update({ ivaRate: v })}>
-                  <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {IVA_OPTIONS.map(o => (
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
@@ -293,7 +293,7 @@ export function AccountPayableFormDialog({
               </div>
               <div className="space-y-2">
                 <Label>Valor do IVA</Label>
-                <Input readOnly value={ivaCalc.ivaValue.toFixed(2)} className="bg-muted font-mono" />
+                <Input readOnly value={ivaCalc.ivaValue.toFixed(2)} className="bg-muted" />
               </div>
               <div className="space-y-2">
                 <Label>Valor Líquido (Total)</Label>
@@ -304,7 +304,7 @@ export function AccountPayableFormDialog({
                   value={ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : ''}
                   onChange={(e) => handleTotalChange(e.target.value)}
                   placeholder="0,00"
-                  className="font-mono font-bold"
+                  className="font-semibold"
                 />
               </div>
             </div>
