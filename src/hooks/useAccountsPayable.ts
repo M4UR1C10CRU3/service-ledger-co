@@ -34,6 +34,7 @@ function mapRow(row: any, supplierName?: string): AccountPayable {
     costCenterId: row.cost_center_id,
     articleId: row.article_id,
     quantity: Number(row.quantity || 0),
+    items: row.items || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -64,13 +65,30 @@ export function useAccountsPayable() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const addAccount = async (form: AccountPayableFormData): Promise<string | null> => {
-    if (!empresa) return null;
-
+  const computeTotals = (form: AccountPayableFormData) => {
+    if (form.items && form.items.length > 0) {
+      let totalBruto = 0;
+      let totalIva = 0;
+      for (const item of form.items) {
+        const qty = parseFloat(item.quantidade) || 1;
+        const val = parseFloat(item.valorBruto) || 0;
+        const rate = parseFloat(item.ivaRate) || 0;
+        const lineBruto = val * qty;
+        totalBruto += lineBruto;
+        totalIva += lineBruto * (rate / 100);
+      }
+      return { bruto: totalBruto, ivaRate: 0, ivaValue: totalIva, liquido: totalBruto + totalIva };
+    }
     const bruto = parseFloat(form.valorBruto) || 0;
     const ivaRate = parseFloat(form.ivaRate) || 0;
     const ivaValue = bruto * (ivaRate / 100);
-    const liquido = bruto + ivaValue;
+    return { bruto, ivaRate, ivaValue, liquido: bruto + ivaValue };
+  };
+
+  const addAccount = async (form: AccountPayableFormData): Promise<string | null> => {
+    if (!empresa) return null;
+
+    const { bruto, ivaRate, ivaValue, liquido } = computeTotals(form);
 
     const isImediato = form.formaPagamento === 'imediato';
 
@@ -98,7 +116,8 @@ export function useAccountsPayable() {
       cost_center_id: form.costCenterId || null,
       article_id: form.articleId || null,
       quantity: parseFloat(form.quantity) || 0,
-    }).select('id').single();
+      items: (form.items && form.items.length > 0 ? form.items : null) as any,
+    } as any).select('id').single();
 
     if (!error && data) {
       await fetchAccounts();
@@ -109,10 +128,7 @@ export function useAccountsPayable() {
   };
 
   const updateAccount = async (id: string, form: AccountPayableFormData): Promise<boolean> => {
-    const bruto = parseFloat(form.valorBruto) || 0;
-    const ivaRate = parseFloat(form.ivaRate) || 0;
-    const ivaValue = bruto * (ivaRate / 100);
-    const liquido = bruto + ivaValue;
+    const { bruto, ivaRate, ivaValue, liquido } = computeTotals(form);
     const isImediato = form.formaPagamento === 'imediato';
 
     const { error } = await supabase.from('accounts_payable').update({
@@ -138,7 +154,8 @@ export function useAccountsPayable() {
       cost_center_id: form.costCenterId || null,
       article_id: form.articleId || null,
       quantity: parseFloat(form.quantity) || 0,
-    }).eq('id', id);
+      items: (form.items && form.items.length > 0 ? form.items : null) as any,
+    } as any).eq('id', id);
 
     if (!error) {
       await fetchAccounts();
