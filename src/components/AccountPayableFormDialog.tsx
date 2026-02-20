@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, Search } from 'lucide-react';
+import { CalendarIcon, Plus, Search, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
 import {
   AccountPayableFormData,
+  AccountPayableItem,
   CATEGORIAS,
   IVA_OPTIONS,
   METODOS_PAGAMENTO,
@@ -56,7 +57,7 @@ export function AccountPayableFormDialog({
     setFormData({ ...formData, ...partial });
   };
 
-  // IVA calculation
+  // IVA calculation (single-line mode)
   const ivaCalc = useMemo(() => {
     const bruto = parseFloat(formData.valorBruto) || 0;
     const rate = parseFloat(formData.ivaRate) || 0;
@@ -65,12 +66,54 @@ export function AccountPayableFormDialog({
     return { ivaValue, total };
   }, [formData.valorBruto, formData.ivaRate]);
 
+  // Multi-line items totals
+  const itemsTotals = useMemo(() => {
+    const items = formData.items || [];
+    if (items.length === 0) return null;
+    let totalBruto = 0;
+    let totalIva = 0;
+    for (const item of items) {
+      const qty = parseFloat(item.quantidade) || 1;
+      const val = parseFloat(item.valorBruto) || 0;
+      const rate = parseFloat(item.ivaRate) || 0;
+      const lineBruto = val * qty;
+      totalBruto += lineBruto;
+      totalIva += lineBruto * (rate / 100);
+    }
+    return { totalBruto, totalIva, total: totalBruto + totalIva };
+  }, [formData.items]);
+
   // Reverse calculation: from total to valor ilíquido
   const handleTotalChange = (totalStr: string) => {
     const total = parseFloat(totalStr) || 0;
     const rate = parseFloat(formData.ivaRate) || 0;
     const bruto = rate > 0 ? total / (1 + rate / 100) : total;
     update({ valorBruto: bruto > 0 ? bruto.toFixed(2) : '' });
+  };
+
+  const hasItems = (formData.items || []).length > 0;
+
+  const addItem = () => {
+    const newItem: AccountPayableItem = {
+      id: crypto.randomUUID(),
+      descricao: '',
+      quantidade: '1',
+      valorBruto: '',
+      ivaRate: '23',
+    };
+    update({ items: [...(formData.items || []), newItem] });
+  };
+
+  const updateItem = (id: string, partial: Partial<AccountPayableItem>) => {
+    const items = (formData.items || []).map(item =>
+      item.id === id ? { ...item, ...partial } : item
+    );
+    update({ items });
+  };
+
+  const removeItem = (id: string) => {
+    const items = (formData.items || []).filter(item => item.id !== id);
+    update({ items });
   };
 
   const activeSuppliers = suppliers.filter(s => s.status === 'ativo');
@@ -274,40 +317,125 @@ export function AccountPayableFormDialog({
             <Separator />
 
             {/* VALORES */}
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Valores</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>Valor Ilíquido *</Label>
-                <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" />
-              </div>
-              <div className="space-y-2">
-                <Label>IVA</Label>
-                <Select value={formData.ivaRate} onValueChange={(v) => update({ ivaRate: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {IVA_OPTIONS.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Valor do IVA</Label>
-                <Input readOnly value={ivaCalc.ivaValue.toFixed(2)} className="bg-muted" />
-              </div>
-              <div className="space-y-2">
-                <Label>Valor Líquido (Total)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : ''}
-                  onChange={(e) => handleTotalChange(e.target.value)}
-                  placeholder="0,00"
-                  className="font-semibold"
-                />
-              </div>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Valores</h3>
+              <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                <Plus className="w-4 h-4 mr-1" /> Adicionar Linha
+              </Button>
             </div>
+
+            {/* Single-line mode (when no items) */}
+            {!hasItems && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>Valor Ilíquido *</Label>
+                  <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" />
+                </div>
+                <div className="space-y-2">
+                  <Label>IVA</Label>
+                  <Select value={formData.ivaRate} onValueChange={(v) => update({ ivaRate: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {IVA_OPTIONS.map(o => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor do IVA</Label>
+                  <Input readOnly value={ivaCalc.ivaValue.toFixed(2)} className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor Líquido (Total)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : ''}
+                    onChange={(e) => handleTotalChange(e.target.value)}
+                    placeholder="0,00"
+                    className="font-semibold"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Multi-line items mode */}
+            {hasItems && (
+              <div className="space-y-3">
+                {(formData.items || []).map((item, idx) => {
+                  const qty = parseFloat(item.quantidade) || 1;
+                  const val = parseFloat(item.valorBruto) || 0;
+                  const rate = parseFloat(item.ivaRate) || 0;
+                  const lineIva = val * qty * (rate / 100);
+                  const lineTotal = val * qty + lineIva;
+                  return (
+                    <div key={item.id} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Linha {idx + 1}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeItem(item.id)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          value={item.descricao}
+                          onChange={(e) => updateItem(item.id, { descricao: e.target.value })}
+                          placeholder="Descrição do item"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Qtd.</Label>
+                          <Input type="number" step="1" min="1" value={item.quantidade} onChange={(e) => updateItem(item.id, { quantidade: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Valor Unit. *</Label>
+                          <Input type="number" step="0.01" min="0" value={item.valorBruto} onChange={(e) => updateItem(item.id, { valorBruto: e.target.value })} placeholder="0,00" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">IVA</Label>
+                          <Select value={item.ivaRate} onValueChange={(v) => updateItem(item.id, { ivaRate: v })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {IVA_OPTIONS.map(o => (
+                                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">IVA (€)</Label>
+                          <Input readOnly value={lineIva.toFixed(2)} className="bg-muted" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Subtotal</Label>
+                          <Input readOnly value={lineTotal.toFixed(2)} className="bg-muted font-semibold" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Totals summary */}
+                {itemsTotals && (
+                  <div className="grid grid-cols-3 gap-4 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Total Ilíquido</Label>
+                      <p className="text-sm font-semibold">{itemsTotals.totalBruto.toFixed(2)} €</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Total IVA</Label>
+                      <p className="text-sm font-semibold">{itemsTotals.totalIva.toFixed(2)} €</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Total Geral</Label>
+                      <p className="text-sm font-bold">{itemsTotals.total.toFixed(2)} €</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <Separator />
 

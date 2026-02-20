@@ -1,3 +1,11 @@
+export interface AccountPayableItem {
+  id: string;
+  descricao: string;
+  quantidade: string;
+  valorBruto: string;
+  ivaRate: string;
+}
+
 export interface AccountPayable {
   id: string;
   empresaId: string;
@@ -27,6 +35,7 @@ export interface AccountPayable {
   costCenterId: string | null;
   articleId: string | null;
   quantity: number;
+  items: AccountPayableItem[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +59,7 @@ export interface AccountPayableFormData {
   costCenterId: string;
   articleId: string;
   quantity: string;
+  items: AccountPayableItem[];
 }
 
 export const TIPO_LANCAMENTO_LABELS: Record<string, string> = {
@@ -153,4 +163,5 @@ export const emptyAccountPayableForm: AccountPayableFormData = {
   costCenterId: '',
   articleId: '',
   quantity: '',
+  items: [],
 };

@@ -182,6 +182,7 @@ export default function ContasPagar() {
         costCenterId: account.costCenterId || '',
         articleId: account.articleId || '',
         quantity: account.quantity ? String(account.quantity) : '',
+        items: account.items || [],
       });
     } else {
       resetForm();

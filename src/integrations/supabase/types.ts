@@ -100,6 +100,7 @@ export type Database = {
           empresa_id: string
           forma_pagamento: string
           id: string
+          items: Json | null
           iva_rate: number | null
           iva_value: number | null
           metodo_pagamento: string | null
@@ -134,6 +135,7 @@ export type Database = {
           empresa_id: string
           forma_pagamento: string
           id?: string
+          items?: Json | null
           iva_rate?: number | null
           iva_value?: number | null
           metodo_pagamento?: string | null
@@ -168,6 +170,7 @@ export type Database = {
           empresa_id?: string
           forma_pagamento?: string
           id?: string
+          items?: Json | null
           iva_rate?: number | null
           iva_value?: number | null
           metodo_pagamento?: string | null
