@@ -65,6 +65,14 @@ export function AccountPayableFormDialog({
     return { ivaValue, total };
   }, [formData.valorBruto, formData.ivaRate]);
 
+  // Reverse calculation: from total to valor ilíquido
+  const handleTotalChange = (totalStr: string) => {
+    const total = parseFloat(totalStr) || 0;
+    const rate = parseFloat(formData.ivaRate) || 0;
+    const bruto = rate > 0 ? total / (1 + rate / 100) : total;
+    update({ valorBruto: bruto > 0 ? bruto.toFixed(2) : '' });
+  };
+
   const activeSuppliers = suppliers.filter(s => s.status === 'ativo');
 
   // Article autocomplete
@@ -270,12 +278,12 @@ export function AccountPayableFormDialog({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Valor Ilíquido *</Label>
-                <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" />
+                <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" className="font-mono" />
               </div>
               <div className="space-y-2">
                 <Label>IVA</Label>
                 <Select value={formData.ivaRate} onValueChange={(v) => update({ ivaRate: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="font-mono"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {IVA_OPTIONS.map(o => (
                       <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
@@ -289,7 +297,15 @@ export function AccountPayableFormDialog({
               </div>
               <div className="space-y-2">
                 <Label>Valor Líquido (Total)</Label>
-                <Input readOnly value={ivaCalc.total.toFixed(2)} className="bg-muted font-mono font-bold" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : ''}
+                  onChange={(e) => handleTotalChange(e.target.value)}
+                  placeholder="0,00"
+                  className="font-mono font-bold"
+                />
               </div>
             </div>
 
