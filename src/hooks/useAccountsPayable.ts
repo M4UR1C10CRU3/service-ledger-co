@@ -120,6 +120,21 @@ export function useAccountsPayable() {
     } as any).select('id').single();
 
     if (!error && data) {
+      // For immediate payments, also insert into account_payments so the cash flow trigger fires
+      if (isImediato) {
+        await supabase.from('account_payments').insert({
+          account_payable_id: data.id,
+          empresa_id: empresa.id,
+          data_pagamento: form.dataPagamento.toISOString().split('T')[0],
+          valor_original: liquido,
+          juros: 0,
+          multa: 0,
+          desconto: 0,
+          valor_pago: liquido,
+          metodo_pagamento: form.metodoPagamento,
+          observacoes: null,
+        });
+      }
       await fetchAccounts();
       return data.id;
     }
