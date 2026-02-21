@@ -81,7 +81,7 @@ const sections: NavSection[] = [
     icon: UsersRound,
     items: [
       { title: 'Colaboradores', url: '/colaboradores', icon: HardHat },
-      { title: 'Controle de Ponto', url: '/controle-ponto', icon: Clock },
+      { title: 'Controlo de Ponto', url: '/controle-ponto', icon: Clock },
       { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake },
     ],
   },
