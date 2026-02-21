@@ -173,6 +173,37 @@ export function useAccountsPayable() {
     } as any).eq('id', id);
 
     if (!error) {
+      // Sync account_payments so the cash_flow trigger updates flow_type/amount
+      if (isImediato) {
+        const { data: existingPayments } = await supabase
+          .from('account_payments')
+          .select('id')
+          .eq('account_payable_id', id);
+
+        if (existingPayments && existingPayments.length > 0) {
+          // Update existing payment(s) — triggers cash_flow update via DB trigger
+          await supabase.from('account_payments').update({
+            data_pagamento: form.dataPagamento.toISOString().split('T')[0],
+            valor_original: liquido,
+            valor_pago: liquido,
+            metodo_pagamento: form.metodoPagamento,
+          }).eq('account_payable_id', id);
+        } else {
+          // No payment record yet, create one
+          await supabase.from('account_payments').insert({
+            account_payable_id: id,
+            empresa_id: empresa!.id,
+            data_pagamento: form.dataPagamento.toISOString().split('T')[0],
+            valor_original: liquido,
+            juros: 0,
+            multa: 0,
+            desconto: 0,
+            valor_pago: liquido,
+            metodo_pagamento: form.metodoPagamento,
+            observacoes: null,
+          });
+        }
+      }
       await fetchAccounts();
       return true;
     }
