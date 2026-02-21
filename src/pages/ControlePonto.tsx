@@ -190,7 +190,14 @@ const ControlePonto = () => {
   };
 
   const formatTime = (t: string | null) => t ? t.slice(0, 5) : '—';
-  const formatHours = (h: number) => `${h >= 0 ? '' : '-'}${Math.abs(h).toFixed(1)}h`;
+  const formatHours = (h: number) => {
+    const abs = Math.abs(h);
+    const wholeHours = Math.floor(abs);
+    const minutes = Math.round((abs - wholeHours) * 60);
+    const sign = h < 0 ? '-' : '';
+    if (minutes === 0) return `${sign}${wholeHours}h`;
+    return `${sign}${wholeHours}h${minutes.toString().padStart(2, '0')}`;
+  };
 
   const dayTypeConfig: Record<string, { label: string; className: string }> = {
     normal: { label: 'Normal', className: 'bg-primary/10 text-primary' },
@@ -232,6 +239,14 @@ const ControlePonto = () => {
       folga: 'Folga', falta: 'Falta', liberacao: 'Liberação',
     };
 
+    const fmtH = (h: number) => {
+      const abs = Math.abs(h);
+      const wh = Math.floor(abs);
+      const mins = Math.round((abs - wh) * 60);
+      const sign = h < 0 ? '-' : '';
+      return mins === 0 ? `${sign}${wh}h` : `${sign}${wh}h${mins.toString().padStart(2, '0')}`;
+    };
+
     const tableRows = sortedRecords.map(r => {
       const dateObj = parseISO(r.record_date);
       return `<tr>
@@ -241,9 +256,9 @@ const ControlePonto = () => {
         <td style="text-align:center">${r.lunch_exit_time ? r.lunch_exit_time.slice(0, 5) : '—'}</td>
         <td style="text-align:center">${r.lunch_return_time ? r.lunch_return_time.slice(0, 5) : '—'}</td>
         <td style="text-align:center">${r.exit_time ? r.exit_time.slice(0, 5) : '—'}</td>
-        <td style="text-align:right">${(r.worked_hours || 0).toFixed(1)}h</td>
-        <td style="text-align:right">${(r.expected_hours || 0).toFixed(1)}h</td>
-        <td style="text-align:right;color:${(r.balance || 0) >= 0 ? '#16a34a' : '#dc2626'}">${(r.balance || 0) >= 0 ? '+' : ''}${(r.balance || 0).toFixed(1)}h</td>
+        <td style="text-align:right">${fmtH(r.worked_hours || 0)}</td>
+        <td style="text-align:right">${fmtH(r.expected_hours || 0)}</td>
+        <td style="text-align:right;color:${(r.balance || 0) >= 0 ? '#16a34a' : '#dc2626'}">${(r.balance || 0) >= 0 ? '+' : ''}${fmtH(r.balance || 0)}</td>
         <td style="text-align:center">${dayTypeLabels[r.day_type] || r.day_type}</td>
         <td style="font-size:8px">${r.observations || ''}</td>
       </tr>`;
@@ -318,19 +333,19 @@ const ControlePonto = () => {
 
   <div class="stats-row">
     <div class="stat-card">
-      <div class="value">${stats.totalWorked.toFixed(1)}h</div>
+      <div class="value">${fmtH(stats.totalWorked)}</div>
       <div class="label">Trabalhado</div>
     </div>
     <div class="stat-card">
-      <div class="value">${stats.totalExpected.toFixed(1)}h</div>
+      <div class="value">${fmtH(stats.totalExpected)}</div>
       <div class="label">Esperado</div>
     </div>
     <div class="stat-card">
-      <div class="value" style="color:${stats.totalBalance >= 0 ? '#16a34a' : '#dc2626'}">${stats.totalBalance >= 0 ? '+' : ''}${stats.totalBalance.toFixed(1)}h</div>
+      <div class="value" style="color:${stats.totalBalance >= 0 ? '#16a34a' : '#dc2626'}">${stats.totalBalance >= 0 ? '+' : ''}${fmtH(stats.totalBalance)}</div>
       <div class="label">Saldo</div>
     </div>
     <div class="stat-card">
-      <div class="value">${stats.totalOvertime.toFixed(1)}h</div>
+      <div class="value">${fmtH(stats.totalOvertime)}</div>
       <div class="label">H. Extra</div>
     </div>
     <div class="stat-card">
@@ -359,9 +374,9 @@ const ControlePonto = () => {
       ${tableRows}
       <tr class="totals-row">
         <td colspan="6" style="text-align:right">Totais:</td>
-        <td style="text-align:right">${stats.totalWorked.toFixed(1)}h</td>
-        <td style="text-align:right">${stats.totalExpected.toFixed(1)}h</td>
-        <td style="text-align:right;color:${stats.totalBalance >= 0 ? '#16a34a' : '#dc2626'}">${stats.totalBalance >= 0 ? '+' : ''}${stats.totalBalance.toFixed(1)}h</td>
+        <td style="text-align:right">${fmtH(stats.totalWorked)}</td>
+        <td style="text-align:right">${fmtH(stats.totalExpected)}</td>
+        <td style="text-align:right;color:${stats.totalBalance >= 0 ? '#16a34a' : '#dc2626'}">${stats.totalBalance >= 0 ? '+' : ''}${fmtH(stats.totalBalance)}</td>
         <td colspan="2"></td>
       </tr>
     </tbody>
@@ -387,7 +402,7 @@ const ControlePonto = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Controle de Ponto</h1>
+          <h1 className="text-2xl font-bold text-foreground">Controlo de Ponto</h1>
           <p className="text-sm text-muted-foreground">Registo de horários e jornadas</p>
         </div>
         <div className="flex gap-2">
