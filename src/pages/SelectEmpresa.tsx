@@ -56,7 +56,7 @@ const SelectEmpresa = () => {
                 />
 
                 <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 mb-3 rounded-xl overflow-hidden bg-slate-50 p-2 flex items-center justify-center">
+                  <div className="mb-3 flex items-center justify-center" style={{ width: 80, height: 80 }}>
                     <img
                       src={logo}
                       alt={`${empresa.nome} Logo`}
