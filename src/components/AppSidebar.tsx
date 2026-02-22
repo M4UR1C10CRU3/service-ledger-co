@@ -120,7 +120,7 @@ export function AppSidebar() {
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate('/dashboard')}
         >
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white/10 p-1.5 flex items-center justify-center shrink-0 ring-1 ring-white/10">
+          <div className="w-5 h-5 shrink-0 flex items-center justify-center">
             <img src={logo} alt={empresaNome} className="w-full h-full object-contain" />
           </div>
           <div className="overflow-hidden">
