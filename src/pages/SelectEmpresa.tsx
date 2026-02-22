@@ -88,7 +88,7 @@ const SelectEmpresa = () => {
       <footer className="w-full py-4 border-t border-slate-700/50">
         <div className="flex items-center justify-center gap-6 text-slate-400 text-xs">
           <span>Desenvolvido por</span>
-          <img src={webtechLogo} alt="Webtech - Informática & Tecnologia" className="h-8 object-contain" />
+          <img src={webtechLogo} alt="Webtech - Informática & Tecnologia" className="h-10 object-contain" />
           <span>© {new Date().getFullYear()}. Todos os direitos reservados.</span>
         </div>
       </footer>
