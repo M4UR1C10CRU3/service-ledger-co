@@ -1,5 +1,5 @@
 import { format, differenceInDays, parseISO } from 'date-fns';
-import { ArrowUpDown, Eye, CheckCircle, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUpDown, Eye, CheckCircle, Pencil, Trash2, Copy } from 'lucide-react';
 import { AccountPayable, TIPO_LANCAMENTO_LABELS, CATEGORIAS_POR_TIPO } from '@/types/accountPayable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ interface Props {
   onLiquidar: (a: AccountPayable) => void;
   onEdit: (a: AccountPayable) => void;
   onDelete: (a: AccountPayable) => void;
+  onDuplicate?: (a: AccountPayable) => void;
 }
 
 function formatCurrency(v: number): string {
@@ -108,7 +109,7 @@ function SortableHead({ label, field, currentField, currentDir, onSort }: {
   );
 }
 
-export function AccountsPayableTable({ accounts, sortField, sortDir, onSort, onView, onLiquidar, onEdit, onDelete }: Props) {
+export function AccountsPayableTable({ accounts, sortField, sortDir, onSort, onView, onLiquidar, onEdit, onDelete, onDuplicate }: Props) {
   if (accounts.length === 0) return null;
 
   return (
@@ -155,6 +156,11 @@ export function AccountsPayableTable({ accounts, sortField, sortDir, onSort, onV
                     {canLiquidar && (
                       <Button variant="ghost" size="icon" onClick={() => onLiquidar(a)} title="Liquidar" className="text-success hover:text-success">
                         <CheckCircle className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {onDuplicate && (
+                      <Button variant="ghost" size="icon" onClick={() => onDuplicate(a)} title="Duplicar">
+                        <Copy className="w-4 h-4" />
                       </Button>
                     )}
                     <Button variant="ghost" size="icon" onClick={() => onEdit(a)} title="Editar">

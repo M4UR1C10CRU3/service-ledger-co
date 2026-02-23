@@ -151,6 +151,37 @@ export default function ContasPagar() {
   // Form handlers
   const resetForm = () => { setFormData({ ...emptyAccountPayableForm }); setEditingAccount(null); };
 
+  const handleDuplicate = (account: AccountPayable) => {
+    const tipoMap: Record<string, 'compra_revenda' | 'despesa'> = {
+      compra: 'compra_revenda', compra_revenda: 'compra_revenda',
+      despesa: 'despesa', despesa_fixa: 'despesa', custo_investimento: 'despesa',
+    };
+    setEditingAccount(null);
+    setFormData({
+      supplierId: account.supplierId,
+      tipoLancamento: tipoMap[account.tipoLancamento] || 'despesa',
+      categoria: account.categoria,
+      descricao: account.descricao || '',
+      numeroDocumento: '',
+      dataEmissao: new Date(),
+      valorBruto: String(account.valorBruto),
+      ivaRate: String(account.ivaRate || 0),
+      ivaValue: String(account.ivaValue || 0),
+      valorLiquido: String(account.valorLiquido),
+      formaPagamento: 'a_credito',
+      dataPagamento: new Date(),
+      dataVencimento: new Date(),
+      metodoPagamento: account.metodoPagamento || 'transferencia',
+      observacoes: account.observacoes || '',
+      costCenterId: account.costCenterId || '',
+      articleId: account.articleId || '',
+      quantity: account.quantity ? String(account.quantity) : '',
+      items: account.items || [],
+    });
+    setIsFormOpen(true);
+    toast({ title: 'Lançamento duplicado', description: 'Ajuste os dados necessários e guarde.' });
+  };
+
   const handleOpenForm = (account?: AccountPayable) => {
     if (account) {
       setEditingAccount(account);
@@ -352,6 +383,7 @@ export default function ContasPagar() {
                     onLiquidar={handleLiquidar}
                     onEdit={(a) => handleOpenForm(a)}
                     onDelete={(a) => { setAccountToDelete(a); setIsDeleteOpen(true); }}
+                    onDuplicate={handleDuplicate}
                   />
 
                   {totalPages > 1 && (
