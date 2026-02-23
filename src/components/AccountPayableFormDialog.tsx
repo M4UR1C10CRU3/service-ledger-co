@@ -308,7 +308,14 @@ export function AccountPayableFormDialog({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={formData.dataEmissao} onSelect={(d) => d && update({ dataEmissao: d })} initialFocus className="p-3 pointer-events-auto" />
+                    <Calendar mode="single" selected={formData.dataEmissao} onSelect={(d) => {
+                      if (!d) return;
+                      const updates: Partial<AccountPayableFormData> = { dataEmissao: d };
+                      if (formData.formaPagamento !== 'a_credito') {
+                        updates.dataPagamento = d;
+                      }
+                      update(updates);
+                    }} initialFocus className="p-3 pointer-events-auto" />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -446,7 +453,13 @@ export function AccountPayableFormDialog({
               <Label>Condição de Pagamento *</Label>
               <RadioGroup
                 value={formData.formaPagamento}
-                onValueChange={(v) => update({ formaPagamento: v as any })}
+                onValueChange={(v) => {
+                  const updates: Partial<AccountPayableFormData> = { formaPagamento: v as any };
+                  if (v !== 'a_credito') {
+                    updates.dataPagamento = formData.dataEmissao;
+                  }
+                  update(updates);
+                }}
                 className="flex gap-6"
               >
                 <div className="flex items-center gap-2">
