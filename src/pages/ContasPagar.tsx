@@ -230,7 +230,8 @@ export default function ContasPagar() {
       toast({ title: 'Erro', description: 'Selecione uma categoria.', variant: 'destructive' });
       return;
     }
-    if (!formData.valorBruto || parseFloat(formData.valorBruto) <= 0) {
+    const hasItems = formData.items && formData.items.length > 0;
+    if (!hasItems && (!formData.valorBruto || parseFloat(formData.valorBruto) <= 0)) {
       toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
       return;
     }
