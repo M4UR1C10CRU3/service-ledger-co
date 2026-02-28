@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
 import Despesas from "./pages/Despesas";
+import Compras from "./pages/Compras";
 import Debitos from "./pages/Debitos";
 import HistoricoCobrancas from "./pages/HistoricoCobrancas";
 import FluxoCaixa from "./pages/FluxoCaixa";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/clientes" element={<ProtectedWithLayout><Clientes /></ProtectedWithLayout>} />
               <Route path="/fornecedores" element={<ProtectedWithLayout><Fornecedores /></ProtectedWithLayout>} />
               <Route path="/despesas" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
+              <Route path="/compras" element={<ProtectedWithLayout><Compras /></ProtectedWithLayout>} />
               <Route path="/contas-pagar" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
               <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
 

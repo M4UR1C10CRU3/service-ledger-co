@@ -6,7 +6,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
-import { useArticles } from '@/hooks/useArticles';
+
 import {
   AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
   CATEGORIAS_POR_TIPO,
@@ -60,7 +60,7 @@ export default function Despesas() {
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
-  const { articles, updateArticleStock } = useArticles();
+  
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -95,24 +95,31 @@ export default function Despesas() {
   const monthEnd = useMemo(() => endOfMonth(today).toISOString().split('T')[0], [today]);
   const next7Str = useMemo(() => addDays(today, 7).toISOString().split('T')[0], [today]);
 
+  // Filter to only despesa-type accounts
+  const despesaAccounts = useMemo(() => {
+    return accounts.filter(a =>
+      a.tipoLancamento === 'despesa' || a.tipoLancamento === 'despesa_fixa' || a.tipoLancamento === 'custo_investimento'
+    );
+  }, [accounts]);
+
   // KPIs
   const kpis = useMemo(() => {
-    const monthAccounts = accounts.filter(a =>
+    const monthAccounts = despesaAccounts.filter(a =>
       (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
       a.dataVencimento && a.dataVencimento >= monthStart && a.dataVencimento <= monthEnd
     );
-    const todayAccounts = accounts.filter(a =>
+    const todayAccounts = despesaAccounts.filter(a =>
       (a.status === 'pendente' || a.status === 'parcial') && a.dataVencimento === todayStr
     );
-    const next7Accounts = accounts.filter(a =>
+    const next7Accounts = despesaAccounts.filter(a =>
       (a.status === 'pendente' || a.status === 'parcial') &&
       a.dataVencimento && a.dataVencimento > todayStr && a.dataVencimento <= next7Str
     );
-    const overdueAccounts = accounts.filter(a =>
+    const overdueAccounts = despesaAccounts.filter(a =>
       (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
       a.dataVencimento && a.dataVencimento < todayStr
     );
-    const paidAccounts = accounts.filter(a =>
+    const paidAccounts = despesaAccounts.filter(a =>
       a.status === 'liquidado' && a.dataPagamento && a.dataPagamento >= monthStart && a.dataPagamento <= monthEnd
     );
     return {
@@ -122,7 +129,7 @@ export default function Despesas() {
       totalOverdue: overdueAccounts.reduce((s, a) => s + a.valorLiquido, 0), overdueCount: overdueAccounts.length,
       totalPago: paidAccounts.reduce((s, a) => s + a.valorLiquido, 0), pagoCount: paidAccounts.length,
     };
-  }, [accounts, monthStart, monthEnd, todayStr, next7Str]);
+  }, [despesaAccounts, monthStart, monthEnd, todayStr, next7Str]);
 
   // Line chart — last 6 months
   const lineData = useMemo(() => {
@@ -131,24 +138,24 @@ export default function Despesas() {
       const d = subMonths(today, i);
       const ms = startOfMonth(d).toISOString().split('T')[0];
       const me = endOfMonth(d).toISOString().split('T')[0];
-      const total = accounts.filter(a => a.dataEmissao >= ms && a.dataEmissao <= me).reduce((s, a) => s + a.valorLiquido, 0);
+      const total = despesaAccounts.filter(a => a.dataEmissao >= ms && a.dataEmissao <= me).reduce((s, a) => s + a.valorLiquido, 0);
       months.push({ label: format(d, 'MMM yy', { locale: pt }), total });
     }
     return months;
-  }, [accounts, today]);
+  }, [despesaAccounts, today]);
 
   // Pie by category
   const pieData = useMemo(() => {
     const catMap: Record<string, number> = {};
-    accounts.forEach(a => { catMap[a.categoria] = (catMap[a.categoria] || 0) + a.valorLiquido; });
+    despesaAccounts.forEach(a => { catMap[a.categoria] = (catMap[a.categoria] || 0) + a.valorLiquido; });
     return Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([cat, value]) => ({ name: getCatLabel(cat), value }));
-  }, [accounts]);
+  }, [despesaAccounts]);
 
   // Cost center distribution
   const costCenterData = useMemo(() => {
     const ccMap: Record<string, { name: string; total: number; count: number }> = {};
-    accounts.forEach(a => {
+    despesaAccounts.forEach(a => {
       const ccId = a.costCenterId || 'sem_centro';
       if (!ccMap[ccId]) {
         const cc = costCenters.find(c => c.id === ccId);
@@ -158,11 +165,11 @@ export default function Despesas() {
       ccMap[ccId].count += 1;
     });
     return Object.values(ccMap).sort((a, b) => b.total - a.total);
-  }, [accounts, costCenters]);
+  }, [despesaAccounts, costCenters]);
 
   // Filtering + sorting (for list tab)
   const filtered = useMemo(() => {
-    let result = accounts;
+    let result = despesaAccounts;
     if (filters.searchTerm) {
       const q = filters.searchTerm.toLowerCase();
       result = result.filter(a =>
@@ -195,7 +202,7 @@ export default function Despesas() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return result;
-  }, [accounts, filters, sortField, sortDir]);
+  }, [despesaAccounts, filters, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -206,17 +213,13 @@ export default function Despesas() {
     else { setSortField(field); setSortDir('asc'); }
   };
 
-  const resetForm = () => { setFormData({ ...emptyAccountPayableForm }); setEditingAccount(null); };
+  const resetForm = () => { setFormData({ ...emptyAccountPayableForm, tipoLancamento: 'despesa' }); setEditingAccount(null); };
 
   const handleDuplicate = (account: AccountPayable) => {
-    const tipoMap: Record<string, 'compra_revenda' | 'despesa'> = {
-      compra: 'compra_revenda', compra_revenda: 'compra_revenda',
-      despesa: 'despesa', despesa_fixa: 'despesa', custo_investimento: 'despesa',
-    };
     setEditingAccount(null);
     setFormData({
       supplierId: account.supplierId,
-      tipoLancamento: tipoMap[account.tipoLancamento] || 'despesa',
+      tipoLancamento: 'despesa',
       categoria: account.categoria,
       descricao: account.descricao || '',
       numeroDocumento: '',
@@ -231,8 +234,8 @@ export default function Despesas() {
       metodoPagamento: account.metodoPagamento || 'transferencia',
       observacoes: account.observacoes || '',
       costCenterId: account.costCenterId || '',
-      articleId: account.articleId || '',
-      quantity: account.quantity ? String(account.quantity) : '',
+      articleId: '',
+      quantity: '',
       items: account.items || [],
     });
     setIsFormOpen(true);
@@ -242,17 +245,13 @@ export default function Despesas() {
   const handleOpenForm = (account?: AccountPayable) => {
     if (account) {
       setEditingAccount(account);
-      const tipoMap: Record<string, 'compra_revenda' | 'despesa'> = {
-        compra: 'compra_revenda', compra_revenda: 'compra_revenda',
-        despesa: 'despesa', despesa_fixa: 'despesa', custo_investimento: 'despesa',
-      };
       const fpMap: Record<string, 'imediato' | 'a_credito'> = {
         a_vista: 'imediato', imediato: 'imediato',
         a_prazo: 'a_credito', a_credito: 'a_credito',
       };
       setFormData({
         supplierId: account.supplierId,
-        tipoLancamento: tipoMap[account.tipoLancamento] || 'despesa',
+        tipoLancamento: 'despesa',
         categoria: account.categoria,
         descricao: account.descricao || '',
         numeroDocumento: account.numeroDocumento || '',
@@ -267,8 +266,8 @@ export default function Despesas() {
         metodoPagamento: account.metodoPagamento || 'transferencia',
         observacoes: account.observacoes || '',
         costCenterId: account.costCenterId || '',
-        articleId: account.articleId || '',
-        quantity: account.quantity ? String(account.quantity) : '',
+        articleId: '',
+        quantity: '',
         items: account.items || [],
       });
     } else {
@@ -291,10 +290,6 @@ export default function Despesas() {
       toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
       return;
     }
-    if (formData.tipoLancamento === 'compra_revenda' && (!formData.quantity || parseFloat(formData.quantity) <= 0)) {
-      toast({ title: 'Erro', description: 'Informe a quantidade.', variant: 'destructive' });
-      return;
-    }
 
     if (editingAccount) {
       const ok = await updateAccount(editingAccount.id, formData);
@@ -306,12 +301,6 @@ export default function Despesas() {
     } else {
       const newId = await addAccount(formData);
       if (newId) {
-        if (formData.tipoLancamento === 'compra_revenda' && formData.articleId) {
-          const qty = parseFloat(formData.quantity) || 0;
-          const bruto = parseFloat(formData.valorBruto) || 0;
-          const unitCost = qty > 0 ? bruto / qty : 0;
-          await updateArticleStock(formData.articleId, qty, unitCost, formData.supplierId, newId);
-        }
         toast({ title: 'Registo guardado', description: 'Operação realizada com sucesso.' });
         setIsFormOpen(false);
         resetForm();
@@ -640,8 +629,9 @@ export default function Despesas() {
         formData={formData} setFormData={setFormData}
         onSubmit={handleSubmit} isEditing={!!editingAccount}
         suppliers={suppliers} costCenters={costCenters}
-        articles={articles} onAddCostCenter={addCostCenter}
+        onAddCostCenter={addCostCenter}
         onAddSupplier={addSupplier}
+        mode="despesa"
       />
       <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
@@ -661,7 +651,7 @@ export default function Despesas() {
         onOpenChange={(o) => { setIsLiquidarOpen(o); if (!o) setLiquidarAccount(null); }}
         onConfirm={handleConfirmLiquidar}
       />
-      <ContasPagarReportsDialog open={isReportsOpen} onOpenChange={setIsReportsOpen} accounts={accounts} />
+      <ContasPagarReportsDialog open={isReportsOpen} onOpenChange={setIsReportsOpen} accounts={despesaAccounts} />
     </div>
   );
 }

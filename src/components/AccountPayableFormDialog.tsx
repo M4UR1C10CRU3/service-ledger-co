@@ -37,10 +37,12 @@ interface Props {
   articles?: Article[];
   onAddCostCenter?: (name: string) => Promise<boolean>;
   onAddSupplier?: (form: SupplierFormData) => Promise<Supplier | null>;
+  /** When set, hides the radio buttons and locks the form to one mode */
+  mode?: 'compra' | 'despesa';
 }
 
 export function AccountPayableFormDialog({
-  open, onOpenChange, formData, setFormData, onSubmit, isEditing, suppliers, costCenters, articles, onAddCostCenter, onAddSupplier,
+  open, onOpenChange, formData, setFormData, onSubmit, isEditing, suppliers, costCenters, articles, onAddCostCenter, onAddSupplier, mode,
 }: Props) {
   const { toast } = useToast();
   const [articleSearch, setArticleSearch] = useState('');
@@ -172,33 +174,41 @@ export function AccountPayableFormDialog({
 
   const isCompra = formData.tipoLancamento === 'compra_revenda';
 
+  const dialogTitle = mode === 'compra'
+    ? (isEditing ? 'Editar Compra' : 'Nova Compra')
+    : mode === 'despesa'
+      ? (isEditing ? 'Editar Despesa' : 'Nova Despesa')
+      : (isEditing ? 'Editar Compra/Despesa' : 'Nova Compra/Despesa');
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{isEditing ? 'Editar Compra/Despesa' : 'Nova Compra/Despesa'}</DialogTitle>
+            <DialogTitle>{dialogTitle}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-5 py-4">
-            {/* TIPO DE LANÇAMENTO */}
-            <div className="space-y-2">
-              <Label className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Tipo de Lançamento *</Label>
-              <RadioGroup
-                value={formData.tipoLancamento}
-                onValueChange={(v) => update({ tipoLancamento: v as any, articleId: '', quantity: '' })}
-                className="flex flex-wrap gap-4"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="compra_revenda" id="tipo-compra" />
-                  <Label htmlFor="tipo-compra" className="font-normal">Compra de Artigos para Revenda</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="despesa" id="tipo-despesa" />
-                  <Label htmlFor="tipo-despesa" className="font-normal">Despesa</Label>
-                </div>
-              </RadioGroup>
-            </div>
+            {/* TIPO DE LANÇAMENTO — only show radio when no mode is set */}
+            {!mode && (
+              <div className="space-y-2">
+                <Label className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Tipo de Lançamento *</Label>
+                <RadioGroup
+                  value={formData.tipoLancamento}
+                  onValueChange={(v) => update({ tipoLancamento: v as any, articleId: '', quantity: '' })}
+                  className="flex flex-wrap gap-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="compra_revenda" id="tipo-compra" />
+                    <Label htmlFor="tipo-compra" className="font-normal">Compra de Artigos para Revenda</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="despesa" id="tipo-despesa" />
+                    <Label htmlFor="tipo-despesa" className="font-normal">Despesa</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
 
             {/* ARTIGO FIELDS */}
             {isCompra && (
