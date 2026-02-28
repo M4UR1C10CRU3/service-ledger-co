@@ -52,6 +52,7 @@ const sections: NavSection[] = [
     label: 'Compras',
     icon: ShoppingCart,
     items: [
+      { title: 'Compras', url: '/compras', icon: ShoppingCart },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck },
       { title: 'Gestão de Stocks', url: '/stocks', icon: Package },
       { title: 'Produtos', url: '/produtos', icon: BoxSelect },
