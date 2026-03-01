@@ -24,6 +24,7 @@ import Receitas from "./pages/Receitas";
 import Colaboradores from "./pages/Colaboradores";
 import ControlePonto from "./pages/ControlePonto";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import Produtos from "./pages/Produtos";
 
 const queryClient = new QueryClient();
 
@@ -60,7 +61,7 @@ const App = () => (
               <Route path="/propostas" element={<ProtectedWithLayout><PlaceholderPage title="Propostas" /></ProtectedWithLayout>} />
               <Route path="/follow-up" element={<ProtectedWithLayout><PlaceholderPage title="Follow-up" /></ProtectedWithLayout>} />
               <Route path="/stocks" element={<ProtectedWithLayout><PlaceholderPage title="Gestão de Stocks" /></ProtectedWithLayout>} />
-              <Route path="/produtos" element={<ProtectedWithLayout><PlaceholderPage title="Cadastro de Produtos" /></ProtectedWithLayout>} />
+              <Route path="/produtos" element={<ProtectedWithLayout><Produtos /></ProtectedWithLayout>} />
               <Route path="/ordens-servico" element={<ProtectedWithLayout><PlaceholderPage title="Ordens de Serviço" /></ProtectedWithLayout>} />
               <Route path="/receitas" element={<ProtectedWithLayout><Receitas /></ProtectedWithLayout>} />
               <Route path="/debitos" element={<ProtectedWithLayout><Debitos /></ProtectedWithLayout>} />
