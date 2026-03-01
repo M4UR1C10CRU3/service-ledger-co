@@ -854,6 +854,53 @@ export type Database = {
         }
         Relationships: []
       }
+      produtos: {
+        Row: {
+          categoria: string
+          created_at: string
+          descricao: string
+          empresa_id: string
+          id: string
+          origem: string | null
+          ref_fornecedor: string | null
+          ref_interna: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          descricao: string
+          empresa_id: string
+          id?: string
+          origem?: string | null
+          ref_fornecedor?: string | null
+          ref_interna: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          empresa_id?: string
+          id?: string
+          origem?: string | null
+          ref_fornecedor?: string | null
+          ref_interna?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
