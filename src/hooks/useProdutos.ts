@@ -113,10 +113,24 @@ export function useProdutos() {
     if (!empresa) return { added: 0, updated: 0, errors: 0 };
     let added = 0, updated = 0, errors = 0;
 
+    // Separate items into new vs updates
+    const existingMap = new Map(produtos.map(p => [p.refInterna, p]));
+    const toInsert: any[] = [];
+    const toUpdate: { id: string; data: any }[] = [];
+
     for (const item of items) {
-      const existing = produtos.find(p => p.refInterna === item.refInterna.trim());
-      if (existing) {
-        // Update only if description or ref_fornecedor changed - preserve unidade
+      const ref = item.refInterna.trim();
+      const existing = existingMap.get(ref);
+      if (!existing) {
+        toInsert.push({
+          empresa_id: empresa.id,
+          ref_interna: ref,
+          ref_fornecedor: item.refFornecedor?.trim() || null,
+          descricao: item.descricao.trim(),
+          categoria: item.categoria.trim(),
+          origem: item.origem || 'excel',
+        });
+      } else {
         const descChanged = existing.descricao !== item.descricao.trim();
         const refChanged = (existing.refFornecedor || '') !== (item.refFornecedor?.trim() || '');
         const catChanged = existing.categoria !== item.categoria.trim();
@@ -125,20 +139,28 @@ export function useProdutos() {
           if (descChanged) updateData.descricao = item.descricao.trim();
           if (refChanged) updateData.ref_fornecedor = item.refFornecedor?.trim() || null;
           if (catChanged) updateData.categoria = item.categoria.trim();
-          const { error } = await supabase.from('produtos').update(updateData).eq('id', existing.id);
-          if (error) { errors++; } else { updated++; }
+          toUpdate.push({ id: existing.id, data: updateData });
         }
-      } else {
-        const { error } = await supabase.from('produtos').insert({
-          empresa_id: empresa.id,
-          ref_interna: item.refInterna.trim(),
-          ref_fornecedor: item.refFornecedor?.trim() || null,
-          descricao: item.descricao.trim(),
-          categoria: item.categoria.trim(),
-          origem: 'excel',
-        });
-        if (error) { errors++; } else { added++; }
       }
+    }
+
+    // Batch insert in chunks of 500
+    const CHUNK_SIZE = 500;
+    for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
+      const chunk = toInsert.slice(i, i + CHUNK_SIZE);
+      const { error, data } = await supabase.from('produtos').insert(chunk).select('id');
+      if (error) {
+        console.error('Batch insert error:', error);
+        errors += chunk.length;
+      } else {
+        added += data?.length || chunk.length;
+      }
+    }
+
+    // Updates still need to be individual
+    for (const item of toUpdate) {
+      const { error } = await supabase.from('produtos').update(item.data).eq('id', item.id);
+      if (error) { errors++; } else { updated++; }
     }
 
     await fetchProdutos();

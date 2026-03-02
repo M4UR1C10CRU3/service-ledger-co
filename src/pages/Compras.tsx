@@ -6,6 +6,7 @@ import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
 import { useArticles } from '@/hooks/useArticles';
+import { useProdutos } from '@/hooks/useProdutos';
 import {
   AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
 } from '@/types/accountPayable';
@@ -40,6 +41,7 @@ export default function Compras() {
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
+  const { produtos } = useProdutos();
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -338,7 +340,7 @@ export default function Compras() {
         formData={formData} setFormData={setFormData}
         onSubmit={handleSubmit} isEditing={!!editingAccount}
         suppliers={suppliers} costCenters={costCenters}
-        articles={articles} onAddCostCenter={addCostCenter}
+        articles={articles} produtos={produtos} onAddCostCenter={addCostCenter}
         onAddSupplier={addSupplier}
         mode="compra"
       />

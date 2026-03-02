@@ -23,6 +23,7 @@ import { Supplier, SupplierFormData, emptySupplierForm } from '@/types/supplier'
 import { SupplierFormDialog } from '@/components/SupplierFormDialog';
 import { CostCenter } from '@/hooks/useCostCenters';
 import { Article } from '@/hooks/useArticles';
+import { Produto } from '@/hooks/useProdutos';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -35,6 +36,7 @@ interface Props {
   suppliers: Supplier[];
   costCenters?: CostCenter[];
   articles?: Article[];
+  produtos?: Produto[];
   onAddCostCenter?: (name: string) => Promise<boolean>;
   onAddSupplier?: (form: SupplierFormData) => Promise<Supplier | null>;
   /** When set, hides the radio buttons and locks the form to one mode */
@@ -42,7 +44,7 @@ interface Props {
 }
 
 export function AccountPayableFormDialog({
-  open, onOpenChange, formData, setFormData, onSubmit, isEditing, suppliers, costCenters, articles, onAddCostCenter, onAddSupplier, mode,
+  open, onOpenChange, formData, setFormData, onSubmit, isEditing, suppliers, costCenters, articles, produtos, onAddCostCenter, onAddSupplier, mode,
 }: Props) {
   const { toast } = useToast();
   const [articleSearch, setArticleSearch] = useState('');
@@ -120,23 +122,43 @@ export function AccountPayableFormDialog({
 
   const activeSuppliers = suppliers.filter(s => s.status === 'ativo');
 
-  // Article autocomplete
+  // Article autocomplete - search both articles and produtos
   const filteredArticles = useMemo(() => {
-    if (!articles || !articleSearch.trim()) return [];
+    if (!articleSearch.trim()) return [];
     const q = articleSearch.toLowerCase();
-    return articles.filter(a =>
-      a.referenceCode.toLowerCase().includes(q) ||
-      a.description.toLowerCase().includes(q)
-    ).slice(0, 10);
-  }, [articles, articleSearch]);
+    const results: { id: string; referenceCode: string; description: string; supplierId: string | null; currentStock?: number; source: 'article' | 'produto' }[] = [];
+    
+    // Search in articles table
+    if (articles) {
+      for (const a of articles) {
+        if (a.referenceCode.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)) {
+          results.push({ id: a.id, referenceCode: a.referenceCode, description: a.description, supplierId: a.supplierId, currentStock: a.currentStock, source: 'article' });
+        }
+      }
+    }
+    
+    // Search in produtos table
+    if (produtos) {
+      for (const p of produtos) {
+        if (p.refInterna.toLowerCase().includes(q) || p.descricao.toLowerCase().includes(q) || (p.refFornecedor || '').toLowerCase().includes(q)) {
+          // Avoid duplicates if same ref exists in articles
+          if (!results.some(r => r.referenceCode === p.refInterna)) {
+            results.push({ id: p.id, referenceCode: p.refInterna, description: p.descricao, supplierId: null, source: 'produto' });
+          }
+        }
+      }
+    }
+    
+    return results.slice(0, 15);
+  }, [articles, produtos, articleSearch]);
 
-  const handleSelectArticle = (article: Article) => {
+  const handleSelectArticle = (item: typeof filteredArticles[number]) => {
     update({
-      articleId: article.id,
-      descricao: article.description,
-      supplierId: article.supplierId || formData.supplierId,
+      articleId: item.source === 'article' ? item.id : '',
+      descricao: item.description,
+      supplierId: item.supplierId || formData.supplierId,
     });
-    setArticleSearch(article.referenceCode + ' - ' + article.description);
+    setArticleSearch(item.referenceCode + ' - ' + item.description);
     setShowArticleResults(false);
   };
 
@@ -233,13 +255,18 @@ export function AccountPayableFormDialog({
                     <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                       {filteredArticles.map(a => (
                         <button
-                          key={a.id}
+                          key={`${a.source}-${a.id}`}
                           type="button"
                           className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
                           onClick={() => handleSelectArticle(a)}
                         >
                           <span className="font-medium">{a.referenceCode}</span> — {a.description}
-                          <span className="text-xs text-muted-foreground ml-2">(Stock: {a.currentStock})</span>
+                          {a.currentStock !== undefined && (
+                            <span className="text-xs text-muted-foreground ml-2">(Stock: {a.currentStock})</span>
+                          )}
+                          {a.source === 'produto' && (
+                            <span className="text-xs ml-2 px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Produto</span>
+                          )}
                         </button>
                       ))}
                     </div>
