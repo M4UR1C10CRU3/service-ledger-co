@@ -47,15 +47,31 @@ export function useProdutos() {
   const fetchProdutos = useCallback(async () => {
     if (!empresa) return;
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('produtos')
-      .select('*')
-      .eq('empresa_id', empresa.id)
-      .order('ref_interna');
 
-    if (!error && data) {
-      setProdutos(data.map(mapRow));
+    const pageSize = 1000;
+    let from = 0;
+    const allRows: any[] = [];
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('produtos')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .order('ref_interna')
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.error('Error fetching produtos:', error);
+        break;
+      }
+
+      if (!data || data.length === 0) break;
+      allRows.push(...data);
+      if (data.length < pageSize) break;
+      from += pageSize;
     }
+
+    setProdutos(allRows.map(mapRow));
     setIsLoading(false);
   }, [empresa]);
 
@@ -144,16 +160,20 @@ export function useProdutos() {
       }
     }
 
-    // Batch insert in chunks of 500
+    // Batch insert in chunks of 500 (ignore duplicates for idempotent re-imports)
     const CHUNK_SIZE = 500;
     for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
       const chunk = toInsert.slice(i, i + CHUNK_SIZE);
-      const { error, data } = await supabase.from('produtos').insert(chunk).select('id');
+      const { error, data } = await supabase
+        .from('produtos')
+        .upsert(chunk, { onConflict: 'empresa_id,ref_interna', ignoreDuplicates: true })
+        .select('id');
+
       if (error) {
-        console.error('Batch insert error:', error);
+        console.error('Batch upsert error:', error);
         errors += chunk.length;
       } else {
-        added += data?.length || chunk.length;
+        added += data?.length || 0;
       }
     }
 
