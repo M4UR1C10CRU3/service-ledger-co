@@ -4,6 +4,7 @@ export interface AccountPayableItem {
   quantidade: string;
   valorBruto: string;
   ivaRate: string;
+  produtoRef?: string;
 }
 
 export interface AccountPayable {

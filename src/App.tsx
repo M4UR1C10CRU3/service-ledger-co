@@ -25,6 +25,7 @@ import Colaboradores from "./pages/Colaboradores";
 import ControlePonto from "./pages/ControlePonto";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Produtos from "./pages/Produtos";
+import GestaoStocks from "./pages/GestaoStocks";
 
 const queryClient = new QueryClient();
 
@@ -60,7 +61,7 @@ const App = () => (
               {/* Placeholder routes for future pages */}
               <Route path="/propostas" element={<ProtectedWithLayout><PlaceholderPage title="Propostas" /></ProtectedWithLayout>} />
               <Route path="/follow-up" element={<ProtectedWithLayout><PlaceholderPage title="Follow-up" /></ProtectedWithLayout>} />
-              <Route path="/stocks" element={<ProtectedWithLayout><PlaceholderPage title="Gestão de Stocks" /></ProtectedWithLayout>} />
+              <Route path="/stocks" element={<ProtectedWithLayout><GestaoStocks /></ProtectedWithLayout>} />
               <Route path="/produtos" element={<ProtectedWithLayout><Produtos /></ProtectedWithLayout>} />
               <Route path="/ordens-servico" element={<ProtectedWithLayout><PlaceholderPage title="Ordens de Serviço" /></ProtectedWithLayout>} />
               <Route path="/receitas" element={<ProtectedWithLayout><Receitas /></ProtectedWithLayout>} />
