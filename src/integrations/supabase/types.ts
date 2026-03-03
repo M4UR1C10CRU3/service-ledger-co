@@ -1029,6 +1029,62 @@ export type Database = {
           },
         ]
       }
+      stock_atual: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          produto_desc: string | null
+          produto_ref: string
+          quantidade_atual: number | null
+          stock_minimo: number | null
+          ultima_entrada: string | null
+          ultima_saida: string | null
+          ultimo_preco: number | null
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          produto_desc?: string | null
+          produto_ref: string
+          quantidade_atual?: number | null
+          stock_minimo?: number | null
+          ultima_entrada?: string | null
+          ultima_saida?: string | null
+          ultimo_preco?: number | null
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          produto_desc?: string | null
+          produto_ref?: string
+          quantidade_atual?: number | null
+          stock_minimo?: number | null
+          ultima_entrada?: string | null
+          ultima_saida?: string | null
+          ultimo_preco?: number | null
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_atual_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           account_payable_id: string | null
@@ -1080,6 +1136,69 @@ export type Database = {
           },
           {
             foreignKeyName: "stock_movements_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movimentos: {
+        Row: {
+          compra_id: string | null
+          created_at: string
+          custo_unitario: number | null
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          origem: string | null
+          produto_desc: string | null
+          produto_ref: string
+          quantidade: number
+          referencia_doc: string | null
+          tipo: string
+          utilizador_id: string | null
+        }
+        Insert: {
+          compra_id?: string | null
+          created_at?: string
+          custo_unitario?: number | null
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          origem?: string | null
+          produto_desc?: string | null
+          produto_ref: string
+          quantidade: number
+          referencia_doc?: string | null
+          tipo: string
+          utilizador_id?: string | null
+        }
+        Update: {
+          compra_id?: string | null
+          created_at?: string
+          custo_unitario?: number | null
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          origem?: string | null
+          produto_desc?: string | null
+          produto_ref?: string
+          quantidade?: number
+          referencia_doc?: string | null
+          tipo?: string
+          utilizador_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movimentos_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "accounts_payable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movimentos_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"

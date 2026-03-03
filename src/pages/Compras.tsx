@@ -7,6 +7,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
 import { useArticles } from '@/hooks/useArticles';
 import { useProdutos } from '@/hooks/useProdutos';
+import { useStockAtual } from '@/hooks/useStockAtual';
 import {
   AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
 } from '@/types/accountPayable';
@@ -42,6 +43,7 @@ export default function Compras() {
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
   const { produtos } = useProdutos();
+  const { registarEntrada } = useStockAtual();
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -198,10 +200,6 @@ export default function Compras() {
       toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
       return;
     }
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
-      toast({ title: 'Erro', description: 'Informe a quantidade.', variant: 'destructive' });
-      return;
-    }
 
     if (editingAccount) {
       const ok = await updateAccount(editingAccount.id, formData);
@@ -213,8 +211,27 @@ export default function Compras() {
     } else {
       const newId = await addAccount(formData);
       if (newId) {
-        // Update article stock
-        if (formData.articleId) {
+        // Create stock movements for each line item
+        const items = formData.items || [];
+        if (items.length > 0) {
+          for (const item of items) {
+            const ref = item.produtoRef || '';
+            if (!ref) continue;
+            const qty = parseFloat(item.quantidade) || 0;
+            const unitCost = parseFloat(item.valorBruto) || 0;
+            if (qty <= 0) continue;
+            await registarEntrada({
+              produtoRef: ref,
+              produtoDesc: item.descricao,
+              quantidade: qty,
+              custoUnitario: unitCost,
+              origem: 'compra',
+              referenciaDoc: formData.numeroDocumento || newId,
+              compraId: newId,
+            });
+          }
+        } else if (formData.articleId) {
+          // Legacy single-line mode
           const qty = parseFloat(formData.quantity) || 0;
           const bruto = parseFloat(formData.valorBruto) || 0;
           const unitCost = qty > 0 ? bruto / qty : 0;

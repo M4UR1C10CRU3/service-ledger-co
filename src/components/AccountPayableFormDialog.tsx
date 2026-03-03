@@ -26,6 +26,98 @@ import { Article } from '@/hooks/useArticles';
 import { Produto } from '@/hooks/useProdutos';
 import { useToast } from '@/hooks/use-toast';
 
+/** Per-line article search + fields */
+function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produtos, onUpdate, onRemove }: {
+  item: AccountPayableItem; idx: number; lineIva: number; lineTotal: number;
+  isCompra: boolean; articles?: Article[]; produtos?: Produto[];
+  onUpdate: (partial: Partial<AccountPayableItem>) => void; onRemove: () => void;
+}) {
+  const [lineSearch, setLineSearch] = useState('');
+  const [showResults, setShowResults] = useState(false);
+
+  const searchResults = useMemo(() => {
+    if (!lineSearch.trim() || !isCompra) return [];
+    const q = lineSearch.toLowerCase();
+    const results: { ref: string; desc: string }[] = [];
+    if (articles) {
+      for (const a of articles) {
+        if (a.referenceCode.toLowerCase().includes(q) || a.description.toLowerCase().includes(q))
+          results.push({ ref: a.referenceCode, desc: a.description });
+      }
+    }
+    if (produtos) {
+      for (const p of produtos) {
+        if (!results.some(r => r.ref === p.refInterna) && (p.refInterna.toLowerCase().includes(q) || p.descricao.toLowerCase().includes(q)))
+          results.push({ ref: p.refInterna, desc: p.descricao });
+      }
+    }
+    return results.slice(0, 10);
+  }, [lineSearch, articles, produtos, isCompra]);
+
+  return (
+    <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">Linha {idx + 1}</span>
+        <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+      {isCompra && (
+        <div className="relative">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={lineSearch || (item.produtoRef ? item.produtoRef + ' - ' + item.descricao : '')}
+              onChange={e => { setLineSearch(e.target.value); setShowResults(true); }}
+              onFocus={() => setShowResults(true)}
+              placeholder="Pesquisar artigo por ref. ou descrição..."
+              className="pl-9 text-xs"
+            />
+          </div>
+          {showResults && searchResults.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
+              {searchResults.map(r => (
+                <button key={r.ref} type="button" className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                  onClick={() => { onUpdate({ produtoRef: r.ref, descricao: r.desc }); setLineSearch(''); setShowResults(false); }}>
+                  <span className="font-medium">{r.ref}</span> — {r.desc}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <Input value={item.descricao} onChange={e => onUpdate({ descricao: e.target.value })} placeholder="Descrição do item" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Qtd.</Label>
+          <Input type="number" step="1" min="1" value={item.quantidade} onChange={e => onUpdate({ quantidade: e.target.value })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Valor Unit. *</Label>
+          <Input type="number" step="0.01" min="0" value={item.valorBruto} onChange={e => onUpdate({ valorBruto: e.target.value })} placeholder="0,00" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">IVA</Label>
+          <Select value={item.ivaRate} onValueChange={v => onUpdate({ ivaRate: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {IVA_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">IVA (€)</Label>
+          <Input readOnly value={lineIva.toFixed(2)} className="bg-muted" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Subtotal</Label>
+          <Input readOnly value={lineTotal.toFixed(2)} className="bg-muted font-semibold" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -104,6 +196,7 @@ export function AccountPayableFormDialog({
       quantidade: '1',
       valorBruto: '',
       ivaRate: '23',
+      produtoRef: '',
     };
     update({ items: [...(formData.items || []), newItem] });
   };
@@ -153,6 +246,7 @@ export function AccountPayableFormDialog({
   }, [articles, produtos, articleSearch]);
 
   const handleSelectArticle = (item: typeof filteredArticles[number]) => {
+    const qty = formData.quantity || '1';
     update({
       articleId: item.source === 'article' ? item.id : '',
       descricao: item.description,
@@ -160,6 +254,41 @@ export function AccountPayableFormDialog({
     });
     setArticleSearch(item.referenceCode + ' - ' + item.description);
     setShowArticleResults(false);
+
+    // Auto-fill first line item if in compra mode
+    if (isCompra) {
+      const existingItems = formData.items || [];
+      if (existingItems.length === 0) {
+        // Create first line with article data
+        const newItem: AccountPayableItem = {
+          id: crypto.randomUUID(),
+          descricao: item.description,
+          quantidade: qty,
+          valorBruto: '',
+          ivaRate: '23',
+          produtoRef: item.referenceCode,
+        };
+        update({
+          articleId: item.source === 'article' ? item.id : '',
+          descricao: item.description,
+          supplierId: item.supplierId || formData.supplierId,
+          items: [newItem],
+        });
+      } else {
+        // Update first line's description if it's still empty
+        const first = existingItems[0];
+        if (!first.descricao) {
+          const updated = [...existingItems];
+          updated[0] = { ...first, descricao: item.description, quantidade: qty, produtoRef: item.referenceCode };
+          update({
+            articleId: item.source === 'article' ? item.id : '',
+            descricao: item.description,
+            supplierId: item.supplierId || formData.supplierId,
+            items: updated,
+          });
+        }
+      }
+    }
   };
 
   const handleAddCostCenter = async () => {
@@ -415,50 +544,18 @@ export function AccountPayableFormDialog({
                   const lineIva = val * qty * (rate / 100);
                   const lineTotal = val * qty + lineIva;
                   return (
-                    <div key={item.id} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted-foreground">Linha {idx + 1}</span>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => removeItem(item.id)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        <Input
-                          value={item.descricao}
-                          onChange={(e) => updateItem(item.id, { descricao: e.target.value })}
-                          placeholder="Descrição do item"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Qtd.</Label>
-                          <Input type="number" step="1" min="1" value={item.quantidade} onChange={(e) => updateItem(item.id, { quantidade: e.target.value })} />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Valor Unit. *</Label>
-                          <Input type="number" step="0.01" min="0" value={item.valorBruto} onChange={(e) => updateItem(item.id, { valorBruto: e.target.value })} placeholder="0,00" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">IVA</Label>
-                          <Select value={item.ivaRate} onValueChange={(v) => updateItem(item.id, { ivaRate: v })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {IVA_OPTIONS.map(o => (
-                                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">IVA (€)</Label>
-                          <Input readOnly value={lineIva.toFixed(2)} className="bg-muted" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Subtotal</Label>
-                          <Input readOnly value={lineTotal.toFixed(2)} className="bg-muted font-semibold" />
-                        </div>
-                      </div>
-                    </div>
+                    <LineItemRow
+                      key={item.id}
+                      item={item}
+                      idx={idx}
+                      lineIva={lineIva}
+                      lineTotal={lineTotal}
+                      isCompra={isCompra}
+                      articles={articles}
+                      produtos={produtos}
+                      onUpdate={(partial) => updateItem(item.id, partial)}
+                      onRemove={() => removeItem(item.id)}
+                    />
                   );
                 })}
                 {/* Totals summary */}
