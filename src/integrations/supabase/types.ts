@@ -783,6 +783,38 @@ export type Database = {
         }
         Relationships: []
       }
+      feriados: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          empresa_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao: string
+          empresa_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          empresa_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feriados_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_positions: {
         Row: {
           created_at: string
@@ -1323,6 +1355,7 @@ export type Database = {
           entry_time: string | null
           exit_time: string | null
           expected_hours: number | null
+          folga_tipo: string | null
           id: string
           lunch_exit_time: string | null
           lunch_return_time: string | null
@@ -1341,6 +1374,7 @@ export type Database = {
           entry_time?: string | null
           exit_time?: string | null
           expected_hours?: number | null
+          folga_tipo?: string | null
           id?: string
           lunch_exit_time?: string | null
           lunch_return_time?: string | null
@@ -1359,6 +1393,7 @@ export type Database = {
           entry_time?: string | null
           exit_time?: string | null
           expected_hours?: number | null
+          folga_tipo?: string | null
           id?: string
           lunch_exit_time?: string | null
           lunch_return_time?: string | null
