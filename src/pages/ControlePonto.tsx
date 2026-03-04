@@ -899,6 +899,107 @@ const ControlePonto = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Feriados Management Dialog */}
+      <Dialog open={feriadoFormOpen} onOpenChange={setFeriadoFormOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" />
+              Gestão de Feriados
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Add new holiday */}
+            <div className="space-y-3 bg-accent/20 rounded-lg p-4">
+              <p className="text-sm font-medium text-foreground">Adicionar Feriado</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Data</Label>
+                  <Input
+                    type="date"
+                    value={newFeriadoData.data}
+                    onChange={e => setNewFeriadoData(f => ({ ...f, data: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Descrição</Label>
+                  <Input
+                    value={newFeriadoData.descricao}
+                    onChange={e => setNewFeriadoData(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Ex: Natal, Ano Novo..."
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                disabled={!newFeriadoData.data || !newFeriadoData.descricao || addFeriado.isPending}
+                onClick={async () => {
+                  await addFeriado.mutateAsync(newFeriadoData);
+                  setNewFeriadoData({ data: '', descricao: '' });
+                }}
+                className="gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                {addFeriado.isPending ? 'A adicionar...' : 'Adicionar'}
+              </Button>
+            </div>
+
+            {/* List existing holidays */}
+            <Separator />
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {feriados.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum feriado cadastrado.</p>
+              ) : (
+                feriados.map(f => (
+                  <div key={f.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{f.descricao}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(f.data), "dd 'de' MMMM 'de' yyyy", { locale: pt })}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteFeriadoId(f.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Feriado Confirmation */}
+      <AlertDialog open={!!deleteFeriadoId} onOpenChange={open => !open && setDeleteFeriadoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Feriado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este feriado? Os registos de ponto existentes não serão alterados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deleteFeriadoId) {
+                  await deleteFeriado.mutateAsync(deleteFeriadoId);
+                  setDeleteFeriadoId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
