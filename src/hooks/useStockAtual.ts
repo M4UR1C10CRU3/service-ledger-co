@@ -127,11 +127,19 @@ export function useStockAtual() {
   }): Promise<boolean> => {
     if (!empresa) return false;
 
-    // Upsert stock_atual
-    const existing = stocks.find(s => s.produtoRef === params.produtoRef);
+    // Query DB directly to avoid stale state
+    const { data: existingRows } = await supabase
+      .from('stock_atual')
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .eq('produto_ref', params.produtoRef)
+      .limit(1);
+
+    const existing = existingRows?.[0];
+
     if (existing) {
       const { error } = await supabase.from('stock_atual').update({
-        quantidade_atual: existing.quantidadeAtual + params.quantidade,
+        quantidade_atual: (Number(existing.quantidade_atual) || 0) + params.quantidade,
         ultimo_preco: params.custoUnitario,
         ultima_entrada: new Date().toISOString(),
         produto_desc: params.produtoDesc,
@@ -182,8 +190,15 @@ export function useStockAtual() {
   }): Promise<boolean> => {
     if (!empresa) return false;
 
-    const existing = stocks.find(s => s.produtoRef === params.produtoRef);
-    const currentQty = existing?.quantidadeAtual ?? 0;
+    const { data: existingRows } = await supabase
+      .from('stock_atual')
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .eq('produto_ref', params.produtoRef)
+      .limit(1);
+
+    const existing = existingRows?.[0];
+    const currentQty = existing ? (Number(existing.quantidade_atual) || 0) : 0;
 
     if (existing) {
       const { error } = await supabase.from('stock_atual').update({
@@ -227,8 +242,15 @@ export function useStockAtual() {
   }): Promise<boolean> => {
     if (!empresa) return false;
 
-    const existing = stocks.find(s => s.produtoRef === params.produtoRef);
-    const currentQty = existing?.quantidadeAtual ?? 0;
+    const { data: existingRows } = await supabase
+      .from('stock_atual')
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .eq('produto_ref', params.produtoRef)
+      .limit(1);
+
+    const existing = existingRows?.[0];
+    const currentQty = existing ? (Number(existing.quantidade_atual) || 0) : 0;
     const diferenca = params.novaQuantidade - currentQty;
 
     if (existing) {
