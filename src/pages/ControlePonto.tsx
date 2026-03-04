@@ -428,6 +428,14 @@ const ControlePonto = () => {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            onClick={() => setFeriadoFormOpen(true)}
+            className="gap-2"
+          >
+            <Star className="w-4 h-4" />
+            Feriados
+          </Button>
+          <Button
+            variant="outline"
             onClick={generateReport}
             disabled={!selectedEmployeeId || records.length === 0}
             className="gap-2"
