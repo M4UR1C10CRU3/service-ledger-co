@@ -145,6 +145,7 @@ const ControlePonto = () => {
         exit_time: existing.exit_time?.slice(0, 5) || '',
         overtime_hours: String(existing.overtime_hours || 0),
         day_type: existing.day_type || 'normal',
+        folga_tipo: (existing as any).folga_tipo || 'total',
         observations: existing.observations || '',
       });
     } else {
@@ -152,7 +153,7 @@ const ControlePonto = () => {
       setFormData({
         entry_time: '08:00', lunch_exit_time: '12:00',
         lunch_return_time: '13:00', exit_time: '17:00',
-        overtime_hours: '0', day_type: 'normal', observations: '',
+        overtime_hours: '0', day_type: 'normal', folga_tipo: 'total', observations: '',
       });
     }
     setFormOpen(true);
@@ -171,6 +172,7 @@ const ControlePonto = () => {
         exit_time: existing.exit_time?.slice(0, 5) || '',
         overtime_hours: String(existing.overtime_hours || 0),
         day_type: existing.day_type || 'normal',
+        folga_tipo: (existing as any).folga_tipo || 'total',
         observations: existing.observations || '',
       });
     } else {
@@ -178,7 +180,7 @@ const ControlePonto = () => {
       setFormData({
         entry_time: '08:00', lunch_exit_time: '12:00',
         lunch_return_time: '13:00', exit_time: '17:00',
-        overtime_hours: '0', day_type: 'normal', observations: '',
+        overtime_hours: '0', day_type: 'normal', folga_tipo: 'total', observations: '',
       });
     }
   };
