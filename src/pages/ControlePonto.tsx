@@ -192,15 +192,18 @@ const ControlePonto = () => {
 
   const handleSubmit = async () => {
     if (!selectedEmployeeId) return;
+    const showTimes = formData.day_type === 'normal' || formData.day_type === 'feriado' || 
+      ((formData.day_type === 'folga' || formData.day_type === 'liberacao') && formData.folga_tipo !== 'total');
     await upsertRecord.mutateAsync({
       employee_id: selectedEmployeeId,
       record_date: formDate,
-      entry_time: formData.day_type === 'normal' ? formData.entry_time || null : null,
-      lunch_exit_time: formData.day_type === 'normal' ? formData.lunch_exit_time || null : null,
-      lunch_return_time: formData.day_type === 'normal' ? formData.lunch_return_time || null : null,
-      exit_time: formData.day_type === 'normal' ? formData.exit_time || null : null,
+      entry_time: showTimes ? formData.entry_time || null : null,
+      lunch_exit_time: showTimes ? formData.lunch_exit_time || null : null,
+      lunch_return_time: showTimes ? formData.lunch_return_time || null : null,
+      exit_time: showTimes ? formData.exit_time || null : null,
       overtime_hours: parseFloat(formData.overtime_hours) || 0,
       day_type: formData.day_type,
+      folga_tipo: (formData.day_type === 'folga' || formData.day_type === 'liberacao') ? formData.folga_tipo : 'total',
       observations: formData.observations || null,
     } as any);
     setFormOpen(false);
