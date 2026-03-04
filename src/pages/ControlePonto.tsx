@@ -9,16 +9,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
   Clock, Calendar, User, Plus, Timer, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText,
+  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText, Star,
 } from 'lucide-react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeRecords } from '@/hooks/useTimeRecords';
+import { useFeriados } from '@/hooks/useFeriados';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isToday, getDay, eachDayOfInterval } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -31,6 +33,12 @@ const DAY_TYPES = [
   { value: 'folga', label: 'Folga' },
   { value: 'falta', label: 'Falta' },
   { value: 'liberacao', label: 'Liberação' },
+];
+
+const FOLGA_TIPOS = [
+  { value: 'total', label: 'Dia Inteiro' },
+  { value: 'manha', label: 'Manhã (liberação da manhã)' },
+  { value: 'tarde', label: 'Tarde (liberação da tarde)' },
 ];
 
 const DAY_NAMES: Record<string, string> = {
@@ -58,8 +66,15 @@ const ControlePonto = () => {
     exit_time: '17:00',
     overtime_hours: '0',
     day_type: 'normal',
+    folga_tipo: 'total',
     observations: '',
   });
+
+  // Feriados state
+  const { feriados, addFeriado, deleteFeriado, isFeriado } = useFeriados();
+  const [feriadoFormOpen, setFeriadoFormOpen] = useState(false);
+  const [newFeriadoData, setNewFeriadoData] = useState({ data: '', descricao: '' });
+  const [deleteFeriadoId, setDeleteFeriadoId] = useState<string | null>(null);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
 
