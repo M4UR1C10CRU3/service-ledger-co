@@ -772,9 +772,46 @@ const ControlePonto = () => {
                   </Select>
                 </div>
 
-                {formData.day_type === 'normal' && (
+                {/* Folga/Liberação tipo selector */}
+                {(formData.day_type === 'folga' || formData.day_type === 'liberacao') && (
+                  <div className="space-y-2">
+                    <Label>Tipo de {formData.day_type === 'folga' ? 'Folga' : 'Liberação'}</Label>
+                    <Select value={formData.folga_tipo} onValueChange={v => setFormData(f => ({ ...f, folga_tipo: v }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FOLGA_TIPOS.map(ft => (
+                          <SelectItem key={ft.value} value={ft.value}>{ft.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formData.folga_tipo !== 'total' && (
+                      <p className="text-xs text-muted-foreground">
+                        {formData.folga_tipo === 'manha' 
+                          ? 'O colaborador trabalha apenas à tarde. Preencha os horários do período trabalhado.'
+                          : 'O colaborador trabalha apenas de manhã. Preencha os horários do período trabalhado.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Feriado info */}
+                {formData.day_type === 'feriado' && (
+                  <div className="flex items-center gap-2 bg-info/10 border border-info/30 rounded-lg p-3 text-sm text-info">
+                    <Star className="w-4 h-4 shrink-0" />
+                    <span>Dia abonado. Se o colaborador trabalhar, as horas serão contabilizadas como horas extra.</span>
+                  </div>
+                )}
+
+                {/* Time inputs: show for normal, feriado (optional work), and partial folga/liberação */}
+                {(formData.day_type === 'normal' || formData.day_type === 'feriado' || 
+                  ((formData.day_type === 'folga' || formData.day_type === 'liberacao') && formData.folga_tipo !== 'total')) && (
                   <>
                     <Separator />
+                    {formData.day_type === 'feriado' && (
+                      <p className="text-xs text-muted-foreground">Preencha os horários apenas se o colaborador trabalhou neste feriado.</p>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Entrada</Label>
