@@ -9,16 +9,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
   Clock, Calendar, User, Plus, Timer, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText,
+  AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText, Star,
 } from 'lucide-react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeRecords } from '@/hooks/useTimeRecords';
+import { useFeriados } from '@/hooks/useFeriados';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isToday, getDay, eachDayOfInterval } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -31,6 +33,12 @@ const DAY_TYPES = [
   { value: 'folga', label: 'Folga' },
   { value: 'falta', label: 'Falta' },
   { value: 'liberacao', label: 'Liberação' },
+];
+
+const FOLGA_TIPOS = [
+  { value: 'total', label: 'Dia Inteiro' },
+  { value: 'manha', label: 'Manhã (liberação da manhã)' },
+  { value: 'tarde', label: 'Tarde (liberação da tarde)' },
 ];
 
 const DAY_NAMES: Record<string, string> = {
@@ -58,8 +66,15 @@ const ControlePonto = () => {
     exit_time: '17:00',
     overtime_hours: '0',
     day_type: 'normal',
+    folga_tipo: 'total',
     observations: '',
   });
+
+  // Feriados state
+  const { feriados, addFeriado, deleteFeriado, isFeriado } = useFeriados();
+  const [feriadoFormOpen, setFeriadoFormOpen] = useState(false);
+  const [newFeriadoData, setNewFeriadoData] = useState({ data: '', descricao: '' });
+  const [deleteFeriadoId, setDeleteFeriadoId] = useState<string | null>(null);
 
   const activeEmployees = useMemo(() => employees.filter(e => e.status === 'active'), [employees]);
 
@@ -130,6 +145,7 @@ const ControlePonto = () => {
         exit_time: existing.exit_time?.slice(0, 5) || '',
         overtime_hours: String(existing.overtime_hours || 0),
         day_type: existing.day_type || 'normal',
+        folga_tipo: (existing as any).folga_tipo || 'total',
         observations: existing.observations || '',
       });
     } else {
@@ -137,7 +153,7 @@ const ControlePonto = () => {
       setFormData({
         entry_time: '08:00', lunch_exit_time: '12:00',
         lunch_return_time: '13:00', exit_time: '17:00',
-        overtime_hours: '0', day_type: 'normal', observations: '',
+        overtime_hours: '0', day_type: 'normal', folga_tipo: 'total', observations: '',
       });
     }
     setFormOpen(true);
@@ -156,6 +172,7 @@ const ControlePonto = () => {
         exit_time: existing.exit_time?.slice(0, 5) || '',
         overtime_hours: String(existing.overtime_hours || 0),
         day_type: existing.day_type || 'normal',
+        folga_tipo: (existing as any).folga_tipo || 'total',
         observations: existing.observations || '',
       });
     } else {
@@ -163,7 +180,7 @@ const ControlePonto = () => {
       setFormData({
         entry_time: '08:00', lunch_exit_time: '12:00',
         lunch_return_time: '13:00', exit_time: '17:00',
-        overtime_hours: '0', day_type: 'normal', observations: '',
+        overtime_hours: '0', day_type: 'normal', folga_tipo: 'total', observations: '',
       });
     }
   };
@@ -175,15 +192,18 @@ const ControlePonto = () => {
 
   const handleSubmit = async () => {
     if (!selectedEmployeeId) return;
+    const showTimes = formData.day_type === 'normal' || formData.day_type === 'feriado' || 
+      ((formData.day_type === 'folga' || formData.day_type === 'liberacao') && formData.folga_tipo !== 'total');
     await upsertRecord.mutateAsync({
       employee_id: selectedEmployeeId,
       record_date: formDate,
-      entry_time: formData.day_type === 'normal' ? formData.entry_time || null : null,
-      lunch_exit_time: formData.day_type === 'normal' ? formData.lunch_exit_time || null : null,
-      lunch_return_time: formData.day_type === 'normal' ? formData.lunch_return_time || null : null,
-      exit_time: formData.day_type === 'normal' ? formData.exit_time || null : null,
+      entry_time: showTimes ? formData.entry_time || null : null,
+      lunch_exit_time: showTimes ? formData.lunch_exit_time || null : null,
+      lunch_return_time: showTimes ? formData.lunch_return_time || null : null,
+      exit_time: showTimes ? formData.exit_time || null : null,
       overtime_hours: parseFloat(formData.overtime_hours) || 0,
       day_type: formData.day_type,
+      folga_tipo: (formData.day_type === 'folga' || formData.day_type === 'liberacao') ? formData.folga_tipo : 'total',
       observations: formData.observations || null,
     } as any);
     setFormOpen(false);
@@ -406,6 +426,14 @@ const ControlePonto = () => {
           <p className="text-sm text-muted-foreground">Registo de horários e jornadas</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setFeriadoFormOpen(true)}
+            className="gap-2"
+          >
+            <Star className="w-4 h-4" />
+            Feriados
+          </Button>
           <Button
             variant="outline"
             onClick={generateReport}
@@ -744,9 +772,46 @@ const ControlePonto = () => {
                   </Select>
                 </div>
 
-                {formData.day_type === 'normal' && (
+                {/* Folga/Liberação tipo selector */}
+                {(formData.day_type === 'folga' || formData.day_type === 'liberacao') && (
+                  <div className="space-y-2">
+                    <Label>Tipo de {formData.day_type === 'folga' ? 'Folga' : 'Liberação'}</Label>
+                    <Select value={formData.folga_tipo} onValueChange={v => setFormData(f => ({ ...f, folga_tipo: v }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FOLGA_TIPOS.map(ft => (
+                          <SelectItem key={ft.value} value={ft.value}>{ft.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formData.folga_tipo !== 'total' && (
+                      <p className="text-xs text-muted-foreground">
+                        {formData.folga_tipo === 'manha' 
+                          ? 'O colaborador trabalha apenas à tarde. Preencha os horários do período trabalhado.'
+                          : 'O colaborador trabalha apenas de manhã. Preencha os horários do período trabalhado.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Feriado info */}
+                {formData.day_type === 'feriado' && (
+                  <div className="flex items-center gap-2 bg-info/10 border border-info/30 rounded-lg p-3 text-sm text-info">
+                    <Star className="w-4 h-4 shrink-0" />
+                    <span>Dia abonado. Se o colaborador trabalhar, as horas serão contabilizadas como horas extra.</span>
+                  </div>
+                )}
+
+                {/* Time inputs: show for normal, feriado (optional work), and partial folga/liberação */}
+                {(formData.day_type === 'normal' || formData.day_type === 'feriado' || 
+                  ((formData.day_type === 'folga' || formData.day_type === 'liberacao') && formData.folga_tipo !== 'total')) && (
                   <>
                     <Separator />
+                    {formData.day_type === 'feriado' && (
+                      <p className="text-xs text-muted-foreground">Preencha os horários apenas se o colaborador trabalhou neste feriado.</p>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Entrada</Label>
@@ -830,6 +895,107 @@ const ControlePonto = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteRecord.isPending ? 'A excluir...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Feriados Management Dialog */}
+      <Dialog open={feriadoFormOpen} onOpenChange={setFeriadoFormOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" />
+              Gestão de Feriados
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Add new holiday */}
+            <div className="space-y-3 bg-accent/20 rounded-lg p-4">
+              <p className="text-sm font-medium text-foreground">Adicionar Feriado</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Data</Label>
+                  <Input
+                    type="date"
+                    value={newFeriadoData.data}
+                    onChange={e => setNewFeriadoData(f => ({ ...f, data: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Descrição</Label>
+                  <Input
+                    value={newFeriadoData.descricao}
+                    onChange={e => setNewFeriadoData(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Ex: Natal, Ano Novo..."
+                  />
+                </div>
+              </div>
+              <Button
+                size="sm"
+                disabled={!newFeriadoData.data || !newFeriadoData.descricao || addFeriado.isPending}
+                onClick={async () => {
+                  await addFeriado.mutateAsync(newFeriadoData);
+                  setNewFeriadoData({ data: '', descricao: '' });
+                }}
+                className="gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                {addFeriado.isPending ? 'A adicionar...' : 'Adicionar'}
+              </Button>
+            </div>
+
+            {/* List existing holidays */}
+            <Separator />
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {feriados.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum feriado cadastrado.</p>
+              ) : (
+                feriados.map(f => (
+                  <div key={f.id} className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{f.descricao}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(f.data), "dd 'de' MMMM 'de' yyyy", { locale: pt })}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteFeriadoId(f.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Feriado Confirmation */}
+      <AlertDialog open={!!deleteFeriadoId} onOpenChange={open => !open && setDeleteFeriadoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Feriado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este feriado? Os registos de ponto existentes não serão alterados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (deleteFeriadoId) {
+                  await deleteFeriado.mutateAsync(deleteFeriadoId);
+                  setDeleteFeriadoId(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
