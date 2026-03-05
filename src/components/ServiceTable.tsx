@@ -116,6 +116,7 @@ export const ServiceTable = ({
                 <TableHead className="w-[120px] text-center">Liquidado</TableHead>
                 <TableHead className="w-[120px] text-center">Em Débito</TableHead>
                 <TableHead className="w-[130px] text-center">Status</TableHead>
+                <TableHead className="w-[40px] text-center" title="Materiais">📦</TableHead>
                 <TableHead className="w-[100px] text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
