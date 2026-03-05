@@ -149,6 +149,7 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
     
     return data?.map(row => ({
       id: row.service_id,
+      dbId: row.id,
       data: row.data,
       servico: row.servico,
       cliente: row.cliente,
