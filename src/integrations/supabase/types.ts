@@ -1190,6 +1190,7 @@ export type Database = {
           referencia_doc: string | null
           tipo: string
           utilizador_id: string | null
+          venda_id: string | null
         }
         Insert: {
           compra_id?: string | null
@@ -1205,6 +1206,7 @@ export type Database = {
           referencia_doc?: string | null
           tipo: string
           utilizador_id?: string | null
+          venda_id?: string | null
         }
         Update: {
           compra_id?: string | null
@@ -1220,6 +1222,7 @@ export type Database = {
           referencia_doc?: string | null
           tipo?: string
           utilizador_id?: string | null
+          venda_id?: string | null
         }
         Relationships: [
           {
@@ -1234,6 +1237,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movimentos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
         ]
