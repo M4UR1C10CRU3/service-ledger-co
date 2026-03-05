@@ -20,13 +20,21 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        if (mounted) {
-          console.log('Auth state changed:', event, currentSession?.user?.email);
+        if (!mounted) return;
+        console.log('Auth state changed:', event, currentSession?.user?.email);
+        
+        // Only clear session on explicit SIGNED_OUT — ignore transient null sessions
+        // during TOKEN_REFRESHED or INITIAL_SESSION to avoid redirect flicker
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+        } else if (currentSession) {
           setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-          setLoading(false);
-          setAuthChecked(true);
+          setUser(currentSession.user);
         }
+        
+        setLoading(false);
+        setAuthChecked(true);
       }
     );
 
