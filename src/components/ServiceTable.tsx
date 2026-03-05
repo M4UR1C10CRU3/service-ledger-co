@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { ServiceWithCalculations } from '@/types/service';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Eye, Copy } from 'lucide-react';
+import { Edit, Trash2, Eye, Copy, Package } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -11,6 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ServiceTableProps {
   services: ServiceWithCalculations[];
@@ -27,6 +35,29 @@ export const ServiceTable = ({
   onViewService,
   onDuplicateService,
 }: ServiceTableProps) => {
+  const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({});
+
+  // Load material counts for all services
+  useEffect(() => {
+    const dbIds = services.map(s => s.dbId).filter(Boolean) as string[];
+    if (dbIds.length === 0) return;
+    supabase
+      .from('stock_movimentos')
+      .select('venda_id')
+      .eq('tipo', 'saida')
+      .eq('origem', 'venda')
+      .in('venda_id', dbIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const counts: Record<string, number> = {};
+        for (const row of data) {
+          const vid = (row as any).venda_id;
+          if (vid) counts[vid] = (counts[vid] || 0) + 1;
+        }
+        setMaterialCounts(counts);
+      });
+  }, [services]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
@@ -85,6 +116,7 @@ export const ServiceTable = ({
                 <TableHead className="w-[120px] text-center">Liquidado</TableHead>
                 <TableHead className="w-[120px] text-center">Em Débito</TableHead>
                 <TableHead className="w-[130px] text-center">Status</TableHead>
+                <TableHead className="w-[40px] text-center" title="Materiais">📦</TableHead>
                 <TableHead className="w-[100px] text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -126,6 +158,29 @@ export const ServiceTable = ({
                   </TableCell>
                   <TableCell className="text-center">
                     {getStatusBadge(service)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            {service.dbId && materialCounts[service.dbId] ? (
+                              <Package className="h-4 w-4 inline text-orange-500" />
+                            ) : (
+                              <Package className="h-4 w-4 inline text-muted-foreground/40" />
+                            )}
+                            {service.dbId && materialCounts[service.dbId] ? (
+                              <span className="text-xs ml-0.5 text-orange-500">{materialCounts[service.dbId]}</span>
+                            ) : null}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {service.dbId && materialCounts[service.dbId]
+                            ? `${materialCounts[service.dbId]} material(is) registado(s)`
+                            : 'Sem materiais registados'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex space-x-1">

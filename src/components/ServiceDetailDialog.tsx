@@ -1,5 +1,8 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { ServiceWithCalculations, Liquidacao } from '@/types/service';
 import { LiquidacoesManager } from './LiquidacoesManager';
+import { MateriaisUtilizadosDialog } from './materiais/MateriaisUtilizadosDialog';
 import { formatEUR } from '@/lib/formatters';
 import { parseInvoiceEntries } from '@/components/InvoiceHistoryInput';
 import {
@@ -10,8 +13,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Mail } from 'lucide-react';
+import { Phone, Mail, Package } from 'lucide-react';
 
 interface ServiceDetailDialogProps {
   open: boolean;
@@ -32,6 +36,26 @@ export const ServiceDetailDialog = ({
   onRemoveLiquidacao,
   onUpdateLiquidacao,
 }: ServiceDetailDialogProps) => {
+  const [materiaisOpen, setMateriaisOpen] = useState(false);
+  const [materiaisCount, setMateriaisCount] = useState(0);
+
+  const loadMateriaisCount = async () => {
+    if (!service?.dbId) return;
+    const { data } = await supabase
+      .from('stock_movimentos')
+      .select('id')
+      .eq('venda_id', service.dbId)
+      .eq('tipo', 'saida')
+      .eq('origem', 'venda');
+    setMateriaisCount(data?.length || 0);
+  };
+
+  useEffect(() => {
+    if (open && service?.dbId) {
+      loadMateriaisCount();
+    }
+  }, [open, service?.dbId]);
+
   if (!service) return null;
 
   // Para contratos: encontrar faturas vinculadas
@@ -197,6 +221,23 @@ export const ServiceDetailDialog = ({
             </CardContent>
           </Card>
 
+          {/* Materiais Utilizados */}
+          {service.dbId && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setMateriaisOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Package className="h-4 w-4" />
+                {materiaisCount > 0 ? `Materiais (${materiaisCount} artigos)` : 'Registar Materiais Utilizados'}
+              </Button>
+              {materiaisCount > 0 && (
+                <Badge variant="secondary">{materiaisCount} saída(s) registadas</Badge>
+              )}
+            </div>
+          )}
+
           {/* Valores */}
           <Card>
             <CardHeader>
@@ -345,6 +386,18 @@ export const ServiceDetailDialog = ({
             </Card>
           )}
         </div>
+
+        {/* Materiais Dialog */}
+        {service.dbId && (
+          <MateriaisUtilizadosDialog
+            open={materiaisOpen}
+            onOpenChange={setMateriaisOpen}
+            vendaId={service.dbId}
+            serviceIdCode={service.id}
+            serviceLabel={`${service.servico} — ${service.cliente}`}
+            onMaterialsSaved={loadMateriaisCount}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

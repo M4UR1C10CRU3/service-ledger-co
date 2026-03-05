@@ -1,5 +1,6 @@
 export interface Service {
   id: string;
+  dbId?: string; // UUID from services.id in the database
   data: string; // Data in DD/MM/YYYY format
   servico: string;
   cliente: string;
