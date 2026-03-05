@@ -35,6 +35,9 @@ export const ServiceDetailDialog = ({
   onRemoveLiquidacao,
   onUpdateLiquidacao,
 }: ServiceDetailDialogProps) => {
+  const [materiaisOpen, setMateriaisOpen] = useState(false);
+  const [materiaisCount, setMateriaisCount] = useState(0);
+
   if (!service) return null;
 
   // Para contratos: encontrar faturas vinculadas
