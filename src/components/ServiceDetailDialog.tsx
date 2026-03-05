@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { ServiceWithCalculations, Liquidacao } from '@/types/service';
 import { LiquidacoesManager } from './LiquidacoesManager';
 import { MateriaisUtilizadosDialog } from './materiais/MateriaisUtilizadosDialog';
@@ -37,6 +38,23 @@ export const ServiceDetailDialog = ({
 }: ServiceDetailDialogProps) => {
   const [materiaisOpen, setMateriaisOpen] = useState(false);
   const [materiaisCount, setMateriaisCount] = useState(0);
+
+  const loadMateriaisCount = async () => {
+    if (!service?.dbId) return;
+    const { data } = await supabase
+      .from('stock_movimentos')
+      .select('id')
+      .eq('venda_id', service.dbId)
+      .eq('tipo', 'saida')
+      .eq('origem', 'venda');
+    setMateriaisCount(data?.length || 0);
+  };
+
+  useEffect(() => {
+    if (open && service?.dbId) {
+      loadMateriaisCount();
+    }
+  }, [open, service?.dbId]);
 
   if (!service) return null;
 
