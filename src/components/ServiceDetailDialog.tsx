@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { ServiceWithCalculations, Liquidacao } from '@/types/service';
 import { LiquidacoesManager } from './LiquidacoesManager';
+import { MateriaisUtilizadosDialog } from './materiais/MateriaisUtilizadosDialog';
 import { formatEUR } from '@/lib/formatters';
 import { parseInvoiceEntries } from '@/components/InvoiceHistoryInput';
 import {
@@ -10,8 +12,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Mail } from 'lucide-react';
+import { Phone, Mail, Package } from 'lucide-react';
 
 interface ServiceDetailDialogProps {
   open: boolean;
