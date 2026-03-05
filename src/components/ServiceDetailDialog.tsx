@@ -395,12 +395,7 @@ export const ServiceDetailDialog = ({
             vendaId={service.dbId}
             serviceIdCode={service.id}
             serviceLabel={`${service.servico} — ${service.cliente}`}
-            onMaterialsSaved={() => {
-              // Refresh count
-              import('@/hooks/useServiceMaterials').then(({ useServiceMaterials }) => {
-                // We'll use a simpler approach
-              });
-            }}
+            onMaterialsSaved={loadMateriaisCount}
           />
         )}
       </DialogContent>
