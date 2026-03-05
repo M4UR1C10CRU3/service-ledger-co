@@ -160,6 +160,29 @@ export const ServiceTable = ({
                     {getStatusBadge(service)}
                   </TableCell>
                   <TableCell className="text-center">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            {service.dbId && materialCounts[service.dbId] ? (
+                              <Package className="h-4 w-4 inline text-orange-500" />
+                            ) : (
+                              <Package className="h-4 w-4 inline text-muted-foreground/40" />
+                            )}
+                            {service.dbId && materialCounts[service.dbId] ? (
+                              <span className="text-xs ml-0.5 text-orange-500">{materialCounts[service.dbId]}</span>
+                            ) : null}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {service.dbId && materialCounts[service.dbId]
+                            ? `${materialCounts[service.dbId]} material(is) registado(s)`
+                            : 'Sem materiais registados'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                  <TableCell className="text-center">
                     <div className="flex space-x-1">
                       <Button
                         variant="ghost"
