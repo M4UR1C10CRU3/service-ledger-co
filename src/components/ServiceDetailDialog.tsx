@@ -203,6 +203,23 @@ export const ServiceDetailDialog = ({
             </CardContent>
           </Card>
 
+          {/* Materiais Utilizados */}
+          {service.dbId && (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setMateriaisOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Package className="h-4 w-4" />
+                {materiaisCount > 0 ? `Materiais (${materiaisCount} artigos)` : 'Registar Materiais Utilizados'}
+              </Button>
+              {materiaisCount > 0 && (
+                <Badge variant="secondary">{materiaisCount} saída(s) registadas</Badge>
+              )}
+            </div>
+          )}
+
           {/* Valores */}
           <Card>
             <CardHeader>
