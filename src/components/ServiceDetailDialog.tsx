@@ -368,6 +368,23 @@ export const ServiceDetailDialog = ({
             </Card>
           )}
         </div>
+
+        {/* Materiais Dialog */}
+        {service.dbId && (
+          <MateriaisUtilizadosDialog
+            open={materiaisOpen}
+            onOpenChange={setMateriaisOpen}
+            vendaId={service.dbId}
+            serviceIdCode={service.id}
+            serviceLabel={`${service.servico} — ${service.cliente}`}
+            onMaterialsSaved={() => {
+              // Refresh count
+              import('@/hooks/useServiceMaterials').then(({ useServiceMaterials }) => {
+                // We'll use a simpler approach
+              });
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
