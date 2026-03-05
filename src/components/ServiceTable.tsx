@@ -35,6 +35,29 @@ export const ServiceTable = ({
   onViewService,
   onDuplicateService,
 }: ServiceTableProps) => {
+  const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({});
+
+  // Load material counts for all services
+  useEffect(() => {
+    const dbIds = services.map(s => s.dbId).filter(Boolean) as string[];
+    if (dbIds.length === 0) return;
+    supabase
+      .from('stock_movimentos')
+      .select('venda_id')
+      .eq('tipo', 'saida')
+      .eq('origem', 'venda')
+      .in('venda_id', dbIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const counts: Record<string, number> = {};
+        for (const row of data) {
+          const vid = (row as any).venda_id;
+          if (vid) counts[vid] = (counts[vid] || 0) + 1;
+        }
+        setMaterialCounts(counts);
+      });
+  }, [services]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
