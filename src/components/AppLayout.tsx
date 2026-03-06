@@ -3,9 +3,10 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Bell, Search, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -53,9 +54,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
             <div className="flex items-center gap-2">
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <NotificationBell />
 
               {/* Settings */}
               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground" onClick={() => navigate('/configuracoes')}>
