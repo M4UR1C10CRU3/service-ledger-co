@@ -1,0 +1,1 @@
+UPDATE cash_flows SET deleted_at = NOW() WHERE id = '62b57954-0f1a-4ad0-8b06-c589ab961bba';
