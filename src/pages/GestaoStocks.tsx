@@ -482,7 +482,7 @@ export default function GestaoStocks() {
                             <TableCell className="text-right font-semibold">{m.quantidade}</TableCell>
                             <TableCell className="text-right">{m.custoUnitario != null ? formatCurrency(m.custoUnitario) : '—'}</TableCell>
                             <TableCell>{m.origem || '—'}</TableCell>
-                            <TableCell>{m.referenciaDoc || '—'}</TableCell>
+                            <TableCell>{resolvedRefs[m.id] || m.referenciaDoc || '—'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
