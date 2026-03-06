@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useStockAtual, StockAtual, StockMovimento } from '@/hooks/useStockAtual';
 import { useProdutos } from '@/hooks/useProdutos';
