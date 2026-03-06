@@ -53,6 +53,9 @@ export default function GestaoStocks() {
   const { stocks, movimentos, isLoading, registarSaida, ajustarStock } = useStockAtual();
   const { produtos } = useProdutos();
 
+  // Resolved references: maps movement IDs to human-readable references
+  const [resolvedRefs, setResolvedRefs] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (empresaLoading) return;
     if (!empresa) {
@@ -60,6 +63,55 @@ export default function GestaoStocks() {
       if (!saved) navigate('/empresa');
     }
   }, [empresa, empresaLoading, navigate]);
+
+  // Resolve references for movements (service names for vendas, doc numbers for compras)
+  useEffect(() => {
+    if (movimentos.length === 0) return;
+
+    const vendaIds = [...new Set(movimentos.filter(m => m.vendaId).map(m => m.vendaId!))];
+    const compraIds = [...new Set(movimentos.filter(m => m.compraId && m.origem === 'compra').map(m => m.compraId!))];
+
+    const resolve = async () => {
+      const refs: Record<string, string> = {};
+
+      // Resolve service names for venda movements
+      if (vendaIds.length > 0) {
+        const { data: services } = await supabase
+          .from('services')
+          .select('id, servico')
+          .in('id', vendaIds);
+        if (services) {
+          const serviceMap = new Map(services.map(s => [s.id, s.servico]));
+          for (const m of movimentos) {
+            if (m.vendaId && serviceMap.has(m.vendaId)) {
+              refs[m.id] = serviceMap.get(m.vendaId)!;
+            }
+          }
+        }
+      }
+
+      // Resolve document numbers for compra movements
+      if (compraIds.length > 0) {
+        const { data: accounts } = await supabase
+          .from('accounts_payable')
+          .select('id, numero_documento')
+          .in('id', compraIds);
+        if (accounts) {
+          const accMap = new Map(accounts.map(a => [a.id, a.numero_documento]));
+          for (const m of movimentos) {
+            if (m.compraId && m.origem === 'compra' && accMap.has(m.compraId)) {
+              const docNum = accMap.get(m.compraId);
+              if (docNum) refs[m.id] = docNum;
+            }
+          }
+        }
+      }
+
+      setResolvedRefs(refs);
+    };
+
+    resolve();
+  }, [movimentos]);
 
   // Stock tab state
   const [searchTerm, setSearchTerm] = useState('');
