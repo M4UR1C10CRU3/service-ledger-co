@@ -393,7 +393,7 @@ export const ServiceDetailDialog = ({
             open={materiaisOpen}
             onOpenChange={setMateriaisOpen}
             vendaId={service.dbId}
-            serviceIdCode={service.id}
+            serviceIdCode={service.servico}
             serviceLabel={`${service.servico} — ${service.cliente}`}
             onMaterialsSaved={loadMateriaisCount}
           />
