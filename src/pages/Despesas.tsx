@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, subMonths, startOfMonth, endOfMonth, addDays, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -55,6 +55,7 @@ function getCatLabel(cat: string): string {
 
 export default function Despesas() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { empresa, isLoading: empresaLoading } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
@@ -75,6 +76,21 @@ export default function Despesas() {
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('dataVencimento');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [activeTab, setActiveTab] = useState('visao-geral');
+
+  // Handle URL filter param (from notification bell)
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'criticas') {
+      setFilters(prev => ({ ...prev, filterStatus: 'vencido' }));
+      setActiveTab('lista');
+      setSortField('dataVencimento');
+      setSortDir('asc');
+      // Clean up URL param
+      searchParams.delete('filter');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Dialogs
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -360,7 +376,7 @@ export default function Despesas() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="visao-geral" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="visao-geral">📈 Visão Geral</TabsTrigger>
           <TabsTrigger value="lista">📋 Todas</TabsTrigger>
