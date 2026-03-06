@@ -55,6 +55,7 @@ function getCatLabel(cat: string): string {
 
 export default function Despesas() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { empresa, isLoading: empresaLoading } = useEmpresa();
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
@@ -75,6 +76,21 @@ export default function Despesas() {
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('dataVencimento');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [activeTab, setActiveTab] = useState('visao-geral');
+
+  // Handle URL filter param (from notification bell)
+  useEffect(() => {
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'criticas') {
+      setFilters(prev => ({ ...prev, filterStatus: 'vencido' }));
+      setActiveTab('lista');
+      setSortField('dataVencimento');
+      setSortDir('asc');
+      // Clean up URL param
+      searchParams.delete('filter');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Dialogs
   const [isFormOpen, setIsFormOpen] = useState(false);
