@@ -376,7 +376,7 @@ export default function Despesas() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="visao-geral" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="visao-geral">📈 Visão Geral</TabsTrigger>
           <TabsTrigger value="lista">📋 Todas</TabsTrigger>
