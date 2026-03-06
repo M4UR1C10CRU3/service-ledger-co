@@ -29,6 +29,7 @@ export interface StockMovimento {
   origem: string | null;
   referenciaDoc: string | null;
   compraId: string | null;
+  vendaId: string | null;
   observacoes: string | null;
   utilizadorId: string | null;
   createdAt: string;
@@ -64,6 +65,7 @@ function mapMovRow(r: any): StockMovimento {
     origem: r.origem,
     referenciaDoc: r.referencia_doc,
     compraId: r.compra_id,
+    vendaId: r.venda_id,
     observacoes: r.observacoes,
     utilizadorId: r.utilizador_id,
     createdAt: r.created_at,
