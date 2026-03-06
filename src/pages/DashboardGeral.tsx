@@ -129,13 +129,13 @@ const DashboardGeral = () => {
               {contasVencidas.length > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-danger">🔴 {contasVencidas.length} conta(s) vencida(s) — Total: {fmt(contasVencidas.reduce((s, a) => s + a.valorLiquido, 0))}</span>
-                  <Button variant="link" size="sm" className="text-danger p-0 h-auto" onClick={() => navigate('/contas-pagar')}>Ver →</Button>
+                  <Button variant="link" size="sm" className="text-danger p-0 h-auto" onClick={() => navigate('/despesas?filter=criticas')}>Ver →</Button>
                 </div>
               )}
               {contasHoje.length > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-warning-foreground">🟡 {contasHoje.length} conta(s) vence(m) hoje — Total: {fmt(contasHoje.reduce((s, a) => s + a.valorLiquido, 0))}</span>
-                  <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => navigate('/contas-pagar')}>Ver →</Button>
+                  <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => navigate('/despesas?filter=criticas')}>Ver →</Button>
                 </div>
               )}
             </div>
