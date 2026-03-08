@@ -745,7 +745,27 @@ export function AccountPayableFormDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={onSubmit}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
+            <Button onClick={() => {
+              if (ivaIncluido) {
+                // Convert values to ilíquido before submitting
+                if (hasItems) {
+                  const normalizedItems = (formData.items || []).map(item => {
+                    const val = parseFloat(item.valorBruto) || 0;
+                    const rate = parseFloat(item.ivaRate) || 0;
+                    const unitIliquido = rate > 0 ? val / (1 + rate / 100) : val;
+                    return { ...item, valorBruto: unitIliquido.toFixed(2) };
+                  });
+                  setFormData({ ...formData, items: normalizedItems });
+                } else {
+                  const bruto = ivaCalc.bruto;
+                  setFormData({ ...formData, valorBruto: bruto > 0 ? bruto.toFixed(2) : '' });
+                }
+                // Small timeout to let state update before submit
+                setTimeout(() => onSubmit(), 0);
+              } else {
+                onSubmit();
+              }
+            }}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
