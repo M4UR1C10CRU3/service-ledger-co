@@ -81,7 +81,7 @@ export default function Despesas() {
   // Handle URL filter param (from notification bell)
   useEffect(() => {
     const filterParam = searchParams.get('filter');
-    if (filterParam === 'criticas') {
+    if (filterParam === 'criticas' || filterParam === 'critico') {
       setFilters(prev => ({ ...prev, filterStatus: 'critico' }));
       setActiveTab('lista');
       setSortField('dataVencimento');

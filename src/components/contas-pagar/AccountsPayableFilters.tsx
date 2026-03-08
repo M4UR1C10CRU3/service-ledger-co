@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { TIPO_LANCAMENTO_LABELS, STATUS_LABELS, ALL_CATEGORIAS } from '@/types/accountPayable';
+import { TIPO_LANCAMENTO_LABELS, ALL_CATEGORIAS } from '@/types/accountPayable';
 import { Supplier } from '@/types/supplier';
 
 export interface FiltersState {
