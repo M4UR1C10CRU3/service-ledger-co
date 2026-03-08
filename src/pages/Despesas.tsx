@@ -82,7 +82,7 @@ export default function Despesas() {
   useEffect(() => {
     const filterParam = searchParams.get('filter');
     if (filterParam === 'criticas') {
-      setFilters(prev => ({ ...prev, filterStatus: 'vencido' }));
+      setFilters(prev => ({ ...prev, filterStatus: 'criticas' }));
       setActiveTab('lista');
       setSortField('dataVencimento');
       setSortDir('asc');
@@ -194,7 +194,18 @@ export default function Despesas() {
         a.numeroDocumento?.toLowerCase().includes(q)
       );
     }
-    if (filters.filterStatus !== 'all') result = result.filter(a => a.status === filters.filterStatus);
+    if (filters.filterStatus === 'criticas') {
+      // Show overdue (past due date) + near-due (within 2 days) accounts that aren't paid
+      const twoDaysFromNow = new Date(today);
+      twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+      const limitStr = twoDaysFromNow.toISOString().split('T')[0];
+      result = result.filter(a =>
+        (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
+        a.dataVencimento && a.dataVencimento <= limitStr
+      );
+    } else if (filters.filterStatus !== 'all') {
+      result = result.filter(a => a.status === filters.filterStatus);
+    }
     if (filters.filterTipo !== 'all') result = result.filter(a => a.tipoLancamento === filters.filterTipo);
     if (filters.filterSupplier !== 'all') result = result.filter(a => a.supplierId === filters.filterSupplier);
     if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
