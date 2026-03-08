@@ -85,7 +85,27 @@ export default function ContasPagar() {
         a.numeroDocumento?.toLowerCase().includes(q)
       );
     }
-    if (filters.filterStatus !== 'all') result = result.filter(a => a.status === filters.filterStatus);
+    if (filters.filterStatus === 'critico') {
+      const oneDayFromNow = new Date(today);
+      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+      const limitStr = oneDayFromNow.toISOString().split('T')[0];
+      result = result.filter(a =>
+        (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
+        a.dataVencimento && a.dataVencimento <= limitStr
+      );
+    } else if (filters.filterStatus === 'pendente') {
+      const oneDayFromNow = new Date(today);
+      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+      const limitStr = oneDayFromNow.toISOString().split('T')[0];
+      result = result.filter(a =>
+        (a.status === 'pendente' || a.status === 'parcial') &&
+        (!a.dataVencimento || a.dataVencimento > limitStr)
+      );
+    } else if (filters.filterStatus === 'liquidado') {
+      result = result.filter(a => a.status === 'liquidado');
+    } else if (filters.filterStatus !== 'all') {
+      result = result.filter(a => a.status === filters.filterStatus);
+    }
     if (filters.filterTipo !== 'all') result = result.filter(a => a.tipoLancamento === filters.filterTipo);
     if (filters.filterSupplier !== 'all') result = result.filter(a => a.supplierId === filters.filterSupplier);
     if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
