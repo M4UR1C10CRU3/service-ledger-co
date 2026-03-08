@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, Search, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,10 +28,11 @@ import { Produto } from '@/hooks/useProdutos';
 import { useToast } from '@/hooks/use-toast';
 
 /** Per-line article search + fields */
-function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produtos, onUpdate, onRemove }: {
+function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produtos, onUpdate, onRemove, ivaIncluido }: {
   item: AccountPayableItem; idx: number; lineIva: number; lineTotal: number;
   isCompra: boolean; articles?: Article[]; produtos?: Produto[];
   onUpdate: (partial: Partial<AccountPayableItem>) => void; onRemove: () => void;
+  ivaIncluido: boolean;
 }) {
   const [lineSearch, setLineSearch] = useState('');
   const [showResults, setShowResults] = useState(false);
