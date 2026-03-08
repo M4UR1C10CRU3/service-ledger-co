@@ -87,12 +87,12 @@ export function NotificationBell() {
 
   const handleViewAll = () => {
     setOpen(false);
-    navigate('/despesas?filter=criticas');
+    navigate('/despesas?filter=critico');
   };
 
   const handleClickAlert = (alert: AlertAccount) => {
     setOpen(false);
-    navigate('/despesas?filter=criticas');
+    navigate('/despesas?filter=critico');
   };
 
   return (

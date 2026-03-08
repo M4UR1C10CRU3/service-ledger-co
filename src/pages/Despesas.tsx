@@ -81,8 +81,8 @@ export default function Despesas() {
   // Handle URL filter param (from notification bell)
   useEffect(() => {
     const filterParam = searchParams.get('filter');
-    if (filterParam === 'criticas') {
-      setFilters(prev => ({ ...prev, filterStatus: 'criticas' }));
+    if (filterParam === 'criticas' || filterParam === 'critico') {
+      setFilters(prev => ({ ...prev, filterStatus: 'critico' }));
       setActiveTab('lista');
       setSortField('dataVencimento');
       setSortDir('asc');
@@ -194,15 +194,26 @@ export default function Despesas() {
         a.numeroDocumento?.toLowerCase().includes(q)
       );
     }
-    if (filters.filterStatus === 'criticas') {
-      // Show overdue (past due date) + near-due (within 2 days) accounts that aren't paid
-      const twoDaysFromNow = new Date(today);
-      twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-      const limitStr = twoDaysFromNow.toISOString().split('T')[0];
+    if (filters.filterStatus === 'critico') {
+      // Overdue or ≤1 day to due date
+      const oneDayFromNow = new Date(today);
+      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+      const limitStr = oneDayFromNow.toISOString().split('T')[0];
       result = result.filter(a =>
         (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
         a.dataVencimento && a.dataVencimento <= limitStr
       );
+    } else if (filters.filterStatus === 'pendente') {
+      // Unpaid with >1 day to due
+      const oneDayFromNow = new Date(today);
+      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+      const limitStr = oneDayFromNow.toISOString().split('T')[0];
+      result = result.filter(a =>
+        (a.status === 'pendente' || a.status === 'parcial') &&
+        (!a.dataVencimento || a.dataVencimento > limitStr)
+      );
+    } else if (filters.filterStatus === 'liquidado') {
+      result = result.filter(a => a.status === 'liquidado');
     } else if (filters.filterStatus !== 'all') {
       result = result.filter(a => a.status === filters.filterStatus);
     }

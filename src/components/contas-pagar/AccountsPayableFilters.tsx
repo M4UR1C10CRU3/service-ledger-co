@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { TIPO_LANCAMENTO_LABELS, STATUS_LABELS, ALL_CATEGORIAS } from '@/types/accountPayable';
+import { TIPO_LANCAMENTO_LABELS, ALL_CATEGORIAS } from '@/types/accountPayable';
 import { Supplier } from '@/types/supplier';
 
 export interface FiltersState {
@@ -87,13 +87,18 @@ export function AccountsPayableFilters({ filters, onFiltersChange, suppliers }: 
         </Select>
 
         <Select value={filters.filterStatus} onValueChange={(v) => update({ filterStatus: v })}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="criticas">🔴 Críticas (Vencidas/Próximas)</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
+            <SelectItem value="critico">
+              <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-destructive" /> Crítico</span>
+            </SelectItem>
+            <SelectItem value="pendente">
+              <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-amber-500" /> Pendentes (à vencer)</span>
+            </SelectItem>
+            <SelectItem value="liquidado">
+              <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> Liquidado</span>
+            </SelectItem>
           </SelectContent>
         </Select>
 
