@@ -95,7 +95,7 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
           <Input type="number" step="1" min="1" value={item.quantidade} onChange={e => onUpdate({ quantidade: e.target.value })} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Valor Unit. *</Label>
+          <Label className="text-xs">{ivaIncluido ? 'Valor c/ IVA *' : 'Valor Unit. *'}</Label>
           <Input type="number" step="0.01" min="0" value={item.valorBruto} onChange={e => onUpdate({ valorBruto: e.target.value })} placeholder="0,00" />
         </div>
         <div className="space-y-1">
@@ -112,7 +112,7 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
           <Input readOnly value={lineIva.toFixed(2)} className="bg-muted" />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Subtotal</Label>
+          <Label className="text-xs">{ivaIncluido ? 'Valor Ilíq.' : 'Subtotal'}</Label>
           <Input readOnly value={lineTotal.toFixed(2)} className="bg-muted font-semibold" />
         </div>
       </div>
