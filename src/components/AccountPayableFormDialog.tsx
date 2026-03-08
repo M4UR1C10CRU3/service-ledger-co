@@ -514,11 +514,23 @@ export function AccountPayableFormDialog({
               </Button>
             </div>
 
+            {/* IVA Incluído checkbox */}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="iva-incluido"
+                checked={ivaIncluido}
+                onCheckedChange={(checked) => setIvaIncluido(checked === true)}
+              />
+              <Label htmlFor="iva-incluido" className="font-normal text-sm cursor-pointer">
+                Valor já inclui IVA
+              </Label>
+            </div>
+
             {/* Single-line mode (when no items) */}
             {!hasItems && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label>Valor Ilíquido *</Label>
+                  <Label>{ivaIncluido ? 'Valor c/ IVA *' : 'Valor Ilíquido *'}</Label>
                   <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" />
                 </div>
                 <div className="space-y-2">
@@ -537,15 +549,14 @@ export function AccountPayableFormDialog({
                   <Input readOnly value={ivaCalc.ivaValue.toFixed(2)} className="bg-muted" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor Líquido (Total)</Label>
+                  <Label>{ivaIncluido ? 'Valor Ilíquido' : 'Valor Líquido (Total)'}</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : ''}
-                    onChange={(e) => handleTotalChange(e.target.value)}
+                    readOnly
+                    value={ivaIncluido
+                      ? (ivaCalc.bruto > 0 ? ivaCalc.bruto.toFixed(2) : '')
+                      : (ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : '')}
                     placeholder="0,00"
-                    className="font-semibold"
+                    className="bg-muted font-semibold"
                   />
                 </div>
               </div>
@@ -558,8 +569,17 @@ export function AccountPayableFormDialog({
                   const qty = parseFloat(item.quantidade) || 1;
                   const val = parseFloat(item.valorBruto) || 0;
                   const rate = parseFloat(item.ivaRate) || 0;
-                  const lineIva = val * qty * (rate / 100);
-                  const lineTotal = val * qty + lineIva;
+                  let lineIva: number, lineTotal: number;
+                  if (ivaIncluido) {
+                    const gross = val * qty;
+                    const bruto = rate > 0 ? gross / (1 + rate / 100) : gross;
+                    lineIva = gross - bruto;
+                    lineTotal = bruto; // show valor ilíquido
+                  } else {
+                    const lineBruto = val * qty;
+                    lineIva = lineBruto * (rate / 100);
+                    lineTotal = lineBruto + lineIva; // show subtotal
+                  }
                   return (
                     <LineItemRow
                       key={item.id}
@@ -572,6 +592,7 @@ export function AccountPayableFormDialog({
                       produtos={produtos}
                       onUpdate={(partial) => updateItem(item.id, partial)}
                       onRemove={() => removeItem(item.id)}
+                      ivaIncluido={ivaIncluido}
                     />
                   );
                 })}
