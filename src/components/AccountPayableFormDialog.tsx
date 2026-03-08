@@ -147,7 +147,6 @@ export function AccountPayableFormDialog({
   const [showNewCC, setShowNewCC] = useState(false);
   const [isAddingCC, setIsAddingCC] = useState(false);
   const [ivaIncluido, setIvaIncluido] = useState(false);
-  const [isAddingCC, setIsAddingCC] = useState(false);
 
   // Inline supplier creation
   const [showSupplierForm, setShowSupplierForm] = useState(false);
