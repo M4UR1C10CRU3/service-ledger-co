@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, Search, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,10 +28,11 @@ import { Produto } from '@/hooks/useProdutos';
 import { useToast } from '@/hooks/use-toast';
 
 /** Per-line article search + fields */
-function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produtos, onUpdate, onRemove }: {
+function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produtos, onUpdate, onRemove, ivaIncluido }: {
   item: AccountPayableItem; idx: number; lineIva: number; lineTotal: number;
   isCompra: boolean; articles?: Article[]; produtos?: Produto[];
   onUpdate: (partial: Partial<AccountPayableItem>) => void; onRemove: () => void;
+  ivaIncluido: boolean;
 }) {
   const [lineSearch, setLineSearch] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -93,7 +95,7 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
           <Input type="number" step="1" min="1" value={item.quantidade} onChange={e => onUpdate({ quantidade: e.target.value })} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Valor Unit. *</Label>
+          <Label className="text-xs">{ivaIncluido ? 'Valor c/ IVA *' : 'Valor Unit. *'}</Label>
           <Input type="number" step="0.01" min="0" value={item.valorBruto} onChange={e => onUpdate({ valorBruto: e.target.value })} placeholder="0,00" />
         </div>
         <div className="space-y-1">
@@ -110,7 +112,7 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
           <Input readOnly value={lineIva.toFixed(2)} className="bg-muted" />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Subtotal</Label>
+          <Label className="text-xs">{ivaIncluido ? 'Valor Ilíq.' : 'Subtotal'}</Label>
           <Input readOnly value={lineTotal.toFixed(2)} className="bg-muted font-semibold" />
         </div>
       </div>
@@ -144,6 +146,7 @@ export function AccountPayableFormDialog({
   const [newCCName, setNewCCName] = useState('');
   const [showNewCC, setShowNewCC] = useState(false);
   const [isAddingCC, setIsAddingCC] = useState(false);
+  const [ivaIncluido, setIvaIncluido] = useState(false);
 
   // Inline supplier creation
   const [showSupplierForm, setShowSupplierForm] = useState(false);
@@ -155,12 +158,19 @@ export function AccountPayableFormDialog({
 
   // IVA calculation (single-line mode)
   const ivaCalc = useMemo(() => {
-    const bruto = parseFloat(formData.valorBruto) || 0;
+    const inputVal = parseFloat(formData.valorBruto) || 0;
     const rate = parseFloat(formData.ivaRate) || 0;
-    const ivaValue = bruto * (rate / 100);
-    const total = bruto + ivaValue;
-    return { ivaValue, total };
-  }, [formData.valorBruto, formData.ivaRate]);
+    if (ivaIncluido) {
+      // User entered total (with IVA) — reverse calc
+      const bruto = rate > 0 ? inputVal / (1 + rate / 100) : inputVal;
+      const ivaValue = inputVal - bruto;
+      return { ivaValue, total: inputVal, bruto };
+    }
+    // Normal: user entered valor ilíquido
+    const ivaValue = inputVal * (rate / 100);
+    const total = inputVal + ivaValue;
+    return { ivaValue, total, bruto: inputVal };
+  }, [formData.valorBruto, formData.ivaRate, ivaIncluido]);
 
   // Multi-line items totals
   const itemsTotals = useMemo(() => {
@@ -172,12 +182,19 @@ export function AccountPayableFormDialog({
       const qty = parseFloat(item.quantidade) || 1;
       const val = parseFloat(item.valorBruto) || 0;
       const rate = parseFloat(item.ivaRate) || 0;
-      const lineBruto = val * qty;
-      totalBruto += lineBruto;
-      totalIva += lineBruto * (rate / 100);
+      if (ivaIncluido) {
+        const lineTotal = val * qty;
+        const lineBruto = rate > 0 ? lineTotal / (1 + rate / 100) : lineTotal;
+        totalBruto += lineBruto;
+        totalIva += lineTotal - lineBruto;
+      } else {
+        const lineBruto = val * qty;
+        totalBruto += lineBruto;
+        totalIva += lineBruto * (rate / 100);
+      }
     }
     return { totalBruto, totalIva, total: totalBruto + totalIva };
-  }, [formData.items]);
+  }, [formData.items, ivaIncluido]);
 
   // Reverse calculation: from total to valor ilíquido
   const handleTotalChange = (totalStr: string) => {
@@ -497,11 +514,23 @@ export function AccountPayableFormDialog({
               </Button>
             </div>
 
+            {/* IVA Incluído checkbox */}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="iva-incluido"
+                checked={ivaIncluido}
+                onCheckedChange={(checked) => setIvaIncluido(checked === true)}
+              />
+              <Label htmlFor="iva-incluido" className="font-normal text-sm cursor-pointer">
+                Valor já inclui IVA
+              </Label>
+            </div>
+
             {/* Single-line mode (when no items) */}
             {!hasItems && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label>Valor Ilíquido *</Label>
+                  <Label>{ivaIncluido ? 'Valor c/ IVA *' : 'Valor Ilíquido *'}</Label>
                   <Input type="number" step="0.01" min="0" value={formData.valorBruto} onChange={(e) => update({ valorBruto: e.target.value })} placeholder="0,00" />
                 </div>
                 <div className="space-y-2">
@@ -520,15 +549,14 @@ export function AccountPayableFormDialog({
                   <Input readOnly value={ivaCalc.ivaValue.toFixed(2)} className="bg-muted" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor Líquido (Total)</Label>
+                  <Label>{ivaIncluido ? 'Valor Ilíquido' : 'Valor Líquido (Total)'}</Label>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : ''}
-                    onChange={(e) => handleTotalChange(e.target.value)}
+                    readOnly
+                    value={ivaIncluido
+                      ? (ivaCalc.bruto > 0 ? ivaCalc.bruto.toFixed(2) : '')
+                      : (ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : '')}
                     placeholder="0,00"
-                    className="font-semibold"
+                    className="bg-muted font-semibold"
                   />
                 </div>
               </div>
@@ -541,8 +569,17 @@ export function AccountPayableFormDialog({
                   const qty = parseFloat(item.quantidade) || 1;
                   const val = parseFloat(item.valorBruto) || 0;
                   const rate = parseFloat(item.ivaRate) || 0;
-                  const lineIva = val * qty * (rate / 100);
-                  const lineTotal = val * qty + lineIva;
+                  let lineIva: number, lineTotal: number;
+                  if (ivaIncluido) {
+                    const gross = val * qty;
+                    const bruto = rate > 0 ? gross / (1 + rate / 100) : gross;
+                    lineIva = gross - bruto;
+                    lineTotal = bruto; // show valor ilíquido
+                  } else {
+                    const lineBruto = val * qty;
+                    lineIva = lineBruto * (rate / 100);
+                    lineTotal = lineBruto + lineIva; // show subtotal
+                  }
                   return (
                     <LineItemRow
                       key={item.id}
@@ -555,6 +592,7 @@ export function AccountPayableFormDialog({
                       produtos={produtos}
                       onUpdate={(partial) => updateItem(item.id, partial)}
                       onRemove={() => removeItem(item.id)}
+                      ivaIncluido={ivaIncluido}
                     />
                   );
                 })}
@@ -707,7 +745,27 @@ export function AccountPayableFormDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={onSubmit}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
+            <Button onClick={() => {
+              if (ivaIncluido) {
+                // Normalize values to ilíquido before submitting
+                const normalized = { ...formData };
+                if (hasItems) {
+                  normalized.items = (formData.items || []).map(item => {
+                    const val = parseFloat(item.valorBruto) || 0;
+                    const rate = parseFloat(item.ivaRate) || 0;
+                    const unitIliquido = rate > 0 ? val / (1 + rate / 100) : val;
+                    return { ...item, valorBruto: unitIliquido.toFixed(2) };
+                  });
+                } else {
+                  normalized.valorBruto = ivaCalc.bruto > 0 ? ivaCalc.bruto.toFixed(2) : '';
+                }
+                setFormData(normalized);
+                // Use requestAnimationFrame to ensure state is set before submit
+                requestAnimationFrame(() => onSubmit());
+              } else {
+                onSubmit();
+              }
+            }}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
