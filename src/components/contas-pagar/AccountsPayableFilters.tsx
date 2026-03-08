@@ -87,9 +87,10 @@ export function AccountsPayableFilters({ filters, onFiltersChange, suppliers }: 
         </Select>
 
         <Select value={filters.filterStatus} onValueChange={(v) => update({ filterStatus: v })}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="criticas">🔴 Críticas (Vencidas/Próximas)</SelectItem>
             {Object.entries(STATUS_LABELS).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
             ))}
