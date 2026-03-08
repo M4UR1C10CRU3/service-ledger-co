@@ -146,6 +146,8 @@ export function AccountPayableFormDialog({
   const [newCCName, setNewCCName] = useState('');
   const [showNewCC, setShowNewCC] = useState(false);
   const [isAddingCC, setIsAddingCC] = useState(false);
+  const [ivaIncluido, setIvaIncluido] = useState(false);
+  const [isAddingCC, setIsAddingCC] = useState(false);
 
   // Inline supplier creation
   const [showSupplierForm, setShowSupplierForm] = useState(false);
@@ -157,12 +159,19 @@ export function AccountPayableFormDialog({
 
   // IVA calculation (single-line mode)
   const ivaCalc = useMemo(() => {
-    const bruto = parseFloat(formData.valorBruto) || 0;
+    const inputVal = parseFloat(formData.valorBruto) || 0;
     const rate = parseFloat(formData.ivaRate) || 0;
-    const ivaValue = bruto * (rate / 100);
-    const total = bruto + ivaValue;
-    return { ivaValue, total };
-  }, [formData.valorBruto, formData.ivaRate]);
+    if (ivaIncluido) {
+      // User entered total (with IVA) — reverse calc
+      const bruto = rate > 0 ? inputVal / (1 + rate / 100) : inputVal;
+      const ivaValue = inputVal - bruto;
+      return { ivaValue, total: inputVal, bruto };
+    }
+    // Normal: user entered valor ilíquido
+    const ivaValue = inputVal * (rate / 100);
+    const total = inputVal + ivaValue;
+    return { ivaValue, total, bruto: inputVal };
+  }, [formData.valorBruto, formData.ivaRate, ivaIncluido]);
 
   // Multi-line items totals
   const itemsTotals = useMemo(() => {
@@ -174,12 +183,19 @@ export function AccountPayableFormDialog({
       const qty = parseFloat(item.quantidade) || 1;
       const val = parseFloat(item.valorBruto) || 0;
       const rate = parseFloat(item.ivaRate) || 0;
-      const lineBruto = val * qty;
-      totalBruto += lineBruto;
-      totalIva += lineBruto * (rate / 100);
+      if (ivaIncluido) {
+        const lineTotal = val * qty;
+        const lineBruto = rate > 0 ? lineTotal / (1 + rate / 100) : lineTotal;
+        totalBruto += lineBruto;
+        totalIva += lineTotal - lineBruto;
+      } else {
+        const lineBruto = val * qty;
+        totalBruto += lineBruto;
+        totalIva += lineBruto * (rate / 100);
+      }
     }
     return { totalBruto, totalIva, total: totalBruto + totalIva };
-  }, [formData.items]);
+  }, [formData.items, ivaIncluido]);
 
   // Reverse calculation: from total to valor ilíquido
   const handleTotalChange = (totalStr: string) => {
