@@ -75,6 +75,8 @@ export default function ContasPagar() {
 
   // Filtering + sorting
   const filtered = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     let result = accounts;
 
     if (filters.searchTerm) {
