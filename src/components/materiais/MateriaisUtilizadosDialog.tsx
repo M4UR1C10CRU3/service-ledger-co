@@ -331,11 +331,13 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
                         </TableCell>
                         <TableCell className="text-sm">{line.unidade || '—'}</TableCell>
                         <TableCell>
-                          <span className={`text-sm font-mono ${line.quantidade > line.stockDisponivel ? 'text-yellow-600' : ''}`}>
+                          <span className={`text-sm font-mono ${line.stockDisponivel < 0 ? 'text-orange-500' : line.quantidade > line.stockDisponivel ? 'text-yellow-600' : ''}`}>
                             {line.stockDisponivel}
                           </span>
                           {line.produtoRef && line.quantidade > line.stockDisponivel && (
-                            <div className="text-[10px] text-yellow-600 leading-tight">Insuficiente</div>
+                            <div className="text-[10px] text-yellow-600 leading-tight">
+                              {line.stockDisponivel < 0 ? 'Negativo' : 'Insuficiente'}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
@@ -528,24 +530,77 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
     
     const buffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-    let fullText = '';
+    const pairs: Array<{ ref: string; qty: number }> = [];
     
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const pageText = content.items.map((item: any) => item.str).join(' ');
-      fullText += pageText + '\n';
-    }
-    
-    // Try to extract ref/qty pairs from text
-    const pairs: Array<{ ref: string; qty: number }> = [];
-    const lines = fullText.split('\n');
-    
-    for (const line of lines) {
-      // Pattern: reference (numeric-ish) followed by quantity
-      const match = line.match(/(\d{4,})\s+(\d+(?:[.,]\d+)?)/);
-      if (match) {
-        pairs.push({ ref: match[1], qty: parseFloat(match[2].replace(',', '.')) });
+      const items = content.items as Array<{ str: string; transform: number[] }>;
+      
+      if (items.length === 0) continue;
+
+      // Group items by Y position (row) with tolerance
+      const rowMap = new Map<number, Array<{ x: number; text: string }>>();
+      for (const item of items) {
+        const y = Math.round(item.transform[5]); // Y coordinate
+        const x = item.transform[4]; // X coordinate
+        const text = item.str.trim();
+        if (!text) continue;
+        
+        // Find existing row within tolerance of 3px
+        let matchedY = y;
+        for (const existingY of rowMap.keys()) {
+          if (Math.abs(existingY - y) <= 3) {
+            matchedY = existingY;
+            break;
+          }
+        }
+        
+        if (!rowMap.has(matchedY)) rowMap.set(matchedY, []);
+        rowMap.get(matchedY)!.push({ x, text });
+      }
+      
+      // Sort rows by Y descending (PDF coordinates are bottom-up)
+      const sortedRows = Array.from(rowMap.entries())
+        .sort(([a], [b]) => b - a)
+        .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
+      
+      // Extract ref/qty pairs from rows
+      for (const cells of sortedRows) {
+        if (cells.length < 2) continue;
+        
+        // First cell: check if it looks like a product reference (numeric, 4+ digits)
+        const firstCell = cells[0].text;
+        if (!/^\d{4,}$/.test(firstCell)) continue;
+        
+        // Find quantity: look for a cell with a numeric value like "2,000" or "4.000" or "2"
+        // Usually the 3rd column in tables like: Ref | Desc | Qty | Unit | Price | ...
+        let qty = 0;
+        let found = false;
+        
+        // Try cells after the first one (skip description which is usually cells[1])
+        for (let ci = 2; ci < cells.length; ci++) {
+          const cellText = cells[ci].text.replace(/\s/g, '');
+          // Match patterns like "2,000" "1.000" "4" "10"
+          const qtyMatch = cellText.match(/^(\d+)(?:[.,](\d{1,3}))?$/);
+          if (qtyMatch) {
+            const intPart = parseInt(qtyMatch[1]);
+            const decPart = qtyMatch[2] ? parseInt(qtyMatch[2]) : 0;
+            // If decimal part is "000" it's likely a thousands separator, treat as integer
+            if (qtyMatch[2] && qtyMatch[2].length === 3 && decPart === 0) {
+              qty = intPart * 1000;
+            } else if (qtyMatch[2]) {
+              qty = parseFloat(`${intPart}.${qtyMatch[2]}`);
+            } else {
+              qty = intPart;
+            }
+            if (qty > 0) { found = true; break; }
+          }
+        }
+        
+        if (found && qty > 0) {
+          pairs.push({ ref: firstCell, qty });
+        }
       }
     }
     
