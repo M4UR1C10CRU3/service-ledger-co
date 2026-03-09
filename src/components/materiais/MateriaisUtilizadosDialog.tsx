@@ -526,16 +526,65 @@ function parseExcelRows(rows: any[][]): Array<{ ref: string; qty: number }> {
 async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>> {
   try {
     const pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    
+    // Use unpkg which reliably hosts pdfjs-dist worker files
+    const version = pdfjsLib.version;
+    console.log('[PDF Parser] pdfjs version:', version);
+    
+    // Try multiple CDN sources for the worker
+    const workerUrls = [
+      `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`,
+      `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.js`,
+      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.mjs`,
+      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`,
+    ];
+    
+    // Test which worker URL is available
+    let workerLoaded = false;
+    for (const url of workerUrls) {
+      try {
+        const resp = await fetch(url, { method: 'HEAD' });
+        if (resp.ok) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = url;
+          console.log('[PDF Parser] Worker loaded from:', url);
+          workerLoaded = true;
+          break;
+        }
+      } catch {
+        // try next
+      }
+    }
+    
+    if (!workerLoaded) {
+      // Disable worker as fallback - slower but works
+      console.warn('[PDF Parser] No worker available, using main thread');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    }
     
     const buffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    console.log('[PDF Parser] File size:', buffer.byteLength, 'bytes');
+    
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    console.log('[PDF Parser] PDF loaded, pages:', pdf.numPages);
+    
     const pairs: Array<{ ref: string; qty: number }> = [];
     
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const items = content.items as any[];
+      
+      console.log('[PDF Parser] Page', i, 'total text items:', items.length);
+      
+      if (items.length === 0) {
+        console.warn('[PDF Parser] No text items on page', i);
+        continue;
+      }
+      
+      // Log raw items for debugging
+      const rawTexts = items.map((item: any) => item.str).filter(Boolean);
+      console.log('[PDF Parser] Raw text items:', JSON.stringify(rawTexts));
       
       // Group items by Y coordinate to reconstruct lines
       const yTolerance = 3;
@@ -555,50 +604,77 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
       const reconstructedLines: string[] = [];
       for (const y of sortedYs) {
         const lineItems = lineMap.get(y)!.sort((a, b) => a.x - b.x);
-        const lineText = lineItems.map(i => i.text).join(' ');
+        const lineText = lineItems.map(li => li.text).join(' ');
         reconstructedLines.push(lineText);
       }
       
-      console.log('[PDF Parser] Page', i, 'reconstructed lines:');
-      reconstructedLines.forEach((l, idx) => console.log(`  Line ${idx}: "${l}"`));
+      console.log('[PDF Parser] Reconstructed lines:');
+      reconstructedLines.forEach((l, idx) => console.log(`  [${idx}] "${l}"`));
       
-      // Now parse each reconstructed line looking for product references + quantities
-      // PHC format: REF(4-7 digits) DESCRIPTION QTY(N,NNN) UNIT PRICE ...
+      // Strategy 1: Parse each line for REF + QTY pattern
       for (const line of reconstructedLines) {
-        // Pattern 1: Line starts with a 4-7 digit ref, then has a European qty "N,NNN" somewhere
+        // Line starts with a 4-7 digit ref
         const refMatch = line.match(/^(\d{4,7})\b/);
         if (!refMatch) continue;
         const ref = refMatch[1];
-        
-        // Skip year-like numbers
         if (/^20[2-3]\d$/.test(ref)) continue;
         
-        // Find European formatted quantities (N,NNN) in the rest of the line
-        // In PHC: comma is decimal separator, so "2,000" = 2.000 = 2 units
         const restOfLine = line.substring(refMatch[0].length);
+        
+        // Find European qty "N,NNN" (PHC format: comma = decimal)
         const qtyMatches = restOfLine.match(/\b(\d{1,5})\s*,\s*(\d{3})\b/g);
         
         if (qtyMatches && qtyMatches.length > 0) {
-          // First match is the quantity column
-          const firstQty = qtyMatches[0];
-          const parts = firstQty.match(/(\d{1,5})\s*,\s*(\d{3})/);
+          const parts = qtyMatches[0].match(/(\d{1,5})\s*,\s*(\d{3})/);
           if (parts) {
             const intPart = parseInt(parts[1]);
             const decPart = parseInt(parts[2]);
             const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${parts[2]}`);
             if (qty > 0 && !pairs.find(p => p.ref === ref)) {
               pairs.push({ ref, qty });
-              console.log(`[PDF Parser] Found: ref=${ref}, qty=${qty} (from "${firstQty}")`);
+              console.log(`[PDF Parser] ✓ ref=${ref}, qty=${qty}`);
             }
           }
         } else {
-          // Fallback: look for plain integer quantity followed by unit
+          // Fallback: plain integer + unit
           const plainQty = restOfLine.match(/\b(\d{1,4})\s+(und|un|pç|kg|m2|m|lt|cx|uni)\b/i);
           if (plainQty) {
             const qty = parseInt(plainQty[1]);
             if (qty > 0 && !pairs.find(p => p.ref === ref)) {
               pairs.push({ ref, qty });
-              console.log(`[PDF Parser] Found (plain): ref=${ref}, qty=${qty}`);
+              console.log(`[PDF Parser] ✓ ref=${ref}, qty=${qty} (plain)`);
+            }
+          }
+        }
+      }
+      
+      // Strategy 2: If no pairs found, try full-text scan approach
+      if (pairs.length === 0) {
+        console.log('[PDF Parser] Strategy 1 failed, trying full-text scan...');
+        const fullText = reconstructedLines.join(' ');
+        
+        // Look for patterns anywhere: ref followed eventually by N,NNN
+        const allRefs = fullText.matchAll(/\b(\d{4,7})\b/g);
+        for (const rm of allRefs) {
+          const ref = rm[1];
+          if (/^20[2-3]\d$/.test(ref)) continue;
+          
+          // Get text after this ref (up to 200 chars)
+          const afterIdx = (rm.index || 0) + rm[0].length;
+          const after = fullText.substring(afterIdx, afterIdx + 200);
+          
+          // Stop at next ref
+          const nextRefIdx = after.search(/\b\d{4,7}\b/);
+          const segment = nextRefIdx > 0 ? after.substring(0, nextRefIdx) : after;
+          
+          const qm = segment.match(/(\d{1,5})\s*,\s*(\d{3})/);
+          if (qm) {
+            const intPart = parseInt(qm[1]);
+            const decPart = parseInt(qm[2]);
+            const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${qm[2]}`);
+            if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+              pairs.push({ ref, qty });
+              console.log(`[PDF Parser] ✓ (scan) ref=${ref}, qty=${qty}`);
             }
           }
         }
@@ -608,7 +684,10 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
     console.log('[PDF Parser] Final result:', JSON.stringify(pairs));
     return pairs;
   } catch (err) {
-    console.error('[PDF Parser] Error:', err);
+    console.error('[PDF Parser] CRITICAL ERROR:', err);
+    // Show the actual error to help debug
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[PDF Parser] Error details:', errMsg);
     return [];
   }
 }
