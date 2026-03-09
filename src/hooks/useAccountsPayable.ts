@@ -148,6 +148,8 @@ export function useAccountsPayable() {
   const updateAccount = async (id: string, form: AccountPayableFormData): Promise<boolean> => {
     const { bruto, ivaRate, ivaValue, liquido } = computeTotals(form);
     const isImediato = form.formaPagamento === 'imediato';
+    const isCreditoPago = form.formaPagamento === 'a_credito' && form.dataPagamento != null;
+    const shouldBeLiquidado = isImediato || isCreditoPago;
 
     const { error } = await supabase.from('accounts_payable').update({
       supplier_id: form.supplierId,
@@ -163,10 +165,10 @@ export function useAccountsPayable() {
       iva_rate: ivaRate,
       iva_value: ivaValue,
       forma_pagamento: form.formaPagamento,
-      data_pagamento: isImediato ? form.dataPagamento.toISOString().split('T')[0] : null,
-      data_vencimento: !isImediato ? form.dataVencimento.toISOString().split('T')[0] : null,
+      data_pagamento: form.dataPagamento ? form.dataPagamento.toISOString().split('T')[0] : null,
+      data_vencimento: form.formaPagamento === 'a_credito' ? form.dataVencimento.toISOString().split('T')[0] : null,
       metodo_pagamento: form.metodoPagamento,
-      status: isImediato ? 'liquidado' : 'pendente',
+      status: shouldBeLiquidado ? 'liquidado' : 'pendente',
       observacoes: form.observacoes.trim() || null,
       vincular_estoque: form.tipoLancamento === 'compra_revenda',
       cost_center_id: form.costCenterId || null,
@@ -177,14 +179,13 @@ export function useAccountsPayable() {
 
     if (!error) {
       // Sync account_payments so the cash_flow trigger updates flow_type/amount
-      if (isImediato) {
+      if (shouldBeLiquidado && form.dataPagamento) {
         const { data: existingPayments } = await supabase
           .from('account_payments')
           .select('id')
           .eq('account_payable_id', id);
 
         if (existingPayments && existingPayments.length > 0) {
-          // Update existing payment(s) — triggers cash_flow update via DB trigger
           await supabase.from('account_payments').update({
             data_pagamento: form.dataPagamento.toISOString().split('T')[0],
             valor_original: liquido,
@@ -192,7 +193,6 @@ export function useAccountsPayable() {
             metodo_pagamento: form.metodoPagamento,
           }).eq('account_payable_id', id);
         } else {
-          // No payment record yet, create one
           await supabase.from('account_payments').insert({
             account_payable_id: id,
             empresa_id: empresa!.id,
