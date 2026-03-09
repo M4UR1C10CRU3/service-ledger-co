@@ -118,17 +118,42 @@ export function useSuppliers() {
     return false;
   };
 
-  const deleteSupplier = async (id: string): Promise<boolean> => {
-    const { error } = await supabase
-      .from('suppliers')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
-    if (!error) {
+  const deleteSupplier = async (id: string): Promise<{ success: boolean; reason?: string }> => {
+    try {
+      // Check if supplier is referenced by accounts_payable
+      const { data: refs, error: refErr } = await supabase
+        .from('accounts_payable')
+        .select('id')
+        .eq('supplier_id', id)
+        .limit(1);
+
+      if (!refErr && refs && refs.length > 0) {
+        return { success: false, reason: 'Este fornecedor está associado a contas a pagar e não pode ser removido. Considere inactivá-lo.' };
+      }
+
+      const { error, data } = await supabase
+        .from('suppliers')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
+        .select();
+
+      console.log('Delete supplier result:', { error, data, id });
+
+      if (error) {
+        console.error('Error deleting supplier:', error);
+        return { success: false, reason: error.message };
+      }
+
+      if (!data || data.length === 0) {
+        return { success: false, reason: 'Fornecedor não encontrado ou sem permissão.' };
+      }
+
       await fetchSuppliers();
-      return true;
+      return { success: true };
+    } catch (err: any) {
+      console.error('Exception deleting supplier:', err);
+      return { success: false, reason: err?.message || 'Erro inesperado.' };
     }
-    console.error('Error deleting supplier:', error);
-    return false;
   };
 
   return { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier, refreshSuppliers: fetchSuppliers };
