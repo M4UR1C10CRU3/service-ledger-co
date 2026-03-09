@@ -530,146 +530,111 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
     
     const buffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-    const pairs: Array<{ ref: string; qty: number }> = [];
+    const allText: string[] = [];
     
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const items = content.items as any[];
       
-      if (items.length === 0) continue;
-
-      // Strategy 1: Group items by Y coordinate to reconstruct real table rows
-      const yTolerance = 3;
-      const rowMap = new Map<number, Array<{ x: number; text: string }>>();
-      
+      // Collect all raw text items for debugging
+      const rawParts: string[] = [];
       for (const item of items) {
-        const str = (item.str || '').trim();
-        if (!str) continue;
-        const y = Math.round(item.transform[5] / yTolerance) * yTolerance;
-        const x = item.transform[4];
-        if (!rowMap.has(y)) rowMap.set(y, []);
-        rowMap.get(y)!.push({ x, text: str });
+        if (item.str) rawParts.push(item.str);
       }
-      
-      // Sort rows by Y descending (top of page first) and cells by X ascending
-      const sortedRows = [...rowMap.entries()]
-        .sort((a, b) => b[0] - a[0])
-        .map(([_y, cells]) => cells.sort((a, b) => a.x - b.x));
-      
-      console.log('PDF rows extracted:', sortedRows.length);
-      sortedRows.forEach((row, idx) => {
-        const rowText = row.map(c => c.text).join(' | ');
-        console.log(`Row ${idx}: ${rowText}`);
-      });
-
-      for (const cells of sortedRows) {
-        const cellTexts = cells.map(c => c.text);
-        const fullRowText = cellTexts.join(' ');
-        
-        // Find a cell that looks like a product reference (4+ digit number)
-        let ref: string | null = null;
-        let refIdx = -1;
-        for (let ci = 0; ci < cellTexts.length; ci++) {
-          const cleaned = cellTexts[ci].replace(/\s/g, '');
-          if (/^\d{4,}$/.test(cleaned)) {
-            ref = cleaned;
-            refIdx = ci;
-            break;
-          }
+      const rawText = rawParts.join(' ');
+      allText.push(rawText);
+      console.log(`[PDF Parser] Page ${i} raw text (first 2000):`, rawText.substring(0, 2000));
+      console.log(`[PDF Parser] Page ${i} total items:`, items.length);
+    }
+    
+    // Join all pages text
+    const fullText = allText.join(' ');
+    
+    // The PDF from PHC has a table structure like:
+    // Referência | Designação | Quantidade | Uni. | Preço Unitário | Descontos | Total
+    // 2011165    | UNIÃO...   | 2,000      | und  | 3,00           | 10,00%    | 5,40
+    //
+    // Strategy: Find all product references (pure numeric 4-7 digits) and their quantities
+    // Quantities appear in European format: "2,000" means 2 units, "1,000" means 1 unit
+    
+    const pairs: Array<{ ref: string; qty: number }> = [];
+    
+    // Strategy 1: Look for pattern "REF DESCRIPTION QTY,DDD und/un" in the full text stream
+    // This handles the common PHC format where ref, description, qty are sequential
+    const phcPattern = /\b(\d{4,7})\b\s+([^0-9]+?)\s+(\d{1,5}),(\d{3})\s+(?:und|un|pç|kg|m2|m|lt|cx|uni)/gi;
+    let match;
+    while ((match = phcPattern.exec(fullText)) !== null) {
+      const ref = match[1];
+      const intPart = parseInt(match[3]);
+      const decPart = parseInt(match[4]);
+      const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${match[4]}`);
+      if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+        pairs.push({ ref, qty });
+      }
+    }
+    
+    // Strategy 2: If strategy 1 didn't work, try a broader pattern
+    // Look for 4-7 digit numbers followed eventually by N,NNN
+    if (pairs.length === 0) {
+      console.log('[PDF Parser] Strategy 1 failed, trying broader pattern...');
+      const broadPattern = /\b(\d{4,7})\b(?:\s+\S+)*?\s+(\d{1,5}),(\d{3})\b/g;
+      while ((match = broadPattern.exec(fullText)) !== null) {
+        const ref = match[1];
+        // Skip if ref looks like a date (e.g., 2026) or tax number
+        if (/^20\d{2}$/.test(ref)) continue;
+        const intPart = parseInt(match[2]);
+        const decPart = parseInt(match[3]);
+        const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${match[3]}`);
+        if (qty > 0 && qty < 100000 && !pairs.find(p => p.ref === ref)) {
+          pairs.push({ ref, qty });
         }
-        if (!ref) continue;
-        
-        // Look for quantity in remaining cells after the reference
-        // Try all numeric cells after the ref, pick the most likely quantity
-        let qty = 0;
-        for (let ci = refIdx + 1; ci < cellTexts.length; ci++) {
-          const val = cellTexts[ci].replace(/\s/g, '');
-          
-          // European format: "2,000" or "10,000"
-          const euroMatch = val.match(/^(\d+),(\d{3})$/);
-          if (euroMatch) {
-            const intPart = parseInt(euroMatch[1]);
-            const decPart = parseInt(euroMatch[2]);
-            qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${euroMatch[2]}`);
-            break;
-          }
-          
-          // Simple decimal: "2,5" or "1,50"
-          const decMatch = val.match(/^(\d+),(\d{1,2})$/);
-          if (decMatch) {
-            qty = parseFloat(`${decMatch[1]}.${decMatch[2]}`);
-            break;
-          }
-          
-          // Plain integer
-          if (/^\d+$/.test(val)) {
-            const n = parseInt(val);
-            // Skip very large numbers (likely prices or other codes)
-            if (n > 0 && n < 100000) {
-              qty = n;
+      }
+    }
+    
+    // Strategy 3: If still nothing, try without European format (plain integers)
+    if (pairs.length === 0) {
+      console.log('[PDF Parser] Strategy 2 failed, trying integer quantities...');
+      const intPattern = /\b(\d{4,7})\b\s+[A-Za-zÀ-ú]\S*.*?\s+(\d{1,4})\s+(?:und|un|pç|kg|m2|m|lt|cx|uni)/gi;
+      while ((match = intPattern.exec(fullText)) !== null) {
+        const ref = match[1];
+        if (/^20\d{2}$/.test(ref)) continue;
+        const qty = parseInt(match[2]);
+        if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+          pairs.push({ ref, qty });
+        }
+      }
+    }
+    
+    // Strategy 4: Last resort - find all 4-7 digit numbers that appear in the known product ref range
+    // and pair them with the next N,NNN pattern
+    if (pairs.length === 0) {
+      console.log('[PDF Parser] Strategy 3 failed, trying token-by-token scan...');
+      const tokens = fullText.split(/\s+/);
+      for (let t = 0; t < tokens.length; t++) {
+        const cleaned = tokens[t].replace(/[^0-9]/g, '');
+        if (/^\d{4,7}$/.test(cleaned) && !/^20\d{2}$/.test(cleaned)) {
+          // Look ahead for a quantity-like token (N,NNN or just N)
+          for (let ahead = t + 1; ahead < Math.min(t + 15, tokens.length); ahead++) {
+            const qtyMatch = tokens[ahead].match(/^(\d{1,5}),(\d{3})$/);
+            if (qtyMatch) {
+              const intP = parseInt(qtyMatch[1]);
+              const decP = parseInt(qtyMatch[2]);
+              const qty = decP === 0 ? intP : parseFloat(`${intP}.${qtyMatch[2]}`);
+              if (qty > 0 && !pairs.find(p => p.ref === cleaned)) {
+                pairs.push({ ref: cleaned, qty });
+              }
               break;
             }
-          }
-        }
-        
-        if (qty > 0) {
-          // Avoid duplicates from the same page
-          const exists = pairs.find(p => p.ref === ref);
-          if (!exists) {
-            pairs.push({ ref, qty });
-          }
-        }
-      }
-      
-      // Strategy 2 (fallback): If positional grouping found nothing, try line-based text
-      if (pairs.length === 0) {
-        let fullText = '';
-        for (const item of items) {
-          fullText += (item.str || '') + (item.hasEOL ? '\n' : ' ');
-        }
-        console.log('PDF fallback text (first 3000 chars):', fullText.substring(0, 3000));
-        
-        const textLines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
-        
-        for (const line of textLines) {
-          // Pattern 1: REF ... N,NNN (European thousands)
-          const m1 = line.match(/(\d{4,})\s+.+?\s+(\d+),(\d{3})\b/);
-          if (m1) {
-            const intP = parseInt(m1[2]);
-            const decP = parseInt(m1[3]);
-            const q = decP === 0 ? intP : parseFloat(`${intP}.${m1[3]}`);
-            if (q > 0) { pairs.push({ ref: m1[1], qty: q }); continue; }
-          }
-          
-          // Pattern 2: REF ... N,DD (European decimal like 2,50)
-          const m2 = line.match(/(\d{4,})\s+.+?\s+(\d+),(\d{1,2})\s/);
-          if (m2) {
-            const q = parseFloat(`${m2[2]}.${m2[3]}`);
-            if (q > 0) { pairs.push({ ref: m2[1], qty: q }); continue; }
-          }
-          
-          // Pattern 3: REF ... integer ... unit
-          const m3 = line.match(/(\d{4,})\s+.*?\s+(\d+)\s+(?:und|un|pç|pç\.|kg|m2|m|lt|cx|uni)/i);
-          if (m3) {
-            const q = parseInt(m3[2]);
-            if (q > 0) { pairs.push({ ref: m3[1], qty: q }); continue; }
-          }
-          
-          // Pattern 4: Any line with a 4+ digit ref and a small integer nearby
-          const m4 = line.match(/(\d{4,})\D+(\d{1,4})\s*$/);
-          if (m4) {
-            const q = parseInt(m4[2]);
-            if (q > 0 && q < 10000) { pairs.push({ ref: m4[1], qty: q }); }
           }
         }
       }
     }
     
-    console.log('PDF parser final result:', JSON.stringify(pairs));
+    console.log('[PDF Parser] Final result:', JSON.stringify(pairs));
     return pairs;
   } catch (err) {
-    console.error('PDF parse error:', err);
+    console.error('[PDF Parser] Error:', err);
     return [];
   }
 }
