@@ -537,56 +537,69 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
       const content = await page.getTextContent();
       const items = content.items as any[];
       
-      // Build a list of tokens preserving order
-      const tokens: string[] = [];
+      // Group items by Y coordinate to reconstruct lines
+      const yTolerance = 3;
+      const lineMap = new Map<number, Array<{ x: number; text: string }>>();
+      
       for (const item of items) {
         const str = (item.str || '').trim();
-        if (str) tokens.push(str);
+        if (!str) continue;
+        const y = Math.round(item.transform[5] / yTolerance) * yTolerance;
+        const x = item.transform[4];
+        if (!lineMap.has(y)) lineMap.set(y, []);
+        lineMap.get(y)!.push({ x, text: str });
       }
       
-      console.log('[PDF Parser] Page', i, 'tokens:', JSON.stringify(tokens.slice(0, 100)));
+      // Sort lines by Y descending (top to bottom in PDF), items by X ascending
+      const sortedYs = Array.from(lineMap.keys()).sort((a, b) => b - a);
+      const reconstructedLines: string[] = [];
+      for (const y of sortedYs) {
+        const lineItems = lineMap.get(y)!.sort((a, b) => a.x - b.x);
+        const lineText = lineItems.map(i => i.text).join(' ');
+        reconstructedLines.push(lineText);
+      }
       
-      // Strategy: scan tokens sequentially.
-      // When we find a token that is purely a 4-7 digit number (product ref),
-      // scan ahead for the first token matching European qty format "N,000" 
-      // (exactly 3 decimal places = thousands separator in PHC)
-      for (let t = 0; t < tokens.length; t++) {
-        const tok = tokens[t];
-        // Must be a pure numeric ref with 4-7 digits
-        if (!/^\d{4,7}$/.test(tok)) continue;
-        // Skip year-like numbers (2024-2030)
-        if (/^20[2-3]\d$/.test(tok)) continue;
+      console.log('[PDF Parser] Page', i, 'reconstructed lines:');
+      reconstructedLines.forEach((l, idx) => console.log(`  Line ${idx}: "${l}"`));
+      
+      // Now parse each reconstructed line looking for product references + quantities
+      // PHC format: REF(4-7 digits) DESCRIPTION QTY(N,NNN) UNIT PRICE ...
+      for (const line of reconstructedLines) {
+        // Pattern 1: Line starts with a 4-7 digit ref, then has a European qty "N,NNN" somewhere
+        const refMatch = line.match(/^(\d{4,7})\b/);
+        if (!refMatch) continue;
+        const ref = refMatch[1];
         
-        // Scan ahead up to 20 tokens for a quantity
-        for (let ahead = t + 1; ahead < Math.min(t + 20, tokens.length); ahead++) {
-          const qTok = tokens[ahead];
-          
-          // Stop if we hit another product ref (next row)
-          if (/^\d{4,7}$/.test(qTok) && !/^20[2-3]\d$/.test(qTok) && ahead > t + 1) break;
-          
-          // Match European quantity: "N,NNN" where NNN is the decimal part
-          // In PHC: "2,000" = 2 units, "1,500" = 1.5 units, "10,000" = 10 units
-          const qtyMatch = qTok.match(/^(\d{1,5}),(\d{3})$/);
-          if (qtyMatch) {
-            const intPart = parseInt(qtyMatch[1]);
-            const decPart = parseInt(qtyMatch[2]);
-            const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${qtyMatch[2]}`);
-            if (qty > 0 && !pairs.find(p => p.ref === tok)) {
-              pairs.push({ ref: tok, qty });
-              console.log(`[PDF Parser] Found: ref=${tok}, qty=${qty} (from token "${qTok}")`);
+        // Skip year-like numbers
+        if (/^20[2-3]\d$/.test(ref)) continue;
+        
+        // Find European formatted quantities (N,NNN) in the rest of the line
+        // In PHC: comma is decimal separator, so "2,000" = 2.000 = 2 units
+        const restOfLine = line.substring(refMatch[0].length);
+        const qtyMatches = restOfLine.match(/\b(\d{1,5})\s*,\s*(\d{3})\b/g);
+        
+        if (qtyMatches && qtyMatches.length > 0) {
+          // First match is the quantity column
+          const firstQty = qtyMatches[0];
+          const parts = firstQty.match(/(\d{1,5})\s*,\s*(\d{3})/);
+          if (parts) {
+            const intPart = parseInt(parts[1]);
+            const decPart = parseInt(parts[2]);
+            const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${parts[2]}`);
+            if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+              pairs.push({ ref, qty });
+              console.log(`[PDF Parser] Found: ref=${ref}, qty=${qty} (from "${firstQty}")`);
             }
-            break;
           }
-          
-          // Also match plain integer followed by "und"/"un" etc.
-          if (/^\d{1,4}$/.test(qTok) && ahead + 1 < tokens.length && 
-              /^(und|un|pç|kg|m2|m|lt|cx|uni)$/i.test(tokens[ahead + 1])) {
-            const qty = parseInt(qTok);
-            if (qty > 0 && !pairs.find(p => p.ref === tok)) {
-              pairs.push({ ref: tok, qty });
-              console.log(`[PDF Parser] Found (int): ref=${tok}, qty=${qty}`);
+        } else {
+          // Fallback: look for plain integer quantity followed by unit
+          const plainQty = restOfLine.match(/\b(\d{1,4})\s+(und|un|pç|kg|m2|m|lt|cx|uni)\b/i);
+          if (plainQty) {
+            const qty = parseInt(plainQty[1]);
+            if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+              pairs.push({ ref, qty });
+              console.log(`[PDF Parser] Found (plain): ref=${ref}, qty=${qty}`);
             }
-            break;
           }
         }
       }
