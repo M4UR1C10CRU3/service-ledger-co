@@ -267,7 +267,7 @@ export default function Despesas() {
       ivaValue: String(account.ivaValue || 0),
       valorLiquido: String(account.valorLiquido),
       formaPagamento: 'a_credito',
-      dataPagamento: new Date(),
+      dataPagamento: null,
       dataVencimento: new Date(),
       metodoPagamento: account.metodoPagamento || 'transferencia',
       observacoes: account.observacoes || '',
