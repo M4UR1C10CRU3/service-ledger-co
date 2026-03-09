@@ -91,6 +91,9 @@ export function useAccountsPayable() {
     const { bruto, ivaRate, ivaValue, liquido } = computeTotals(form);
 
     const isImediato = form.formaPagamento === 'imediato';
+    // A Crédito but with a payment date filled = user wants it saved as liquidated
+    const isCreditoPago = form.formaPagamento === 'a_credito' && form.dataPagamento != null;
+    const shouldBeLiquidado = isImediato || isCreditoPago;
 
     const { data, error } = await supabase.from('accounts_payable').insert({
       empresa_id: empresa.id,
@@ -107,10 +110,10 @@ export function useAccountsPayable() {
       iva_rate: ivaRate,
       iva_value: ivaValue,
       forma_pagamento: form.formaPagamento,
-      data_pagamento: isImediato ? form.dataPagamento.toISOString().split('T')[0] : null,
-      data_vencimento: !isImediato ? form.dataVencimento.toISOString().split('T')[0] : null,
+      data_pagamento: form.dataPagamento ? form.dataPagamento.toISOString().split('T')[0] : null,
+      data_vencimento: form.formaPagamento === 'a_credito' ? form.dataVencimento.toISOString().split('T')[0] : null,
       metodo_pagamento: form.metodoPagamento,
-      status: isImediato ? 'liquidado' : 'pendente',
+      status: shouldBeLiquidado ? 'liquidado' : 'pendente',
       observacoes: form.observacoes.trim() || null,
       vincular_estoque: form.tipoLancamento === 'compra_revenda',
       cost_center_id: form.costCenterId || null,
@@ -120,8 +123,8 @@ export function useAccountsPayable() {
     } as any).select('id').single();
 
     if (!error && data) {
-      // For immediate payments, also insert into account_payments so the cash flow trigger fires
-      if (isImediato) {
+      // For paid accounts, also insert into account_payments so the cash flow trigger fires
+      if (shouldBeLiquidado && form.dataPagamento) {
         await supabase.from('account_payments').insert({
           account_payable_id: data.id,
           empresa_id: empresa.id,
