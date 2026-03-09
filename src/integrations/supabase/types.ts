@@ -1443,6 +1443,10 @@ export type Database = {
         Args: { p_date?: string; p_empresa_id: string; p_flow_type: string }
         Returns: number
       }
+      soft_delete_supplier: {
+        Args: { p_supplier_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
