@@ -539,90 +539,40 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
       
       if (items.length === 0) continue;
 
-      // Strategy 1: Try positional grouping (rows by Y coordinate)
-      const hasTransform = items[0]?.transform && Array.isArray(items[0].transform);
-      
-      if (hasTransform) {
-        const rowMap = new Map<number, Array<{ x: number; text: string }>>();
-        for (const item of items) {
-          if (!item.str || !item.transform) continue;
-          const y = Math.round(item.transform[5]);
-          const x = item.transform[4];
-          const text = item.str.trim();
-          if (!text) continue;
-          
-          let matchedY = y;
-          for (const existingY of rowMap.keys()) {
-            if (Math.abs(existingY - y) <= 4) {
-              matchedY = existingY;
-              break;
-            }
-          }
-          
-          if (!rowMap.has(matchedY)) rowMap.set(matchedY, []);
-          rowMap.get(matchedY)!.push({ x, text });
-        }
-        
-        const sortedRows = Array.from(rowMap.entries())
-          .sort(([a], [b]) => b - a)
-          .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
-        
-        for (const cells of sortedRows) {
-          if (cells.length < 2) continue;
-          const firstCell = cells[0].text;
-          if (!/^\d{4,}$/.test(firstCell)) continue;
-          
-          // Search for quantity in remaining cells
-          for (let ci = 1; ci < cells.length; ci++) {
-            const cellText = cells[ci].text.replace(/\s/g, '');
-            const qtyMatch = cellText.match(/^(\d+)(?:[.,](\d{1,3}))?$/);
-            if (qtyMatch) {
-              const intPart = parseInt(qtyMatch[1]);
-              const decPart = qtyMatch[2] || '0';
-              let qty: number;
-              if (decPart.length === 3 && parseInt(decPart) === 0) {
-                qty = intPart * 1000;
-              } else if (decPart !== '0') {
-                qty = parseFloat(`${intPart}.${decPart}`);
-              } else {
-                qty = intPart;
-              }
-              if (qty > 0) {
-                pairs.push({ ref: firstCell, qty });
-                break;
-              }
-            }
-          }
-        }
+      // Build full text from all items, preserving EOL
+      let fullText = '';
+      for (const item of items) {
+        const str = item.str || '';
+        fullText += str + (item.hasEOL ? '\n' : ' ');
       }
       
-      // Strategy 2: Fallback - plain text line-by-line regex
-      if (pairs.length === 0) {
-        let fullText = '';
-        for (const item of items) {
-          const str = item.str || '';
-          fullText += str + (item.hasEOL ? '\n' : ' ');
-        }
-        
-        console.log('PDF text fallback, extracted text length:', fullText.length);
-        
-        const textLines = fullText.split('\n');
-        for (const line of textLines) {
-          // Match a line starting with a 4+ digit reference followed eventually by a quantity like "2,000" or "2"
-          const match = line.match(/^\s*(\d{4,})\s+.+?\s+(\d+)[.,](\d{3})\s/);
-          if (match) {
-            const ref = match[1];
-            const qty = parseInt(match[2]);
-            if (qty > 0) pairs.push({ ref, qty });
+      console.log('PDF extracted text:', fullText.substring(0, 2000));
+      
+      const textLines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
+      
+      for (const line of textLines) {
+        // Match lines starting with a numeric reference (4+ digits)
+        // followed by description and quantity in format "N,NNN" (e.g. "2,000" = 2 units)
+        // Pattern: REF ... QTY,DDD ... und/un/pç/...
+        const match = line.match(/^\s*(\d{4,})\s+.+?\s+(\d+),(\d{3})\s/);
+        if (match) {
+          const ref = match[1];
+          const intPart = parseInt(match[2]);
+          const decPart = parseInt(match[3]);
+          // "2,000" = 2 units; "1,500" = 1.5 units (European decimal format)
+          const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${match[3]}`);
+          if (qty > 0) {
+            pairs.push({ ref, qty });
             continue;
           }
-          // Simpler: ref ... number (integer qty)
-          const simpleMatch = line.match(/^\s*(\d{4,})\s+\S+.*?\s+(\d+)\s+(?:und|un|pç|kg|m2|m|lt|cx)/i);
-          if (simpleMatch) {
-            const ref = simpleMatch[1];
-            const qty = parseInt(simpleMatch[2]);
-            if (qty > 0) pairs.push({ ref, qty });
-          }
+        }
+        
+        // Fallback: REF ... integer qty ... unit
+        const simpleMatch = line.match(/^\s*(\d{4,})\s+\S+.*?\s+(\d+)\s+(?:und|un|pç|kg|m2|m|lt|cx)/i);
+        if (simpleMatch) {
+          const ref = simpleMatch[1];
+          const qty = parseInt(simpleMatch[2]);
+          if (qty > 0) pairs.push({ ref, qty });
         }
       }
     }
