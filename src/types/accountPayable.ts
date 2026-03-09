@@ -48,6 +48,7 @@ export interface AccountPayableFormData {
   descricao: string;
   numeroDocumento: string;
   dataEmissao: Date;
+  /** null = not yet paid (for a_credito) */
   valorBruto: string; // Valor Ilíquido
   ivaRate: string; // '0' | '6' | '13' | '23'
   ivaValue: string; // calculated
