@@ -131,21 +131,14 @@ export function useSuppliers() {
         return { success: false, reason: 'Este fornecedor está associado a contas a pagar e não pode ser removido. Considere inactivá-lo.' };
       }
 
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('suppliers')
         .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id)
-        .select();
-
-      console.log('Delete supplier result:', { error, data, id });
+        .eq('id', id);
 
       if (error) {
         console.error('Error deleting supplier:', error);
         return { success: false, reason: error.message };
-      }
-
-      if (!data || data.length === 0) {
-        return { success: false, reason: 'Fornecedor não encontrado ou sem permissão.' };
       }
 
       await fetchSuppliers();
