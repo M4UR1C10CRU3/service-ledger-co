@@ -228,7 +228,7 @@ export default function ContasPagar() {
         ivaValue: String(account.ivaValue || 0),
         valorLiquido: String(account.valorLiquido),
         formaPagamento: fpMap[account.formaPagamento] || 'imediato',
-        dataPagamento: account.dataPagamento ? new Date(account.dataPagamento) : new Date(),
+        dataPagamento: account.dataPagamento ? new Date(account.dataPagamento) : null,
         dataVencimento: account.dataVencimento ? new Date(account.dataVencimento) : new Date(),
         metodoPagamento: account.metodoPagamento || 'transferencia',
         observacoes: account.observacoes || '',
