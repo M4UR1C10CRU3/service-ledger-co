@@ -54,7 +54,7 @@ export interface AccountPayableFormData {
   ivaValue: string; // calculated
   valorLiquido: string; // calculated total
   formaPagamento: 'imediato' | 'a_credito';
-  dataPagamento: Date;
+  dataPagamento: Date | null;
   dataVencimento: Date;
   metodoPagamento: string;
   observacoes: string;
