@@ -331,11 +331,13 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
                         </TableCell>
                         <TableCell className="text-sm">{line.unidade || '—'}</TableCell>
                         <TableCell>
-                          <span className={`text-sm font-mono ${line.quantidade > line.stockDisponivel ? 'text-yellow-600' : ''}`}>
+                          <span className={`text-sm font-mono ${line.stockDisponivel < 0 ? 'text-orange-500' : line.quantidade > line.stockDisponivel ? 'text-yellow-600' : ''}`}>
                             {line.stockDisponivel}
                           </span>
                           {line.produtoRef && line.quantidade > line.stockDisponivel && (
-                            <div className="text-[10px] text-yellow-600 leading-tight">Insuficiente</div>
+                            <div className="text-[10px] text-yellow-600 leading-tight">
+                              {line.stockDisponivel < 0 ? 'Negativo' : 'Insuficiente'}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
