@@ -34,7 +34,7 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
   onUpdate: (partial: Partial<AccountPayableItem>) => void; onRemove: () => void;
   ivaIncluido: boolean;
 }) {
-  const [lineSearch, setLineSearch] = useState('');
+  const [lineSearch, setLineSearch] = useState(item.produtoRef ? item.produtoRef + ' - ' + item.descricao : '');
   const [showResults, setShowResults] = useState(false);
 
   const searchResults = useMemo(() => {
@@ -69,8 +69,15 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              value={lineSearch || (item.produtoRef ? item.produtoRef + ' - ' + item.descricao : '')}
-              onChange={e => { setLineSearch(e.target.value); setShowResults(true); }}
+              value={lineSearch}
+              onChange={e => {
+                setLineSearch(e.target.value);
+                setShowResults(true);
+                // If user clears the search, also clear the produtoRef so it won't be linked to stock
+                if (!e.target.value.trim()) {
+                  onUpdate({ produtoRef: '' });
+                }
+              }}
               onFocus={() => setShowResults(true)}
               placeholder="Pesquisar artigo por ref. ou descrição..."
               className="pl-9 text-xs"
@@ -80,7 +87,7 @@ function LineItemRow({ item, idx, lineIva, lineTotal, isCompra, articles, produt
             <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-40 overflow-y-auto">
               {searchResults.map(r => (
                 <button key={r.ref} type="button" className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
-                  onClick={() => { onUpdate({ produtoRef: r.ref, descricao: r.desc }); setLineSearch(''); setShowResults(false); }}>
+                  onClick={() => { onUpdate({ produtoRef: r.ref, descricao: r.desc }); setLineSearch(r.ref + ' - ' + r.desc); setShowResults(false); }}>
                   <span className="font-medium">{r.ref}</span> — {r.desc}
                 </button>
               ))}
