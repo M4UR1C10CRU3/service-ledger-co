@@ -120,8 +120,6 @@ export function useSuppliers() {
 
   const deleteSupplier = async (id: string): Promise<{ success: boolean; reason?: string }> => {
     try {
-      console.log('[deleteSupplier] Starting deletion for id:', id);
-      
       // Check if supplier is referenced by accounts_payable
       const { data: refs, error: refErr } = await supabase
         .from('accounts_payable')
@@ -129,35 +127,31 @@ export function useSuppliers() {
         .eq('supplier_id', id)
         .limit(1);
 
-      console.log('[deleteSupplier] accounts_payable refs:', refs, 'refErr:', refErr);
-
       if (!refErr && refs && refs.length > 0) {
         return { success: false, reason: 'Este fornecedor está associado a contas a pagar e não pode ser removido. Considere inactivá-lo.' };
       }
 
-      // Also check articles table
+      // Check articles table
       const { data: articleRefs, error: articleErr } = await supabase
         .from('articles')
         .select('id')
         .eq('supplier_id', id)
         .limit(1);
 
-      console.log('[deleteSupplier] articles refs:', articleRefs, 'articleErr:', articleErr);
-
       if (!articleErr && articleRefs && articleRefs.length > 0) {
         return { success: false, reason: 'Este fornecedor está associado a artigos e não pode ser removido. Considere inactivá-lo.' };
       }
 
-      const { error, status, statusText } = await supabase
-        .from('suppliers')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id);
-
-      console.log('[deleteSupplier] update result - error:', error, 'status:', status, 'statusText:', statusText);
+      // Use security definer function to bypass RLS SELECT policy (deleted_at IS NULL)
+      const { data, error } = await supabase.rpc('soft_delete_supplier', { p_supplier_id: id });
 
       if (error) {
         console.error('Error deleting supplier:', error);
         return { success: false, reason: error.message };
+      }
+
+      if (!data) {
+        return { success: false, reason: 'Fornecedor não encontrado.' };
       }
 
       await fetchSuppliers();
