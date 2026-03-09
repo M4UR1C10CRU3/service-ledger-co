@@ -141,6 +141,9 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
         pairs = parseExcelRows(rows);
       } else if (ext === 'pdf') {
         pairs = await parsePDF(file);
+        if (pairs.length === 0) {
+          console.warn('[Upload] PDF parsed but 0 pairs found. Check console for [PDF Parser] logs.');
+        }
       } else {
         toast({ title: 'Formato não suportado', description: 'Use PDF, Excel (.xlsx), CSV ou TXT.', variant: 'destructive' });
         setUploadProcessing(false);
@@ -148,7 +151,11 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
       }
 
       if (pairs.length === 0) {
-        toast({ title: 'Nenhum artigo encontrado', description: 'Não foi possível extrair referências e quantidades do ficheiro.', variant: 'destructive' });
+        toast({ 
+          title: 'Nenhum artigo encontrado', 
+          description: `Não foi possível extrair referências do ficheiro "${file.name}". Verifique a consola (F12) para diagnóstico detalhado, ou use o formato CSV.`, 
+          variant: 'destructive' 
+        });
         setUploadProcessing(false);
         return;
       }
