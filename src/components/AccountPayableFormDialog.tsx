@@ -636,6 +636,9 @@ export function AccountPayableFormDialog({
                   const updates: Partial<AccountPayableFormData> = { formaPagamento: v as any };
                   if (v !== 'a_credito') {
                     updates.dataPagamento = formData.dataEmissao;
+                  } else {
+                    // Clear payment date for credit — user can optionally fill it to mark as paid
+                    updates.dataPagamento = null;
                   }
                   update(updates);
                 }}
@@ -665,18 +668,30 @@ export function AccountPayableFormDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Data de Pagamento</Label>
+                <Label>Data de Pagamento{formData.formaPagamento === 'a_credito' ? '' : ' *'}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !formData.dataPagamento && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(formData.dataPagamento, 'dd/MM/yyyy')}
+                      {formData.dataPagamento ? format(formData.dataPagamento, 'dd/MM/yyyy') : 'Sem data (pendente)'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={formData.dataPagamento} onSelect={(d) => d && update({ dataPagamento: d })} initialFocus className="p-3 pointer-events-auto" />
+                    <div>
+                      <Calendar mode="single" selected={formData.dataPagamento ?? undefined} onSelect={(d) => d && update({ dataPagamento: d })} initialFocus className="p-3 pointer-events-auto" />
+                      {formData.formaPagamento === 'a_credito' && formData.dataPagamento && (
+                        <div className="px-3 pb-3">
+                          <Button type="button" variant="ghost" size="sm" className="w-full text-xs" onClick={() => update({ dataPagamento: null })}>
+                            Limpar data
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </PopoverContent>
                 </Popover>
+                {formData.formaPagamento === 'a_credito' && formData.dataPagamento && (
+                  <p className="text-xs text-green-600 font-medium">✓ Será guardado como liquidado</p>
+                )}
               </div>
               {formData.formaPagamento === 'a_credito' && (
                 <div className="space-y-2">
