@@ -535,75 +535,99 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
-      const items = content.items as Array<{ str: string; transform: number[] }>;
+      const items = content.items as any[];
       
       if (items.length === 0) continue;
 
-      // Group items by Y position (row) with tolerance
-      const rowMap = new Map<number, Array<{ x: number; text: string }>>();
-      for (const item of items) {
-        const y = Math.round(item.transform[5]); // Y coordinate
-        const x = item.transform[4]; // X coordinate
-        const text = item.str.trim();
-        if (!text) continue;
-        
-        // Find existing row within tolerance of 3px
-        let matchedY = y;
-        for (const existingY of rowMap.keys()) {
-          if (Math.abs(existingY - y) <= 3) {
-            matchedY = existingY;
-            break;
+      // Strategy 1: Try positional grouping (rows by Y coordinate)
+      const hasTransform = items[0]?.transform && Array.isArray(items[0].transform);
+      
+      if (hasTransform) {
+        const rowMap = new Map<number, Array<{ x: number; text: string }>>();
+        for (const item of items) {
+          if (!item.str || !item.transform) continue;
+          const y = Math.round(item.transform[5]);
+          const x = item.transform[4];
+          const text = item.str.trim();
+          if (!text) continue;
+          
+          let matchedY = y;
+          for (const existingY of rowMap.keys()) {
+            if (Math.abs(existingY - y) <= 4) {
+              matchedY = existingY;
+              break;
+            }
           }
+          
+          if (!rowMap.has(matchedY)) rowMap.set(matchedY, []);
+          rowMap.get(matchedY)!.push({ x, text });
         }
         
-        if (!rowMap.has(matchedY)) rowMap.set(matchedY, []);
-        rowMap.get(matchedY)!.push({ x, text });
+        const sortedRows = Array.from(rowMap.entries())
+          .sort(([a], [b]) => b - a)
+          .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
+        
+        for (const cells of sortedRows) {
+          if (cells.length < 2) continue;
+          const firstCell = cells[0].text;
+          if (!/^\d{4,}$/.test(firstCell)) continue;
+          
+          // Search for quantity in remaining cells
+          for (let ci = 1; ci < cells.length; ci++) {
+            const cellText = cells[ci].text.replace(/\s/g, '');
+            const qtyMatch = cellText.match(/^(\d+)(?:[.,](\d{1,3}))?$/);
+            if (qtyMatch) {
+              const intPart = parseInt(qtyMatch[1]);
+              const decPart = qtyMatch[2] || '0';
+              let qty: number;
+              if (decPart.length === 3 && parseInt(decPart) === 0) {
+                qty = intPart * 1000;
+              } else if (decPart !== '0') {
+                qty = parseFloat(`${intPart}.${decPart}`);
+              } else {
+                qty = intPart;
+              }
+              if (qty > 0) {
+                pairs.push({ ref: firstCell, qty });
+                break;
+              }
+            }
+          }
+        }
       }
       
-      // Sort rows by Y descending (PDF coordinates are bottom-up)
-      const sortedRows = Array.from(rowMap.entries())
-        .sort(([a], [b]) => b - a)
-        .map(([, cells]) => cells.sort((a, b) => a.x - b.x));
-      
-      // Extract ref/qty pairs from rows
-      for (const cells of sortedRows) {
-        if (cells.length < 2) continue;
-        
-        // First cell: check if it looks like a product reference (numeric, 4+ digits)
-        const firstCell = cells[0].text;
-        if (!/^\d{4,}$/.test(firstCell)) continue;
-        
-        // Find quantity: look for a cell with a numeric value like "2,000" or "4.000" or "2"
-        // Usually the 3rd column in tables like: Ref | Desc | Qty | Unit | Price | ...
-        let qty = 0;
-        let found = false;
-        
-        // Try cells after the first one (skip description which is usually cells[1])
-        for (let ci = 2; ci < cells.length; ci++) {
-          const cellText = cells[ci].text.replace(/\s/g, '');
-          // Match patterns like "2,000" "1.000" "4" "10"
-          const qtyMatch = cellText.match(/^(\d+)(?:[.,](\d{1,3}))?$/);
-          if (qtyMatch) {
-            const intPart = parseInt(qtyMatch[1]);
-            const decPart = qtyMatch[2] ? parseInt(qtyMatch[2]) : 0;
-            // If decimal part is "000" it's likely a thousands separator, treat as integer
-            if (qtyMatch[2] && qtyMatch[2].length === 3 && decPart === 0) {
-              qty = intPart * 1000;
-            } else if (qtyMatch[2]) {
-              qty = parseFloat(`${intPart}.${qtyMatch[2]}`);
-            } else {
-              qty = intPart;
-            }
-            if (qty > 0) { found = true; break; }
-          }
+      // Strategy 2: Fallback - plain text line-by-line regex
+      if (pairs.length === 0) {
+        let fullText = '';
+        for (const item of items) {
+          const str = item.str || '';
+          fullText += str + (item.hasEOL ? '\n' : ' ');
         }
         
-        if (found && qty > 0) {
-          pairs.push({ ref: firstCell, qty });
+        console.log('PDF text fallback, extracted text length:', fullText.length);
+        
+        const textLines = fullText.split('\n');
+        for (const line of textLines) {
+          // Match a line starting with a 4+ digit reference followed eventually by a quantity like "2,000" or "2"
+          const match = line.match(/^\s*(\d{4,})\s+.+?\s+(\d+)[.,](\d{3})\s/);
+          if (match) {
+            const ref = match[1];
+            const qty = parseInt(match[2]);
+            if (qty > 0) pairs.push({ ref, qty });
+            continue;
+          }
+          // Simpler: ref ... number (integer qty)
+          const simpleMatch = line.match(/^\s*(\d{4,})\s+\S+.*?\s+(\d+)\s+(?:und|un|pç|kg|m2|m|lt|cx)/i);
+          if (simpleMatch) {
+            const ref = simpleMatch[1];
+            const qty = parseInt(simpleMatch[2]);
+            if (qty > 0) pairs.push({ ref, qty });
+          }
         }
       }
     }
     
+    console.log('PDF parser result:', pairs);
     return pairs;
   } catch (err) {
     console.error('PDF parse error:', err);
