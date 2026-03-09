@@ -140,11 +140,12 @@ export default function Fornecedores() {
 
   const handleConfirmDelete = async () => {
     if (supplierToDelete) {
-      const ok = await deleteSupplier(supplierToDelete.id);
-      toast(ok
-        ? { title: 'Fornecedor removido', description: 'Fornecedor removido com sucesso.' }
-        : { title: 'Erro', description: 'Não foi possível remover.', variant: 'destructive' }
-      );
+      const result = await deleteSupplier(supplierToDelete.id);
+      if (result.success) {
+        toast({ title: 'Fornecedor removido', description: 'Fornecedor removido com sucesso.' });
+      } else {
+        toast({ title: 'Erro', description: result.reason || 'Não foi possível remover.', variant: 'destructive' });
+      }
     }
     setIsDeleteOpen(false);
     setSupplierToDelete(null);
