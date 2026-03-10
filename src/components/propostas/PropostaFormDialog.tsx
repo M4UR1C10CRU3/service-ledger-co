@@ -18,7 +18,7 @@ import { exportPropostaExcel } from '@/components/propostas/propostaExcelExport'
 import type { Proposta, PropostaLinhaForm, PropostaFormData, TipoLinha } from '@/types/proposta';
 import {
   Save, Send, FileDown, FileSpreadsheet, X, Plus, GripVertical, Trash2, Search,
-  Layers, Type, Calculator, AlignLeft,
+  Layers, Type, Calculator, AlignLeft, Copy,
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,

@@ -60,7 +60,7 @@ const App = () => (
               <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
 
               {/* Placeholder routes for future pages */}
-              <Route path="/propostas" element={<ProtectedWithLayout><PlaceholderPage title="Propostas" /></ProtectedWithLayout>} />
+              <Route path="/propostas" element={<ProtectedWithLayout><Propostas /></ProtectedWithLayout>} />
               <Route path="/follow-up" element={<ProtectedWithLayout><PlaceholderPage title="Follow-up" /></ProtectedWithLayout>} />
               <Route path="/stocks" element={<ProtectedWithLayout><GestaoStocks /></ProtectedWithLayout>} />
               <Route path="/produtos" element={<ProtectedWithLayout><Produtos /></ProtectedWithLayout>} />
