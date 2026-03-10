@@ -965,6 +965,183 @@ export type Database = {
           },
         ]
       }
+      propostas: {
+        Row: {
+          ano: number
+          cliente_id: string | null
+          cliente_morada: string | null
+          cliente_nif: string | null
+          cliente_nome: string | null
+          condicoes_gerais: string | null
+          condicoes_pagamento: string | null
+          created_at: string
+          data_emissao: string
+          data_validade: string | null
+          descricao_geral: string | null
+          duracao: string | null
+          empresa_id: string
+          estado: string
+          hora_emissao: string
+          id: string
+          numero_proposta: string
+          numero_sequencial: number
+          observacoes: string | null
+          taxa_iva: number | null
+          titulo: string | null
+          total_com_iva: number | null
+          total_sem_iva: number | null
+          updated_at: string
+          validade_dias: number | null
+          validade_texto: string | null
+          valor_iva: number | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          ano: number
+          cliente_id?: string | null
+          cliente_morada?: string | null
+          cliente_nif?: string | null
+          cliente_nome?: string | null
+          condicoes_gerais?: string | null
+          condicoes_pagamento?: string | null
+          created_at?: string
+          data_emissao?: string
+          data_validade?: string | null
+          descricao_geral?: string | null
+          duracao?: string | null
+          empresa_id: string
+          estado?: string
+          hora_emissao?: string
+          id?: string
+          numero_proposta: string
+          numero_sequencial: number
+          observacoes?: string | null
+          taxa_iva?: number | null
+          titulo?: string | null
+          total_com_iva?: number | null
+          total_sem_iva?: number | null
+          updated_at?: string
+          validade_dias?: number | null
+          validade_texto?: string | null
+          valor_iva?: number | null
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string | null
+          cliente_morada?: string | null
+          cliente_nif?: string | null
+          cliente_nome?: string | null
+          condicoes_gerais?: string | null
+          condicoes_pagamento?: string | null
+          created_at?: string
+          data_emissao?: string
+          data_validade?: string | null
+          descricao_geral?: string | null
+          duracao?: string | null
+          empresa_id?: string
+          estado?: string
+          hora_emissao?: string
+          id?: string
+          numero_proposta?: string
+          numero_sequencial?: number
+          observacoes?: string | null
+          taxa_iva?: number | null
+          titulo?: string | null
+          total_com_iva?: number | null
+          total_sem_iva?: number | null
+          updated_at?: string
+          validade_dias?: number | null
+          validade_texto?: string | null
+          valor_iva?: number | null
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      propostas_linhas: {
+        Row: {
+          created_at: string
+          desconto_pct: number | null
+          designacao: string | null
+          empresa_id: string
+          id: string
+          ordem: number
+          preco_unitario: number | null
+          produto_id: string | null
+          proposta_id: string
+          quantidade: number | null
+          referencia: string | null
+          tipo_linha: string
+          total_linha: number | null
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          desconto_pct?: number | null
+          designacao?: string | null
+          empresa_id: string
+          id?: string
+          ordem: number
+          preco_unitario?: number | null
+          produto_id?: string | null
+          proposta_id: string
+          quantidade?: number | null
+          referencia?: string | null
+          tipo_linha: string
+          total_linha?: number | null
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          desconto_pct?: number | null
+          designacao?: string | null
+          empresa_id?: string
+          id?: string
+          ordem?: number
+          preco_unitario?: number | null
+          produto_id?: string | null
+          proposta_id?: string
+          quantidade?: number | null
+          referencia?: string | null
+          tipo_linha?: string
+          total_linha?: number | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_linhas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_linhas_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           a_realizar: boolean
