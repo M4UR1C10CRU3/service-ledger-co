@@ -618,36 +618,55 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
       console.log('[PDF Parser] Reconstructed lines:');
       reconstructedLines.forEach((l, idx) => console.log(`  [${idx}] "${l}"`));
       
+      // Helper: parse a European-format number string to float
+      const parseEuroQty = (str: string): number | null => {
+        // "1.000,50" → 1000.50 | "1,500" → 1.5 or 1500 | "1,00" → 1 | "10" → 10
+        const s = str.trim();
+        // Format: 1.234,56 (dot=thousands, comma=decimal)
+        const full = s.match(/^(\d{1,3}(?:\.\d{3})*)(?:,(\d{1,3}))?$/);
+        if (full) {
+          const intPart = full[1].replace(/\./g, '');
+          const decPart = full[2] || '0';
+          return parseFloat(`${intPart}.${decPart}`);
+        }
+        // Format: N,NN or N,NNN (comma=decimal, no thousands dot)
+        const commaDec = s.match(/^(\d{1,5}),(\d{1,3})$/);
+        if (commaDec) {
+          return parseFloat(`${commaDec[1]}.${commaDec[2]}`);
+        }
+        // Plain integer
+        const plain = s.match(/^(\d{1,6})$/);
+        if (plain) return parseInt(plain[1]);
+        return null;
+      };
+
       // Strategy 1: Parse each line for REF + QTY pattern
       for (const line of reconstructedLines) {
-        // Line starts with a 4-7 digit ref
-        const refMatch = line.match(/^(\d{4,7})\b/);
-        if (!refMatch) continue;
-        const ref = refMatch[1];
-        if (/^20[2-3]\d$/.test(ref)) continue;
-        
-        const restOfLine = line.substring(refMatch[0].length);
-        
-        // Find European qty "N,NNN" (PHC format: comma = decimal)
-        const qtyMatches = restOfLine.match(/\b(\d{1,5})\s*,\s*(\d{3})\b/g);
-        
-        if (qtyMatches && qtyMatches.length > 0) {
-          const parts = qtyMatches[0].match(/(\d{1,5})\s*,\s*(\d{3})/);
-          if (parts) {
-            const intPart = parseInt(parts[1]);
-            const decPart = parseInt(parts[2]);
-            const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${parts[2]}`);
-            if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+        // Find a 4-7 digit ref anywhere in the line
+        const refMatches = [...line.matchAll(/\b(\d{4,7})\b/g)];
+        for (const refMatch of refMatches) {
+          const ref = refMatch[1];
+          if (/^20[2-3]\d$/.test(ref)) continue;
+          if (pairs.find(p => p.ref === ref)) continue;
+          
+          const restOfLine = line.substring((refMatch.index || 0) + refMatch[0].length);
+          
+          // Try European qty formats: "1.000,500" "1,000" "1,50" "10 un" etc.
+          const euroMatch = restOfLine.match(/\b(\d{1,3}(?:\.\d{3})*(?:,\d{1,3})?)\b/);
+          if (euroMatch) {
+            const qty = parseEuroQty(euroMatch[1]);
+            if (qty && qty > 0) {
               pairs.push({ ref, qty });
               console.log(`[PDF Parser] ✓ ref=${ref}, qty=${qty}`);
+              continue;
             }
           }
-        } else {
-          // Fallback: plain integer + unit
-          const plainQty = restOfLine.match(/\b(\d{1,4})\s+(und|un|pç|kg|m2|m|lt|cx|uni)\b/i);
+          
+          // Fallback: plain integer + optional unit
+          const plainQty = restOfLine.match(/\b(\d{1,4})\s*(?:und|un|pç|kg|m2|m|lt|cx|uni|unid|pcs|pc)?\b/i);
           if (plainQty) {
             const qty = parseInt(plainQty[1]);
-            if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+            if (qty > 0) {
               pairs.push({ ref, qty });
               console.log(`[PDF Parser] ✓ ref=${ref}, qty=${qty} (plain)`);
             }
@@ -660,26 +679,23 @@ async function parsePDF(file: File): Promise<Array<{ ref: string; qty: number }>
         console.log('[PDF Parser] Strategy 1 failed, trying full-text scan...');
         const fullText = reconstructedLines.join(' ');
         
-        // Look for patterns anywhere: ref followed eventually by N,NNN
         const allRefs = fullText.matchAll(/\b(\d{4,7})\b/g);
         for (const rm of allRefs) {
           const ref = rm[1];
           if (/^20[2-3]\d$/.test(ref)) continue;
+          if (pairs.find(p => p.ref === ref)) continue;
           
-          // Get text after this ref (up to 200 chars)
           const afterIdx = (rm.index || 0) + rm[0].length;
           const after = fullText.substring(afterIdx, afterIdx + 200);
           
-          // Stop at next ref
           const nextRefIdx = after.search(/\b\d{4,7}\b/);
           const segment = nextRefIdx > 0 ? after.substring(0, nextRefIdx) : after;
           
-          const qm = segment.match(/(\d{1,5})\s*,\s*(\d{3})/);
-          if (qm) {
-            const intPart = parseInt(qm[1]);
-            const decPart = parseInt(qm[2]);
-            const qty = decPart === 0 ? intPart : parseFloat(`${intPart}.${qm[2]}`);
-            if (qty > 0 && !pairs.find(p => p.ref === ref)) {
+          // Try all number formats in the segment
+          const numMatch = segment.match(/\b(\d{1,3}(?:\.\d{3})*(?:,\d{1,3})?)\b/) || segment.match(/\b(\d{1,5})\b/);
+          if (numMatch) {
+            const qty = parseEuroQty(numMatch[1]);
+            if (qty && qty > 0) {
               pairs.push({ ref, qty });
               console.log(`[PDF Parser] ✓ (scan) ref=${ref}, qty=${qty}`);
             }
