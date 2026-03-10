@@ -24,6 +24,7 @@ import Receitas from "./pages/Receitas";
 import Colaboradores from "./pages/Colaboradores";
 import ControlePonto from "./pages/ControlePonto";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import Propostas from "./pages/Propostas";
 import Produtos from "./pages/Produtos";
 import GestaoStocks from "./pages/GestaoStocks";
 
