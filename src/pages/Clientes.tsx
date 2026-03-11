@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientes } from '@/hooks/useClientes';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
