@@ -28,6 +28,8 @@ import Propostas from "./pages/Propostas";
 import Produtos from "./pages/Produtos";
 import GestaoStocks from "./pages/GestaoStocks";
 import FollowUp from "./pages/FollowUp";
+import Recrutamento from "./pages/Recrutamento";
+import Avaliacoes from "./pages/Avaliacoes";
 
 const queryClient = new QueryClient();
 
