@@ -46,6 +46,7 @@ export interface Employee {
   created_at: string;
   updated_at: string;
   job_position?: { id: string; name: string } | null;
+  utilizador_id?: string | null;
 }
 
 export interface JobPosition {

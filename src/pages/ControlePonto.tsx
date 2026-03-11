@@ -18,6 +18,7 @@ import {
   Clock, Calendar, User, Plus, Timer, TrendingUp, TrendingDown, Minus,
   AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText, Star,
 } from 'lucide-react';
+import { WeeklyActivitySummarySection } from '@/components/controle-ponto/WeeklyActivitySummary';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeRecords } from '@/hooks/useTimeRecords';
 import { useFeriados } from '@/hooks/useFeriados';
