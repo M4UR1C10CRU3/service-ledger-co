@@ -30,10 +30,10 @@ const configs: Record<string, EmpresaDocConfig> = {
     codigoPostal: '5370-440',
     localidade: 'Mirandela',
     contribuinte: '518307174',
-    emails: 'comercialtudocasa@gmail.com | geraltudocasa@gmail.com',
-    telefones: '',
-    prefixoProposta: 'BO',
-    emailsRodape: 'comercialtudocasa@gmail.com  |  geraltudocasa@gmail.com  |  internacionaltudocasa@gmail.com',
+    emails: 'contacto@lojatudocasa.com | comercial@lojatudocasa.com',
+    telefones: 'Telefone/ Whatsapp 278 105 314 | Telemóvel 933 260 068',
+    prefixoProposta: 'WMTCEC',
+    emailsRodape: 'contacto@lojatudocasa.com  |  comercial@lojatudocasa.com',
   },
   obrajusta: {
     nomeDocumento: 'OBRAJUSTA II — CONSTRUÇÃO LDA',
@@ -90,8 +90,9 @@ export function getEmpresaDocConfig(slug?: string): EmpresaDocConfig {
 
 export function formatPropostaNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
-  if (cfg.prefixoProposta === 'MCTCEC') {
-    return `MCTCEC ${ano}/${seq}`;
+  const prefix = cfg.prefixoProposta;
+  if (prefix === 'MCTCEC' || prefix === 'WMTCEC') {
+    return `${prefix} ${ano}/${seq}`;
   }
-  return `${ano}${cfg.prefixoProposta}${seq}/${seq}`;
+  return `${ano}${prefix}${seq}/${seq}`;
 }
