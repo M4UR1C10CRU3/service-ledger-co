@@ -163,7 +163,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-[#E8630A] text-white">
+                  <tr className="bg-primary text-primary-foreground">
                     <th className="p-2 text-left">Referência</th>
                     <th className="p-2 text-left">Designação</th>
                     <th className="p-2 text-right">Qtd.</th>
