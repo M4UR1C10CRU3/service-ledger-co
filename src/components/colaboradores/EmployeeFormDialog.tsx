@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Upload, User } from 'lucide-react';
+import { Plus, Upload, User, Link2 } from 'lucide-react';
 import { useJobPositions, useEmployees, Employee } from '@/hooks/useEmployees';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatEUR } from '@/lib/formatters';
+import { useQuery } from '@tanstack/react-query';
 
 interface EmployeeFormDialogProps {
   open: boolean;
