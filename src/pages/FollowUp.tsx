@@ -24,6 +24,7 @@ const FollowUp = () => {
     updateFase, deleteOportunidade, fetchContactos, createContacto, fetchHistorico,
   } = useFollowup();
   const { propostas } = usePropostas();
+  const { logActivity } = useActivityLogger();
 
   const [newOpen, setNewOpen] = useState(false);
   const [contactOpp, setContactOpp] = useState<Oportunidade | null>(null);
