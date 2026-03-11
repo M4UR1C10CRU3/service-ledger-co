@@ -196,6 +196,7 @@ export default function Clientes() {
           title: "Cliente cadastrado",
           description: "O cliente foi adicionado com sucesso.",
         });
+        logActivity({ modulo: 'Clientes', acao: 'criou_cliente', descricao: `Criou o cliente ${formData.nome}`, entidade_tipo: 'cliente', entidade_id: newCliente.id });
         handleCloseForm();
       } else {
         toast({
