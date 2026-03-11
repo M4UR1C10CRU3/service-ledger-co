@@ -47,15 +47,15 @@ const configs: Record<string, EmpresaDocConfig> = {
     emailsRodape: 'contacto@obrajusta.pt  |  comercial@obrajusta.pt',
   },
   'obrajusta-gestao': {
-    nomeDocumento: 'OBRAJUSTA — GESTÃO DE OBRA LDA',
-    morada: 'Rua Eng. Machado Vaz Nº 8',
-    codigoPostal: '5370-440',
+    nomeDocumento: 'OBRAJUSTA GESTÃO DE OBRA, LDA',
+    morada: 'Av. Olimpio Guedes Andrade, 891 - Apartado. 117',
+    codigoPostal: '5370-520',
     localidade: 'Mirandela',
-    contribuinte: '516410740',
-    emails: 'obrajusta2@gmail.com',
-    telefones: '',
-    prefixoProposta: 'BO',
-    emailsRodape: 'obrajusta2@gmail.com',
+    contribuinte: '510419801',
+    emails: 'contacto@obrajusta.pt | comercial@obrajusta.pt',
+    telefones: 'Telefone/ Whatsapp 278 248 163 | Telemóvel 937 500 554',
+    prefixoProposta: 'OJGEC',
+    emailsRodape: 'contacto@obrajusta.pt  |  comercial@obrajusta.pt',
   },
   resiserv: {
     nomeDocumento: 'RESISERV — SERVIÇOS, RECICLAGEM E GESTÃO DE RESÍDUOS LDA',
@@ -91,7 +91,7 @@ export function getEmpresaDocConfig(slug?: string): EmpresaDocConfig {
 export function formatPropostaNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
   const prefix = cfg.prefixoProposta;
-  if (prefix === 'MCTCEC' || prefix === 'WMTCEC' || prefix === 'OJMIIEC') {
+  if (prefix === 'MCTCEC' || prefix === 'WMTCEC' || prefix === 'OJMIIEC' || prefix === 'OJGEC') {
     return `${prefix} ${ano}/${seq}`;
   }
   return `${ano}${prefix}${seq}/${seq}`;
