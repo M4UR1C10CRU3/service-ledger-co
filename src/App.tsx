@@ -27,6 +27,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import Propostas from "./pages/Propostas";
 import Produtos from "./pages/Produtos";
 import GestaoStocks from "./pages/GestaoStocks";
+import FollowUp from "./pages/FollowUp";
 
 const queryClient = new QueryClient();
 
