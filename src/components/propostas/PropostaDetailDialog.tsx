@@ -223,7 +223,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
               <div className="flex justify-between"><span>Total sem IVA:</span><span>{formatEUR(proposta.totalSemIva)}</span></div>
               <div className="flex justify-between"><span>IVA ({proposta.taxaIva}%):</span><span>{formatEUR(proposta.valorIva)}</span></div>
               <Separator />
-              <div className="flex justify-between font-bold text-[#E8630A] text-base">
+              <div className="flex justify-between font-bold text-primary text-base">
                 <span>Total com IVA:</span><span>{formatEUR(proposta.totalComIva)}</span>
               </div>
             </div>

@@ -1,6 +1,4 @@
 import type { PropostaLinhaForm } from '@/types/proposta';
-import type { Empresa } from '@/types/empresa';
-import logoTudocasa from '@/assets/logo-tudocasa.png';
 
 interface PdfData {
   numeroProposta: string;
@@ -37,6 +35,12 @@ function getSubtotal(linhas: PropostaLinhaForm[], idx: number): number {
 }
 
 export function exportPropostaPdf(data: PdfData, empresa: any) {
+  // Dynamic company branding
+  const primaryColor = empresa?.corPrimaria || '#E8630A';
+  const empresaNome = empresa?.nome || 'TUDO CASA — WARM LDA';
+  const empresaNomeLegal = empresa?.nomeLegal || empresaNome;
+  const logoPath = empresa?.logoPath || '';
+
   const dataFormatted = data.dataEmissao
     ? new Date(data.dataEmissao).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')
     : '';
@@ -44,7 +48,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   let linhasHtml = '';
   data.linhas.forEach((l, i) => {
     if (l.tipoLinha === 'seccao') {
-      linhasHtml += `<tr style="background:#F2F2F2"><td colspan="7" style="padding:6px 8px;font-weight:bold;color:#E8630A;font-size:11px">${l.designacao || ''}</td></tr>`;
+      linhasHtml += `<tr style="background:#F2F2F2"><td colspan="7" style="padding:6px 8px;font-weight:bold;color:${primaryColor};font-size:11px">${l.designacao || ''}</td></tr>`;
     } else if (l.tipoLinha === 'subtotal') {
       const sub = getSubtotal(data.linhas, i);
       linhasHtml += `<tr style="background:#E0E0E0"><td colspan="6" style="padding:6px 8px;text-align:right;font-weight:bold;font-size:11px">Subtotal</td><td style="padding:6px 8px;text-align:right;font-weight:bold;font-size:11px">${fmtEur(sub)}</td></tr>`;
@@ -73,24 +77,24 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   .proposta-num { text-align: right; font-size: 13px; }
   .proposta-num strong { font-size: 15px; }
   .empresa-info { font-size: 11px; line-height: 1.6; }
-  .barra-laranja { background: #E8630A; color: white; padding: 6px 12px; display: flex; justify-content: space-between; font-size: 11px; margin: 10px 0; }
+  .barra-cor { background: ${primaryColor}; color: white; padding: 6px 12px; display: flex; justify-content: space-between; font-size: 11px; margin: 10px 0; }
   .phc-note { font-size: 9px; font-style: italic; color: #888; margin-bottom: 10px; }
   table.linhas { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-  table.linhas th { background: #E8630A; color: white; padding: 6px 8px; text-align: left; font-size: 11px; }
+  table.linhas th { background: ${primaryColor}; color: white; padding: 6px 8px; text-align: left; font-size: 11px; }
   table.linhas th:nth-child(3), table.linhas th:nth-child(5), table.linhas th:nth-child(6), table.linhas th:nth-child(7) { text-align: right; }
   .rodape { display: flex; justify-content: space-between; margin-top: 15px; }
   .condicoes { flex: 1; font-size: 10px; line-height: 1.6; }
   .totais { width: 220px; font-size: 11px; }
   .totais table { width: 100%; }
   .totais td { padding: 3px 6px; }
-  .totais .total-final { background: #E8630A; color: white; font-weight: bold; font-size: 13px; }
+  .totais .total-final { background: ${primaryColor}; color: white; font-weight: bold; font-size: 13px; }
   .assinaturas { margin-top: 30px; font-size: 10px; display: flex; justify-content: space-between; }
   .assinaturas div { border-top: 1px solid #333; padding-top: 5px; width: 30%; text-align: center; }
   .emails { text-align: center; font-size: 9px; color: #666; margin-top: 20px; }
   @media print { body { padding: 0; } }
 </style></head><body>
   <div class="header">
-    <div class="logo"><img src="${logoTudocasa}" alt="Tudo Casa" /></div>
+    <div class="logo"><img src="" alt="${empresaNome}" /></div>
     <div class="proposta-num">
       <span style="font-size:10px;color:#888">Não entra para SAF-T</span><br/>
       <strong>Pre-Proposta Nº ${data.numeroProposta.split('BO')[1]?.split('/')[0] || ''} / ${data.numeroProposta.split('/')[1] || ''} — ${data.numeroProposta}</strong><br/>
@@ -100,7 +104,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
 
   <div style="display:flex;justify-content:space-between;margin-bottom:10px">
     <div class="empresa-info">
-      <strong style="font-size:14px">TUDO CASA — WARM LDA</strong><br/>
+      <strong style="font-size:14px">${empresaNomeLegal.toUpperCase()}</strong><br/>
       RUA ENG. MACHADO VAZ Nº 8<br/>
       5370-440  MIRANDELA<br/>
       Contribuinte Nº: 518307174
@@ -112,7 +116,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
     </div>
   </div>
 
-  <div class="barra-laranja">
+  <div class="barra-cor">
     <span>Data de emissão: ${dataFormatted}</span>
     <span>Vendedor: ${data.vendedorNome}</span>
     <span>V/Nº Contribuinte: ${data.clienteNif}</span>

@@ -695,7 +695,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                     <span className="font-medium">{formatEUR(valorIva)}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between text-lg font-bold text-[#E8630A]">
+                  <div className="flex justify-between text-lg font-bold text-primary">
                     <span>Total com IVA:</span>
                     <span>{formatEUR(totalComIva)}</span>
                   </div>
