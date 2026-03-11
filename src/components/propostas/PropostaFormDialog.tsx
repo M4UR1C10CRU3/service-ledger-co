@@ -684,13 +684,17 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                 <div className="p-4 rounded-lg border space-y-3">
                   <div>
                     <Label className="text-xs">Taxa IVA (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={taxaIva}
-                      onChange={e => setTaxaIva(Number(e.target.value))}
-                      className="text-sm w-24"
-                    />
+                    <Select value={String(taxaIva)} onValueChange={v => setTaxaIva(Number(v))}>
+                      <SelectTrigger className="w-32 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Isento (0%)</SelectItem>
+                        <SelectItem value="6">6%</SelectItem>
+                        <SelectItem value="13">13%</SelectItem>
+                        <SelectItem value="23">23%</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-sm">
