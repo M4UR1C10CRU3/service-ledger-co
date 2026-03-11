@@ -477,7 +477,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                                 value={l.designacao}
                                 onChange={e => updateLinha(idx, 'designacao', e.target.value)}
                                 placeholder="Nome da secção..."
-                                className="font-bold text-sm border-0 bg-transparent shadow-none h-8 text-[#E8630A]"
+                                className="font-bold text-sm border-0 bg-transparent shadow-none h-8 text-primary"
                               />
                             </td>
                             <td className="p-1">
