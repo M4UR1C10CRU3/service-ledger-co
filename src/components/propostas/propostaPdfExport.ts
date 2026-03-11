@@ -161,7 +161,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   </div>
 
   <div class="emails">
-    comercialtudocasa@gmail.com &nbsp;|&nbsp; geraltudocasa@gmail.com &nbsp;|&nbsp; internacionaltudocasa@gmail.com
+    ${cfg.emailsRodape.split('|').map(e => e.trim()).join(' &nbsp;|&nbsp; ')}
   </div>
 
   <script>window.onload=function(){window.print();}</script>

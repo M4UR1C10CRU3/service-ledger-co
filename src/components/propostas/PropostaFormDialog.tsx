@@ -322,11 +322,18 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
               {/* Dados empresa (read-only) */}
               <div className="space-y-3 p-4 rounded-lg bg-muted/30 border">
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase">Dados da Empresa</h3>
-                <div className="text-sm space-y-1">
-                  <p className="font-bold">TUDO CASA — WARM LDA</p>
-                  <p>Rua Eng. Machado Vaz Nº 8, 5370-440 Mirandela</p>
-                  <p>Contribuinte Nº: 518307174</p>
-                  <p className="text-xs text-muted-foreground">comercialtudocasa@gmail.com | geraltudocasa@gmail.com</p>
+                {(() => {
+                  const cfg = getEmpresaDocConfig(empresa?.slug);
+                  return (
+                    <div className="text-sm space-y-1">
+                      <p className="font-bold">{cfg.nomeDocumento}</p>
+                      <p>{cfg.morada}, {cfg.codigoPostal} {cfg.localidade}</p>
+                      <p>Contribuinte Nº: {cfg.contribuinte}</p>
+                      <p className="text-xs text-muted-foreground">{cfg.emails}</p>
+                      {cfg.telefones && <p className="text-xs text-muted-foreground">{cfg.telefones}</p>}
+                    </div>
+                  );
+                })()}
                 </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-3">
