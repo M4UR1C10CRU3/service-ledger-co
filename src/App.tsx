@@ -8,6 +8,7 @@ import SelectEmpresa from "./pages/SelectEmpresa";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { EmpresaProvider } from "./contexts/EmpresaContext";
+import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { AppLayout } from "./components/AppLayout";
 
 // Pages
@@ -31,6 +32,7 @@ import FollowUp from "./pages/FollowUp";
 import Recrutamento from "./pages/Recrutamento";
 import Avaliacoes from "./pages/Avaliacoes";
 import Auditoria from "./pages/Auditoria";
+import Utilizadores from "./pages/Utilizadores";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,7 @@ const ProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <EmpresaProvider>
+      <PermissionsProvider>
       <TooltipProvider>
         <div className="min-h-screen bg-background">
           <Toaster />
@@ -79,6 +82,7 @@ const App = () => (
               <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/avaliacoes" element={<ProtectedWithLayout><Avaliacoes /></ProtectedWithLayout>} />
               <Route path="/configuracoes" element={<ProtectedWithLayout><PlaceholderPage title="Configurações" /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/utilizadores" element={<ProtectedWithLayout><Utilizadores /></ProtectedWithLayout>} />
               <Route path="/auditoria" element={<ProtectedWithLayout><Auditoria /></ProtectedWithLayout>} />
 
               {/* Redirects */}
@@ -89,6 +93,7 @@ const App = () => (
           </BrowserRouter>
         </div>
       </TooltipProvider>
+      </PermissionsProvider>
     </EmpresaProvider>
   </QueryClientProvider>
 );

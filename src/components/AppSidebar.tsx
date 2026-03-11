@@ -6,9 +6,11 @@ import {
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
+  UserCog,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import {
   Sidebar,
@@ -30,6 +32,7 @@ interface NavItem {
   title: string;
   url: string;
   icon: React.ElementType;
+  permModulo?: string; // permission module key for visibility
 }
 
 interface NavSection {
@@ -43,49 +46,49 @@ const sections: NavSection[] = [
     label: 'Comercial',
     icon: Briefcase,
     items: [
-      { title: 'Clientes', url: '/clientes', icon: Users },
-      { title: 'Propostas', url: '/propostas', icon: FileText },
-      { title: 'Follow-up', url: '/follow-up', icon: Target },
+      { title: 'Clientes', url: '/clientes', icon: Users, permModulo: 'clientes' },
+      { title: 'Propostas', url: '/propostas', icon: FileText, permModulo: 'propostas' },
+      { title: 'Follow-up', url: '/follow-up', icon: Target, permModulo: 'followup' },
     ],
   },
   {
     label: 'Compras',
     icon: ShoppingCart,
     items: [
-      { title: 'Compras', url: '/compras', icon: ShoppingCart },
-      { title: 'Fornecedores', url: '/fornecedores', icon: Truck },
-      { title: 'Gestão de Stocks', url: '/stocks', icon: Package },
-      { title: 'Produtos', url: '/produtos', icon: BoxSelect },
+      { title: 'Compras', url: '/compras', icon: ShoppingCart, permModulo: 'compras' },
+      { title: 'Fornecedores', url: '/fornecedores', icon: Truck, permModulo: 'fornecedores' },
+      { title: 'Gestão de Stocks', url: '/stocks', icon: Package, permModulo: 'stocks' },
+      { title: 'Produtos', url: '/produtos', icon: BoxSelect, permModulo: 'produtos' },
     ],
   },
   {
     label: 'Produção',
     icon: Factory,
     items: [
-      { title: 'Vendas / Serviços', url: '/vendas', icon: Receipt },
-      { title: 'Ordens de Serviço', url: '/ordens-servico', icon: ClipboardList },
+      { title: 'Vendas / Serviços', url: '/vendas', icon: Receipt, permModulo: 'vendas' },
+      { title: 'Ordens de Serviço', url: '/ordens-servico', icon: ClipboardList, permModulo: 'ordens_servico' },
     ],
   },
   {
     label: 'Financeiro',
     icon: Wallet,
     items: [
-      { title: 'Receitas', url: '/receitas', icon: TrendingUp },
-      { title: 'Despesas', url: '/despesas', icon: CreditCard },
-      { title: 'Débitos', url: '/debitos', icon: AlertTriangle },
-      { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History },
-      { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet },
+      { title: 'Receitas', url: '/receitas', icon: TrendingUp, permModulo: 'financeiro_receitas' },
+      { title: 'Despesas', url: '/despesas', icon: CreditCard, permModulo: 'financeiro_despesas' },
+      { title: 'Débitos', url: '/debitos', icon: AlertTriangle, permModulo: 'financeiro_debitos' },
+      { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History, permModulo: 'financeiro_debitos' },
+      { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet, permModulo: 'financeiro_fluxo' },
     ],
   },
   {
     label: 'Recursos Humanos',
     icon: UsersRound,
     items: [
-      { title: 'Colaboradores', url: '/colaboradores', icon: HardHat },
-      { title: 'Controlo de Ponto', url: '/controle-ponto', icon: Clock },
-      { title: 'Recrutamento', url: '/recursos-humanos/recrutamento', icon: UserSearch },
-      { title: 'Avaliações', url: '/recursos-humanos/avaliacoes', icon: ClipboardCheck },
-      { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake },
+      { title: 'Colaboradores', url: '/colaboradores', icon: HardHat, permModulo: 'rh_colaboradores' },
+      { title: 'Controlo de Ponto', url: '/controle-ponto', icon: Clock, permModulo: 'rh_ponto' },
+      { title: 'Recrutamento', url: '/recursos-humanos/recrutamento', icon: UserSearch, permModulo: 'rh_recrutamento' },
+      { title: 'Avaliações', url: '/recursos-humanos/avaliacoes', icon: ClipboardCheck, permModulo: 'rh_avaliacoes' },
+      { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake, permModulo: 'rh_subempreiteiros' },
     ],
   },
 ];
@@ -95,12 +98,12 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { empresa, getLogo, setEmpresa } = useEmpresa();
+  const { can, isAdmin } = usePermissions();
 
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Obrajusta';
 
   const isActive = (url: string) => location.pathname === url;
-  const sectionHasActive = (items: NavItem[]) => items.some(i => isActive(i.url));
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -114,6 +117,14 @@ export function AppSidebar() {
     setEmpresa(null);
     navigate('/empresa');
   };
+
+  // Filter items by permission
+  const visibleSections = sections.map(section => ({
+    ...section,
+    items: section.items.filter(item => !item.permModulo || can(item.permModulo, 'ver')),
+  })).filter(section => section.items.length > 0);
+
+  const sectionHasActive = (items: NavItem[]) => items.some(i => isActive(i.url));
 
   return (
     <Sidebar className="border-r border-sidebar-border">
@@ -155,7 +166,7 @@ export function AppSidebar() {
         <SidebarSeparator className="my-2 opacity-10" />
 
         {/* Sections */}
-        {sections.map((section) => (
+        {visibleSections.map((section) => (
           <Collapsible key={section.label} defaultOpen={sectionHasActive(section.items)}>
             <SidebarGroup className="py-0.5">
               <CollapsibleTrigger className="w-full">
@@ -203,23 +214,40 @@ export function AppSidebar() {
           <Building2 className="h-4 w-4 shrink-0" />
           <span>Trocar Empresa</span>
         </SidebarMenuButton>
-        <SidebarMenuButton
-          onClick={() => navigate('/auditoria')}
-          className={cn(
-            'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
-            isActive('/auditoria') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
-          )}
-        >
-          <ScrollText className="h-4 w-4 shrink-0" />
-          <span>Auditoria</span>
-        </SidebarMenuButton>
+        {can('auditoria', 'ver') && (
+          <SidebarMenuButton
+            onClick={() => navigate('/auditoria')}
+            className={cn(
+              'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
+              isActive('/auditoria') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+            )}
+          >
+            <ScrollText className="h-4 w-4 shrink-0" />
+            <span>Auditoria</span>
+          </SidebarMenuButton>
+        )}
         <SidebarMenuButton
           onClick={() => navigate('/configuracoes')}
-          className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
+          className={cn(
+            'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
+            isActive('/configuracoes') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+          )}
         >
           <Settings className="h-4 w-4 shrink-0" />
           <span>Configurações</span>
         </SidebarMenuButton>
+        {isAdmin && (
+          <SidebarMenuButton
+            onClick={() => navigate('/configuracoes/utilizadores')}
+            className={cn(
+              'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
+              isActive('/configuracoes/utilizadores') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+            )}
+          >
+            <UserCog className="h-4 w-4 shrink-0" />
+            <span>Utilizadores</span>
+          </SidebarMenuButton>
+        )}
         <SidebarMenuButton
           onClick={handleLogout}
           className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-danger-light/80 hover:bg-danger/10 hover:text-danger-light transition-all"
