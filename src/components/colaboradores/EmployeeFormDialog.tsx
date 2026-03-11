@@ -489,6 +489,24 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5" />
+                    Utilizador Liberty
+                  </Label>
+                  <Select value={form.utilizador_id} onValueChange={v => set('utilizador_id', v === '_none' ? '' : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Associar utilizador..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
+                      {libertyUsers?.map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Associe a um utilizador Liberty para ver atividades no Controlo de Ponto</p>
+                </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label>Resumo das Atividades</Label>
                   <Textarea value={form.activities_summary} onChange={e => set('activities_summary', e.target.value)} placeholder="Principais atividades desempenhadas..." rows={3} />
