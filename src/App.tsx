@@ -30,6 +30,7 @@ import GestaoStocks from "./pages/GestaoStocks";
 import FollowUp from "./pages/FollowUp";
 import Recrutamento from "./pages/Recrutamento";
 import Avaliacoes from "./pages/Avaliacoes";
+import Auditoria from "./pages/Auditoria";
 
 const queryClient = new QueryClient();
 
