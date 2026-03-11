@@ -637,6 +637,7 @@ export type Database = {
           street_number: string | null
           updated_at: string
           utente: string | null
+          utilizador_id: string | null
           whatsapp: string | null
           work_schedule: Json | null
           workdays_per_week: number | null
@@ -680,6 +681,7 @@ export type Database = {
           street_number?: string | null
           updated_at?: string
           utente?: string | null
+          utilizador_id?: string | null
           whatsapp?: string | null
           work_schedule?: Json | null
           workdays_per_week?: number | null
@@ -723,6 +725,7 @@ export type Database = {
           street_number?: string | null
           updated_at?: string
           utente?: string | null
+          utilizador_id?: string | null
           whatsapp?: string | null
           work_schedule?: Json | null
           workdays_per_week?: number | null
@@ -1079,6 +1082,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "job_positions_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liberty_atividades: {
+        Row: {
+          acao: string
+          criado_em: string | null
+          data_hora: string
+          descricao: string
+          empresa_id: string
+          entidade_id: string | null
+          entidade_ref: string | null
+          entidade_tipo: string | null
+          id: string
+          metadata: Json | null
+          modulo: string
+          utilizador_id: string
+          utilizador_nome: string
+        }
+        Insert: {
+          acao: string
+          criado_em?: string | null
+          data_hora?: string
+          descricao: string
+          empresa_id: string
+          entidade_id?: string | null
+          entidade_ref?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          metadata?: Json | null
+          modulo: string
+          utilizador_id: string
+          utilizador_nome: string
+        }
+        Update: {
+          acao?: string
+          criado_em?: string | null
+          data_hora?: string
+          descricao?: string
+          empresa_id?: string
+          entidade_id?: string | null
+          entidade_ref?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          metadata?: Json | null
+          modulo?: string
+          utilizador_id?: string
+          utilizador_nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liberty_atividades_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"

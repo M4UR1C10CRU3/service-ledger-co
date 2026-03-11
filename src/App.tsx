@@ -30,6 +30,7 @@ import GestaoStocks from "./pages/GestaoStocks";
 import FollowUp from "./pages/FollowUp";
 import Recrutamento from "./pages/Recrutamento";
 import Avaliacoes from "./pages/Avaliacoes";
+import Auditoria from "./pages/Auditoria";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/avaliacoes" element={<ProtectedWithLayout><Avaliacoes /></ProtectedWithLayout>} />
               <Route path="/configuracoes" element={<ProtectedWithLayout><PlaceholderPage title="Configurações" /></ProtectedWithLayout>} />
+              <Route path="/auditoria" element={<ProtectedWithLayout><Auditoria /></ProtectedWithLayout>} />
 
               {/* Redirects */}
               <Route path="/" element={<Navigate to="/empresa" replace />} />

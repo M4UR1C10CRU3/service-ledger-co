@@ -18,6 +18,7 @@ import {
   Clock, Calendar, User, Plus, Timer, TrendingUp, TrendingDown, Minus,
   AlertTriangle, CheckCircle, Coffee, Pencil, Trash2, FileText, Star,
 } from 'lucide-react';
+import { WeeklyActivitySummarySection } from '@/components/controle-ponto/WeeklyActivitySummary';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeRecords } from '@/hooks/useTimeRecords';
 import { useFeriados } from '@/hooks/useFeriados';
@@ -705,6 +706,17 @@ const ControlePonto = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Weekly Activity Summary */}
+      {selectedEmployee && viewMode === 'week' && (
+        <WeeklyActivitySummarySection
+          employeeId={selectedEmployee.id}
+          employeeName={selectedEmployee.full_name}
+          utilizadorId={(selectedEmployee as any).utilizador_id || null}
+          startDate={dateRange.start}
+          endDate={dateRange.end}
+        />
+      )}
 
       {/* Register/Edit Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

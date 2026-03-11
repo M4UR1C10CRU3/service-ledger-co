@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Download, Search, LayoutGrid, List } from 'lucide-react';
 import { useFollowup } from '@/hooks/useFollowup';
 import { usePropostas } from '@/hooks/usePropostas';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { FollowupCards } from '@/components/followup/FollowupCards';
 import { FollowupKanban } from '@/components/followup/FollowupKanban';
 import { FollowupTable } from '@/components/followup/FollowupTable';
@@ -23,6 +24,7 @@ const FollowUp = () => {
     updateFase, deleteOportunidade, fetchContactos, createContacto, fetchHistorico,
   } = useFollowup();
   const { propostas } = usePropostas();
+  const { logActivity } = useActivityLogger();
 
   const [newOpen, setNewOpen] = useState(false);
   const [contactOpp, setContactOpp] = useState<Oportunidade | null>(null);
@@ -48,7 +50,10 @@ const FollowUp = () => {
   const handleDelete = async (o: Oportunidade) => {
     if (!confirm(`Eliminar oportunidade "${o.titulo}"?`)) return;
     const ok = await deleteOportunidade(o.id);
-    if (ok) toast({ title: 'Oportunidade eliminada' });
+    if (ok) {
+      toast({ title: 'Oportunidade eliminada' });
+      logActivity({ modulo: 'Follow-up', acao: 'eliminou_oportunidade', descricao: `Eliminou oportunidade "${o.titulo}"`, entidade_tipo: 'oportunidade', entidade_id: o.id });
+    }
   };
 
   const handleExport = () => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useClientes } from '@/hooks/useClientes';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,7 @@ export default function Clientes() {
   const { toast } = useToast();
   const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { clientes, isLoading, addCliente, updateCliente, deleteCliente, refreshClientes } = useClientes();
+  const { logActivity } = useActivityLogger();
   
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
@@ -178,6 +180,7 @@ export default function Clientes() {
           title: "Cliente atualizado",
           description: "Os dados do cliente foram atualizados com sucesso.",
         });
+        logActivity({ modulo: 'Clientes', acao: 'editou_cliente', descricao: `Atualizou dados do cliente ${formData.nome}`, entidade_tipo: 'cliente', entidade_id: editingCliente.id });
         handleCloseForm();
       } else {
         toast({
@@ -193,6 +196,7 @@ export default function Clientes() {
           title: "Cliente cadastrado",
           description: "O cliente foi adicionado com sucesso.",
         });
+        logActivity({ modulo: 'Clientes', acao: 'criou_cliente', descricao: `Criou o cliente ${formData.nome}`, entidade_tipo: 'cliente', entidade_id: newCliente.id });
         handleCloseForm();
       } else {
         toast({
@@ -217,6 +221,7 @@ export default function Clientes() {
           title: "Cliente removido",
           description: "O cliente foi removido com sucesso.",
         });
+        logActivity({ modulo: 'Clientes', acao: 'eliminou_cliente', descricao: `Eliminou o cliente ${clienteToDelete.nome}`, entidade_tipo: 'cliente' });
       } else {
         toast({
           title: "Erro",
