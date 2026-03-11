@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import type { Proposta, PropostaLinha, PropostaFormData, PropostaEstado } from '@/types/proposta';
+import { formatPropostaNumber } from '@/lib/empresaConfig';
 
 function mapProposta(r: any): Proposta {
   return {
