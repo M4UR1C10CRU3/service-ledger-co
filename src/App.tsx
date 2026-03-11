@@ -45,6 +45,7 @@ const ProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <EmpresaProvider>
+      <PermissionsProvider>
       <TooltipProvider>
         <div className="min-h-screen bg-background">
           <Toaster />
