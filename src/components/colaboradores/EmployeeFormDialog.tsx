@@ -93,6 +93,7 @@ const emptyForm = {
   nif: '',
   activities_summary: '',
   admission_date: '',
+  utilizador_id: '',
   benefits: { ...defaultBenefits },
   workdays_per_week: '5',
   work_schedule: { ...defaultSchedule },
