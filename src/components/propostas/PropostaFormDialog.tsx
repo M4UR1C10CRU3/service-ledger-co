@@ -447,7 +447,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-[#E8630A] text-white">
+                    <tr className="bg-primary text-primary-foreground">
                       <th className="w-8 p-2"></th>
                       <th className="p-2 text-left">Referência</th>
                       <th className="p-2 text-left">Designação</th>
