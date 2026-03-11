@@ -8,6 +8,7 @@ import SelectEmpresa from "./pages/SelectEmpresa";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { EmpresaProvider } from "./contexts/EmpresaContext";
+import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { AppLayout } from "./components/AppLayout";
 
 // Pages
