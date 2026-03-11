@@ -1,4 +1,5 @@
 import type { PropostaLinhaForm } from '@/types/proposta';
+import { getEmpresaDocConfig } from '@/lib/empresaConfig';
 
 interface PdfData {
   numeroProposta: string;
