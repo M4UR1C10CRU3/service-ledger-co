@@ -50,7 +50,10 @@ const FollowUp = () => {
   const handleDelete = async (o: Oportunidade) => {
     if (!confirm(`Eliminar oportunidade "${o.titulo}"?`)) return;
     const ok = await deleteOportunidade(o.id);
-    if (ok) toast({ title: 'Oportunidade eliminada' });
+    if (ok) {
+      toast({ title: 'Oportunidade eliminada' });
+      logActivity({ modulo: 'Follow-up', acao: 'eliminou_oportunidade', descricao: `Eliminou oportunidade "${o.titulo}"`, entidade_tipo: 'oportunidade', entidade_id: o.id });
+    }
   };
 
   const handleExport = () => {
