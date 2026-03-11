@@ -54,6 +54,7 @@ export default function Clientes() {
   const { toast } = useToast();
   const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { clientes, isLoading, addCliente, updateCliente, deleteCliente, refreshClientes } = useClientes();
+  const { logActivity } = useActivityLogger();
   
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
