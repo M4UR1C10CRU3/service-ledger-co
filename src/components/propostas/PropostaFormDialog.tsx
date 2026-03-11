@@ -447,7 +447,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-[#E8630A] text-white">
+                    <tr className="bg-primary text-primary-foreground">
                       <th className="w-8 p-2"></th>
                       <th className="p-2 text-left">Referência</th>
                       <th className="p-2 text-left">Designação</th>
@@ -477,7 +477,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                                 value={l.designacao}
                                 onChange={e => updateLinha(idx, 'designacao', e.target.value)}
                                 placeholder="Nome da secção..."
-                                className="font-bold text-sm border-0 bg-transparent shadow-none h-8 text-[#E8630A]"
+                                className="font-bold text-sm border-0 bg-transparent shadow-none h-8 text-primary"
                               />
                             </td>
                             <td className="p-1">
@@ -695,7 +695,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                     <span className="font-medium">{formatEUR(valorIva)}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between text-lg font-bold text-[#E8630A]">
+                  <div className="flex justify-between text-lg font-bold text-primary">
                     <span>Total com IVA:</span>
                     <span>{formatEUR(totalComIva)}</span>
                   </div>

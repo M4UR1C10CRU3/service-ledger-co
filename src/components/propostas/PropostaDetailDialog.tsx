@@ -163,7 +163,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-[#E8630A] text-white">
+                  <tr className="bg-primary text-primary-foreground">
                     <th className="p-2 text-left">Referência</th>
                     <th className="p-2 text-left">Designação</th>
                     <th className="p-2 text-right">Qtd.</th>
@@ -178,7 +178,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
                     if (l.tipoLinha === 'seccao') {
                       return (
                         <tr key={i} className="bg-gray-100">
-                          <td colSpan={7} className="p-2 font-bold text-[#E8630A]">{l.designacao}</td>
+                          <td colSpan={7} className="p-2 font-bold text-primary">{l.designacao}</td>
                         </tr>
                       );
                     }
@@ -223,7 +223,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
               <div className="flex justify-between"><span>Total sem IVA:</span><span>{formatEUR(proposta.totalSemIva)}</span></div>
               <div className="flex justify-between"><span>IVA ({proposta.taxaIva}%):</span><span>{formatEUR(proposta.valorIva)}</span></div>
               <Separator />
-              <div className="flex justify-between font-bold text-[#E8630A] text-base">
+              <div className="flex justify-between font-bold text-primary text-base">
                 <span>Total com IVA:</span><span>{formatEUR(proposta.totalComIva)}</span>
               </div>
             </div>
