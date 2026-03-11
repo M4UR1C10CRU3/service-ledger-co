@@ -94,10 +94,10 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   @media print { body { padding: 0; } }
 </style></head><body>
   <div class="header">
-    <div class="logo"><img src="" alt="${empresaNome}" /></div>
+    <div class="logo"><img src="" alt="${cfg.nomeDocumento}" /></div>
     <div class="proposta-num">
       <span style="font-size:10px;color:#888">Não entra para SAF-T</span><br/>
-      <strong>Pre-Proposta Nº ${data.numeroProposta.split('BO')[1]?.split('/')[0] || ''} / ${data.numeroProposta.split('/')[1] || ''} — ${data.numeroProposta}</strong><br/>
+      <strong>Pre-Proposta Nº ${data.numeroProposta}</strong><br/>
       <span>ORIGINAL</span>
     </div>
   </div>
