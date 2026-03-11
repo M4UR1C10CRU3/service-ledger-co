@@ -4,7 +4,7 @@ import {
   ShoppingCart, Truck, Package, BoxSelect,
   Factory, Receipt, ClipboardList,
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
-  UsersRound, HardHat, Handshake,
+  UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
