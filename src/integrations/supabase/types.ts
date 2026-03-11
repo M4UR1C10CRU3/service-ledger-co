@@ -815,6 +815,239 @@ export type Database = {
           },
         ]
       }
+      followup_contactos: {
+        Row: {
+          created_at: string
+          data_contacto: string
+          empresa_id: string
+          fase_anterior: string | null
+          fase_nova: string | null
+          feedback_cliente: string | null
+          id: string
+          oportunidade_id: string
+          probabilidade_apos: number | null
+          proximo_followup_data: string | null
+          proximo_followup_notas: string | null
+          proximo_followup_tipo: string | null
+          resultado: string | null
+          sentimento: string | null
+          tipo_contacto: string
+          utilizador_id: string | null
+          utilizador_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_contacto?: string
+          empresa_id: string
+          fase_anterior?: string | null
+          fase_nova?: string | null
+          feedback_cliente?: string | null
+          id?: string
+          oportunidade_id: string
+          probabilidade_apos?: number | null
+          proximo_followup_data?: string | null
+          proximo_followup_notas?: string | null
+          proximo_followup_tipo?: string | null
+          resultado?: string | null
+          sentimento?: string | null
+          tipo_contacto: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_contacto?: string
+          empresa_id?: string
+          fase_anterior?: string | null
+          fase_nova?: string | null
+          feedback_cliente?: string | null
+          id?: string
+          oportunidade_id?: string
+          probabilidade_apos?: number | null
+          proximo_followup_data?: string | null
+          proximo_followup_notas?: string | null
+          proximo_followup_tipo?: string | null
+          resultado?: string | null
+          sentimento?: string | null
+          tipo_contacto?: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_contactos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_contactos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "followup_oportunidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_historico_fases: {
+        Row: {
+          contacto_id: string | null
+          data_transicao: string | null
+          empresa_id: string
+          fase_anterior: string | null
+          fase_nova: string
+          id: string
+          notas: string | null
+          oportunidade_id: string
+          utilizador_id: string | null
+          utilizador_nome: string | null
+        }
+        Insert: {
+          contacto_id?: string | null
+          data_transicao?: string | null
+          empresa_id: string
+          fase_anterior?: string | null
+          fase_nova: string
+          id?: string
+          notas?: string | null
+          oportunidade_id: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Update: {
+          contacto_id?: string | null
+          data_transicao?: string | null
+          empresa_id?: string
+          fase_anterior?: string | null
+          fase_nova?: string
+          id?: string
+          notas?: string | null
+          oportunidade_id?: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_historico_fases_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "followup_contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_historico_fases_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_historico_fases_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "followup_oportunidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_oportunidades: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string | null
+          created_at: string
+          data_adjudicacao_esperada: string | null
+          data_adjudicacao_real: string | null
+          data_ultimo_contacto: string | null
+          empresa_id: string
+          fase: string
+          id: string
+          motivo_arquivo: string | null
+          notas_internas: string | null
+          probabilidade: number | null
+          proposta_id: string | null
+          proximo_followup_data: string | null
+          proximo_followup_notas: string | null
+          proximo_followup_tipo: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          sentimento_atual: string | null
+          titulo: string
+          updated_at: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_adjudicacao_esperada?: string | null
+          data_adjudicacao_real?: string | null
+          data_ultimo_contacto?: string | null
+          empresa_id: string
+          fase?: string
+          id?: string
+          motivo_arquivo?: string | null
+          notas_internas?: string | null
+          probabilidade?: number | null
+          proposta_id?: string | null
+          proximo_followup_data?: string | null
+          proximo_followup_notas?: string | null
+          proximo_followup_tipo?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          sentimento_atual?: string | null
+          titulo: string
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          data_adjudicacao_esperada?: string | null
+          data_adjudicacao_real?: string | null
+          data_ultimo_contacto?: string | null
+          empresa_id?: string
+          fase?: string
+          id?: string
+          motivo_arquivo?: string | null
+          notas_internas?: string | null
+          probabilidade?: number | null
+          proposta_id?: string | null
+          proximo_followup_data?: string | null
+          proximo_followup_notas?: string | null
+          proximo_followup_tipo?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          sentimento_atual?: string | null
+          titulo?: string
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_oportunidades_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_oportunidades_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_oportunidades_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_positions: {
         Row: {
           created_at: string
