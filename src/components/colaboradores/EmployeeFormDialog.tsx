@@ -113,6 +113,19 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
   const [newPositionName, setNewPositionName] = useState('');
   const [uploading, setUploading] = useState(false);
 
+  // Fetch all Liberty users (profiles) for associating
+  const { data: libertyUsers } = useQuery({
+    queryKey: ['profiles-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return (data || []) as { id: string; nome: string }[];
+    },
+  });
+
   const isEditing = !!employee;
 
   useEffect(() => {
@@ -146,6 +159,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         nif: employee.nif || '',
         activities_summary: employee.activities_summary || '',
         admission_date: employee.admission_date || '',
+        utilizador_id: employee.utilizador_id || '',
         benefits: employee.benefits || { ...defaultBenefits },
         workdays_per_week: String(employee.workdays_per_week || 5),
         work_schedule: (employee.work_schedule as any) || { ...defaultSchedule },
