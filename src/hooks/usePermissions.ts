@@ -28,7 +28,8 @@ export function usePermissions() {
 
   const canAny = useCallback((modulo: string): boolean => can(modulo, 'ver'), [can]);
 
-  const isAdmin = perfil === 'administrador';
+  // If no liberty_utilizadores record exists (backwards compat), treat as admin
+  const isAdmin = perfil === 'administrador' || (!isLoading && !utilizador);
 
   return { can, canAny, perfil, isAdmin, isLoading, utilizador };
 }
