@@ -62,7 +62,7 @@ const App = () => (
 
               {/* Placeholder routes for future pages */}
               <Route path="/propostas" element={<ProtectedWithLayout><Propostas /></ProtectedWithLayout>} />
-              <Route path="/follow-up" element={<ProtectedWithLayout><PlaceholderPage title="Follow-up" /></ProtectedWithLayout>} />
+              <Route path="/follow-up" element={<ProtectedWithLayout><FollowUp /></ProtectedWithLayout>} />
               <Route path="/stocks" element={<ProtectedWithLayout><GestaoStocks /></ProtectedWithLayout>} />
               <Route path="/produtos" element={<ProtectedWithLayout><Produtos /></ProtectedWithLayout>} />
               <Route path="/ordens-servico" element={<ProtectedWithLayout><PlaceholderPage title="Ordens de Serviço" /></ProtectedWithLayout>} />

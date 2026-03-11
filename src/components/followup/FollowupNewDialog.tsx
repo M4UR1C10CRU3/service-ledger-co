@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { FASES_ORDER, FASES_CONFIG, TIPOS_CONTACTO, type FaseFollowup, type TipoContacto } from '@/types/followup';
-import { ClienteSelector } from '@/components/ClienteSelector';
+import { useClientes } from '@/hooks/useClientes';
 import { toast } from '@/hooks/use-toast';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -18,8 +22,10 @@ interface Props {
 }
 
 export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }: Props) {
+  const { clientes } = useClientes();
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteNome, setClienteNome] = useState('');
+  const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [propostaId, setPropostaId] = useState<string | null>(null);
   const [fase, setFase] = useState<FaseFollowup>('contacto_inicial');
@@ -76,10 +82,38 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
         <div className="space-y-4">
           <div>
             <Label>Cliente *</Label>
-            <ClienteSelector
-              value={clienteId}
-              onChange={(id, nome) => { setClienteId(id); setClienteNome(nome); }}
-            />
+            <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-between" role="combobox">
+                  {clienteNome || 'Selecionar cliente...'}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Pesquisar cliente..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum cliente encontrado</CommandEmpty>
+                    <CommandGroup>
+                      {clientes.map(c => (
+                        <CommandItem
+                          key={c.id}
+                          value={c.nome}
+                          onSelect={() => {
+                            setClienteId(c.id);
+                            setClienteNome(c.nome);
+                            setClientePopoverOpen(false);
+                          }}
+                        >
+                          <Check className={cn('mr-2 h-4 w-4', clienteId === c.id ? 'opacity-100' : 'opacity-0')} />
+                          {c.nome}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -90,10 +124,10 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
           {propostas.length > 0 && (
             <div>
               <Label>Proposta Associada</Label>
-              <Select value={propostaId || ''} onValueChange={v => setPropostaId(v || null)}>
+              <Select value={propostaId || 'none'} onValueChange={v => setPropostaId(v === 'none' ? null : v)}>
                 <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
                   {propostas.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.numeroProposta} — {p.clienteNome}</SelectItem>
                   ))}
