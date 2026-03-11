@@ -77,8 +77,9 @@ const Auditoria = () => {
       .eq('empresa_id', empresa.id)
       .limit(500);
     if (mData) {
-      const modsArr = mData.map((r: any) => String(r.modulo));
-      const mods: string[] = Array.from(new Set(modsArr)).sort();
+      const modsSet = new Set<string>();
+      mData.forEach((r: any) => modsSet.add(String(r.modulo)));
+      const mods = Array.from(modsSet).sort();
       setModules(mods);
     }
   };
