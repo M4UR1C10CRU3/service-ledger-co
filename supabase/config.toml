@@ -35,3 +35,6 @@ enable_confirmations = false
 
 [functions.backup-services]
 verify_jwt = false
+
+[functions.analyze-cv]
+verify_jwt = true

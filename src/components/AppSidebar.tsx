@@ -4,7 +4,7 @@ import {
   ShoppingCart, Truck, Package, BoxSelect,
   Factory, Receipt, ClipboardList,
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
-  UsersRound, HardHat, Handshake,
+  UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,6 +83,8 @@ const sections: NavSection[] = [
     items: [
       { title: 'Colaboradores', url: '/colaboradores', icon: HardHat },
       { title: 'Controlo de Ponto', url: '/controle-ponto', icon: Clock },
+      { title: 'Recrutamento', url: '/recursos-humanos/recrutamento', icon: UserSearch },
+      { title: 'Avaliações', url: '/recursos-humanos/avaliacoes', icon: ClipboardCheck },
       { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake },
     ],
   },

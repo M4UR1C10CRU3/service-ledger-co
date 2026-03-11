@@ -28,6 +28,8 @@ import Propostas from "./pages/Propostas";
 import Produtos from "./pages/Produtos";
 import GestaoStocks from "./pages/GestaoStocks";
 import FollowUp from "./pages/FollowUp";
+import Recrutamento from "./pages/Recrutamento";
+import Avaliacoes from "./pages/Avaliacoes";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +75,8 @@ const App = () => (
               <Route path="/colaboradores" element={<ProtectedWithLayout><Colaboradores /></ProtectedWithLayout>} />
               <Route path="/controle-ponto" element={<ProtectedWithLayout><ControlePonto /></ProtectedWithLayout>} />
               <Route path="/subempreiteiros" element={<ProtectedWithLayout><PlaceholderPage title="Subempreiteiros" /></ProtectedWithLayout>} />
+              <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
+              <Route path="/recursos-humanos/avaliacoes" element={<ProtectedWithLayout><Avaliacoes /></ProtectedWithLayout>} />
               <Route path="/configuracoes" element={<ProtectedWithLayout><PlaceholderPage title="Configurações" /></ProtectedWithLayout>} />
 
               {/* Redirects */}
