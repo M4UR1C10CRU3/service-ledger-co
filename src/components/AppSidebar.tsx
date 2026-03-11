@@ -83,6 +83,8 @@ const sections: NavSection[] = [
     items: [
       { title: 'Colaboradores', url: '/colaboradores', icon: HardHat },
       { title: 'Controlo de Ponto', url: '/controle-ponto', icon: Clock },
+      { title: 'Recrutamento', url: '/recursos-humanos/recrutamento', icon: UserSearch },
+      { title: 'Avaliações', url: '/recursos-humanos/avaliacoes', icon: ClipboardCheck },
       { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake },
     ],
   },
