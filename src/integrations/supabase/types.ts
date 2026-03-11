@@ -1145,6 +1145,151 @@ export type Database = {
           },
         ]
       }
+      liberty_configuracoes_utilizador: {
+        Row: {
+          alertas_ativos: Json | null
+          atualizado_em: string | null
+          dashboard_cards: Json | null
+          densidade: string | null
+          id: string
+          notif_alertas_email: boolean | null
+          notif_email_destino: string | null
+          notif_hora_resumo: string | null
+          notif_resumo_diario: boolean | null
+          sidebar_expandida: boolean | null
+          tamanho_fonte: number | null
+          tema: string | null
+          utilizador_id: string
+        }
+        Insert: {
+          alertas_ativos?: Json | null
+          atualizado_em?: string | null
+          dashboard_cards?: Json | null
+          densidade?: string | null
+          id?: string
+          notif_alertas_email?: boolean | null
+          notif_email_destino?: string | null
+          notif_hora_resumo?: string | null
+          notif_resumo_diario?: boolean | null
+          sidebar_expandida?: boolean | null
+          tamanho_fonte?: number | null
+          tema?: string | null
+          utilizador_id: string
+        }
+        Update: {
+          alertas_ativos?: Json | null
+          atualizado_em?: string | null
+          dashboard_cards?: Json | null
+          densidade?: string | null
+          id?: string
+          notif_alertas_email?: boolean | null
+          notif_email_destino?: string | null
+          notif_hora_resumo?: string | null
+          notif_resumo_diario?: boolean | null
+          sidebar_expandida?: boolean | null
+          tamanho_fonte?: number | null
+          tema?: string | null
+          utilizador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liberty_configuracoes_utilizador_utilizador_id_fkey"
+            columns: ["utilizador_id"]
+            isOneToOne: true
+            referencedRelation: "liberty_utilizadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liberty_empresas_config: {
+        Row: {
+          atualizado_em: string | null
+          capital_social: string | null
+          codigo_postal: string | null
+          criado_em: string | null
+          email_comercial: string | null
+          email_geral: string | null
+          email_internacional: string | null
+          empresa_id: string
+          id: string
+          localidade: string | null
+          moeda_padrao: string | null
+          morada: string | null
+          nif: string | null
+          nome_fantasia: string | null
+          nome_razao_social: string | null
+          pais: string | null
+          prefixo_propostas: string | null
+          registo_comercial: string | null
+          taxa_iva_padrao: number | null
+          telefone: string | null
+          texto_condicoes: string | null
+          texto_pagamento: string | null
+          texto_validade: string | null
+          website: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          capital_social?: string | null
+          codigo_postal?: string | null
+          criado_em?: string | null
+          email_comercial?: string | null
+          email_geral?: string | null
+          email_internacional?: string | null
+          empresa_id: string
+          id?: string
+          localidade?: string | null
+          moeda_padrao?: string | null
+          morada?: string | null
+          nif?: string | null
+          nome_fantasia?: string | null
+          nome_razao_social?: string | null
+          pais?: string | null
+          prefixo_propostas?: string | null
+          registo_comercial?: string | null
+          taxa_iva_padrao?: number | null
+          telefone?: string | null
+          texto_condicoes?: string | null
+          texto_pagamento?: string | null
+          texto_validade?: string | null
+          website?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          capital_social?: string | null
+          codigo_postal?: string | null
+          criado_em?: string | null
+          email_comercial?: string | null
+          email_geral?: string | null
+          email_internacional?: string | null
+          empresa_id?: string
+          id?: string
+          localidade?: string | null
+          moeda_padrao?: string | null
+          morada?: string | null
+          nif?: string | null
+          nome_fantasia?: string | null
+          nome_razao_social?: string | null
+          pais?: string | null
+          prefixo_propostas?: string | null
+          registo_comercial?: string | null
+          taxa_iva_padrao?: number | null
+          telefone?: string | null
+          texto_condicoes?: string | null
+          texto_pagamento?: string | null
+          texto_validade?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liberty_empresas_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       liberty_utilizador_empresas: {
         Row: {
           criado_em: string | null
@@ -1282,6 +1427,50 @@ export type Database = {
           ultimo_acesso?: string | null
         }
         Relationships: []
+      }
+      liberty_webhooks: {
+        Row: {
+          ativo: boolean | null
+          criado_em: string | null
+          empresa_id: string
+          evento: string
+          id: string
+          secret: string | null
+          ultimo_envio: string | null
+          ultimo_estado: string | null
+          url: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          criado_em?: string | null
+          empresa_id: string
+          evento: string
+          id?: string
+          secret?: string | null
+          ultimo_envio?: string | null
+          ultimo_estado?: string | null
+          url: string
+        }
+        Update: {
+          ativo?: boolean | null
+          criado_em?: string | null
+          empresa_id?: string
+          evento?: string
+          id?: string
+          secret?: string | null
+          ultimo_envio?: string | null
+          ultimo_estado?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liberty_webhooks_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       liquidacoes: {
         Row: {
