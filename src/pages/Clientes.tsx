@@ -221,6 +221,7 @@ export default function Clientes() {
           title: "Cliente removido",
           description: "O cliente foi removido com sucesso.",
         });
+        logActivity({ modulo: 'Clientes', acao: 'eliminou_cliente', descricao: `Eliminou o cliente ${clienteToDelete.nome}`, entidade_tipo: 'cliente' });
       } else {
         toast({
           title: "Erro",
