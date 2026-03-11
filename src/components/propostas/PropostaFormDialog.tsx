@@ -334,7 +334,6 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                     </div>
                   );
                 })()}
-                </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
