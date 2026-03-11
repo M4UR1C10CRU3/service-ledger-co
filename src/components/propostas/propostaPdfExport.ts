@@ -1,4 +1,5 @@
 import type { PropostaLinhaForm } from '@/types/proposta';
+import { getEmpresaDocConfig } from '@/lib/empresaConfig';
 
 interface PdfData {
   numeroProposta: string;
@@ -37,8 +38,7 @@ function getSubtotal(linhas: PropostaLinhaForm[], idx: number): number {
 export function exportPropostaPdf(data: PdfData, empresa: any) {
   // Dynamic company branding
   const primaryColor = empresa?.corPrimaria || '#E8630A';
-  const empresaNome = empresa?.nome || 'TUDO CASA — WARM LDA';
-  const empresaNomeLegal = empresa?.nomeLegal || empresaNome;
+  const cfg = getEmpresaDocConfig(empresa?.slug);
   const logoPath = empresa?.logoPath || '';
 
   const dataFormatted = data.dataEmissao
@@ -94,20 +94,21 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   @media print { body { padding: 0; } }
 </style></head><body>
   <div class="header">
-    <div class="logo"><img src="" alt="${empresaNome}" /></div>
+    <div class="logo"><img src="" alt="${cfg.nomeDocumento}" /></div>
     <div class="proposta-num">
       <span style="font-size:10px;color:#888">Não entra para SAF-T</span><br/>
-      <strong>Pre-Proposta Nº ${data.numeroProposta.split('BO')[1]?.split('/')[0] || ''} / ${data.numeroProposta.split('/')[1] || ''} — ${data.numeroProposta}</strong><br/>
+      <strong>Pre-Proposta Nº ${data.numeroProposta}</strong><br/>
       <span>ORIGINAL</span>
     </div>
   </div>
 
   <div style="display:flex;justify-content:space-between;margin-bottom:10px">
     <div class="empresa-info">
-      <strong style="font-size:14px">${empresaNomeLegal.toUpperCase()}</strong><br/>
-      RUA ENG. MACHADO VAZ Nº 8<br/>
-      5370-440  MIRANDELA<br/>
-      Contribuinte Nº: 518307174
+      <strong style="font-size:14px">${cfg.nomeDocumento}</strong><br/>
+      ${cfg.morada.toUpperCase()}<br/>
+      ${cfg.codigoPostal}  ${cfg.localidade.toUpperCase()}<br/>
+      Contribuinte Nº: ${cfg.contribuinte}
+      ${cfg.telefones ? '<br/>' + cfg.telefones : ''}
     </div>
     <div style="text-align:right;font-size:12px">
       <strong>${data.clienteNome}</strong><br/>
@@ -160,7 +161,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   </div>
 
   <div class="emails">
-    comercialtudocasa@gmail.com &nbsp;|&nbsp; geraltudocasa@gmail.com &nbsp;|&nbsp; internacionaltudocasa@gmail.com
+    ${cfg.emailsRodape.split('|').map(e => e.trim()).join(' &nbsp;|&nbsp; ')}
   </div>
 
   <script>window.onload=function(){window.print();}</script>

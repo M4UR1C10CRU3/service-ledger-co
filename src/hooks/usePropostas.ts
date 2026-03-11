@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import type { Proposta, PropostaLinha, PropostaFormData, PropostaEstado } from '@/types/proposta';
+import { formatPropostaNumber } from '@/lib/empresaConfig';
 
 function mapProposta(r: any): Proposta {
   return {
@@ -87,7 +88,7 @@ export function usePropostas() {
       .order('numero_sequencial', { ascending: false })
       .limit(1);
     const next = ((data?.[0] as any)?.numero_sequencial ?? 0) + 1;
-    return { seq: next, formatted: `${ano}BO${next}/${next}` };
+    return { seq: next, formatted: formatPropostaNumber(empresa.slug, ano, next) };
   };
 
   const fetchLinhas = async (propostaId: string): Promise<PropostaLinha[]> => {
