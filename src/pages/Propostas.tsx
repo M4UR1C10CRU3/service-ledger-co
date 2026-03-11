@@ -100,9 +100,12 @@ export default function Propostas() {
   };
 
   const handleDuplicate = async (id: string) => {
+    const orig = propostas.find(p => p.id === id);
     const newId = await duplicateProposta(id);
-    if (newId) toast({ title: 'Proposta duplicada com sucesso' });
-    else toast({ title: 'Erro ao duplicar', variant: 'destructive' });
+    if (newId) {
+      toast({ title: 'Proposta duplicada com sucesso' });
+      if (orig) logActivity({ modulo: 'Propostas', acao: 'duplicou_proposta', descricao: `Duplicou a proposta ${orig.numeroProposta}`, entidade_tipo: 'proposta', entidade_id: newId, entidade_ref: orig.numeroProposta });
+    } else toast({ title: 'Erro ao duplicar', variant: 'destructive' });
   };
 
   const handleView = (p: Proposta) => {
