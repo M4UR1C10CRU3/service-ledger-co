@@ -1145,6 +1145,144 @@ export type Database = {
           },
         ]
       }
+      liberty_utilizador_empresas: {
+        Row: {
+          criado_em: string | null
+          empresa_id: string
+          id: string
+          utilizador_id: string
+        }
+        Insert: {
+          criado_em?: string | null
+          empresa_id: string
+          id?: string
+          utilizador_id: string
+        }
+        Update: {
+          criado_em?: string | null
+          empresa_id?: string
+          id?: string
+          utilizador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liberty_utilizador_empresas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liberty_utilizador_empresas_utilizador_id_fkey"
+            columns: ["utilizador_id"]
+            isOneToOne: false
+            referencedRelation: "liberty_utilizadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liberty_utilizador_permissoes: {
+        Row: {
+          atualizado_em: string | null
+          empresa_id: string
+          id: string
+          modulo: string
+          perm_criar: boolean | null
+          perm_editar: boolean | null
+          perm_eliminar: boolean | null
+          perm_ver: boolean | null
+          utilizador_id: string
+        }
+        Insert: {
+          atualizado_em?: string | null
+          empresa_id: string
+          id?: string
+          modulo: string
+          perm_criar?: boolean | null
+          perm_editar?: boolean | null
+          perm_eliminar?: boolean | null
+          perm_ver?: boolean | null
+          utilizador_id: string
+        }
+        Update: {
+          atualizado_em?: string | null
+          empresa_id?: string
+          id?: string
+          modulo?: string
+          perm_criar?: boolean | null
+          perm_editar?: boolean | null
+          perm_eliminar?: boolean | null
+          perm_ver?: boolean | null
+          utilizador_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liberty_utilizador_permissoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liberty_utilizador_permissoes_utilizador_id_fkey"
+            columns: ["utilizador_id"]
+            isOneToOne: false
+            referencedRelation: "liberty_utilizadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      liberty_utilizadores: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          auth_user_id: string
+          cargo: string | null
+          criado_em: string | null
+          criado_por: string | null
+          eliminado: boolean | null
+          email: string
+          empresa_padrao: string | null
+          id: string
+          nome: string
+          perfil: string
+          telefone: string | null
+          ultimo_acesso: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          auth_user_id: string
+          cargo?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          eliminado?: boolean | null
+          email: string
+          empresa_padrao?: string | null
+          id?: string
+          nome: string
+          perfil?: string
+          telefone?: string | null
+          ultimo_acesso?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          auth_user_id?: string
+          cargo?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          eliminado?: boolean | null
+          email?: string
+          empresa_padrao?: string | null
+          id?: string
+          nome?: string
+          perfil?: string
+          telefone?: string | null
+          ultimo_acesso?: string | null
+        }
+        Relationships: []
+      }
       liquidacoes: {
         Row: {
           created_at: string
@@ -2382,6 +2520,10 @@ export type Database = {
       calculate_flow_balance: {
         Args: { p_date?: string; p_empresa_id: string; p_flow_type: string }
         Returns: number
+      }
+      liberty_check_permission: {
+        Args: { p_acao: string; p_modulo: string }
+        Returns: boolean
       }
       soft_delete_supplier: {
         Args: { p_supplier_id: string }
