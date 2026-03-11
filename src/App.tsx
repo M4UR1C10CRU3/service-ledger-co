@@ -82,6 +82,7 @@ const App = () => (
               <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/avaliacoes" element={<ProtectedWithLayout><Avaliacoes /></ProtectedWithLayout>} />
               <Route path="/configuracoes" element={<ProtectedWithLayout><PlaceholderPage title="Configurações" /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/utilizadores" element={<ProtectedWithLayout><Utilizadores /></ProtectedWithLayout>} />
               <Route path="/auditoria" element={<ProtectedWithLayout><Auditoria /></ProtectedWithLayout>} />
 
               {/* Redirects */}
