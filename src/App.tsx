@@ -93,6 +93,7 @@ const App = () => (
           </BrowserRouter>
         </div>
       </TooltipProvider>
+      </PermissionsProvider>
     </EmpresaProvider>
   </QueryClientProvider>
 );
