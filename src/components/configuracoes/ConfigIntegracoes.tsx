@@ -57,7 +57,7 @@ export default function ConfigIntegracoes({ activeTab }: { activeTab: string }) 
                   </CardTitle>
                   <CardDescription>Base de dados e autenticação</CardDescription>
                 </div>
-                <Badge className="bg-green-100 text-green-700 border-green-200">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
                   <CheckCircle className="h-3 w-3 mr-1" /> Conectado
                 </Badge>
               </div>

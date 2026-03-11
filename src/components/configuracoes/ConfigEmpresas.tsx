@@ -47,7 +47,7 @@ export default function ConfigEmpresas() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Ativa</Badge>
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Ativa</Badge>
                   </TableCell>
                 </TableRow>
               ))}

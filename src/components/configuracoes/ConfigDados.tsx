@@ -80,7 +80,7 @@ export default function ConfigDados({ activeTab }: { activeTab: string }) {
               <Card key={mod.key}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                    <FileSpreadsheet className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium text-sm">{mod.label}</p>
                       <p className="text-xs text-muted-foreground">Excel (.xlsx)</p>
