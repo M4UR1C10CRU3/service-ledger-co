@@ -58,14 +58,14 @@ const configs: Record<string, EmpresaDocConfig> = {
     emailsRodape: 'contacto@obrajusta.pt  |  comercial@obrajusta.pt',
   },
   resiserv: {
-    nomeDocumento: 'RESISERV — SERVIÇOS, RECICLAGEM E GESTÃO DE RESÍDUOS LDA',
-    morada: 'Rua Eng. Machado Vaz Nº 8',
-    codigoPostal: '5370-440',
-    localidade: 'Mirandela',
-    contribuinte: '516410740',
+    nomeDocumento: 'RESISERV — SERVIÇOS, RECICLAGEM E GESTÃO DE RESÍDUOS, LDA',
+    morada: 'Lugar de Latães - Apartado 76',
+    codigoPostal: '5340-296',
+    localidade: 'Zona Industrial - Macedo de Cavaleiros',
+    contribuinte: '509313221',
     emails: 'resiserv@gmail.com',
-    telefones: '',
-    prefixoProposta: 'BO',
+    telefones: 'Telemóvel 937 500 553',
+    prefixoProposta: 'RSEC',
     emailsRodape: 'resiserv@gmail.com',
   },
 };
@@ -91,7 +91,7 @@ export function getEmpresaDocConfig(slug?: string): EmpresaDocConfig {
 export function formatPropostaNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
   const prefix = cfg.prefixoProposta;
-  if (prefix === 'MCTCEC' || prefix === 'WMTCEC' || prefix === 'OJMIIEC' || prefix === 'OJGEC') {
+  if (prefix === 'MCTCEC' || prefix === 'WMTCEC' || prefix === 'OJMIIEC' || prefix === 'OJGEC' || prefix === 'RSEC') {
     return `${prefix} ${ano}/${seq}`;
   }
   return `${ano}${prefix}${seq}/${seq}`;
