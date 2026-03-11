@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { useClientes } from '@/hooks/useClientes';
 import { useProdutos } from '@/hooks/useProdutos';
 import { useEmployees } from '@/hooks/useEmployees';
