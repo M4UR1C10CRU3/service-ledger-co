@@ -230,24 +230,12 @@ export function AppSidebar() {
           onClick={() => navigate('/configuracoes')}
           className={cn(
             'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
-            isActive('/configuracoes') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+            location.pathname.startsWith('/configuracoes') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
           )}
         >
           <Settings className="h-4 w-4 shrink-0" />
           <span>Configurações</span>
         </SidebarMenuButton>
-        {isAdmin && (
-          <SidebarMenuButton
-            onClick={() => navigate('/configuracoes/utilizadores')}
-            className={cn(
-              'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
-              isActive('/configuracoes/utilizadores') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
-            )}
-          >
-            <UserCog className="h-4 w-4 shrink-0" />
-            <span>Utilizadores</span>
-          </SidebarMenuButton>
-        )}
         <SidebarMenuButton
           onClick={handleLogout}
           className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-danger-light/80 hover:bg-danger/10 hover:text-danger-light transition-all"
