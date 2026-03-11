@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Download, Search, LayoutGrid, List } from 'lucide-react';
 import { useFollowup } from '@/hooks/useFollowup';
 import { usePropostas } from '@/hooks/usePropostas';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { FollowupCards } from '@/components/followup/FollowupCards';
 import { FollowupKanban } from '@/components/followup/FollowupKanban';
 import { FollowupTable } from '@/components/followup/FollowupTable';
