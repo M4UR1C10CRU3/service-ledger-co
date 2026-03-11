@@ -38,8 +38,7 @@ function getSubtotal(linhas: PropostaLinhaForm[], idx: number): number {
 export function exportPropostaPdf(data: PdfData, empresa: any) {
   // Dynamic company branding
   const primaryColor = empresa?.corPrimaria || '#E8630A';
-  const empresaNome = empresa?.nome || 'TUDO CASA — WARM LDA';
-  const empresaNomeLegal = empresa?.nomeLegal || empresaNome;
+  const cfg = getEmpresaDocConfig(empresa?.slug);
   const logoPath = empresa?.logoPath || '';
 
   const dataFormatted = data.dataEmissao
