@@ -31,7 +31,7 @@ export default function ConfigDados({ activeTab }: { activeTab: string }) {
     setExporting(mod.key);
     try {
       const hasEmpresaFilter = !['clientes'].includes(mod.table);
-      let query: any = (supabase.from(mod.table) as any).select('*');
+      let query = (supabase as any).from(mod.table).select('*');
       if (hasEmpresaFilter) {
         query = query.eq('empresa_id', empresa.id);
       }
