@@ -40,7 +40,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     morada: 'Av. Olimpio Guedes Andrade, 891 - Apartado. 117',
     codigoPostal: '5370-520',
     localidade: 'Mirandela',
-    contribuinte: '516410740',
+    contribuinte: '515344893',
     emails: 'contacto@obrajusta.pt | comercial@obrajusta.pt',
     telefones: 'Telefone/ Whatsapp 278 248 163 | Telemóvel 937 500 554',
     prefixoProposta: 'OJMIIEC',
