@@ -33,6 +33,7 @@ import Recrutamento from "./pages/Recrutamento";
 import Avaliacoes from "./pages/Avaliacoes";
 import Auditoria from "./pages/Auditoria";
 import Utilizadores from "./pages/Utilizadores";
+import Configuracoes from "./pages/Configuracoes";
 
 const queryClient = new QueryClient();
 

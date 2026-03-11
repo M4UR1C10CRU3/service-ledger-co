@@ -30,9 +30,9 @@ export default function ConfigDados({ activeTab }: { activeTab: string }) {
     if (!empresa) return;
     setExporting(mod.key);
     try {
-      let query = (supabase.from(mod.table) as any).select('*');
-      // Filter by empresa_id if table has it
-      if (!['clientes'].includes(mod.table)) {
+      const hasEmpresaFilter = !['clientes'].includes(mod.table);
+      let query: any = (supabase.from(mod.table) as any).select('*');
+      if (hasEmpresaFilter) {
         query = query.eq('empresa_id', empresa.id);
       }
       const { data, error } = await query.limit(10000);
