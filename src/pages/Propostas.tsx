@@ -90,9 +90,12 @@ export default function Propostas() {
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    const p = propostas.find(p => p.id === deleteId);
     const ok = await deleteProposta(deleteId);
-    if (ok) toast({ title: 'Proposta eliminada com sucesso' });
-    else toast({ title: 'Erro ao eliminar proposta', variant: 'destructive' });
+    if (ok) {
+      toast({ title: 'Proposta eliminada com sucesso' });
+      if (p) logActivity({ modulo: 'Propostas', acao: 'eliminou_proposta', descricao: `Eliminou a proposta ${p.numeroProposta}`, entidade_tipo: 'proposta', entidade_id: deleteId, entidade_ref: p.numeroProposta });
+    } else toast({ title: 'Erro ao eliminar proposta', variant: 'destructive' });
     setDeleteId(null);
   };
 
