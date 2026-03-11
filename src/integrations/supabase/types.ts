@@ -1375,6 +1375,477 @@ export type Database = {
           },
         ]
       }
+      rh_avaliacoes: {
+        Row: {
+          areas_melhoria: string | null
+          atualizado_em: string | null
+          avaliador_confirmou: boolean | null
+          avaliador_id: string | null
+          avaliador_nome: string | null
+          classificacao: string | null
+          colaborador_id: string
+          colaborador_nome: string | null
+          colaborador_notificado: boolean | null
+          criado_em: string | null
+          data_avaliacao: string | null
+          data_comunicacao: string | null
+          data_efetivacao: string | null
+          data_prevista: string | null
+          empresa_id: string
+          estado: string | null
+          id: string
+          media_grupo_a: number | null
+          media_grupo_b: number | null
+          media_grupo_c: number | null
+          media_grupo_d: number | null
+          motivo_desligamento: string | null
+          nova_remuneracao: number | null
+          novo_cargo: string | null
+          obj_melhoria: string | null
+          objetivos_proximo: string | null
+          obs_colaborador: string | null
+          observacoes: string | null
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          plano_desenvolvimento: string | null
+          pontos_fortes: string | null
+          pontuacao_final: number | null
+          prazo_revisao: string | null
+          qa_conhecimento: number | null
+          qa_produtividade: number | null
+          qa_qualidade: number | null
+          qa_resolucao: number | null
+          qb_comunicacao: number | null
+          qb_pontualidade: number | null
+          qb_postura: number | null
+          qb_relacionamento: number | null
+          qc_adaptacao: number | null
+          qc_aprendizagem: number | null
+          qc_proatividade: number | null
+          qd_cuidado_equip: number | null
+          qd_seguranca: number | null
+          recomendacao: string | null
+          responsavel_acomp: string | null
+          tipo_avaliacao: string
+        }
+        Insert: {
+          areas_melhoria?: string | null
+          atualizado_em?: string | null
+          avaliador_confirmou?: boolean | null
+          avaliador_id?: string | null
+          avaliador_nome?: string | null
+          classificacao?: string | null
+          colaborador_id: string
+          colaborador_nome?: string | null
+          colaborador_notificado?: boolean | null
+          criado_em?: string | null
+          data_avaliacao?: string | null
+          data_comunicacao?: string | null
+          data_efetivacao?: string | null
+          data_prevista?: string | null
+          empresa_id: string
+          estado?: string | null
+          id?: string
+          media_grupo_a?: number | null
+          media_grupo_b?: number | null
+          media_grupo_c?: number | null
+          media_grupo_d?: number | null
+          motivo_desligamento?: string | null
+          nova_remuneracao?: number | null
+          novo_cargo?: string | null
+          obj_melhoria?: string | null
+          objetivos_proximo?: string | null
+          obs_colaborador?: string | null
+          observacoes?: string | null
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          plano_desenvolvimento?: string | null
+          pontos_fortes?: string | null
+          pontuacao_final?: number | null
+          prazo_revisao?: string | null
+          qa_conhecimento?: number | null
+          qa_produtividade?: number | null
+          qa_qualidade?: number | null
+          qa_resolucao?: number | null
+          qb_comunicacao?: number | null
+          qb_pontualidade?: number | null
+          qb_postura?: number | null
+          qb_relacionamento?: number | null
+          qc_adaptacao?: number | null
+          qc_aprendizagem?: number | null
+          qc_proatividade?: number | null
+          qd_cuidado_equip?: number | null
+          qd_seguranca?: number | null
+          recomendacao?: string | null
+          responsavel_acomp?: string | null
+          tipo_avaliacao: string
+        }
+        Update: {
+          areas_melhoria?: string | null
+          atualizado_em?: string | null
+          avaliador_confirmou?: boolean | null
+          avaliador_id?: string | null
+          avaliador_nome?: string | null
+          classificacao?: string | null
+          colaborador_id?: string
+          colaborador_nome?: string | null
+          colaborador_notificado?: boolean | null
+          criado_em?: string | null
+          data_avaliacao?: string | null
+          data_comunicacao?: string | null
+          data_efetivacao?: string | null
+          data_prevista?: string | null
+          empresa_id?: string
+          estado?: string | null
+          id?: string
+          media_grupo_a?: number | null
+          media_grupo_b?: number | null
+          media_grupo_c?: number | null
+          media_grupo_d?: number | null
+          motivo_desligamento?: string | null
+          nova_remuneracao?: number | null
+          novo_cargo?: string | null
+          obj_melhoria?: string | null
+          objetivos_proximo?: string | null
+          obs_colaborador?: string | null
+          observacoes?: string | null
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          plano_desenvolvimento?: string | null
+          pontos_fortes?: string | null
+          pontuacao_final?: number | null
+          prazo_revisao?: string | null
+          qa_conhecimento?: number | null
+          qa_produtividade?: number | null
+          qa_qualidade?: number | null
+          qa_resolucao?: number | null
+          qb_comunicacao?: number | null
+          qb_pontualidade?: number | null
+          qb_postura?: number | null
+          qb_relacionamento?: number | null
+          qc_adaptacao?: number | null
+          qc_aprendizagem?: number | null
+          qc_proatividade?: number | null
+          qd_cuidado_equip?: number | null
+          qd_seguranca?: number | null
+          recomendacao?: string | null
+          responsavel_acomp?: string | null
+          tipo_avaliacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_avaliacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_avaliacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_candidatos: {
+        Row: {
+          atualizado_em: string | null
+          criado_em: string | null
+          cv_url: string | null
+          data_nascimento: string | null
+          email: string | null
+          empresa_id: string
+          estado: string | null
+          fonte: string | null
+          ia_adequacao_vaga: string | null
+          ia_anos_experiencia: number | null
+          ia_competencias_tec: Json | null
+          ia_competencias_trans: Json | null
+          ia_erro: string | null
+          ia_experiencia: Json | null
+          ia_formacao: string | null
+          ia_idiomas: Json | null
+          ia_justificacao: string | null
+          ia_pontos_atencao: Json | null
+          ia_pontos_fortes: Json | null
+          ia_processado_em: string | null
+          ia_resumo_perfil: string | null
+          id: string
+          localidade: string | null
+          nome: string
+          notas_iniciais: string | null
+          pontuacao_media_entrev: number | null
+          telefone: string | null
+          vaga_id: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          criado_em?: string | null
+          cv_url?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id: string
+          estado?: string | null
+          fonte?: string | null
+          ia_adequacao_vaga?: string | null
+          ia_anos_experiencia?: number | null
+          ia_competencias_tec?: Json | null
+          ia_competencias_trans?: Json | null
+          ia_erro?: string | null
+          ia_experiencia?: Json | null
+          ia_formacao?: string | null
+          ia_idiomas?: Json | null
+          ia_justificacao?: string | null
+          ia_pontos_atencao?: Json | null
+          ia_pontos_fortes?: Json | null
+          ia_processado_em?: string | null
+          ia_resumo_perfil?: string | null
+          id?: string
+          localidade?: string | null
+          nome: string
+          notas_iniciais?: string | null
+          pontuacao_media_entrev?: number | null
+          telefone?: string | null
+          vaga_id?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          criado_em?: string | null
+          cv_url?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id?: string
+          estado?: string | null
+          fonte?: string | null
+          ia_adequacao_vaga?: string | null
+          ia_anos_experiencia?: number | null
+          ia_competencias_tec?: Json | null
+          ia_competencias_trans?: Json | null
+          ia_erro?: string | null
+          ia_experiencia?: Json | null
+          ia_formacao?: string | null
+          ia_idiomas?: Json | null
+          ia_justificacao?: string | null
+          ia_pontos_atencao?: Json | null
+          ia_pontos_fortes?: Json | null
+          ia_processado_em?: string | null
+          ia_resumo_perfil?: string | null
+          id?: string
+          localidade?: string | null
+          nome?: string
+          notas_iniciais?: string | null
+          pontuacao_media_entrev?: number | null
+          telefone?: string | null
+          vaga_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_candidatos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_candidatos_vaga_id_fkey"
+            columns: ["vaga_id"]
+            isOneToOne: false
+            referencedRelation: "rh_vagas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_entrevistas: {
+        Row: {
+          candidato_id: string | null
+          classificacao: string | null
+          criado_em: string | null
+          data_hora: string
+          duracao_min: number | null
+          empresa_id: string
+          entrevistador_id: string | null
+          entrevistador_nome: string | null
+          estado: string | null
+          id: string
+          local_link: string | null
+          notas: string | null
+          p_adaptabilidade: number | null
+          p_apresentacao: number | null
+          p_comunicacao: number | null
+          p_conhecimento: number | null
+          p_disponibilidade: number | null
+          p_experiencia: number | null
+          p_informatica: number | null
+          p_lideranca: number | null
+          p_organizacao: number | null
+          p_referencias: number | null
+          p_resolucao: number | null
+          p_seguranca: number | null
+          pontuacao_final: number | null
+          proxima_fase: string | null
+          recomendacao: string | null
+          tipo: string | null
+          vaga_id: string | null
+        }
+        Insert: {
+          candidato_id?: string | null
+          classificacao?: string | null
+          criado_em?: string | null
+          data_hora: string
+          duracao_min?: number | null
+          empresa_id: string
+          entrevistador_id?: string | null
+          entrevistador_nome?: string | null
+          estado?: string | null
+          id?: string
+          local_link?: string | null
+          notas?: string | null
+          p_adaptabilidade?: number | null
+          p_apresentacao?: number | null
+          p_comunicacao?: number | null
+          p_conhecimento?: number | null
+          p_disponibilidade?: number | null
+          p_experiencia?: number | null
+          p_informatica?: number | null
+          p_lideranca?: number | null
+          p_organizacao?: number | null
+          p_referencias?: number | null
+          p_resolucao?: number | null
+          p_seguranca?: number | null
+          pontuacao_final?: number | null
+          proxima_fase?: string | null
+          recomendacao?: string | null
+          tipo?: string | null
+          vaga_id?: string | null
+        }
+        Update: {
+          candidato_id?: string | null
+          classificacao?: string | null
+          criado_em?: string | null
+          data_hora?: string
+          duracao_min?: number | null
+          empresa_id?: string
+          entrevistador_id?: string | null
+          entrevistador_nome?: string | null
+          estado?: string | null
+          id?: string
+          local_link?: string | null
+          notas?: string | null
+          p_adaptabilidade?: number | null
+          p_apresentacao?: number | null
+          p_comunicacao?: number | null
+          p_conhecimento?: number | null
+          p_disponibilidade?: number | null
+          p_experiencia?: number | null
+          p_informatica?: number | null
+          p_lideranca?: number | null
+          p_organizacao?: number | null
+          p_referencias?: number | null
+          p_resolucao?: number | null
+          p_seguranca?: number | null
+          pontuacao_final?: number | null
+          proxima_fase?: string | null
+          recomendacao?: string | null
+          tipo?: string | null
+          vaga_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_entrevistas_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "rh_candidatos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_entrevistas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_entrevistas_vaga_id_fkey"
+            columns: ["vaga_id"]
+            isOneToOne: false
+            referencedRelation: "rh_vagas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_vagas: {
+        Row: {
+          area: string | null
+          atualizado_em: string | null
+          cargo: string
+          criado_em: string | null
+          criado_por: string | null
+          data_abertura: string | null
+          data_limite: string | null
+          descricao: string | null
+          empresa_id: string
+          estado: string | null
+          id: string
+          motivo_encerr: string | null
+          num_vagas: number | null
+          regime: string | null
+          requisitos_obrig: string | null
+          requisitos_pref: string | null
+          salario_base: number | null
+          tipo_contrato: string | null
+        }
+        Insert: {
+          area?: string | null
+          atualizado_em?: string | null
+          cargo: string
+          criado_em?: string | null
+          criado_por?: string | null
+          data_abertura?: string | null
+          data_limite?: string | null
+          descricao?: string | null
+          empresa_id: string
+          estado?: string | null
+          id?: string
+          motivo_encerr?: string | null
+          num_vagas?: number | null
+          regime?: string | null
+          requisitos_obrig?: string | null
+          requisitos_pref?: string | null
+          salario_base?: number | null
+          tipo_contrato?: string | null
+        }
+        Update: {
+          area?: string | null
+          atualizado_em?: string | null
+          cargo?: string
+          criado_em?: string | null
+          criado_por?: string | null
+          data_abertura?: string | null
+          data_limite?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          estado?: string | null
+          id?: string
+          motivo_encerr?: string | null
+          num_vagas?: number | null
+          regime?: string | null
+          requisitos_obrig?: string | null
+          requisitos_pref?: string | null
+          salario_base?: number | null
+          tipo_contrato?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_vagas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           a_realizar: boolean
