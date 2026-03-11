@@ -32,6 +32,7 @@ import FollowUp from "./pages/FollowUp";
 import Recrutamento from "./pages/Recrutamento";
 import Avaliacoes from "./pages/Avaliacoes";
 import Auditoria from "./pages/Auditoria";
+import Utilizadores from "./pages/Utilizadores";
 
 const queryClient = new QueryClient();
 
