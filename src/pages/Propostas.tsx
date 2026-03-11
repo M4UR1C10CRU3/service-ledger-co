@@ -45,6 +45,7 @@ export default function Propostas() {
   const { produtos } = useProdutos();
   const { employees } = useEmployees();
   const { toast } = useToast();
+  const { logActivity } = useActivityLogger();
 
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('todos');
