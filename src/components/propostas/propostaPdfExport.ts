@@ -104,10 +104,11 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
 
   <div style="display:flex;justify-content:space-between;margin-bottom:10px">
     <div class="empresa-info">
-      <strong style="font-size:14px">${empresaNomeLegal.toUpperCase()}</strong><br/>
-      RUA ENG. MACHADO VAZ Nº 8<br/>
-      5370-440  MIRANDELA<br/>
-      Contribuinte Nº: 518307174
+      <strong style="font-size:14px">${cfg.nomeDocumento}</strong><br/>
+      ${cfg.morada.toUpperCase()}<br/>
+      ${cfg.codigoPostal}  ${cfg.localidade.toUpperCase()}<br/>
+      Contribuinte Nº: ${cfg.contribuinte}
+      ${cfg.telefones ? '<br/>' + cfg.telefones : ''}
     </div>
     <div style="text-align:right;font-size:12px">
       <strong>${data.clienteNome}</strong><br/>
