@@ -204,6 +204,16 @@ export function AppSidebar() {
           <span>Trocar Empresa</span>
         </SidebarMenuButton>
         <SidebarMenuButton
+          onClick={() => navigate('/auditoria')}
+          className={cn(
+            'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
+            isActive('/auditoria') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+          )}
+        >
+          <ScrollText className="h-4 w-4 shrink-0" />
+          <span>Auditoria</span>
+        </SidebarMenuButton>
+        <SidebarMenuButton
           onClick={() => navigate('/configuracoes')}
           className="w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
         >
