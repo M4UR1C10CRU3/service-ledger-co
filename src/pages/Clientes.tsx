@@ -180,6 +180,7 @@ export default function Clientes() {
           title: "Cliente atualizado",
           description: "Os dados do cliente foram atualizados com sucesso.",
         });
+        logActivity({ modulo: 'Clientes', acao: 'editou_cliente', descricao: `Atualizou dados do cliente ${formData.nome}`, entidade_tipo: 'cliente', entidade_id: editingCliente.id });
         handleCloseForm();
       } else {
         toast({
