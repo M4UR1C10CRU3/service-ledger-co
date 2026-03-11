@@ -178,7 +178,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
                     if (l.tipoLinha === 'seccao') {
                       return (
                         <tr key={i} className="bg-gray-100">
-                          <td colSpan={7} className="p-2 font-bold text-[#E8630A]">{l.designacao}</td>
+                          <td colSpan={7} className="p-2 font-bold text-primary">{l.designacao}</td>
                         </tr>
                       );
                     }
