@@ -706,6 +706,17 @@ const ControlePonto = () => {
         </CardContent>
       </Card>
 
+      {/* Weekly Activity Summary */}
+      {selectedEmployee && viewMode === 'week' && (
+        <WeeklyActivitySummarySection
+          employeeId={selectedEmployee.id}
+          employeeName={selectedEmployee.full_name}
+          utilizadorId={(selectedEmployee as any).utilizador_id || null}
+          startDate={dateRange.start}
+          endDate={dateRange.end}
+        />
+      )}
+
       {/* Register/Edit Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-lg">
