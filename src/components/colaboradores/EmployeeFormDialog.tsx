@@ -232,6 +232,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       nif: form.nif || null,
       activities_summary: form.activities_summary || null,
       admission_date: form.admission_date || null,
+      utilizador_id: form.utilizador_id || null,
       benefits: form.benefits,
       workdays_per_week: parseInt(form.workdays_per_week) || 5,
       daily_hours: 40 / (parseInt(form.workdays_per_week) || 5),
