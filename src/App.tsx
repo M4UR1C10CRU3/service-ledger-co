@@ -82,8 +82,16 @@ const App = () => (
               <Route path="/subempreiteiros" element={<ProtectedWithLayout><PlaceholderPage title="Subempreiteiros" /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/avaliacoes" element={<ProtectedWithLayout><Avaliacoes /></ProtectedWithLayout>} />
-              <Route path="/configuracoes" element={<ProtectedWithLayout><PlaceholderPage title="Configurações" /></ProtectedWithLayout>} />
-              <Route path="/configuracoes/utilizadores" element={<ProtectedWithLayout><Utilizadores /></ProtectedWithLayout>} />
+              <Route path="/configuracoes" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/utilizadores" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/empresa" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/empresas" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/aparencia" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/notificacoes" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/integracoes" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/dados" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/configuracoes/sobre" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
+              <Route path="/utilizadores" element={<Navigate to="/configuracoes/utilizadores" replace />} />
               <Route path="/auditoria" element={<ProtectedWithLayout><Auditoria /></ProtectedWithLayout>} />
 
               {/* Redirects */}
