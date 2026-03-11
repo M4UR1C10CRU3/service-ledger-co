@@ -91,7 +91,7 @@ export function getEmpresaDocConfig(slug?: string): EmpresaDocConfig {
 export function formatPropostaNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
   const prefix = cfg.prefixoProposta;
-  if (prefix === 'MCTCEC' || prefix === 'WMTCEC' || prefix === 'OJMIIEC' || prefix === 'OJGEC') {
+  if (prefix === 'MCTCEC' || prefix === 'WMTCEC' || prefix === 'OJMIIEC' || prefix === 'OJGEC' || prefix === 'RSEC') {
     return `${prefix} ${ano}/${seq}`;
   }
   return `${ano}${prefix}${seq}/${seq}`;
