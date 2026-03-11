@@ -90,8 +90,9 @@ export function getEmpresaDocConfig(slug?: string): EmpresaDocConfig {
 
 export function formatPropostaNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
-  if (cfg.prefixoProposta === 'MCTCEC') {
-    return `MCTCEC ${ano}/${seq}`;
+  const prefix = cfg.prefixoProposta;
+  if (prefix === 'MCTCEC' || prefix === 'WMTCEC') {
+    return `${prefix} ${ano}/${seq}`;
   }
-  return `${ano}${cfg.prefixoProposta}${seq}/${seq}`;
+  return `${ano}${prefix}${seq}/${seq}`;
 }
