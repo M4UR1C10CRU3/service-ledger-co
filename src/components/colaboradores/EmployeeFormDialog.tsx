@@ -8,11 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Upload, User } from 'lucide-react';
+import { Plus, Upload, User, Link2 } from 'lucide-react';
 import { useJobPositions, useEmployees, Employee } from '@/hooks/useEmployees';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatEUR } from '@/lib/formatters';
+import { useQuery } from '@tanstack/react-query';
 
 interface EmployeeFormDialogProps {
   open: boolean;
@@ -92,6 +93,7 @@ const emptyForm = {
   nif: '',
   activities_summary: '',
   admission_date: '',
+  utilizador_id: '',
   benefits: { ...defaultBenefits },
   workdays_per_week: '5',
   work_schedule: { ...defaultSchedule },
@@ -110,6 +112,19 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
   const [showNewPosition, setShowNewPosition] = useState(false);
   const [newPositionName, setNewPositionName] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // Fetch all Liberty users (profiles) for associating
+  const { data: libertyUsers } = useQuery({
+    queryKey: ['profiles-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nome')
+        .order('nome');
+      if (error) throw error;
+      return (data || []) as { id: string; nome: string }[];
+    },
+  });
 
   const isEditing = !!employee;
 
@@ -144,6 +159,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         nif: employee.nif || '',
         activities_summary: employee.activities_summary || '',
         admission_date: employee.admission_date || '',
+        utilizador_id: employee.utilizador_id || '',
         benefits: employee.benefits || { ...defaultBenefits },
         workdays_per_week: String(employee.workdays_per_week || 5),
         work_schedule: (employee.work_schedule as any) || { ...defaultSchedule },
@@ -216,6 +232,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       nif: form.nif || null,
       activities_summary: form.activities_summary || null,
       admission_date: form.admission_date || null,
+      utilizador_id: form.utilizador_id || null,
       benefits: form.benefits,
       workdays_per_week: parseInt(form.workdays_per_week) || 5,
       daily_hours: 40 / (parseInt(form.workdays_per_week) || 5),
@@ -471,6 +488,24 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                       <SelectItem value="on_leave">De Licença</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5" />
+                    Utilizador Liberty
+                  </Label>
+                  <Select value={form.utilizador_id} onValueChange={v => set('utilizador_id', v === '_none' ? '' : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Associar utilizador..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
+                      {libertyUsers?.map(u => (
+                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Associe a um utilizador Liberty para ver atividades no Controlo de Ponto</p>
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label>Resumo das Atividades</Label>
