@@ -11,12 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { loginSchema, signupSchema, LoginFormData, SignupFormData } from '@/lib/validations';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const { empresa, getLogo } = useEmpresa();
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   
   // Se não há empresa selecionada, redirecionar para seleção
   useEffect(() => {
@@ -120,6 +126,27 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      toast({ variant: 'destructive', title: 'Email obrigatório', description: 'Insira o seu email para recuperar a senha.' });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: 'Email enviado!', description: 'Verifique a sua caixa de entrada para redefinir a senha.' });
+      setForgotPasswordMode(false);
+      setForgotEmail('');
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
   const empresaNomeLegal = empresa?.nomeLegal || 'Gestão de Serviços';
@@ -168,6 +195,30 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {forgotPasswordMode ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Insira o seu email e enviaremos um link para redefinir a sua senha.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    disabled={forgotLoading}
+                  />
+                </div>
+                <Button className="w-full" disabled={forgotLoading} onClick={handleForgotPassword}>
+                  {forgotLoading ? 'A enviar...' : 'Enviar link de recuperação'}
+                </Button>
+                <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setForgotPasswordMode(false)}>
+                  ← Voltar ao login
+                </Button>
+              </div>
+            ) : (
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Entrar</TabsTrigger>
@@ -191,14 +242,32 @@ export default function Auth() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      {...loginForm.register('password')}
-                      disabled={loading}
-                    />
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Senha</Label>
+                      <button
+                        type="button"
+                        className="text-xs text-primary hover:underline"
+                        onClick={() => setForgotPasswordMode(true)}
+                      >
+                        Esqueci a senha
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showLoginPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        {...loginForm.register('password')}
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      >
+                        {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     {loginForm.formState.errors.password && (
                       <p className="text-sm text-destructive">{loginForm.formState.errors.password.message}</p>
                     )}
@@ -246,13 +315,22 @@ export default function Auth() {
                   
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Senha</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      {...signupForm.register('password')}
-                      disabled={loading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showSignupPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        {...signupForm.register('password')}
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      >
+                        {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     {signupForm.formState.errors.password && (
                       <p className="text-sm text-destructive">{signupForm.formState.errors.password.message}</p>
                     )}
@@ -271,6 +349,7 @@ export default function Auth() {
                 </form>
               </TabsContent>
             </Tabs>
+            )}
           </CardContent>
         </Card>
 
