@@ -56,6 +56,7 @@ const App = () => (
               {/* Public routes */}
               <Route path="/empresa" element={<SelectEmpresa />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes with sidebar layout */}
               <Route path="/dashboard" element={<ProtectedWithLayout><DashboardGeral /></ProtectedWithLayout>} />
