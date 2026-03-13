@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { loginSchema, signupSchema, LoginFormData, SignupFormData } from '@/lib/validations';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
