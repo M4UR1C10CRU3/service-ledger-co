@@ -18,6 +18,11 @@ export default function Auth() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const { empresa, getLogo } = useEmpresa();
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   
   // Se não há empresa selecionada, redirecionar para seleção
   useEffect(() => {
