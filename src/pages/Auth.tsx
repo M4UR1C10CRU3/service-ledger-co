@@ -126,6 +126,27 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      toast({ variant: 'destructive', title: 'Email obrigatório', description: 'Insira o seu email para recuperar a senha.' });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: 'Email enviado!', description: 'Verifique a sua caixa de entrada para redefinir a senha.' });
+      setForgotPasswordMode(false);
+      setForgotEmail('');
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
   const empresaNomeLegal = empresa?.nomeLegal || 'Gestão de Serviços';
