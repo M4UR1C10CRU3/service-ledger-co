@@ -26,6 +26,7 @@ interface ServiceTableProps {
   onDeleteService: (id: string) => void;
   onViewService: (service: ServiceWithCalculations) => void;
   onDuplicateService?: (service: ServiceWithCalculations) => void;
+  onOpenMaterials?: (service: ServiceWithCalculations) => void;
 }
 
 export const ServiceTable = ({ 
