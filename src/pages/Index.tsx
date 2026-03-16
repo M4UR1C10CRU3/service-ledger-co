@@ -12,6 +12,7 @@ import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
 import { DateFilter } from '@/components/DateFilter';
+import { MateriaisUtilizadosDialog } from '@/components/materiais/MateriaisUtilizadosDialog';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +51,7 @@ const Index = () => {
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceWithCalculations | null>(null);
+  const [materiaisService, setMateriaisService] = useState<ServiceWithCalculations | null>(null);
 
   // Date filter state
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
@@ -196,7 +198,19 @@ const Index = () => {
         onDeleteService={handleDeleteService}
         onViewService={handleViewService}
         onDuplicateService={handleDuplicateService}
+        onOpenMaterials={(service) => setMateriaisService(service)}
       />
+
+      {materiaisService?.dbId && (
+        <MateriaisUtilizadosDialog
+          open={!!materiaisService}
+          onOpenChange={(open) => { if (!open) setMateriaisService(null); }}
+          vendaId={materiaisService.dbId}
+          serviceIdCode={materiaisService.servico}
+          serviceLabel={materiaisService.servico}
+          onMaterialsSaved={() => setMateriaisService(null)}
+        />
+      )}
 
       <ServiceForm
         open={isFormOpen}
