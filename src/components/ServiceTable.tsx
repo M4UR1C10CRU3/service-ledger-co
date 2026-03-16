@@ -165,7 +165,13 @@ export const ServiceTable = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-1 h-auto"
+                            onClick={() => onOpenMaterials?.(service)}
+                            disabled={!service.dbId}
+                          >
                             {service.dbId && materialCounts[service.dbId] ? (
                               <Package className="h-4 w-4 inline text-orange-500" />
                             ) : (
@@ -174,12 +180,12 @@ export const ServiceTable = ({
                             {service.dbId && materialCounts[service.dbId] ? (
                               <span className="text-xs ml-0.5 text-orange-500">{materialCounts[service.dbId]}</span>
                             ) : null}
-                          </span>
+                          </Button>
                         </TooltipTrigger>
                         <TooltipContent>
                           {service.dbId && materialCounts[service.dbId]
-                            ? `${materialCounts[service.dbId]} material(is) registado(s)`
-                            : 'Sem materiais registados'}
+                            ? `${materialCounts[service.dbId]} material(is) registado(s) — clique para gerir`
+                            : 'Clique para lançar materiais'}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
