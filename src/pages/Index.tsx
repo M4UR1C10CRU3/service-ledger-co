@@ -12,6 +12,7 @@ import { ServiceDetailDialog } from '@/components/ServiceDetailDialog';
 import { ReportsDialog } from '@/components/ReportsDialog';
 import { CreateInvoiceDialog } from '@/components/CreateInvoiceDialog';
 import { DateFilter } from '@/components/DateFilter';
+import { MateriaisUtilizadosDialog } from '@/components/materiais/MateriaisUtilizadosDialog';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
