@@ -51,6 +51,7 @@ const Index = () => {
   const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceWithCalculations | null>(null);
+  const [materiaisService, setMateriaisService] = useState<ServiceWithCalculations | null>(null);
 
   // Date filter state
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
