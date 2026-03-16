@@ -198,7 +198,19 @@ const Index = () => {
         onDeleteService={handleDeleteService}
         onViewService={handleViewService}
         onDuplicateService={handleDuplicateService}
+        onOpenMaterials={(service) => setMateriaisService(service)}
       />
+
+      {materiaisService?.dbId && (
+        <MateriaisUtilizadosDialog
+          open={!!materiaisService}
+          onOpenChange={(open) => { if (!open) setMateriaisService(null); }}
+          vendaId={materiaisService.dbId}
+          serviceIdCode={materiaisService.servico}
+          serviceLabel={materiaisService.servico}
+          onMaterialsSaved={() => setMateriaisService(null)}
+        />
+      )}
 
       <ServiceForm
         open={isFormOpen}
