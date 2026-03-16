@@ -35,6 +35,7 @@ export const ServiceTable = ({
   onDeleteService, 
   onViewService,
   onDuplicateService,
+  onOpenMaterials,
 }: ServiceTableProps) => {
   const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({});
 
