@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { parseISO } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
@@ -203,11 +204,40 @@ export default function Compras() {
 
     if (editingAccount) {
       const ok = await updateAccount(editingAccount.id, formData);
-      toast(ok
-        ? { title: 'Registo atualizado', description: 'Operação realizada com sucesso.' }
-        : { title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' }
-      );
-      if (ok) { setIsFormOpen(false); resetForm(); }
+      if (ok) {
+        // Create stock entries for items that don't have movements yet
+        const items = formData.items || [];
+        if (items.length > 0) {
+          // Check which items already have stock movements for this purchase
+          const { data: existingMovs } = await supabase
+            .from('stock_movimentos')
+            .select('produto_ref')
+            .eq('compra_id', editingAccount.id)
+            .eq('tipo', 'entrada');
+          const existingRefs = new Set((existingMovs || []).map((m: any) => m.produto_ref));
+
+          for (const item of items) {
+            const ref = item.produtoRef || '';
+            if (!ref || existingRefs.has(ref)) continue;
+            const qty = parseFloat(item.quantidade) || 0;
+            const unitCost = parseFloat(item.valorBruto) || 0;
+            if (qty <= 0) continue;
+            await registarEntrada({
+              produtoRef: ref,
+              produtoDesc: item.descricao,
+              quantidade: qty,
+              custoUnitario: unitCost,
+              origem: 'compra',
+              referenciaDoc: formData.numeroDocumento || editingAccount.id,
+              compraId: editingAccount.id,
+            });
+          }
+        }
+        toast({ title: 'Registo atualizado', description: 'Operação realizada com sucesso.' });
+        setIsFormOpen(false); resetForm();
+      } else {
+        toast({ title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' });
+      }
     } else {
       const newId = await addAccount(formData);
       if (newId) {
