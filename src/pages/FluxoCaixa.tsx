@@ -741,7 +741,7 @@ const FluxoCaixa = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {editingId ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
-              Novo Lançamento
+              {editingId ? 'Editar Lançamento' : 'Novo Lançamento'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
