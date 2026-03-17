@@ -264,14 +264,108 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
         {savedMaterials.length > 0 && (
           <div className="border rounded-lg p-3 bg-muted/30">
             <h4 className="text-sm font-medium mb-2">Materiais já registados ({savedMaterials.length})</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {savedMaterials.map(m => (
-                <div key={m.id} className="flex justify-between text-sm py-1 px-2 bg-background rounded">
-                  <span className="font-mono">{m.produtoRef}</span>
-                  <span className="text-muted-foreground truncate mx-2 flex-1">{m.produtoDesc}</span>
-                  <span className="font-medium">{m.quantidade} un</span>
-                </div>
-              ))}
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {savedMaterials.map(m => {
+                const isEditing = editingMaterialId === m.id;
+                return (
+                  <div key={m.id} className="flex items-center gap-2 text-sm py-1.5 px-2 bg-background rounded">
+                    {isEditing ? (
+                      <>
+                        <div className="flex-1 relative">
+                          <Input
+                            className="h-7 text-xs font-mono"
+                            value={editSearchQuery || editRef}
+                            onChange={(e) => {
+                              setEditSearchQuery(e.target.value);
+                              if (editSearchTimeoutRef.current) clearTimeout(editSearchTimeoutRef.current);
+                              if (e.target.value.length >= 2) {
+                                editSearchTimeoutRef.current = setTimeout(async () => {
+                                  const results = await searchProdutos(e.target.value);
+                                  setEditSearchResults(results);
+                                }, 300);
+                              } else {
+                                setEditSearchResults([]);
+                              }
+                            }}
+                            placeholder="Ref. artigo"
+                          />
+                          {editSearchResults.length > 0 && (
+                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-32 overflow-y-auto">
+                              {editSearchResults.map((r, i) => (
+                                <button
+                                  key={i}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent flex justify-between"
+                                  onClick={() => {
+                                    setEditRef(r.refInterna);
+                                    setEditDesc(r.descricao);
+                                    setEditSearchQuery('');
+                                    setEditSearchResults([]);
+                                  }}
+                                >
+                                  <span className="font-mono">{r.refInterna}</span>
+                                  <span className="text-muted-foreground truncate ml-2">{r.descricao}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <Input
+                          type="number"
+                          min={1}
+                          className="h-7 w-16 text-xs"
+                          value={editQty}
+                          onChange={(e) => setEditQty(Number(e.target.value))}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          disabled={saving}
+                          onClick={async () => {
+                            if (!editRef || editQty <= 0) return;
+                            setSaving(true);
+                            const ok = await updateMaterial(m.id, editRef, editDesc, editQty);
+                            setSaving(false);
+                            if (ok) {
+                              toast({ title: 'Material atualizado', description: 'A saída de stock foi corrigida.' });
+                              setEditingMaterialId(null);
+                              loadMaterials(vendaId).then(setSavedMaterials);
+                            } else {
+                              toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Check className="h-3.5 w-3.5 text-green-600" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditingMaterialId(null); setEditSearchResults([]); }}>
+                          <X className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-mono">{m.produtoRef}</span>
+                        <span className="text-muted-foreground truncate mx-2 flex-1">{m.produtoDesc}</span>
+                        <span className="font-medium">{m.quantidade} un</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => {
+                            setEditingMaterialId(m.id);
+                            setEditRef(m.produtoRef);
+                            setEditDesc(m.produtoDesc || '');
+                            setEditQty(m.quantidade);
+                            setEditSearchQuery('');
+                            setEditSearchResults([]);
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
