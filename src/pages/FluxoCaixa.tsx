@@ -720,6 +720,7 @@ const FluxoCaixa = () => {
                           movements={dayMovs}
                           dayTotal={dayTotal}
                           showDate
+                          onEdit={openEditDialog}
                         />
                       );
                     })
