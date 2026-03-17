@@ -691,6 +691,7 @@ const FluxoCaixa = () => {
                 <TableHead>Origem</TableHead>
                 <TableHead>Referência</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
