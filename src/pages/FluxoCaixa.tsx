@@ -725,7 +725,7 @@ const FluxoCaixa = () => {
                   ) : (
                     // Single day: flat list
                     filteredMovements.map(m => (
-                      <MovementRow key={m.id} movement={m} showDate={false} />
+                      <MovementRow key={m.id} movement={m} showDate={false} onEdit={openEditDialog} />
                     ))
                   )}
                 </>
