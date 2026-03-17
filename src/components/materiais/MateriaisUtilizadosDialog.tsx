@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Package, Plus, Trash2, Upload, Download, Search, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Package, Plus, Trash2, Upload, Download, Search, AlertTriangle, CheckCircle2, XCircle, Pencil, Check, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
