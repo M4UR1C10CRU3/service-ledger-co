@@ -157,12 +157,90 @@ export function useServiceMaterials() {
     }
   }, [empresa]);
 
+  /** Update an existing material movement (adjust stock accordingly) */
+  const updateMaterial = useCallback(async (
+    materialId: string,
+    newProdutoRef: string,
+    newProdutoDesc: string,
+    newQuantidade: number,
+  ): Promise<boolean> => {
+    if (!empresa) return false;
+    setIsLoading(true);
+    try {
+      // Get the current movement to calculate stock diff
+      const { data: current } = await supabase
+        .from('stock_movimentos')
+        .select('*')
+        .eq('id', materialId)
+        .single();
+      if (!current) return false;
+
+      const oldRef = current.produto_ref;
+      const oldQty = Math.abs(Number(current.quantidade));
+      const newQty = Math.abs(newQuantidade);
+      const refChanged = oldRef !== newProdutoRef;
+
+      // Update the movement record
+      const { error: updErr } = await supabase.from('stock_movimentos').update({
+        produto_ref: newProdutoRef,
+        produto_desc: newProdutoDesc,
+        quantidade: -newQty,
+      }).eq('id', materialId);
+      if (updErr) { console.error('Error updating movement:', updErr); return false; }
+
+      // Reverse old stock impact
+      const { data: oldStock } = await supabase
+        .from('stock_atual')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .eq('produto_ref', oldRef)
+        .limit(1);
+
+      if (oldStock && oldStock[0]) {
+        const restored = Number(oldStock[0].quantidade_atual) + oldQty;
+        await supabase.from('stock_atual').update({ quantidade_atual: restored }).eq('id', oldStock[0].id);
+      }
+
+      // Apply new stock impact
+      const { data: newStock } = await supabase
+        .from('stock_atual')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .eq('produto_ref', newProdutoRef)
+        .limit(1);
+
+      if (newStock && newStock[0]) {
+        const deducted = Number(newStock[0].quantidade_atual) - newQty;
+        await supabase.from('stock_atual').update({
+          quantidade_atual: deducted,
+          ultima_saida: new Date().toISOString(),
+        }).eq('id', newStock[0].id);
+      } else if (refChanged) {
+        await supabase.from('stock_atual').insert({
+          empresa_id: empresa.id,
+          produto_ref: newProdutoRef,
+          produto_desc: newProdutoDesc,
+          quantidade_atual: -newQty,
+          ultima_saida: new Date().toISOString(),
+        });
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error updating material:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [empresa]);
+
   return {
     loadMaterials,
     countMaterialsForServices,
     getStockDisponivel,
     searchProdutos,
     saveMaterials,
+    updateMaterial,
     isLoading,
   };
 }
