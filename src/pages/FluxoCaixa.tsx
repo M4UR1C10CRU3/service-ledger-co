@@ -697,7 +697,7 @@ const FluxoCaixa = () => {
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={period !== 'dia' ? 7 : 6} className="text-center py-8">
+                  <TableCell colSpan={period !== 'dia' ? 8 : 7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Wallet className="h-8 w-8" />
                       <p className="font-medium">Sem movimentações</p>
