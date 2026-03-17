@@ -834,9 +834,9 @@ const FluxoCaixa = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewDialog(false)} disabled={isSaving}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setNewDialog(false); setEditingId(null); }} disabled={isSaving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'A registar...' : 'Registar Lançamento'}
+              {isSaving ? 'A guardar...' : editingId ? 'Guardar Alterações' : 'Registar Lançamento'}
             </Button>
           </DialogFooter>
         </DialogContent>
