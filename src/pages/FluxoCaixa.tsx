@@ -21,7 +21,7 @@ import {
 import {
   Banknote, CreditCard, Building2, ArrowUpRight, ArrowDownRight,
   Plus, ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown,
-  Wallet, Filter, BarChart3,
+  Wallet, Filter, BarChart3, Pencil,
 } from 'lucide-react';
 
 // --- Types ---
@@ -166,8 +166,9 @@ const FluxoCaixa = () => {
     numerario: [], multibanco: [], transferencia: [],
   });
 
-  // New movement dialog state
+  // New/Edit movement dialog state
   const [newDialog, setNewDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     flow_type: 'numerario' as FlowType,
     movement_type: 'entrada' as MovementType,
@@ -316,6 +317,7 @@ const FluxoCaixa = () => {
 
   // Open new movement dialog
   const openNewDialog = (ft?: FlowType) => {
+    setEditingId(null);
     setFormData({
       flow_type: ft || 'numerario',
       movement_type: 'entrada',
@@ -329,6 +331,22 @@ const FluxoCaixa = () => {
     setNewDialog(true);
   };
 
+  // Open edit dialog for a manual movement
+  const openEditDialog = (m: CashFlow) => {
+    setEditingId(m.id);
+    setFormData({
+      flow_type: m.flow_type,
+      movement_type: m.movement_type,
+      amount: String(m.amount),
+      source_type: m.source_type,
+      description: m.description,
+      reference: m.reference || '',
+      transaction_date: m.transaction_date,
+      notes: m.notes || '',
+    });
+    setNewDialog(true);
+  };
+
   const handleSave = async () => {
     if (!empresa?.id || !formData.description || !formData.amount) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
@@ -337,8 +355,7 @@ const FluxoCaixa = () => {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('cash_flows').insert({
-        empresa_id: empresa.id,
+      const payload = {
         flow_type: formData.flow_type,
         movement_type: formData.movement_type,
         amount: parseFloat(formData.amount.replace(',', '.')),
@@ -347,12 +364,20 @@ const FluxoCaixa = () => {
         reference: formData.reference || null,
         transaction_date: formData.transaction_date,
         notes: formData.notes || null,
-      });
+      };
 
-      if (error) throw error;
+      if (editingId) {
+        const { error } = await supabase.from('cash_flows').update(payload).eq('id', editingId);
+        if (error) throw error;
+        toast({ title: 'Lançamento atualizado com sucesso' });
+      } else {
+        const { error } = await supabase.from('cash_flows').insert({ ...payload, empresa_id: empresa.id });
+        if (error) throw error;
+        toast({ title: 'Lançamento registado com sucesso' });
+      }
 
-      toast({ title: 'Lançamento registado com sucesso' });
       setNewDialog(false);
+      setEditingId(null);
       loadData();
     } catch (err) {
       console.error('Error saving movement:', err);
@@ -666,12 +691,13 @@ const FluxoCaixa = () => {
                 <TableHead>Origem</TableHead>
                 <TableHead>Referência</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredMovements.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={period !== 'dia' ? 7 : 6} className="text-center py-8">
+                  <TableCell colSpan={period !== 'dia' ? 8 : 7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Wallet className="h-8 w-8" />
                       <p className="font-medium">Sem movimentações</p>
@@ -694,13 +720,14 @@ const FluxoCaixa = () => {
                           movements={dayMovs}
                           dayTotal={dayTotal}
                           showDate
+                          onEdit={openEditDialog}
                         />
                       );
                     })
                   ) : (
                     // Single day: flat list
                     filteredMovements.map(m => (
-                      <MovementRow key={m.id} movement={m} showDate={false} />
+                      <MovementRow key={m.id} movement={m} showDate={false} onEdit={openEditDialog} />
                     ))
                   )}
                 </>
@@ -711,12 +738,12 @@ const FluxoCaixa = () => {
       </Card>
 
       {/* New Movement Dialog */}
-      <Dialog open={newDialog} onOpenChange={o => !isSaving && setNewDialog(o)}>
+      <Dialog open={newDialog} onOpenChange={o => { if (!isSaving) { setNewDialog(o); if (!o) setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" />
-              Novo Lançamento
+              {editingId ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
+              {editingId ? 'Editar Lançamento' : 'Novo Lançamento'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -809,9 +836,9 @@ const FluxoCaixa = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewDialog(false)} disabled={isSaving}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setNewDialog(false); setEditingId(null); }} disabled={isSaving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'A registar...' : 'Registar Lançamento'}
+              {isSaving ? 'A guardar...' : editingId ? 'Guardar Alterações' : 'Registar Lançamento'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -822,12 +849,15 @@ const FluxoCaixa = () => {
 
 // --- Sub-components ---
 
-function MovementRow({ movement: m, showDate }: { movement: CashFlow; showDate: boolean }) {
+const MANUAL_SOURCES: SourceType[] = ['ajuste_manual', 'sangria', 'reforco', 'transferencia_interna'];
+
+function MovementRow({ movement: m, showDate, onEdit }: { movement: CashFlow; showDate: boolean; onEdit?: (m: CashFlow) => void }) {
   const cfg = flowConfig[m.flow_type as FlowType];
   const isEntry = m.movement_type === 'entrada';
   const parts = m.description.split(' | ');
   const mainDesc = parts[0] || m.description;
   const details = parts.slice(1);
+  const isManual = MANUAL_SOURCES.includes(m.source_type as SourceType);
 
   return (
     <TableRow>
@@ -873,21 +903,29 @@ function MovementRow({ movement: m, showDate }: { movement: CashFlow; showDate: 
           {isEntry ? '+' : '-'}{formatEUR(Number(m.amount))}
         </span>
       </TableCell>
+      <TableCell>
+        {isManual && onEdit && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)} title="Editar lançamento">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        )}
+      </TableCell>
     </TableRow>
   );
 }
 
-function MovementDateGroup({ date, movements, dayTotal, showDate }: {
+function MovementDateGroup({ date, movements, dayTotal, showDate, onEdit }: {
   date: string;
   movements: CashFlow[];
   dayTotal: number;
   showDate: boolean;
+  onEdit?: (m: CashFlow) => void;
 }) {
   return (
     <>
       {/* Date header row */}
       <TableRow className="bg-muted/50">
-        <TableCell colSpan={7} className="py-2">
+        <TableCell colSpan={8} className="py-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-foreground">
               📅 {formatDatePT(date)}
@@ -899,7 +937,7 @@ function MovementDateGroup({ date, movements, dayTotal, showDate }: {
         </TableCell>
       </TableRow>
       {movements.map(m => (
-        <MovementRow key={m.id} movement={m} showDate={false} />
+        <MovementRow key={m.id} movement={m} showDate={false} onEdit={onEdit} />
       ))}
     </>
   );
