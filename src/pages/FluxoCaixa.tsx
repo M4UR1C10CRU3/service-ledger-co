@@ -21,7 +21,7 @@ import {
 import {
   Banknote, CreditCard, Building2, ArrowUpRight, ArrowDownRight,
   Plus, ChevronLeft, ChevronRight, Calendar, TrendingUp, TrendingDown,
-  Wallet, Filter, BarChart3,
+  Wallet, Filter, BarChart3, Pencil,
 } from 'lucide-react';
 
 // --- Types ---
