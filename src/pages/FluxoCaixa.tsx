@@ -355,8 +355,7 @@ const FluxoCaixa = () => {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('cash_flows').insert({
-        empresa_id: empresa.id,
+      const payload = {
         flow_type: formData.flow_type,
         movement_type: formData.movement_type,
         amount: parseFloat(formData.amount.replace(',', '.')),
@@ -365,12 +364,20 @@ const FluxoCaixa = () => {
         reference: formData.reference || null,
         transaction_date: formData.transaction_date,
         notes: formData.notes || null,
-      });
+      };
 
-      if (error) throw error;
+      if (editingId) {
+        const { error } = await supabase.from('cash_flows').update(payload).eq('id', editingId);
+        if (error) throw error;
+        toast({ title: 'Lançamento atualizado com sucesso' });
+      } else {
+        const { error } = await supabase.from('cash_flows').insert({ ...payload, empresa_id: empresa.id });
+        if (error) throw error;
+        toast({ title: 'Lançamento registado com sucesso' });
+      }
 
-      toast({ title: 'Lançamento registado com sucesso' });
       setNewDialog(false);
+      setEditingId(null);
       loadData();
     } catch (err) {
       console.error('Error saving movement:', err);
