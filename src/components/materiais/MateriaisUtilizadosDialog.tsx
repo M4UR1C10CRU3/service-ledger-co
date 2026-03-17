@@ -32,7 +32,7 @@ interface UploadLine {
 }
 
 export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, serviceIdCode, serviceLabel, onMaterialsSaved }: Props) {
-  const { loadMaterials, searchProdutos, getStockDisponivel, saveMaterials, isLoading } = useServiceMaterials();
+  const { loadMaterials, searchProdutos, getStockDisponivel, saveMaterials, updateMaterial, isLoading } = useServiceMaterials();
 
   const [savedMaterials, setSavedMaterials] = useState<SavedMaterial[]>([]);
   const [lines, setLines] = useState<MaterialLine[]>([]);
@@ -45,6 +45,15 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Edit saved material state
+  const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState<number>(0);
+  const [editRef, setEditRef] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editSearchQuery, setEditSearchQuery] = useState('');
+  const [editSearchResults, setEditSearchResults] = useState<Array<{ refInterna: string; descricao: string; unidade: string | null }>>([]);
+  const editSearchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Load existing materials
   useEffect(() => {
