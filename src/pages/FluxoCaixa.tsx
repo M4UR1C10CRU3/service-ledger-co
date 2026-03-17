@@ -849,12 +849,15 @@ const FluxoCaixa = () => {
 
 // --- Sub-components ---
 
-function MovementRow({ movement: m, showDate }: { movement: CashFlow; showDate: boolean }) {
+const MANUAL_SOURCES: SourceType[] = ['ajuste_manual', 'sangria', 'reforco', 'transferencia_interna'];
+
+function MovementRow({ movement: m, showDate, onEdit }: { movement: CashFlow; showDate: boolean; onEdit?: (m: CashFlow) => void }) {
   const cfg = flowConfig[m.flow_type as FlowType];
   const isEntry = m.movement_type === 'entrada';
   const parts = m.description.split(' | ');
   const mainDesc = parts[0] || m.description;
   const details = parts.slice(1);
+  const isManual = MANUAL_SOURCES.includes(m.source_type as SourceType);
 
   return (
     <TableRow>
@@ -900,21 +903,29 @@ function MovementRow({ movement: m, showDate }: { movement: CashFlow; showDate: 
           {isEntry ? '+' : '-'}{formatEUR(Number(m.amount))}
         </span>
       </TableCell>
+      <TableCell>
+        {isManual && onEdit && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)} title="Editar lançamento">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        )}
+      </TableCell>
     </TableRow>
   );
 }
 
-function MovementDateGroup({ date, movements, dayTotal, showDate }: {
+function MovementDateGroup({ date, movements, dayTotal, showDate, onEdit }: {
   date: string;
   movements: CashFlow[];
   dayTotal: number;
   showDate: boolean;
+  onEdit?: (m: CashFlow) => void;
 }) {
   return (
     <>
       {/* Date header row */}
       <TableRow className="bg-muted/50">
-        <TableCell colSpan={7} className="py-2">
+        <TableCell colSpan={8} className="py-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-foreground">
               📅 {formatDatePT(date)}
@@ -926,7 +937,7 @@ function MovementDateGroup({ date, movements, dayTotal, showDate }: {
         </TableCell>
       </TableRow>
       {movements.map(m => (
-        <MovementRow key={m.id} movement={m} showDate={false} />
+        <MovementRow key={m.id} movement={m} showDate={false} onEdit={onEdit} />
       ))}
     </>
   );
