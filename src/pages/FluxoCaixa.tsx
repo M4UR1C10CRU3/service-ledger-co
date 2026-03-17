@@ -317,6 +317,7 @@ const FluxoCaixa = () => {
 
   // Open new movement dialog
   const openNewDialog = (ft?: FlowType) => {
+    setEditingId(null);
     setFormData({
       flow_type: ft || 'numerario',
       movement_type: 'entrada',
@@ -326,6 +327,22 @@ const FluxoCaixa = () => {
       reference: '',
       transaction_date: selectedDate || todayISO(),
       notes: '',
+    });
+    setNewDialog(true);
+  };
+
+  // Open edit dialog for a manual movement
+  const openEditDialog = (m: CashFlow) => {
+    setEditingId(m.id);
+    setFormData({
+      flow_type: m.flow_type,
+      movement_type: m.movement_type,
+      amount: String(m.amount),
+      source_type: m.source_type,
+      description: m.description,
+      reference: m.reference || '',
+      transaction_date: m.transaction_date,
+      notes: m.notes || '',
     });
     setNewDialog(true);
   };
