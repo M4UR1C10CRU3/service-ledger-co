@@ -736,11 +736,11 @@ const FluxoCaixa = () => {
       </Card>
 
       {/* New Movement Dialog */}
-      <Dialog open={newDialog} onOpenChange={o => !isSaving && setNewDialog(o)}>
+      <Dialog open={newDialog} onOpenChange={o => { if (!isSaving) { setNewDialog(o); if (!o) setEditingId(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" />
+              {editingId ? <Pencil className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
               Novo Lançamento
             </DialogTitle>
           </DialogHeader>
