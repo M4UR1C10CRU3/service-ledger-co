@@ -166,8 +166,9 @@ const FluxoCaixa = () => {
     numerario: [], multibanco: [], transferencia: [],
   });
 
-  // New movement dialog state
+  // New/Edit movement dialog state
   const [newDialog, setNewDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     flow_type: 'numerario' as FlowType,
     movement_type: 'entrada' as MovementType,
