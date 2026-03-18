@@ -32,7 +32,7 @@ interface UploadLine {
 }
 
 export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, serviceIdCode, serviceLabel, onMaterialsSaved }: Props) {
-  const { loadMaterials, searchProdutos, getStockDisponivel, saveMaterials, updateMaterial, isLoading } = useServiceMaterials();
+  const { loadMaterials, searchProdutos, getStockDisponivel, saveMaterials, updateMaterial, deleteMaterial, isLoading } = useServiceMaterials();
 
   const [savedMaterials, setSavedMaterials] = useState<SavedMaterial[]>([]);
   const [lines, setLines] = useState<MaterialLine[]>([]);
