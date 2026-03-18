@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,35 +13,56 @@ import { EmpresaProvider } from "./contexts/EmpresaContext";
 import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { AppLayout } from "./components/AppLayout";
 
-// Pages
-import DashboardGeral from "./pages/DashboardGeral";
-import Index from "./pages/Index";
-import Clientes from "./pages/Clientes";
-import Fornecedores from "./pages/Fornecedores";
-import Despesas from "./pages/Despesas";
-import Compras from "./pages/Compras";
-import Debitos from "./pages/Debitos";
-import HistoricoCobrancas from "./pages/HistoricoCobrancas";
-import FluxoCaixa from "./pages/FluxoCaixa";
-import Receitas from "./pages/Receitas";
-import Colaboradores from "./pages/Colaboradores";
-import ControlePonto from "./pages/ControlePonto";
-import PlaceholderPage from "./pages/PlaceholderPage";
-import Propostas from "./pages/Propostas";
-import Produtos from "./pages/Produtos";
-import GestaoStocks from "./pages/GestaoStocks";
-import FollowUp from "./pages/FollowUp";
-import Recrutamento from "./pages/Recrutamento";
-import Avaliacoes from "./pages/Avaliacoes";
-import Auditoria from "./pages/Auditoria";
-import Utilizadores from "./pages/Utilizadores";
-import Configuracoes from "./pages/Configuracoes";
+// Lazy-loaded pages for code splitting
+const DashboardGeral = lazy(() => import("./pages/DashboardGeral"));
+const Index = lazy(() => import("./pages/Index"));
+const Clientes = lazy(() => import("./pages/Clientes"));
+const Fornecedores = lazy(() => import("./pages/Fornecedores"));
+const Despesas = lazy(() => import("./pages/Despesas"));
+const Compras = lazy(() => import("./pages/Compras"));
+const Debitos = lazy(() => import("./pages/Debitos"));
+const HistoricoCobrancas = lazy(() => import("./pages/HistoricoCobrancas"));
+const FluxoCaixa = lazy(() => import("./pages/FluxoCaixa"));
+const Receitas = lazy(() => import("./pages/Receitas"));
+const Colaboradores = lazy(() => import("./pages/Colaboradores"));
+const ControlePonto = lazy(() => import("./pages/ControlePonto"));
+const PlaceholderPage = lazy(() => import("./pages/PlaceholderPage"));
+const Propostas = lazy(() => import("./pages/Propostas"));
+const Produtos = lazy(() => import("./pages/Produtos"));
+const GestaoStocks = lazy(() => import("./pages/GestaoStocks"));
+const FollowUp = lazy(() => import("./pages/FollowUp"));
+const Recrutamento = lazy(() => import("./pages/Recrutamento"));
+const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
+const Auditoria = lazy(() => import("./pages/Auditoria"));
+const Utilizadores = lazy(() => import("./pages/Utilizadores"));
+const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes (previously cacheTime)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center py-20">
+    <div className="text-center space-y-3">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+      <p className="text-sm text-muted-foreground">A carregar...</p>
+    </div>
+  </div>
+);
 
 const ProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
-    <AppLayout>{children}</AppLayout>
+    <AppLayout>
+      <Suspense fallback={<PageLoader />}>
+        {children}
+      </Suspense>
+    </AppLayout>
   </ProtectedRoute>
 );
 
