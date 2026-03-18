@@ -32,7 +32,7 @@ interface UploadLine {
 }
 
 export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, serviceIdCode, serviceLabel, onMaterialsSaved }: Props) {
-  const { loadMaterials, searchProdutos, getStockDisponivel, saveMaterials, updateMaterial, isLoading } = useServiceMaterials();
+  const { loadMaterials, searchProdutos, getStockDisponivel, saveMaterials, updateMaterial, deleteMaterial, isLoading } = useServiceMaterials();
 
   const [savedMaterials, setSavedMaterials] = useState<SavedMaterial[]>([]);
   const [lines, setLines] = useState<MaterialLine[]>([]);
@@ -360,6 +360,26 @@ export function MateriaisUtilizadosDialog({ open, onOpenChange, vendaId, service
                           }}
                         >
                           <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          disabled={saving}
+                          onClick={async () => {
+                            if (!confirm(`Tem a certeza que deseja eliminar o material "${m.produtoRef}"? O stock será reposto.`)) return;
+                            setSaving(true);
+                            const ok = await deleteMaterial(m.id);
+                            setSaving(false);
+                            if (ok) {
+                              toast({ title: 'Material eliminado', description: 'O stock foi reposto automaticamente.' });
+                              loadMaterials(vendaId).then(setSavedMaterials);
+                            } else {
+                              toast({ title: 'Erro ao eliminar', variant: 'destructive' });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </>
                     )}

@@ -234,6 +234,47 @@ export function useServiceMaterials() {
     }
   }, [empresa]);
 
+  /** Delete a material movement and restore stock */
+  const deleteMaterial = useCallback(async (materialId: string): Promise<boolean> => {
+    if (!empresa) return false;
+    setIsLoading(true);
+    try {
+      const { data: current } = await supabase
+        .from('stock_movimentos')
+        .select('*')
+        .eq('id', materialId)
+        .single();
+      if (!current) return false;
+
+      const oldRef = current.produto_ref;
+      const oldQty = Math.abs(Number(current.quantidade));
+
+      // Delete the movement
+      const { error: delErr } = await supabase.from('stock_movimentos').delete().eq('id', materialId);
+      if (delErr) { console.error('Error deleting movement:', delErr); return false; }
+
+      // Restore stock
+      const { data: stockRow } = await supabase
+        .from('stock_atual')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .eq('produto_ref', oldRef)
+        .limit(1);
+
+      if (stockRow && stockRow[0]) {
+        const restored = Number(stockRow[0].quantidade_atual) + oldQty;
+        await supabase.from('stock_atual').update({ quantidade_atual: restored }).eq('id', stockRow[0].id);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error deleting material:', err);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [empresa]);
+
   return {
     loadMaterials,
     countMaterialsForServices,
@@ -241,6 +282,7 @@ export function useServiceMaterials() {
     searchProdutos,
     saveMaterials,
     updateMaterial,
+    deleteMaterial,
     isLoading,
   };
 }
