@@ -250,7 +250,17 @@ const ControlePonto = () => {
     const logoUrl = getLogo();
     const emp = selectedEmployee;
     const workdaysPerWeek = emp.workdays_per_week || 5;
-    const hoursPerDay = (40 / workdaysPerWeek).toFixed(1);
+    const dhs = emp.daily_hours_schedule;
+    const hoursPerDay = dhs
+      ? (() => {
+          const wd = dhs.monday ?? dhs.tuesday ?? 0;
+          const sat = dhs.saturday ?? 0;
+          const parts: string[] = [];
+          if (wd > 0) parts.push(`Seg-Sex ${Math.floor(wd)}h${((wd % 1) * 60).toString().padStart(2, '0')}`);
+          if (sat > 0) parts.push(`Sáb ${Math.floor(sat)}h${((sat % 1) * 60).toString().padStart(2, '0')}`);
+          return parts.join(' · ') || `${(40 / workdaysPerWeek).toFixed(1)}h`;
+        })()
+      : `${(40 / workdaysPerWeek).toFixed(1)}h`;
     const schedule = workdaysPerWeek === 5 ? 'Seg-Sex' : workdaysPerWeek === 6 ? 'Seg-Sáb' : 'Personalizada';
 
     const sortedRecords = [...records].sort((a, b) => a.record_date.localeCompare(b.record_date));
