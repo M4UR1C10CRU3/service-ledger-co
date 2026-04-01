@@ -501,7 +501,20 @@ const ControlePonto = () => {
               </div>
               <div>
                 <span className="text-muted-foreground">Horas/Dia: </span>
-                <span className="font-semibold">{(40 / (selectedEmployee.workdays_per_week || 5)).toFixed(1)}h</span>
+                <span className="font-semibold">
+                  {selectedEmployee.daily_hours_schedule
+                    ? (() => {
+                        const s = selectedEmployee.daily_hours_schedule;
+                        const weekday = s.monday ?? s.tuesday ?? 0;
+                        const sat = s.saturday ?? 0;
+                        const parts: string[] = [];
+                        if (weekday > 0) parts.push(`Seg-Sex ${Math.floor(weekday)}h${((weekday % 1) * 60).toString().padStart(2, '0')}`);
+                        if (sat > 0) parts.push(`Sáb ${Math.floor(sat)}h${((sat % 1) * 60).toString().padStart(2, '0')}`);
+                        return parts.join(' · ') || `${(40 / (selectedEmployee.workdays_per_week || 5)).toFixed(1)}h`;
+                      })()
+                    : `${(40 / (selectedEmployee.workdays_per_week || 5)).toFixed(1)}h`
+                  }
+                </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Escala: </span>
