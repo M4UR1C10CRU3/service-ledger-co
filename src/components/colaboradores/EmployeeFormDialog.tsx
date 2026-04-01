@@ -595,14 +595,72 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Carga Horária Diária</Label>
-                  <Input
-                    value={`${(40 / (parseInt(form.workdays_per_week) || 5)).toFixed(2)} horas`}
-                    disabled
-                    className="bg-muted"
-                  />
-                  <p className="text-xs text-muted-foreground">40h ÷ {form.workdays_per_week || 5} dias</p>
+                  <Label>Carga Horária</Label>
+                  <div className="flex gap-2 items-center">
+                    <Checkbox
+                      checked={!!form.daily_hours_schedule}
+                      onCheckedChange={(v) => {
+                        if (v) {
+                          const days = parseInt(form.workdays_per_week) || 5;
+                          const uniform = 40 / days;
+                          set('daily_hours_schedule', {
+                            monday: uniform, tuesday: uniform, wednesday: uniform,
+                            thursday: uniform, friday: uniform,
+                            saturday: days >= 6 ? uniform : 0, sunday: 0,
+                          });
+                        } else {
+                          set('daily_hours_schedule', null);
+                        }
+                      }}
+                    />
+                    <span className="text-sm">Personalizar horas por dia</span>
+                  </div>
+                  {!form.daily_hours_schedule && (
+                    <div>
+                      <Input
+                        value={`${(40 / (parseInt(form.workdays_per_week) || 5)).toFixed(2)} horas`}
+                        disabled
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground">40h ÷ {form.workdays_per_week || 5} dias</p>
+                    </div>
+                  )}
                 </div>
+                {form.daily_hours_schedule && (
+                  <div className="md:col-span-2 space-y-2">
+                    <Label>Horas Esperadas por Dia</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { key: 'monday', label: 'Seg' },
+                        { key: 'tuesday', label: 'Ter' },
+                        { key: 'wednesday', label: 'Qua' },
+                        { key: 'thursday', label: 'Qui' },
+                        { key: 'friday', label: 'Sex' },
+                        { key: 'saturday', label: 'Sáb' },
+                        { key: 'sunday', label: 'Dom' },
+                      ].map(d => (
+                        <div key={d.key} className="space-y-1">
+                          <Label className="text-xs">{d.label}</Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            max="24"
+                            value={form.daily_hours_schedule?.[d.key] ?? 0}
+                            onChange={e => set('daily_hours_schedule', {
+                              ...form.daily_hours_schedule!,
+                              [d.key]: parseFloat(e.target.value) || 0,
+                            })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total semanal: {Object.values(form.daily_hours_schedule).reduce((a, b) => a + b, 0).toFixed(1)}h
+                    </p>
+                  </div>
+                )}
                 <div className="md:col-span-2 space-y-2">
                   <Label>Dias da Semana</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -627,7 +685,18 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
                   </div>
                 </div>
                 <div className="md:col-span-2 bg-accent/30 rounded-lg p-3">
-                  <p className="text-sm font-medium">📊 Resumo: <span className="font-bold">40h semanais</span> — {form.workdays_per_week || 5} dias — {(40 / (parseInt(form.workdays_per_week) || 5)).toFixed(1)}h/dia</p>
+                  <p className="text-sm font-medium">
+                    📊 Resumo: <span className="font-bold">
+                      {form.daily_hours_schedule
+                        ? `${Object.values(form.daily_hours_schedule).reduce((a, b) => a + b, 0).toFixed(1)}h semanais`
+                        : '40h semanais'
+                      }
+                    </span> — {form.workdays_per_week || 5} dias
+                    {form.daily_hours_schedule
+                      ? ` — Horários personalizados`
+                      : ` — ${(40 / (parseInt(form.workdays_per_week) || 5)).toFixed(1)}h/dia`
+                    }
+                  </p>
                 </div>
               </div>
             </section>
