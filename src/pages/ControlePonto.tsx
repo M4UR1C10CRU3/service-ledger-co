@@ -358,7 +358,7 @@ const ControlePonto = () => {
     </div>
     <div class="info-box">
       <h4>Escala de Trabalho</h4>
-      <p>${workdaysPerWeek} dias/semana · ${hoursPerDay}h/dia · ${schedule}</p>
+      <p>${workdaysPerWeek} dias/semana · ${hoursPerDay} · ${schedule}</p>
     </div>
   </div>
 
