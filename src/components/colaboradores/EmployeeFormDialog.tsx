@@ -96,6 +96,7 @@ const emptyForm = {
   utilizador_id: '',
   benefits: { ...defaultBenefits },
   workdays_per_week: '5',
+  daily_hours_schedule: null as Record<string, number> | null,
   work_schedule: { ...defaultSchedule },
   default_entry_time: '08:00',
   default_lunch_exit_time: '12:00',
