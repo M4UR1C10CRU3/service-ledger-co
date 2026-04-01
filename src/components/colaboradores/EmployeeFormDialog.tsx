@@ -163,6 +163,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
         utilizador_id: employee.utilizador_id || '',
         benefits: employee.benefits || { ...defaultBenefits },
         workdays_per_week: String(employee.workdays_per_week || 5),
+        daily_hours_schedule: employee.daily_hours_schedule || null,
         work_schedule: (employee.work_schedule as any) || { ...defaultSchedule },
         default_entry_time: employee.default_entry_time || '08:00',
         default_lunch_exit_time: employee.default_lunch_exit_time || '12:00',
