@@ -238,6 +238,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
       benefits: form.benefits,
       workdays_per_week: parseInt(form.workdays_per_week) || 5,
       daily_hours: 40 / (parseInt(form.workdays_per_week) || 5),
+      daily_hours_schedule: form.daily_hours_schedule,
       work_schedule: form.work_schedule,
       default_entry_time: form.default_entry_time || null,
       default_lunch_exit_time: form.default_lunch_exit_time || null,
