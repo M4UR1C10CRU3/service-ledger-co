@@ -547,7 +547,7 @@ export function AccountPayableFormDialog({
               <Checkbox
                 id="iva-incluido"
                 checked={ivaIncluido}
-                onCheckedChange={(checked) => setIvaIncluido(checked === true)}
+                onCheckedChange={(checked) => update({ ivaIncluido: checked === true })}
               />
               <Label htmlFor="iva-incluido" className="font-normal text-sm cursor-pointer">
                 Valor já inclui IVA
