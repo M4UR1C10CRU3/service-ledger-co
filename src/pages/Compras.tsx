@@ -10,7 +10,7 @@ import { useArticles } from '@/hooks/useArticles';
 import { useProdutos } from '@/hooks/useProdutos';
 import { useStockAtual } from '@/hooks/useStockAtual';
 import {
-  AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
+  AccountPayable, AccountPayableFormData, AccountPayableItem, emptyAccountPayableForm,
 } from '@/types/accountPayable';
 import { AccountPayableFormDialog } from '@/components/AccountPayableFormDialog';
 import { AccountsPayableFilters, FiltersState, initialFilters } from '@/components/contas-pagar/AccountsPayableFilters';

@@ -7,7 +7,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
 import { useArticles } from '@/hooks/useArticles';
 import {
-  AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
+  AccountPayable, AccountPayableFormData, AccountPayableItem, emptyAccountPayableForm,
 } from '@/types/accountPayable';
 import { AccountPayableFormDialog } from '@/components/AccountPayableFormDialog';
 import { AccountsPayableFilters, FiltersState, initialFilters } from '@/components/contas-pagar/AccountsPayableFilters';

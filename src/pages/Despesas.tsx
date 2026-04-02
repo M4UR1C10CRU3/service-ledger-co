@@ -8,7 +8,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
 
 import {
-  AccountPayable, AccountPayableFormData, emptyAccountPayableForm,
+  AccountPayable, AccountPayableFormData, AccountPayableItem, emptyAccountPayableForm,
   CATEGORIAS_POR_TIPO,
 } from '@/types/accountPayable';
 import { AccountPayableFormDialog } from '@/components/AccountPayableFormDialog';
