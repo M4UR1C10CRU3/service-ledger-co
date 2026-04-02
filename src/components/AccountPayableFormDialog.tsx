@@ -153,7 +153,6 @@ export function AccountPayableFormDialog({
   const [newCCName, setNewCCName] = useState('');
   const [showNewCC, setShowNewCC] = useState(false);
   const [isAddingCC, setIsAddingCC] = useState(false);
-  const [ivaIncluido, setIvaIncluido] = useState(false);
 
   // Inline supplier creation
   const [showSupplierForm, setShowSupplierForm] = useState(false);
@@ -163,17 +162,17 @@ export function AccountPayableFormDialog({
     setFormData({ ...formData, ...partial });
   };
 
+  const ivaIncluido = formData.ivaIncluido === true;
+
   // IVA calculation (single-line mode)
   const ivaCalc = useMemo(() => {
     const inputVal = parseFloat(formData.valorBruto) || 0;
     const rate = parseFloat(formData.ivaRate) || 0;
     if (ivaIncluido) {
-      // User entered total (with IVA) — reverse calc
       const bruto = rate > 0 ? inputVal / (1 + rate / 100) : inputVal;
       const ivaValue = inputVal - bruto;
       return { ivaValue, total: inputVal, bruto };
     }
-    // Normal: user entered valor ilíquido
     const ivaValue = inputVal * (rate / 100);
     const total = inputVal + ivaValue;
     return { ivaValue, total, bruto: inputVal };
@@ -203,15 +202,37 @@ export function AccountPayableFormDialog({
     return { totalBruto, totalIva, total: totalBruto + totalIva };
   }, [formData.items, ivaIncluido]);
 
-  // Reverse calculation: from total to valor ilíquido
-  const handleTotalChange = (totalStr: string) => {
-    const total = parseFloat(totalStr) || 0;
-    const rate = parseFloat(formData.ivaRate) || 0;
-    const bruto = rate > 0 ? total / (1 + rate / 100) : total;
-    update({ valorBruto: bruto > 0 ? bruto.toFixed(2) : '' });
-  };
-
   const hasItems = (formData.items || []).length > 0;
+
+  const getSubmissionData = (): AccountPayableFormData => {
+    if (!ivaIncluido) {
+      return { ...formData, ivaIncluido: false };
+    }
+
+    if (hasItems) {
+      return {
+        ...formData,
+        ivaIncluido: false,
+        items: (formData.items || []).map((item) => {
+          const val = parseFloat(item.valorBruto) || 0;
+          const rate = parseFloat(item.ivaRate) || 0;
+          const unitBruto = rate > 0 ? val / (1 + rate / 100) : val;
+          return {
+            ...item,
+            valorBruto: unitBruto.toFixed(2),
+          };
+        }),
+      };
+    }
+
+    return {
+      ...formData,
+      ivaIncluido: false,
+      valorBruto: ivaCalc.bruto > 0 ? ivaCalc.bruto.toFixed(2) : formData.valorBruto,
+      ivaValue: ivaCalc.ivaValue > 0 ? ivaCalc.ivaValue.toFixed(2) : '0',
+      valorLiquido: ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : formData.valorLiquido,
+    };
+  };
 
   const addItem = () => {
     const newItem: AccountPayableItem = {
