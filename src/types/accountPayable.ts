@@ -167,4 +167,5 @@ export const emptyAccountPayableForm: AccountPayableFormData = {
   articleId: '',
   quantity: '',
   items: [],
+  ivaIncluido: false,
 };
