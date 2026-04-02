@@ -216,6 +216,19 @@ export default function ContasPagar() {
         a_vista: 'imediato', imediato: 'imediato',
         a_prazo: 'a_credito', a_credito: 'a_credito',
       };
+      // Reconvert stored net values back to IVA-included values for editing
+      const storedItems = (account.items || []) as AccountPayableItem[];
+      const reconvertedItems = storedItems.map(item => {
+        const net = parseFloat(item.valorBruto) || 0;
+        const rate = parseFloat(item.ivaRate) || 0;
+        const withIva = rate > 0 ? net * (1 + rate / 100) : net;
+        return { ...item, valorBruto: withIva.toFixed(2) };
+      });
+      const hasItems = reconvertedItems.length > 0;
+      const reconvertedValorBruto = hasItems
+        ? String(account.valorBruto)
+        : String(account.valorLiquido);
+
       setFormData({
         supplierId: account.supplierId,
         tipoLancamento: tipoMap[account.tipoLancamento] || 'despesa',
@@ -223,7 +236,7 @@ export default function ContasPagar() {
         descricao: account.descricao || '',
         numeroDocumento: account.numeroDocumento || '',
         dataEmissao: new Date(account.dataEmissao),
-        valorBruto: String(account.valorBruto),
+        valorBruto: reconvertedValorBruto,
         ivaRate: String(account.ivaRate || 0),
         ivaValue: String(account.ivaValue || 0),
         valorLiquido: String(account.valorLiquido),
@@ -235,7 +248,8 @@ export default function ContasPagar() {
         costCenterId: account.costCenterId || '',
         articleId: account.articleId || '',
         quantity: account.quantity ? String(account.quantity) : '',
-        items: account.items || [],
+        items: reconvertedItems,
+        ivaIncluido: true,
       });
     } else {
       resetForm();
