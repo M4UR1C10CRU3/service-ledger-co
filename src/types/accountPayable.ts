@@ -62,6 +62,7 @@ export interface AccountPayableFormData {
   articleId: string;
   quantity: string;
   items: AccountPayableItem[];
+  ivaIncluido?: boolean;
 }
 
 export const TIPO_LANCAMENTO_LABELS: Record<string, string> = {

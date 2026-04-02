@@ -66,6 +66,7 @@ export function useAccountsPayable() {
   }, [fetchAccounts]);
 
   const computeTotals = (form: AccountPayableFormData) => {
+    const ivaIncluido = form.ivaIncluido === true;
     if (form.items && form.items.length > 0) {
       let totalBruto = 0;
       let totalIva = 0;
@@ -73,16 +74,28 @@ export function useAccountsPayable() {
         const qty = parseFloat(item.quantidade) || 1;
         const val = parseFloat(item.valorBruto) || 0;
         const rate = parseFloat(item.ivaRate) || 0;
-        const lineBruto = val * qty;
-        totalBruto += lineBruto;
-        totalIva += lineBruto * (rate / 100);
+        if (ivaIncluido) {
+          const lineTotal = val * qty;
+          const lineBruto = rate > 0 ? lineTotal / (1 + rate / 100) : lineTotal;
+          totalBruto += lineBruto;
+          totalIva += lineTotal - lineBruto;
+        } else {
+          const lineBruto = val * qty;
+          totalBruto += lineBruto;
+          totalIva += lineBruto * (rate / 100);
+        }
       }
       return { bruto: totalBruto, ivaRate: 0, ivaValue: totalIva, liquido: totalBruto + totalIva };
     }
-    const bruto = parseFloat(form.valorBruto) || 0;
+    const inputVal = parseFloat(form.valorBruto) || 0;
     const ivaRate = parseFloat(form.ivaRate) || 0;
-    const ivaValue = bruto * (ivaRate / 100);
-    return { bruto, ivaRate, ivaValue, liquido: bruto + ivaValue };
+    if (ivaIncluido) {
+      const bruto = ivaRate > 0 ? inputVal / (1 + ivaRate / 100) : inputVal;
+      const ivaValue = inputVal - bruto;
+      return { bruto, ivaRate, ivaValue, liquido: inputVal };
+    }
+    const ivaValue = inputVal * (ivaRate / 100);
+    return { bruto: inputVal, ivaRate, ivaValue, liquido: inputVal + ivaValue };
   };
 
   const addAccount = async (form: AccountPayableFormData): Promise<string | null> => {
