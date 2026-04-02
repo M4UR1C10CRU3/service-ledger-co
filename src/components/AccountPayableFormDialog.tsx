@@ -768,25 +768,11 @@ export function AccountPayableFormDialog({
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={() => {
-              if (ivaIncluido) {
-                // Normalize values to ilíquido before submitting
-                const normalized = { ...formData };
-                if (hasItems) {
-                  normalized.items = (formData.items || []).map(item => {
-                    const val = parseFloat(item.valorBruto) || 0;
-                    const rate = parseFloat(item.ivaRate) || 0;
-                    const unitIliquido = rate > 0 ? val / (1 + rate / 100) : val;
-                    return { ...item, valorBruto: unitIliquido.toFixed(2) };
-                  });
-                } else {
-                  normalized.valorBruto = ivaCalc.bruto > 0 ? ivaCalc.bruto.toFixed(2) : '';
-                }
-                setFormData(normalized);
-                // Use requestAnimationFrame to ensure state is set before submit
-                requestAnimationFrame(() => onSubmit());
-              } else {
-                onSubmit();
-              }
+              // Pass ivaIncluido flag so computeTotals handles the reverse calc
+              const submissionData = { ...formData, ivaIncluido };
+              setFormData(submissionData);
+              // Use setTimeout to ensure state is flushed before submit
+              setTimeout(() => onSubmit(), 0);
             }}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
