@@ -132,7 +132,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   formData: AccountPayableFormData;
   setFormData: (data: AccountPayableFormData) => void;
-  onSubmit: () => void;
+  onSubmit: (data: AccountPayableFormData) => void;
   isEditing: boolean;
   suppliers: Supplier[];
   costCenters?: CostCenter[];
