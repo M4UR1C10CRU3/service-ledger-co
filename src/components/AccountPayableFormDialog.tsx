@@ -788,11 +788,7 @@ export function AccountPayableFormDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => {
-              const submissionData = getSubmissionData();
-              setFormData(submissionData);
-              onSubmit();
-            }}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
+            <Button onClick={() => onSubmit(getSubmissionData())}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
