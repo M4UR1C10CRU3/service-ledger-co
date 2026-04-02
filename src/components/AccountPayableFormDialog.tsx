@@ -219,7 +219,7 @@ export function AccountPayableFormDialog({
           const unitBruto = rate > 0 ? val / (1 + rate / 100) : val;
           return {
             ...item,
-            valorBruto: unitBruto.toFixed(2),
+            valorBruto: String(unitBruto),
           };
         }),
       };
