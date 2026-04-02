@@ -789,11 +789,9 @@ export function AccountPayableFormDialog({
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={() => {
-              // Pass ivaIncluido flag so computeTotals handles the reverse calc
-              const submissionData = { ...formData, ivaIncluido };
+              const submissionData = getSubmissionData();
               setFormData(submissionData);
-              // Use setTimeout to ensure state is flushed before submit
-              setTimeout(() => onSubmit(), 0);
+              onSubmit();
             }}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
