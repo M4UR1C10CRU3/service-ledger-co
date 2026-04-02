@@ -243,41 +243,40 @@ export default function ContasPagar() {
     setIsFormOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!formData.supplierId) {
+  const handleSubmit = async (submissionData: AccountPayableFormData) => {
+    if (!submissionData.supplierId) {
       toast({ title: 'Erro', description: 'Selecione um fornecedor.', variant: 'destructive' });
       return;
     }
-    if (!formData.categoria) {
+    if (!submissionData.categoria) {
       toast({ title: 'Erro', description: 'Selecione uma categoria.', variant: 'destructive' });
       return;
     }
-    const hasItems = formData.items && formData.items.length > 0;
-    if (!hasItems && (!formData.valorBruto || parseFloat(formData.valorBruto) <= 0)) {
-      toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
+    const hasItems = submissionData.items && submissionData.items.length > 0;
+    if (!hasItems && (!submissionData.valorBruto || parseFloat(submissionData.valorBruto) <= 0)) {
+      toast({ title: 'Erro', description: 'Informe o valor.', variant: 'destructive' });
       return;
     }
-    if (formData.tipoLancamento === 'compra_revenda' && (!formData.quantity || parseFloat(formData.quantity) <= 0)) {
+    if (submissionData.tipoLancamento === 'compra_revenda' && (!submissionData.quantity || parseFloat(submissionData.quantity) <= 0)) {
       toast({ title: 'Erro', description: 'Informe a quantidade.', variant: 'destructive' });
       return;
     }
 
     if (editingAccount) {
-      const ok = await updateAccount(editingAccount.id, formData);
+      const ok = await updateAccount(editingAccount.id, submissionData);
       toast(ok
         ? { title: 'Registo atualizado', description: 'Operação realizada com sucesso.' }
         : { title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' }
       );
       if (ok) { setIsFormOpen(false); resetForm(); }
     } else {
-      const newId = await addAccount(formData);
+      const newId = await addAccount(submissionData);
       if (newId) {
-        // Stock logic for compra_revenda
-        if (formData.tipoLancamento === 'compra_revenda' && formData.articleId) {
-          const qty = parseFloat(formData.quantity) || 0;
-          const bruto = parseFloat(formData.valorBruto) || 0;
+        if (submissionData.tipoLancamento === 'compra_revenda' && submissionData.articleId) {
+          const qty = parseFloat(submissionData.quantity) || 0;
+          const bruto = parseFloat(submissionData.valorBruto) || 0;
           const unitCost = qty > 0 ? bruto / qty : 0;
-          await updateArticleStock(formData.articleId, qty, unitCost, formData.supplierId, newId);
+          await updateArticleStock(submissionData.articleId, qty, unitCost, submissionData.supplierId, newId);
         }
         toast({ title: 'Registo guardado', description: 'Operação realizada com sucesso.' });
         setIsFormOpen(false);
