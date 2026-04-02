@@ -219,7 +219,7 @@ export function AccountPayableFormDialog({
           const unitBruto = rate > 0 ? val / (1 + rate / 100) : val;
           return {
             ...item,
-            valorBruto: unitBruto.toFixed(2),
+            valorBruto: String(unitBruto),
           };
         }),
       };
@@ -228,9 +228,9 @@ export function AccountPayableFormDialog({
     return {
       ...formData,
       ivaIncluido: false,
-      valorBruto: ivaCalc.bruto > 0 ? ivaCalc.bruto.toFixed(2) : formData.valorBruto,
-      ivaValue: ivaCalc.ivaValue > 0 ? ivaCalc.ivaValue.toFixed(2) : '0',
-      valorLiquido: ivaCalc.total > 0 ? ivaCalc.total.toFixed(2) : formData.valorLiquido,
+      valorBruto: ivaCalc.bruto > 0 ? String(ivaCalc.bruto) : formData.valorBruto,
+      ivaValue: ivaCalc.ivaValue > 0 ? String(ivaCalc.ivaValue) : '0',
+      valorLiquido: ivaCalc.total > 0 ? String(ivaCalc.total) : formData.valorLiquido,
     };
   };
 

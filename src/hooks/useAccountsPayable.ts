@@ -85,7 +85,7 @@ export function useAccountsPayable() {
           totalIva += lineBruto * (rate / 100);
         }
       }
-      return { bruto: totalBruto, ivaRate: 0, ivaValue: totalIva, liquido: totalBruto + totalIva };
+      return { bruto: Math.round(totalBruto * 100) / 100, ivaRate: 0, ivaValue: Math.round(totalIva * 100) / 100, liquido: Math.round((totalBruto + totalIva) * 100) / 100 };
     }
     const inputVal = parseFloat(form.valorBruto) || 0;
     const ivaRate = parseFloat(form.ivaRate) || 0;
