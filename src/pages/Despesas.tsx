@@ -314,30 +314,30 @@ export default function Despesas() {
     setIsFormOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!formData.supplierId) {
+  const handleSubmit = async (submissionData: AccountPayableFormData) => {
+    if (!submissionData.supplierId) {
       toast({ title: 'Erro', description: 'Selecione um fornecedor.', variant: 'destructive' });
       return;
     }
-    if (!formData.categoria) {
+    if (!submissionData.categoria) {
       toast({ title: 'Erro', description: 'Selecione uma categoria.', variant: 'destructive' });
       return;
     }
-    const hasItems = formData.items && formData.items.length > 0;
-    if (!hasItems && (!formData.valorBruto || parseFloat(formData.valorBruto) <= 0)) {
-      toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
+    const hasItems = submissionData.items && submissionData.items.length > 0;
+    if (!hasItems && (!submissionData.valorBruto || parseFloat(submissionData.valorBruto) <= 0)) {
+      toast({ title: 'Erro', description: 'Informe o valor.', variant: 'destructive' });
       return;
     }
 
     if (editingAccount) {
-      const ok = await updateAccount(editingAccount.id, formData);
+      const ok = await updateAccount(editingAccount.id, submissionData);
       toast(ok
         ? { title: 'Registo atualizado', description: 'Operação realizada com sucesso.' }
         : { title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' }
       );
       if (ok) { setIsFormOpen(false); resetForm(); }
     } else {
-      const newId = await addAccount(formData);
+      const newId = await addAccount(submissionData);
       if (newId) {
         toast({ title: 'Registo guardado', description: 'Operação realizada com sucesso.' });
         setIsFormOpen(false);

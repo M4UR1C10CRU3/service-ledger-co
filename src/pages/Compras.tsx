@@ -187,28 +187,26 @@ export default function Compras() {
     setIsFormOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!formData.supplierId) {
+  const handleSubmit = async (submissionData: AccountPayableFormData) => {
+    if (!submissionData.supplierId) {
       toast({ title: 'Erro', description: 'Selecione um fornecedor.', variant: 'destructive' });
       return;
     }
-    if (!formData.categoria) {
+    if (!submissionData.categoria) {
       toast({ title: 'Erro', description: 'Selecione uma categoria.', variant: 'destructive' });
       return;
     }
-    const hasItems = formData.items && formData.items.length > 0;
-    if (!hasItems && (!formData.valorBruto || parseFloat(formData.valorBruto) <= 0)) {
-      toast({ title: 'Erro', description: 'Informe o valor ilíquido.', variant: 'destructive' });
+    const hasItems = submissionData.items && submissionData.items.length > 0;
+    if (!hasItems && (!submissionData.valorBruto || parseFloat(submissionData.valorBruto) <= 0)) {
+      toast({ title: 'Erro', description: 'Informe o valor.', variant: 'destructive' });
       return;
     }
 
     if (editingAccount) {
-      const ok = await updateAccount(editingAccount.id, formData);
+      const ok = await updateAccount(editingAccount.id, submissionData);
       if (ok) {
-        // Create stock entries for items that don't have movements yet
-        const items = formData.items || [];
+        const items = submissionData.items || [];
         if (items.length > 0) {
-          // Check which items already have stock movements for this purchase
           const { data: existingMovs } = await supabase
             .from('stock_movimentos')
             .select('produto_ref')
@@ -228,7 +226,7 @@ export default function Compras() {
               quantidade: qty,
               custoUnitario: unitCost,
               origem: 'compra',
-              referenciaDoc: formData.numeroDocumento || editingAccount.id,
+              referenciaDoc: submissionData.numeroDocumento || editingAccount.id,
               compraId: editingAccount.id,
             });
           }
@@ -239,10 +237,9 @@ export default function Compras() {
         toast({ title: 'Erro', description: 'Não foi possível guardar.', variant: 'destructive' });
       }
     } else {
-      const newId = await addAccount(formData);
+      const newId = await addAccount(submissionData);
       if (newId) {
-        // Create stock movements for each line item
-        const items = formData.items || [];
+        const items = submissionData.items || [];
         if (items.length > 0) {
           for (const item of items) {
             const ref = item.produtoRef || '';
@@ -256,16 +253,15 @@ export default function Compras() {
               quantidade: qty,
               custoUnitario: unitCost,
               origem: 'compra',
-              referenciaDoc: formData.numeroDocumento || newId,
+              referenciaDoc: submissionData.numeroDocumento || newId,
               compraId: newId,
             });
           }
-        } else if (formData.articleId) {
-          // Legacy single-line mode
-          const qty = parseFloat(formData.quantity) || 0;
-          const bruto = parseFloat(formData.valorBruto) || 0;
+        } else if (submissionData.articleId) {
+          const qty = parseFloat(submissionData.quantity) || 0;
+          const bruto = parseFloat(submissionData.valorBruto) || 0;
           const unitCost = qty > 0 ? bruto / qty : 0;
-          await updateArticleStock(formData.articleId, qty, unitCost, formData.supplierId, newId);
+          await updateArticleStock(submissionData.articleId, qty, unitCost, submissionData.supplierId, newId);
         }
         toast({ title: 'Compra guardada', description: 'Stock atualizado com sucesso.' });
         setIsFormOpen(false);
