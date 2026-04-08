@@ -8,10 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { exportSupplierStatement } from './supplierPdfExport';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 const PIE_COLORS = ['hsl(219,96%,43%)', 'hsl(74,75%,54%)', 'hsl(49,100%,50%)', 'hsl(22,89%,54%)', 'hsl(280,60%,55%)', 'hsl(160,60%,45%)', 'hsl(340,70%,50%)'];
 
@@ -47,6 +51,7 @@ const MONTH_OPTIONS = [
 ];
 
 export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props) {
+  const { empresa } = useEmpresa();
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [month, setMonth] = useState('all');
 
@@ -108,7 +113,7 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
             <FluxoCaixaReport accounts={filteredAccounts} year={year} month={month} />
           </TabsContent>
           <TabsContent value="fornecedor">
-            <FornecedorReport accounts={filteredAccounts} />
+            <FornecedorReport accounts={filteredAccounts} allAccounts={accounts} year={year} month={month} empresa={empresa} />
           </TabsContent>
           <TabsContent value="categoria">
             <CategoriaReport accounts={filteredAccounts} />
@@ -230,18 +235,23 @@ function FluxoCaixaReport({ accounts, year, month }: { accounts: AccountPayable[
 }
 
 // === Por Fornecedor ===
-function FornecedorReport({ accounts }: { accounts: AccountPayable[] }) {
+function FornecedorReport({ accounts, allAccounts, year, month, empresa }: { accounts: AccountPayable[]; allAccounts: AccountPayable[]; year: string; month: string; empresa: any }) {
   const data = useMemo(() => {
-    const map: Record<string, { name: string; total: number; pago: number; pendente: number }> = {};
+    const map: Record<string, { id: string; name: string; total: number; pago: number; pendente: number }> = {};
     accounts.forEach(a => {
       const key = a.supplierId;
-      if (!map[key]) map[key] = { name: a.supplierName || '-', total: 0, pago: 0, pendente: 0 };
+      if (!map[key]) map[key] = { id: key, name: a.supplierName || '-', total: 0, pago: 0, pendente: 0 };
       map[key].total += a.valorLiquido;
       if (a.status === 'liquidado') map[key].pago += a.valorLiquido;
       else map[key].pendente += a.valorLiquido;
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [accounts]);
+
+  const handlePdf = (supplierId: string, supplierName: string) => {
+    const supplierAccounts = accounts.filter(a => a.supplierId === supplierId);
+    exportSupplierStatement({ supplierName, accounts: supplierAccounts, year, month, empresa });
+  };
 
   return (
     <div className="rounded-md border">
@@ -252,17 +262,23 @@ function FornecedorReport({ accounts }: { accounts: AccountPayable[] }) {
             <TableHead className="text-right">Total Transacionado</TableHead>
             <TableHead className="text-right">Total Pago</TableHead>
             <TableHead className="text-right">Total Pendente</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
-            <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
+            <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
           ) : data.map((d, i) => (
             <TableRow key={i}>
               <TableCell className="font-medium">{d.name}</TableCell>
               <TableCell className="text-right font-mono">{fmt(d.total)}</TableCell>
               <TableCell className="text-right font-mono text-success">{fmt(d.pago)}</TableCell>
               <TableCell className="text-right font-mono text-warning">{fmt(d.pendente)}</TableCell>
+              <TableCell>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Exportar extrato PDF" onClick={() => handlePdf(d.id, d.name)}>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
           {data.length > 0 && (
@@ -271,6 +287,7 @@ function FornecedorReport({ accounts }: { accounts: AccountPayable[] }) {
               <TableCell className="text-right font-mono">{fmt(data.reduce((s, d) => s + d.total, 0))}</TableCell>
               <TableCell className="text-right font-mono text-success">{fmt(data.reduce((s, d) => s + d.pago, 0))}</TableCell>
               <TableCell className="text-right font-mono text-warning">{fmt(data.reduce((s, d) => s + d.pendente, 0))}</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           )}
         </TableBody>
