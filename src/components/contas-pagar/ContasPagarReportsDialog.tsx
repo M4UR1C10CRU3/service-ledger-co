@@ -8,10 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { exportSupplierStatement } from './supplierPdfExport';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 const PIE_COLORS = ['hsl(219,96%,43%)', 'hsl(74,75%,54%)', 'hsl(49,100%,50%)', 'hsl(22,89%,54%)', 'hsl(280,60%,55%)', 'hsl(160,60%,45%)', 'hsl(340,70%,50%)'];
 
