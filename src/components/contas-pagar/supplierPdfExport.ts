@@ -26,10 +26,11 @@ export function exportSupplierStatement({
   month,
   empresa,
   userName,
+  logoUrl,
 }: SupplierPdfParams) {
   const cfg = getEmpresaDocConfig(empresa?.slug);
   const primaryColor = empresa?.corPrimaria || '#1a5276';
-  const logoPath = empresa?.logoPath || '';
+  const resolvedLogo = logoUrl || empresa?.logoPath || '';
   const now = new Date();
 
   // Sort by date
@@ -86,7 +87,7 @@ export function exportSupplierStatement({
   <table style="width:100%;margin-bottom:20px;">
     <tr>
       <td style="width:60%;">
-        ${logoPath ? `<img src="${logoPath}" style="max-height:50px;margin-bottom:6px;" />` : ''}
+        ${resolvedLogo ? `<img src="${resolvedLogo}" style="max-height:50px;margin-bottom:6px;" />` : ''}
         <div style="font-size:13px;font-weight:700;color:${primaryColor};">${cfg.nomeDocumento}</div>
         <div style="font-size:10px;color:#6b7280;">${cfg.morada}${cfg.codigoPostal ? ` • ${cfg.codigoPostal} ${cfg.localidade}` : ''}</div>
         <div style="font-size:10px;color:#6b7280;">NIF: ${cfg.contribuinte}${cfg.telefones ? ` • ${cfg.telefones}` : ''}</div>
