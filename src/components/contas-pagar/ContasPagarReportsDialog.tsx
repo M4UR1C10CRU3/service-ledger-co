@@ -51,7 +51,7 @@ const MONTH_OPTIONS = [
 ];
 
 export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props) {
-  const { empresa } = useEmpresa();
+  const { empresa, getLogo } = useEmpresa();
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [month, setMonth] = useState('all');
 
@@ -236,6 +236,7 @@ function FluxoCaixaReport({ accounts, year, month }: { accounts: AccountPayable[
 
 // === Por Fornecedor ===
 function FornecedorReport({ accounts, allAccounts, year, month, empresa }: { accounts: AccountPayable[]; allAccounts: AccountPayable[]; year: string; month: string; empresa: any }) {
+  const { getLogo } = useEmpresa();
   const data = useMemo(() => {
     const map: Record<string, { id: string; name: string; total: number; pago: number; pendente: number }> = {};
     accounts.forEach(a => {
@@ -248,9 +249,11 @@ function FornecedorReport({ accounts, allAccounts, year, month, empresa }: { acc
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [accounts]);
 
+  
+
   const handlePdf = (supplierId: string, supplierName: string) => {
     const supplierAccounts = accounts.filter(a => a.supplierId === supplierId);
-    exportSupplierStatement({ supplierName, accounts: supplierAccounts, year, month, empresa });
+    exportSupplierStatement({ supplierName, accounts: supplierAccounts, year, month, empresa, logoUrl: getLogo() });
   };
 
   return (
