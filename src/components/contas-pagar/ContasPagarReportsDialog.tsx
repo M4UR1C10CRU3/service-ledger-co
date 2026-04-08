@@ -236,6 +236,7 @@ function FluxoCaixaReport({ accounts, year, month }: { accounts: AccountPayable[
 
 // === Por Fornecedor ===
 function FornecedorReport({ accounts, allAccounts, year, month, empresa }: { accounts: AccountPayable[]; allAccounts: AccountPayable[]; year: string; month: string; empresa: any }) {
+  const { getLogo } = useEmpresa();
   const data = useMemo(() => {
     const map: Record<string, { id: string; name: string; total: number; pago: number; pendente: number }> = {};
     accounts.forEach(a => {
