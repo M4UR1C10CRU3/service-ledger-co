@@ -160,18 +160,12 @@ export default function Compras() {
         a_vista: 'imediato', imediato: 'imediato',
         a_prazo: 'a_credito', a_credito: 'a_credito',
       };
-      // Reconvert stored net values back to IVA-included values for editing
+      // Show stored net values as-is (no reconversion to avoid rounding drift)
       const storedItems = (account.items || []) as AccountPayableItem[];
-      const reconvertedItems = storedItems.map(item => {
-        const net = parseFloat(item.valorBruto) || 0;
-        const rate = parseFloat(item.ivaRate) || 0;
-        const withIva = rate > 0 ? net * (1 + rate / 100) : net;
-        return { ...item, valorBruto: withIva.toFixed(2) };
-      });
-      const hasItems = reconvertedItems.length > 0;
-      const reconvertedValorBruto = hasItems
+      const hasItems = storedItems.length > 0;
+      const storedValorBruto = hasItems
         ? String(account.valorBruto)
-        : String(account.valorLiquido); // valorLiquido = total with IVA
+        : String(account.valorBruto);
 
       setFormData({
         supplierId: account.supplierId,
@@ -180,7 +174,7 @@ export default function Compras() {
         descricao: account.descricao || '',
         numeroDocumento: account.numeroDocumento || '',
         dataEmissao: new Date(account.dataEmissao),
-        valorBruto: reconvertedValorBruto,
+        valorBruto: storedValorBruto,
         ivaRate: String(account.ivaRate || 0),
         ivaValue: String(account.ivaValue || 0),
         valorLiquido: String(account.valorLiquido),
@@ -192,8 +186,8 @@ export default function Compras() {
         costCenterId: account.costCenterId || '',
         articleId: account.articleId || '',
         quantity: account.quantity ? String(account.quantity) : '',
-        items: reconvertedItems,
-        ivaIncluido: true,
+        items: storedItems,
+        ivaIncluido: false,
       });
     } else {
       resetForm();
