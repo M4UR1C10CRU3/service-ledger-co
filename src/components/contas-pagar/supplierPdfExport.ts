@@ -16,6 +16,7 @@ interface SupplierPdfParams {
   month: string;
   empresa: any;
   userName?: string;
+  logoUrl?: string;
 }
 
 export function exportSupplierStatement({

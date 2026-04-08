@@ -248,9 +248,11 @@ function FornecedorReport({ accounts, allAccounts, year, month, empresa }: { acc
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [accounts]);
 
+  const { getLogo } = useEmpresa();
+
   const handlePdf = (supplierId: string, supplierName: string) => {
     const supplierAccounts = accounts.filter(a => a.supplierId === supplierId);
-    exportSupplierStatement({ supplierName, accounts: supplierAccounts, year, month, empresa });
+    exportSupplierStatement({ supplierName, accounts: supplierAccounts, year, month, empresa, logoUrl: getLogo() });
   };
 
   return (
