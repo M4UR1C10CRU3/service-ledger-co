@@ -51,7 +51,7 @@ const MONTH_OPTIONS = [
 ];
 
 export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props) {
-  const { empresa } = useEmpresa();
+  const { empresa, getLogo } = useEmpresa();
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [month, setMonth] = useState('all');
 
