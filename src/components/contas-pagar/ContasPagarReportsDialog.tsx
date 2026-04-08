@@ -235,18 +235,23 @@ function FluxoCaixaReport({ accounts, year, month }: { accounts: AccountPayable[
 }
 
 // === Por Fornecedor ===
-function FornecedorReport({ accounts }: { accounts: AccountPayable[] }) {
+function FornecedorReport({ accounts, allAccounts, year, month, empresa }: { accounts: AccountPayable[]; allAccounts: AccountPayable[]; year: string; month: string; empresa: any }) {
   const data = useMemo(() => {
-    const map: Record<string, { name: string; total: number; pago: number; pendente: number }> = {};
+    const map: Record<string, { id: string; name: string; total: number; pago: number; pendente: number }> = {};
     accounts.forEach(a => {
       const key = a.supplierId;
-      if (!map[key]) map[key] = { name: a.supplierName || '-', total: 0, pago: 0, pendente: 0 };
+      if (!map[key]) map[key] = { id: key, name: a.supplierName || '-', total: 0, pago: 0, pendente: 0 };
       map[key].total += a.valorLiquido;
       if (a.status === 'liquidado') map[key].pago += a.valorLiquido;
       else map[key].pendente += a.valorLiquido;
     });
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [accounts]);
+
+  const handlePdf = (supplierId: string, supplierName: string) => {
+    const supplierAccounts = accounts.filter(a => a.supplierId === supplierId);
+    exportSupplierStatement({ supplierName, accounts: supplierAccounts, year, month, empresa });
+  };
 
   return (
     <div className="rounded-md border">
@@ -257,17 +262,23 @@ function FornecedorReport({ accounts }: { accounts: AccountPayable[] }) {
             <TableHead className="text-right">Total Transacionado</TableHead>
             <TableHead className="text-right">Total Pago</TableHead>
             <TableHead className="text-right">Total Pendente</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
-            <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
+            <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem dados</TableCell></TableRow>
           ) : data.map((d, i) => (
             <TableRow key={i}>
               <TableCell className="font-medium">{d.name}</TableCell>
               <TableCell className="text-right font-mono">{fmt(d.total)}</TableCell>
               <TableCell className="text-right font-mono text-success">{fmt(d.pago)}</TableCell>
               <TableCell className="text-right font-mono text-warning">{fmt(d.pendente)}</TableCell>
+              <TableCell>
+                <Button variant="ghost" size="icon" className="h-7 w-7" title="Exportar extrato PDF" onClick={() => handlePdf(d.id, d.name)}>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
           {data.length > 0 && (
@@ -276,6 +287,7 @@ function FornecedorReport({ accounts }: { accounts: AccountPayable[] }) {
               <TableCell className="text-right font-mono">{fmt(data.reduce((s, d) => s + d.total, 0))}</TableCell>
               <TableCell className="text-right font-mono text-success">{fmt(data.reduce((s, d) => s + d.pago, 0))}</TableCell>
               <TableCell className="text-right font-mono text-warning">{fmt(data.reduce((s, d) => s + d.pendente, 0))}</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           )}
         </TableBody>
