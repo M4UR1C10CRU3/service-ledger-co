@@ -151,10 +151,10 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
           </TabsList>
 
           <TabsContent value="fluxo">
-            <FluxoCaixaReport accounts={filteredAccounts} year={year} month={month} />
+            <FluxoCaixaReport accounts={filteredAccounts} year={reportYear} month={reportMonth} />
           </TabsContent>
           <TabsContent value="fornecedor">
-            <FornecedorReport accounts={filteredAccounts} allAccounts={accounts} year={year} month={month} empresa={empresa} />
+            <FornecedorReport accounts={filteredAccounts} allAccounts={accounts} year={reportYear} month={reportMonth} empresa={empresa} />
           </TabsContent>
           <TabsContent value="categoria">
             <CategoriaReport accounts={filteredAccounts} />
