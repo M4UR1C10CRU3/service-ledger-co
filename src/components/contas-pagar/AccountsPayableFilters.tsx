@@ -15,8 +15,10 @@ export interface FiltersState {
   filterTipo: string;
   filterSupplier: string;
   filterCategoria: string;
-  filterYear: string;
-  filterMonth: string;
+  emissaoYear: string;
+  emissaoMonth: string;
+  vencimentoYear: string;
+  vencimentoMonth: string;
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
 }
@@ -33,8 +35,10 @@ export const initialFilters: FiltersState = {
   filterTipo: 'all',
   filterSupplier: 'all',
   filterCategoria: 'all',
-  filterYear: 'all',
-  filterMonth: 'all',
+  emissaoYear: 'all',
+  emissaoMonth: 'all',
+  vencimentoYear: 'all',
+  vencimentoMonth: 'all',
   dateFrom: undefined,
   dateTo: undefined,
 };
@@ -62,8 +66,10 @@ export function AccountsPayableFilters({ filters, onFiltersChange, suppliers }: 
 
   const hasActiveFilters = filters.searchTerm || filters.filterStatus !== 'all' ||
     filters.filterTipo !== 'all' || filters.filterSupplier !== 'all' ||
-    filters.filterCategoria !== 'all' || filters.filterYear !== 'all' ||
-    filters.filterMonth !== 'all' || filters.dateFrom || filters.dateTo;
+    filters.filterCategoria !== 'all' ||
+    filters.emissaoYear !== 'all' || filters.emissaoMonth !== 'all' ||
+    filters.vencimentoYear !== 'all' || filters.vencimentoMonth !== 'all' ||
+    filters.dateFrom || filters.dateTo;
 
   return (
     <div className="space-y-3">
@@ -88,28 +94,56 @@ export function AccountsPayableFilters({ filters, onFiltersChange, suppliers }: 
         </Select>
       </div>
 
+      {/* Period filters row */}
+      <div className="flex flex-col md:flex-row gap-3 flex-wrap items-end">
+        {/* Emissão period */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Emissão:</span>
+          <Select value={filters.emissaoYear} onValueChange={(v) => update({ emissaoYear: v })}>
+            <SelectTrigger className="w-[100px] h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={y}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filters.emissaoMonth} onValueChange={(v) => update({ emissaoMonth: v })}>
+            <SelectTrigger className="w-[120px] h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {MONTHS.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Vencimento period */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Vencimento:</span>
+          <Select value={filters.vencimentoYear} onValueChange={(v) => update({ vencimentoYear: v })}>
+            <SelectTrigger className="w-[100px] h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={y}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filters.vencimentoMonth} onValueChange={(v) => update({ vencimentoMonth: v })}>
+            <SelectTrigger className="w-[120px] h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {MONTHS.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-3 flex-wrap">
-        {/* Year / Month period filter */}
-        <Select value={filters.filterYear} onValueChange={(v) => update({ filterYear: v })}>
-          <SelectTrigger className="w-[120px]"><SelectValue placeholder="Ano" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Anos</SelectItem>
-            {availableYears.map(y => (
-              <SelectItem key={y} value={y}>{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.filterMonth} onValueChange={(v) => update({ filterMonth: v })}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Mês" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Meses</SelectItem>
-            {MONTHS.map(m => (
-              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         <Select value={filters.filterTipo} onValueChange={(v) => update({ filterTipo: v })}>
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
