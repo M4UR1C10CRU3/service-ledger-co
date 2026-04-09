@@ -102,24 +102,44 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
 
         {/* Filters */}
         <div className="flex gap-4 items-end flex-wrap">
+          <span className="text-xs font-medium text-muted-foreground self-center">Emissão:</span>
           <div className="space-y-1">
-            <Label className="text-xs">Ano</Label>
-            <Select value={year} onValueChange={setYear}>
+            <Select value={emissaoYear} onValueChange={setEmissaoYear}>
               <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
                 {getYearOptions().map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Mês</Label>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <Select value={emissaoMonth} onValueChange={setEmissaoMonth}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MONTH_OPTIONS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+
+          <span className="text-xs font-medium text-muted-foreground self-center">Vencimento:</span>
+          <div className="space-y-1">
+            <Select value={vencimentoYear} onValueChange={setVencimentoYear}>
+              <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {getYearOptions().map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Select value={vencimentoMonth} onValueChange={setVencimentoMonth}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTH_OPTIONS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
           <span className="text-sm text-muted-foreground">{filteredAccounts.length} lançamento(s)</span>
         </div>
 
