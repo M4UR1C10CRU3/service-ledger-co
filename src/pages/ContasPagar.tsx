@@ -108,6 +108,19 @@ export default function ContasPagar() {
     if (filters.filterTipo !== 'all') result = result.filter(a => a.tipoLancamento === filters.filterTipo);
     if (filters.filterSupplier !== 'all') result = result.filter(a => a.supplierId === filters.filterSupplier);
     if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
+    // Year/Month filter
+    if (filters.filterYear !== 'all') {
+      result = result.filter(a => {
+        const d = a.dataVencimento || a.dataEmissao;
+        return d.substring(0, 4) === filters.filterYear;
+      });
+    }
+    if (filters.filterMonth !== 'all') {
+      result = result.filter(a => {
+        const d = a.dataVencimento || a.dataEmissao;
+        return d.substring(5, 7) === filters.filterMonth;
+      });
+    }
 
     if (filters.dateFrom) {
       const from = formatDateToISO(filters.dateFrom);
