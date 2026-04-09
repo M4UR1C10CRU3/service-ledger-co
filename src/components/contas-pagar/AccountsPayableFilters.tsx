@@ -15,6 +15,8 @@ export interface FiltersState {
   filterTipo: string;
   filterSupplier: string;
   filterCategoria: string;
+  filterYear: string;
+  filterMonth: string;
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
 }
@@ -31,16 +33,37 @@ export const initialFilters: FiltersState = {
   filterTipo: 'all',
   filterSupplier: 'all',
   filterCategoria: 'all',
+  filterYear: 'all',
+  filterMonth: 'all',
   dateFrom: undefined,
   dateTo: undefined,
 };
 
+const MONTHS = [
+  { value: '01', label: 'Janeiro' },
+  { value: '02', label: 'Fevereiro' },
+  { value: '03', label: 'Março' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Maio' },
+  { value: '06', label: 'Junho' },
+  { value: '07', label: 'Julho' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+];
+
 export function AccountsPayableFilters({ filters, onFiltersChange, suppliers }: Props) {
   const update = (partial: Partial<FiltersState>) => onFiltersChange({ ...filters, ...partial });
 
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from({ length: 5 }, (_, i) => String(currentYear - 2 + i));
+
   const hasActiveFilters = filters.searchTerm || filters.filterStatus !== 'all' ||
     filters.filterTipo !== 'all' || filters.filterSupplier !== 'all' ||
-    filters.filterCategoria !== 'all' || filters.dateFrom || filters.dateTo;
+    filters.filterCategoria !== 'all' || filters.filterYear !== 'all' ||
+    filters.filterMonth !== 'all' || filters.dateFrom || filters.dateTo;
 
   return (
     <div className="space-y-3">
@@ -66,6 +89,27 @@ export function AccountsPayableFilters({ filters, onFiltersChange, suppliers }: 
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 flex-wrap">
+        {/* Year / Month period filter */}
+        <Select value={filters.filterYear} onValueChange={(v) => update({ filterYear: v })}>
+          <SelectTrigger className="w-[120px]"><SelectValue placeholder="Ano" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Anos</SelectItem>
+            {availableYears.map(y => (
+              <SelectItem key={y} value={y}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.filterMonth} onValueChange={(v) => update({ filterMonth: v })}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Mês" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Meses</SelectItem>
+            {MONTHS.map(m => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={filters.filterTipo} onValueChange={(v) => update({ filterTipo: v })}>
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
