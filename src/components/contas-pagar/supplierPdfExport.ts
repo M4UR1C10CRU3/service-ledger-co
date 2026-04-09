@@ -1,7 +1,16 @@
-import { AccountPayable, STATUS_LABELS, TIPO_LANCAMENTO_LABELS } from '@/types/accountPayable';
+import { AccountPayable, TIPO_LANCAMENTO_LABELS } from '@/types/accountPayable';
 import { getEmpresaDocConfig } from '@/lib/empresaConfig';
+import { getEffectiveStatus, formatDateToISO } from '@/lib/utils';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+
+const PDF_STATUS_LABELS: Record<string, string> = {
+  pendente: 'À vencer',
+  liquidado: 'Liquidado',
+  vencido: 'Vencido',
+  parcial: 'Parcial',
+  cancelado: 'Cancelado',
+};
 
 const fmtEur = (v: number) =>
   v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
@@ -62,7 +71,7 @@ export function exportSupplierStatement({
       <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.descricao || TIPO_LANCAMENTO_LABELS[r.tipoLancamento] || '—'}</td>
       <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;">${fmtDate(r.dataVencimento)}</td>
       <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;text-align:center;">
-        <span style="padding:2px 8px;border-radius:10px;font-size:10px;background:${r.status === 'liquidado' ? '#dcfce7' : r.status === 'vencido' ? '#fee2e2' : '#fef9c3'};color:${r.status === 'liquidado' ? '#166534' : r.status === 'vencido' ? '#991b1b' : '#854d0e'};">${STATUS_LABELS[r.status] || r.status}</span>
+        ${(() => { const es = getEffectiveStatus(r.status, r.dataVencimento); return `<span style="padding:2px 8px;border-radius:10px;font-size:10px;background:${es === 'liquidado' ? '#dcfce7' : es === 'vencido' ? '#fee2e2' : '#fef9c3'};color:${es === 'liquidado' ? '#166534' : es === 'vencido' ? '#991b1b' : '#854d0e'};">${PDF_STATUS_LABELS[es] || es}</span>`; })()}
       </td>
       <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;text-align:right;color:#dc2626;">${r.debito > 0 ? fmtEur(r.debito) : ''}</td>
       <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:11px;text-align:right;color:#16a34a;">${r.credito > 0 ? fmtEur(r.credito) : ''}</td>
