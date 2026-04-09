@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { parseLocalDate } from '@/lib/utils';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';

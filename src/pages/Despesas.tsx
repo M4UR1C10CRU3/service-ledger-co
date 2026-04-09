@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, subMonths, startOfMonth, endOfMonth, addDays, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { parseLocalDate } from '@/lib/utils';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
