@@ -38,7 +38,7 @@ function getStatusInfo(account: AccountPayable): { label: string; className: str
   today.setHours(0, 0, 0, 0);
 
   if (account.status === 'liquidado') {
-    const paidDate = account.dataPagamento ? format(parseISO(account.dataPagamento), 'dd/MM/yyyy') : '-';
+    const paidDate = account.dataPagamento ? format(parseLocalDate(account.dataPagamento), 'dd/MM/yyyy') : '-';
     return {
       label: 'Liquidado',
       className: 'bg-success/15 text-success border-success/30',
@@ -47,7 +47,7 @@ function getStatusInfo(account: AccountPayable): { label: string; className: str
   }
 
   if (account.status === 'parcial') {
-    const venc = account.dataVencimento ? parseISO(account.dataVencimento) : null;
+    const venc = account.dataVencimento ? parseLocalDate(account.dataVencimento) : null;
     const days = venc ? differenceInDays(venc, today) : 0;
     return {
       label: 'Parcial',
@@ -61,7 +61,7 @@ function getStatusInfo(account: AccountPayable): { label: string; className: str
   }
 
   // pendente or vencido — calculate from dataVencimento
-  const venc = account.dataVencimento ? parseISO(account.dataVencimento) : null;
+  const venc = account.dataVencimento ? parseLocalDate(account.dataVencimento) : null;
   if (!venc) {
     return { label: 'Pendente', className: 'bg-primary/15 text-primary border-primary/30', daysInfo: '-' };
   }
@@ -133,8 +133,8 @@ export function AccountsPayableTable({ accounts, sortField, sortDir, onSort, onV
             const statusInfo = getStatusInfo(a);
             const canLiquidar = a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido';
             const dateDisplay = a.status === 'liquidado'
-              ? (a.dataPagamento ? format(parseISO(a.dataPagamento), 'dd/MM/yyyy') : '-')
-              : (a.dataVencimento ? format(parseISO(a.dataVencimento), 'dd/MM/yyyy') : '-');
+              ? (a.dataPagamento ? format(parseLocalDate(a.dataPagamento), 'dd/MM/yyyy') : '-')
+              : (a.dataVencimento ? format(parseLocalDate(a.dataVencimento), 'dd/MM/yyyy') : '-');
 
             return (
               <TableRow key={a.id}>
