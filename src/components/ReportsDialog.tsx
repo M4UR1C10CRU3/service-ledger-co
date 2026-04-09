@@ -388,90 +388,50 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
   };
 
   const getValoresFaturadosTable = () => {
-    const { detailedData, totals } = getValoresFaturadosReport(filteredServices);
+    const { clientData, totals } = getValoresFaturadosReport(filteredServices);
     return (
-      <div className="space-y-6">
-        {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-4 pb-3 text-center">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Total Faturado</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(totals.valorTotal)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 text-center">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Total Liquidado</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(totals.liquidado)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 text-center">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Saldo Pendente</p>
-              <p className="text-lg font-bold text-red-600">{formatCurrency(totals.emDebito)}</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Detailed Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Relatório - Valores Faturados</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Análise detalhada de todas as faturas emitidas — {totals.nFaturas} lançamento(s) no período
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Data</TableHead>
-                  <TableHead>Nº Fatura</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Resumo</TableHead>
-                  <TableHead className="text-center">Estado</TableHead>
-                  <TableHead className="text-right text-red-600">Débito</TableHead>
-                  <TableHead className="text-right text-green-600">Crédito</TableHead>
-                  <TableHead className="text-right">Saldo</TableHead>
+      <Card>
+        <CardHeader>
+          <CardTitle>Relatório - Valores Faturados</CardTitle>
+          <p className="text-sm text-muted-foreground">Análise detalhada de todas as faturas emitidas</p>
+        </CardHeader>
+        <CardContent className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Cliente</TableHead>
+                <TableHead>Nº Faturas</TableHead>
+                <TableHead>Valor Total</TableHead>
+                <TableHead>Liquidado</TableHead>
+                <TableHead>Em Débito</TableHead>
+                <TableHead>% Liquidado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clientData.map((item) => (
+                <TableRow key={item.cliente}>
+                  <TableCell className="font-medium">{item.cliente}</TableCell>
+                  <TableCell>{item.nFaturas}</TableCell>
+                  <TableCell>{formatCurrency(item.valorTotal)}</TableCell>
+                  <TableCell>{formatCurrency(item.liquidado)}</TableCell>
+                  <TableCell>{formatCurrency(item.emDebito)}</TableCell>
+                  <TableCell>{formatPercentage((item.liquidado / item.valorTotal) * 100)}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {detailedData.map((item, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>{item.data}</TableCell>
-                    <TableCell className="font-medium">{item.numeroFatura}</TableCell>
-                    <TableCell>{item.cliente}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{item.resumo || '—'}</TableCell>
-                    <TableCell className="text-center">
-                      <span className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                        item.estado === 'Liquidado' 
-                          ? "bg-green-100 text-green-700" 
-                          : item.estado === 'Parcial'
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      )}>
-                        {item.estado}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right text-red-600">{formatCurrency(item.debito)}</TableCell>
-                    <TableCell className="text-right text-green-600">{item.credito > 0 ? formatCurrency(item.credito) : ''}</TableCell>
-                    <TableCell className="text-right font-medium">{formatCurrency(item.saldo)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow className="bg-muted/50">
-                  <TableCell colSpan={5} className="font-bold">TOTAIS</TableCell>
-                  <TableCell className="text-right font-bold text-red-600">{formatCurrency(totals.valorTotal)}</TableCell>
-                  <TableCell className="text-right font-bold text-green-600">{formatCurrency(totals.liquidado)}</TableCell>
-                  <TableCell className="text-right font-bold">{formatCurrency(totals.emDebito)}</TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+              ))}
+            </TableBody>
+            <TableFooter>
+              <TableRow className="bg-muted/50">
+                <TableCell className="font-bold">TOTAL GERAL</TableCell>
+                <TableCell className="font-bold">{totals.nFaturas}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.valorTotal)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.liquidado)}</TableCell>
+                <TableCell className="font-bold">{formatCurrency(totals.emDebito)}</TableCell>
+                <TableCell className="font-bold">{formatPercentage((totals.liquidado / totals.valorTotal) * 100)}</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -858,47 +818,37 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
 };
 
 const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
-  const faturados = services
-    .filter(s => s.numeroFatura && s.numeroFatura.trim() !== '')
-    .sort((a, b) => {
-      // Sort by date ascending
-      const [dA, mA, yA] = a.data.split('/');
-      const [dB, mB, yB] = b.data.split('/');
-      return (yA + mA + dA).localeCompare(yB + mB + dB);
-    });
-
-  let runningBalance = 0;
-  const detailedData = faturados.map(service => {
-    const debito = service.valorComIVA;
-    const credito = service.liquidado;
-    runningBalance += debito - credito;
-
-    const estado = credito >= debito
-      ? 'Liquidado'
-      : credito > 0
-      ? 'Parcial'
-      : 'Pendente';
-
-    return {
-      data: service.data,
-      numeroFatura: service.numeroFatura || '',
+  const faturados = services.filter(s => s.numeroFatura && s.numeroFatura.trim() !== '');
+  
+  const clientMap = new Map<string, { cliente: string; nFaturas: number; valorTotal: number; liquidado: number; emDebito: number }>();
+  
+  faturados.forEach(service => {
+    const existing = clientMap.get(service.cliente) || {
       cliente: service.cliente,
-      resumo: service.resumo || '',
-      estado,
-      debito,
-      credito,
-      saldo: runningBalance,
+      nFaturas: 0,
+      valorTotal: 0,
+      liquidado: 0,
+      emDebito: 0
     };
+    
+    existing.nFaturas += 1;
+    existing.valorTotal += service.valorComIVA;
+    existing.liquidado += service.liquidado;
+    existing.emDebito += service.executadoEmDebito;
+    
+    clientMap.set(service.cliente, existing);
   });
-
-  const totals = {
-    nFaturas: faturados.length,
-    valorTotal: faturados.reduce((s, sv) => s + sv.valorComIVA, 0),
-    liquidado: faturados.reduce((s, sv) => s + sv.liquidado, 0),
-    emDebito: faturados.reduce((s, sv) => s + sv.executadoEmDebito, 0),
-  };
-
-  return { detailedData, totals };
+  
+  const clientData = Array.from(clientMap.values()).sort((a, b) => a.cliente.localeCompare(b.cliente));
+  
+  const totals = clientData.reduce((acc, item) => ({
+    nFaturas: acc.nFaturas + item.nFaturas,
+    valorTotal: acc.valorTotal + item.valorTotal,
+    liquidado: acc.liquidado + item.liquidado,
+    emDebito: acc.emDebito + item.emDebito
+  }), { nFaturas: 0, valorTotal: 0, liquidado: 0, emDebito: 0 });
+  
+  return { clientData, totals };
 };
 
 const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
