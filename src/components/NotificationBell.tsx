@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { formatDateToISO } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { Bell, AlertTriangle, Clock, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,12 +38,12 @@ export function NotificationBell() {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = formatDateToISO(today);
 
     // Get accounts due within 2 days or already overdue
     const twoDaysFromNow = new Date(today);
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-    const limitStr = twoDaysFromNow.toISOString().split('T')[0];
+    const limitStr = formatDateToISO(twoDaysFromNow);
 
     const { data, error } = await supabase
       .from('accounts_payable')

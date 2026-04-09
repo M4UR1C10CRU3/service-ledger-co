@@ -37,3 +37,20 @@ export function formatDateToISO(date: Date): string {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
+
+/**
+ * Determine the effective visual status of an account based on its due date
+ * relative to today. Accounts with status 'pendente'/'parcial' whose
+ * dataVencimento is in the past are treated as 'vencido'.
+ */
+export function getEffectiveStatus(
+  dbStatus: string,
+  dataVencimento: string | null | undefined
+): 'vencido' | 'pendente' | 'parcial' | 'liquidado' | 'cancelado' | string {
+  if (dbStatus === 'liquidado' || dbStatus === 'cancelado' || dbStatus === 'vencido') return dbStatus;
+  if ((dbStatus === 'pendente' || dbStatus === 'parcial') && dataVencimento) {
+    const todayStr = formatDateToISO(new Date());
+    if (dataVencimento < todayStr) return 'vencido';
+  }
+  return dbStatus;
+}

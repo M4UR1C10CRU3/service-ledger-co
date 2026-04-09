@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { parseISO } from 'date-fns';
 import { useEmpresa } from '@/contexts/EmpresaContext';
-import { parseLocalDate } from '@/lib/utils';
+import { parseLocalDate, formatDateToISO, getEffectiveStatus } from '@/lib/utils';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
@@ -89,21 +88,18 @@ export default function ContasPagar() {
       );
     }
     if (filters.filterStatus === 'critico') {
-      const oneDayFromNow = new Date(today);
-      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
-      const limitStr = oneDayFromNow.toISOString().split('T')[0];
-      result = result.filter(a =>
-        (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
-        a.dataVencimento && a.dataVencimento <= limitStr
-      );
+      const tStr = formatDateToISO(today);
+      result = result.filter(a => {
+        const eff = getEffectiveStatus(a.status, a.dataVencimento);
+        return eff === 'vencido' || ((eff === 'pendente' || eff === 'parcial') && a.dataVencimento && a.dataVencimento <= tStr);
+      });
     } else if (filters.filterStatus === 'pendente') {
-      const oneDayFromNow = new Date(today);
-      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
-      const limitStr = oneDayFromNow.toISOString().split('T')[0];
-      result = result.filter(a =>
-        (a.status === 'pendente' || a.status === 'parcial') &&
-        (!a.dataVencimento || a.dataVencimento > limitStr)
-      );
+      result = result.filter(a => {
+        const eff = getEffectiveStatus(a.status, a.dataVencimento);
+        return eff === 'pendente' || eff === 'parcial';
+      });
+    } else if (filters.filterStatus === 'vencido') {
+      result = result.filter(a => getEffectiveStatus(a.status, a.dataVencimento) === 'vencido');
     } else if (filters.filterStatus === 'liquidado') {
       result = result.filter(a => a.status === 'liquidado');
     } else if (filters.filterStatus !== 'all') {
@@ -114,14 +110,14 @@ export default function ContasPagar() {
     if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
 
     if (filters.dateFrom) {
-      const from = filters.dateFrom.toISOString().split('T')[0];
+      const from = formatDateToISO(filters.dateFrom);
       result = result.filter(a => {
         const d = a.dataVencimento || a.dataEmissao;
         return d >= from;
       });
     }
     if (filters.dateTo) {
-      const to = filters.dateTo.toISOString().split('T')[0];
+      const to = formatDateToISO(filters.dateTo);
       result = result.filter(a => {
         const d = a.dataVencimento || a.dataEmissao;
         return d <= to;
@@ -327,10 +323,10 @@ export default function ContasPagar() {
     navigate('/auth');
   };
 
-  // Summary totals
-  const totalPendente = filtered.filter(a => a.status === 'pendente' || a.status === 'parcial').reduce((s, a) => s + a.valorLiquido, 0);
+  // Summary totals — use effective status (date-aware)
+  const totalPendente = filtered.filter(a => { const e = getEffectiveStatus(a.status, a.dataVencimento); return e === 'pendente' || e === 'parcial'; }).reduce((s, a) => s + a.valorLiquido, 0);
   const totalLiquidado = filtered.filter(a => a.status === 'liquidado').reduce((s, a) => s + a.valorLiquido, 0);
-  const totalVencido = filtered.filter(a => a.status === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
+  const totalVencido = filtered.filter(a => getEffectiveStatus(a.status, a.dataVencimento) === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
 
   return (
     <div className="p-6 space-y-6">

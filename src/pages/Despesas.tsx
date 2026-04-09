@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { format, subMonths, startOfMonth, endOfMonth, addDays, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useEmpresa } from '@/contexts/EmpresaContext';
-import { parseLocalDate } from '@/lib/utils';
+import { parseLocalDate, formatDateToISO, getEffectiveStatus } from '@/lib/utils';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
@@ -196,23 +196,18 @@ export default function Despesas() {
       );
     }
     if (filters.filterStatus === 'critico') {
-      // Overdue or ≤1 day to due date
-      const oneDayFromNow = new Date(today);
-      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
-      const limitStr = oneDayFromNow.toISOString().split('T')[0];
-      result = result.filter(a =>
-        (a.status === 'pendente' || a.status === 'parcial' || a.status === 'vencido') &&
-        a.dataVencimento && a.dataVencimento <= limitStr
-      );
+      const tStr = formatDateToISO(today);
+      result = result.filter(a => {
+        const eff = getEffectiveStatus(a.status, a.dataVencimento);
+        return eff === 'vencido' || ((eff === 'pendente' || eff === 'parcial') && a.dataVencimento && a.dataVencimento <= tStr);
+      });
     } else if (filters.filterStatus === 'pendente') {
-      // Unpaid with >1 day to due
-      const oneDayFromNow = new Date(today);
-      oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
-      const limitStr = oneDayFromNow.toISOString().split('T')[0];
-      result = result.filter(a =>
-        (a.status === 'pendente' || a.status === 'parcial') &&
-        (!a.dataVencimento || a.dataVencimento > limitStr)
-      );
+      result = result.filter(a => {
+        const eff = getEffectiveStatus(a.status, a.dataVencimento);
+        return eff === 'pendente' || eff === 'parcial';
+      });
+    } else if (filters.filterStatus === 'vencido') {
+      result = result.filter(a => getEffectiveStatus(a.status, a.dataVencimento) === 'vencido');
     } else if (filters.filterStatus === 'liquidado') {
       result = result.filter(a => a.status === 'liquidado');
     } else if (filters.filterStatus !== 'all') {
@@ -383,10 +378,10 @@ export default function Despesas() {
     return ok;
   };
 
-  // Summary totals for list tab
-  const totalPendente = filtered.filter(a => a.status === 'pendente' || a.status === 'parcial').reduce((s, a) => s + a.valorLiquido, 0);
+  // Summary totals for list tab — use effective status (date-aware)
+  const totalPendente = filtered.filter(a => { const e = getEffectiveStatus(a.status, a.dataVencimento); return e === 'pendente' || e === 'parcial'; }).reduce((s, a) => s + a.valorLiquido, 0);
   const totalLiquidado = filtered.filter(a => a.status === 'liquidado').reduce((s, a) => s + a.valorLiquido, 0);
-  const totalVencido = filtered.filter(a => a.status === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
+  const totalVencido = filtered.filter(a => getEffectiveStatus(a.status, a.dataVencimento) === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
 
   return (
     <div className="p-6 space-y-6">
