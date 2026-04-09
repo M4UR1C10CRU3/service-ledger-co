@@ -110,14 +110,14 @@ export default function ContasPagar() {
     if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
 
     if (filters.dateFrom) {
-      const from = filters.dateFrom.toISOString().split('T')[0];
+      const from = formatDateToISO(filters.dateFrom);
       result = result.filter(a => {
         const d = a.dataVencimento || a.dataEmissao;
         return d >= from;
       });
     }
     if (filters.dateTo) {
-      const to = filters.dateTo.toISOString().split('T')[0];
+      const to = formatDateToISO(filters.dateTo);
       result = result.filter(a => {
         const d = a.dataVencimento || a.dataEmissao;
         return d <= to;
@@ -323,10 +323,10 @@ export default function ContasPagar() {
     navigate('/auth');
   };
 
-  // Summary totals
-  const totalPendente = filtered.filter(a => a.status === 'pendente' || a.status === 'parcial').reduce((s, a) => s + a.valorLiquido, 0);
+  // Summary totals — use effective status (date-aware)
+  const totalPendente = filtered.filter(a => { const e = getEffectiveStatus(a.status, a.dataVencimento); return e === 'pendente' || e === 'parcial'; }).reduce((s, a) => s + a.valorLiquido, 0);
   const totalLiquidado = filtered.filter(a => a.status === 'liquidado').reduce((s, a) => s + a.valorLiquido, 0);
-  const totalVencido = filtered.filter(a => a.status === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
+  const totalVencido = filtered.filter(a => getEffectiveStatus(a.status, a.dataVencimento) === 'vencido').reduce((s, a) => s + a.valorLiquido, 0);
 
   return (
     <div className="p-6 space-y-6">
