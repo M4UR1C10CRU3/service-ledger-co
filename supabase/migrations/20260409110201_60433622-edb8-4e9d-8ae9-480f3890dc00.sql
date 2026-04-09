@@ -1,0 +1,1 @@
+DELETE FROM cash_flows WHERE id IN ('25eebaea-12ea-4a73-8c57-e126a997f4b5', '0a864ae5-a21a-4a8f-9eac-a769ee7f9a3a');
