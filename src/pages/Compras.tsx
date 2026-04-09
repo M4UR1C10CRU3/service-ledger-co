@@ -111,12 +111,25 @@ export default function Compras() {
     }
     if (filters.filterSupplier !== 'all') result = result.filter(a => a.supplierId === filters.filterSupplier);
     if (filters.filterCategoria !== 'all') result = result.filter(a => a.categoria === filters.filterCategoria);
+    // Year/Month filter based on dataVencimento (or dataEmissao as fallback)
+    if (filters.filterYear !== 'all') {
+      result = result.filter(a => {
+        const d = a.dataVencimento || a.dataEmissao;
+        return d.substring(0, 4) === filters.filterYear;
+      });
+    }
+    if (filters.filterMonth !== 'all') {
+      result = result.filter(a => {
+        const d = a.dataVencimento || a.dataEmissao;
+        return d.substring(5, 7) === filters.filterMonth;
+      });
+    }
     if (filters.dateFrom) {
-      const from = filters.dateFrom.toISOString().split('T')[0];
+      const from = formatDateToISO(filters.dateFrom);
       result = result.filter(a => (a.dataVencimento || a.dataEmissao) >= from);
     }
     if (filters.dateTo) {
-      const to = filters.dateTo.toISOString().split('T')[0];
+      const to = formatDateToISO(filters.dateTo);
       result = result.filter(a => (a.dataVencimento || a.dataEmissao) <= to);
     }
     result = [...result].sort((a, b) => {
