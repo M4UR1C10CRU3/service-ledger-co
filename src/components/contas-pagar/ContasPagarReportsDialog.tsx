@@ -52,21 +52,42 @@ const MONTH_OPTIONS = [
 
 export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props) {
   const { empresa, getLogo } = useEmpresa();
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const [month, setMonth] = useState('all');
+  const [emissaoYear, setEmissaoYear] = useState(String(new Date().getFullYear()));
+  const [emissaoMonth, setEmissaoMonth] = useState('all');
+  const [vencimentoYear, setVencimentoYear] = useState('all');
+  const [vencimentoMonth, setVencimentoMonth] = useState('all');
+
+  const yearOptionsWithAll = useMemo(() => ['all', ...getYearOptions()], []);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
-      const d = a.dataVencimento || a.dataEmissao;
-      const aYear = d.substring(0, 4);
-      if (aYear !== year) return false;
-      if (month !== 'all') {
-        const aMonth = parseInt(d.substring(5, 7));
-        if (aMonth !== parseInt(month)) return false;
+      // Filtro por Emissão
+      if (emissaoYear !== 'all') {
+        if (a.dataEmissao.substring(0, 4) !== emissaoYear) return false;
+        if (emissaoMonth !== 'all') {
+          if (parseInt(a.dataEmissao.substring(5, 7)) !== parseInt(emissaoMonth)) return false;
+        }
+      } else if (emissaoMonth !== 'all') {
+        if (parseInt(a.dataEmissao.substring(5, 7)) !== parseInt(emissaoMonth)) return false;
+      }
+      // Filtro por Vencimento
+      if (vencimentoYear !== 'all') {
+        const dv = a.dataVencimento || '';
+        if (dv.substring(0, 4) !== vencimentoYear) return false;
+        if (vencimentoMonth !== 'all') {
+          if (parseInt(dv.substring(5, 7)) !== parseInt(vencimentoMonth)) return false;
+        }
+      } else if (vencimentoMonth !== 'all') {
+        const dv = a.dataVencimento || '';
+        if (parseInt(dv.substring(5, 7)) !== parseInt(vencimentoMonth)) return false;
       }
       return true;
     });
-  }, [accounts, year, month]);
+  }, [accounts, emissaoYear, emissaoMonth, vencimentoYear, vencimentoMonth]);
+
+  // Derive year/month for sub-reports (prefer emissão, fallback vencimento)
+  const reportYear = emissaoYear !== 'all' ? emissaoYear : vencimentoYear !== 'all' ? vencimentoYear : String(new Date().getFullYear());
+  const reportMonth = emissaoMonth !== 'all' ? emissaoMonth : vencimentoMonth !== 'all' ? vencimentoMonth : 'all';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,24 +102,44 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
 
         {/* Filters */}
         <div className="flex gap-4 items-end flex-wrap">
+          <span className="text-xs font-medium text-muted-foreground self-center">Emissão:</span>
           <div className="space-y-1">
-            <Label className="text-xs">Ano</Label>
-            <Select value={year} onValueChange={setYear}>
+            <Select value={emissaoYear} onValueChange={setEmissaoYear}>
               <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
                 {getYearOptions().map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Mês</Label>
-            <Select value={month} onValueChange={setMonth}>
-              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <Select value={emissaoMonth} onValueChange={setEmissaoMonth}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MONTH_OPTIONS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+
+          <span className="text-xs font-medium text-muted-foreground self-center">Vencimento:</span>
+          <div className="space-y-1">
+            <Select value={vencimentoYear} onValueChange={setVencimentoYear}>
+              <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {getYearOptions().map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Select value={vencimentoMonth} onValueChange={setVencimentoMonth}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {MONTH_OPTIONS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
           <span className="text-sm text-muted-foreground">{filteredAccounts.length} lançamento(s)</span>
         </div>
 
@@ -110,10 +151,10 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
           </TabsList>
 
           <TabsContent value="fluxo">
-            <FluxoCaixaReport accounts={filteredAccounts} year={year} month={month} />
+            <FluxoCaixaReport accounts={filteredAccounts} year={reportYear} month={reportMonth} />
           </TabsContent>
           <TabsContent value="fornecedor">
-            <FornecedorReport accounts={filteredAccounts} allAccounts={accounts} year={year} month={month} empresa={empresa} />
+            <FornecedorReport accounts={filteredAccounts} allAccounts={accounts} year={reportYear} month={reportMonth} empresa={empresa} />
           </TabsContent>
           <TabsContent value="categoria">
             <CategoriaReport accounts={filteredAccounts} />
