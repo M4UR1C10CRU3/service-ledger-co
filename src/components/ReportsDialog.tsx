@@ -858,37 +858,47 @@ export const ReportsDialog = ({ open, onOpenChange, services, isLoading = false 
 };
 
 const getValoresFaturadosReport = (services: ServiceWithCalculations[]) => {
-  const faturados = services.filter(s => s.numeroFatura && s.numeroFatura.trim() !== '');
-  
-  const clientMap = new Map<string, { cliente: string; nFaturas: number; valorTotal: number; liquidado: number; emDebito: number }>();
-  
-  faturados.forEach(service => {
-    const existing = clientMap.get(service.cliente) || {
+  const faturados = services
+    .filter(s => s.numeroFatura && s.numeroFatura.trim() !== '')
+    .sort((a, b) => {
+      // Sort by date ascending
+      const [dA, mA, yA] = a.data.split('/');
+      const [dB, mB, yB] = b.data.split('/');
+      return (yA + mA + dA).localeCompare(yB + mB + dB);
+    });
+
+  let runningBalance = 0;
+  const detailedData = faturados.map(service => {
+    const debito = service.valorComIVA;
+    const credito = service.liquidado;
+    runningBalance += debito - credito;
+
+    const estado = credito >= debito
+      ? 'Liquidado'
+      : credito > 0
+      ? 'Parcial'
+      : 'Pendente';
+
+    return {
+      data: service.data,
+      numeroFatura: service.numeroFatura || '',
       cliente: service.cliente,
-      nFaturas: 0,
-      valorTotal: 0,
-      liquidado: 0,
-      emDebito: 0
+      resumo: service.resumo || '',
+      estado,
+      debito,
+      credito,
+      saldo: runningBalance,
     };
-    
-    existing.nFaturas += 1;
-    existing.valorTotal += service.valorComIVA;
-    existing.liquidado += service.liquidado;
-    existing.emDebito += service.executadoEmDebito;
-    
-    clientMap.set(service.cliente, existing);
   });
-  
-  const clientData = Array.from(clientMap.values()).sort((a, b) => a.cliente.localeCompare(b.cliente));
-  
-  const totals = clientData.reduce((acc, item) => ({
-    nFaturas: acc.nFaturas + item.nFaturas,
-    valorTotal: acc.valorTotal + item.valorTotal,
-    liquidado: acc.liquidado + item.liquidado,
-    emDebito: acc.emDebito + item.emDebito
-  }), { nFaturas: 0, valorTotal: 0, liquidado: 0, emDebito: 0 });
-  
-  return { clientData, totals };
+
+  const totals = {
+    nFaturas: faturados.length,
+    valorTotal: faturados.reduce((s, sv) => s + sv.valorComIVA, 0),
+    liquidado: faturados.reduce((s, sv) => s + sv.liquidado, 0),
+    emDebito: faturados.reduce((s, sv) => s + sv.executadoEmDebito, 0),
+  };
+
+  return { detailedData, totals };
 };
 
 const getValoresNaoFaturadosReport = (services: ServiceWithCalculations[]) => {
