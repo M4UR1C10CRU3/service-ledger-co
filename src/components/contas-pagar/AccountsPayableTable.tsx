@@ -63,7 +63,7 @@ function getStatusInfo(account: AccountPayable): { label: string; className: str
   // pendente or vencido — calculate from dataVencimento
   const venc = account.dataVencimento ? parseLocalDate(account.dataVencimento) : null;
   if (!venc) {
-    return { label: 'Pendente', className: 'bg-primary/15 text-primary border-primary/30', daysInfo: '-' };
+    return { label: 'À vencer', className: 'bg-primary/15 text-primary border-primary/30', daysInfo: '-' };
   }
 
   const days = differenceInDays(venc, today);
@@ -84,14 +84,14 @@ function getStatusInfo(account: AccountPayable): { label: string; className: str
   }
   if (days <= 7) {
     return {
-      label: 'Pendente',
+      label: 'À vencer',
       className: 'bg-warning/15 text-warning border-warning/30',
       daysInfo: `Vence em ${days} dias`,
     };
   }
 
   return {
-    label: 'Pendente',
+    label: 'À vencer',
     className: 'bg-primary/15 text-primary border-primary/30',
     daysInfo: `Vence em ${days} dias`,
   };
