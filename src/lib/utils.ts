@@ -25,3 +25,15 @@ export function parseLocalDate(dateStr: string | null | undefined): Date {
   // Fallback — append time to avoid UTC interpretation
   return new Date(dateStr + 'T00:00:00');
 }
+
+/**
+ * Format a Date to "YYYY-MM-DD" in local time.
+ * Unlike `date.toISOString().split('T')[0]`, this does NOT shift to UTC,
+ * so a local April 8 stays April 8 regardless of timezone.
+ */
+export function formatDateToISO(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
