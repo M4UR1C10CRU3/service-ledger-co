@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { parseISO } from 'date-fns';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { parseLocalDate } from '@/lib/utils';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
@@ -229,14 +230,14 @@ export default function ContasPagar() {
         categoria: account.categoria,
         descricao: account.descricao || '',
         numeroDocumento: account.numeroDocumento || '',
-        dataEmissao: new Date(account.dataEmissao),
+        dataEmissao: parseLocalDate(account.dataEmissao),
         valorBruto: storedValorBruto,
         ivaRate: String(account.ivaRate || 0),
         ivaValue: String(account.ivaValue || 0),
         valorLiquido: String(account.valorLiquido),
         formaPagamento: fpMap[account.formaPagamento] || 'imediato',
-        dataPagamento: account.dataPagamento ? new Date(account.dataPagamento) : null,
-        dataVencimento: account.dataVencimento ? new Date(account.dataVencimento) : new Date(),
+        dataPagamento: account.dataPagamento ? parseLocalDate(account.dataPagamento) : null,
+        dataVencimento: account.dataVencimento ? parseLocalDate(account.dataVencimento) : new Date(),
         metodoPagamento: account.metodoPagamento || 'transferencia',
         observacoes: account.observacoes || '',
         costCenterId: account.costCenterId || '',

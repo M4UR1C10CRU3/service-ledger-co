@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDateToISO } from '@/lib/utils';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { AccountPayable, AccountPayableFormData } from '@/types/accountPayable';
 import { LiquidacaoData } from '@/components/contas-pagar/LiquidarContaDialog';
@@ -115,7 +116,7 @@ export function useAccountsPayable() {
       categoria: form.categoria,
       descricao: form.descricao.trim() || null,
       numero_documento: form.numeroDocumento.trim() || null,
-      data_emissao: form.dataEmissao.toISOString().split('T')[0],
+      data_emissao: formatDateToISO(form.dataEmissao),
       valor_bruto: bruto,
       desconto: 0,
       acrescimo: 0,
@@ -123,8 +124,8 @@ export function useAccountsPayable() {
       iva_rate: ivaRate,
       iva_value: ivaValue,
       forma_pagamento: form.formaPagamento,
-      data_pagamento: form.dataPagamento ? form.dataPagamento.toISOString().split('T')[0] : null,
-      data_vencimento: form.formaPagamento === 'a_credito' ? form.dataVencimento.toISOString().split('T')[0] : null,
+      data_pagamento: form.dataPagamento ? formatDateToISO(form.dataPagamento!) : null,
+      data_vencimento: form.formaPagamento === 'a_credito' ? formatDateToISO(form.dataVencimento) : null,
       metodo_pagamento: form.metodoPagamento,
       status: shouldBeLiquidado ? 'liquidado' : 'pendente',
       observacoes: form.observacoes.trim() || null,
@@ -141,7 +142,7 @@ export function useAccountsPayable() {
         await supabase.from('account_payments').insert({
           account_payable_id: data.id,
           empresa_id: empresa.id,
-          data_pagamento: form.dataPagamento.toISOString().split('T')[0],
+          data_pagamento: formatDateToISO(form.dataPagamento!),
           valor_original: liquido,
           juros: 0,
           multa: 0,
@@ -170,7 +171,7 @@ export function useAccountsPayable() {
       categoria: form.categoria,
       descricao: form.descricao.trim() || null,
       numero_documento: form.numeroDocumento.trim() || null,
-      data_emissao: form.dataEmissao.toISOString().split('T')[0],
+      data_emissao: formatDateToISO(form.dataEmissao),
       valor_bruto: bruto,
       desconto: 0,
       acrescimo: 0,
@@ -178,8 +179,8 @@ export function useAccountsPayable() {
       iva_rate: ivaRate,
       iva_value: ivaValue,
       forma_pagamento: form.formaPagamento,
-      data_pagamento: form.dataPagamento ? form.dataPagamento.toISOString().split('T')[0] : null,
-      data_vencimento: form.formaPagamento === 'a_credito' ? form.dataVencimento.toISOString().split('T')[0] : null,
+      data_pagamento: form.dataPagamento ? formatDateToISO(form.dataPagamento!) : null,
+      data_vencimento: form.formaPagamento === 'a_credito' ? formatDateToISO(form.dataVencimento) : null,
       metodo_pagamento: form.metodoPagamento,
       status: shouldBeLiquidado ? 'liquidado' : 'pendente',
       observacoes: form.observacoes.trim() || null,
@@ -200,7 +201,7 @@ export function useAccountsPayable() {
 
         if (existingPayments && existingPayments.length > 0) {
           await supabase.from('account_payments').update({
-            data_pagamento: form.dataPagamento.toISOString().split('T')[0],
+            data_pagamento: formatDateToISO(form.dataPagamento!),
             valor_original: liquido,
             valor_pago: liquido,
             metodo_pagamento: form.metodoPagamento,
@@ -209,7 +210,7 @@ export function useAccountsPayable() {
           await supabase.from('account_payments').insert({
             account_payable_id: id,
             empresa_id: empresa!.id,
-            data_pagamento: form.dataPagamento.toISOString().split('T')[0],
+            data_pagamento: formatDateToISO(form.dataPagamento!),
             valor_original: liquido,
             juros: 0,
             multa: 0,
@@ -243,7 +244,7 @@ export function useAccountsPayable() {
     const { error: payError } = await supabase.from('account_payments').insert({
       account_payable_id: data.accountPayableId,
       empresa_id: empresa.id,
-      data_pagamento: data.dataPagamento.toISOString().split('T')[0],
+      data_pagamento: formatDateToISO(data.dataPagamento),
       valor_original: data.valorOriginal,
       juros: data.juros,
       multa: data.multa,
@@ -271,7 +272,7 @@ export function useAccountsPayable() {
       .from('accounts_payable')
       .update({
         status: newStatus,
-        data_pagamento: newStatus === 'liquidado' ? data.dataPagamento.toISOString().split('T')[0] : null,
+        data_pagamento: newStatus === 'liquidado' ? formatDateToISO(data.dataPagamento) : null,
         metodo_pagamento: data.metodoPagamento,
       })
       .eq('id', data.accountPayableId);
