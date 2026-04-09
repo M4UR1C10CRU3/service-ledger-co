@@ -52,21 +52,42 @@ const MONTH_OPTIONS = [
 
 export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props) {
   const { empresa, getLogo } = useEmpresa();
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const [month, setMonth] = useState('all');
+  const [emissaoYear, setEmissaoYear] = useState(String(new Date().getFullYear()));
+  const [emissaoMonth, setEmissaoMonth] = useState('all');
+  const [vencimentoYear, setVencimentoYear] = useState('all');
+  const [vencimentoMonth, setVencimentoMonth] = useState('all');
+
+  const yearOptionsWithAll = useMemo(() => ['all', ...getYearOptions()], []);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
-      const d = a.dataVencimento || a.dataEmissao;
-      const aYear = d.substring(0, 4);
-      if (aYear !== year) return false;
-      if (month !== 'all') {
-        const aMonth = parseInt(d.substring(5, 7));
-        if (aMonth !== parseInt(month)) return false;
+      // Filtro por Emissão
+      if (emissaoYear !== 'all') {
+        if (a.dataEmissao.substring(0, 4) !== emissaoYear) return false;
+        if (emissaoMonth !== 'all') {
+          if (parseInt(a.dataEmissao.substring(5, 7)) !== parseInt(emissaoMonth)) return false;
+        }
+      } else if (emissaoMonth !== 'all') {
+        if (parseInt(a.dataEmissao.substring(5, 7)) !== parseInt(emissaoMonth)) return false;
+      }
+      // Filtro por Vencimento
+      if (vencimentoYear !== 'all') {
+        const dv = a.dataVencimento || '';
+        if (dv.substring(0, 4) !== vencimentoYear) return false;
+        if (vencimentoMonth !== 'all') {
+          if (parseInt(dv.substring(5, 7)) !== parseInt(vencimentoMonth)) return false;
+        }
+      } else if (vencimentoMonth !== 'all') {
+        const dv = a.dataVencimento || '';
+        if (parseInt(dv.substring(5, 7)) !== parseInt(vencimentoMonth)) return false;
       }
       return true;
     });
-  }, [accounts, year, month]);
+  }, [accounts, emissaoYear, emissaoMonth, vencimentoYear, vencimentoMonth]);
+
+  // Derive year/month for sub-reports (prefer emissão, fallback vencimento)
+  const reportYear = emissaoYear !== 'all' ? emissaoYear : vencimentoYear !== 'all' ? vencimentoYear : String(new Date().getFullYear());
+  const reportMonth = emissaoMonth !== 'all' ? emissaoMonth : vencimentoMonth !== 'all' ? vencimentoMonth : 'all';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
