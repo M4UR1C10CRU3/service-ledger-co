@@ -1,4 +1,5 @@
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { parseLocalDate } from '@/lib/utils';
 import { ArrowUpDown, Eye, CheckCircle, Pencil, Trash2, Copy } from 'lucide-react';
 import { AccountPayable, TIPO_LANCAMENTO_LABELS, CATEGORIAS_POR_TIPO } from '@/types/accountPayable';
 import { Button } from '@/components/ui/button';
