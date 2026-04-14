@@ -131,7 +131,18 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
       setDuracao('');
       setCondicoesPagamento('Pagamento até 60 dias após a emissão de fatura.');
       setObservacoes('');
-      setLinhas([]);
+      // Default sections
+      setLinhas([
+        { ordem: 0, tipoLinha: 'seccao', referencia: '', designacao: 'MATERIAL', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 1, tipoLinha: 'artigo', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 2, tipoLinha: 'subtotal', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 3, tipoLinha: 'seccao', referencia: '', designacao: 'MÃO DE OBRA', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 4, tipoLinha: 'artigo', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 5, tipoLinha: 'subtotal', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 6, tipoLinha: 'seccao', referencia: '', designacao: 'LOGÍSTICA', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 7, tipoLinha: 'artigo', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+        { ordem: 8, tipoLinha: 'subtotal', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
+      ]);
       getNextNumber().then(({ formatted }) => setNumeroProposta(formatted));
     }
   }, [open, proposta]);
