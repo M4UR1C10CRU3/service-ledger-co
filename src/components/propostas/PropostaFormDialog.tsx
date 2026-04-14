@@ -171,6 +171,25 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
     });
   };
 
+  // Handle "com IVA" toggle: recalc precoUnitario from gross or net
+  const toggleLinhaIva = (idx: number, comIva: boolean) => {
+    setLinhaComIva(prev => ({ ...prev, [idx]: comIva }));
+    setLinhas(prev => {
+      const next = [...prev];
+      const l = { ...next[idx] };
+      if (comIva && l.precoUnitario > 0) {
+        // User says price includes IVA — extract net price
+        l.precoUnitario = Number((l.precoUnitario / (1 + taxaIva / 100)).toFixed(4));
+      } else if (!comIva && linhaComIva[idx] && l.precoUnitario > 0) {
+        // Switching back: restore gross
+        l.precoUnitario = Number((l.precoUnitario * (1 + taxaIva / 100)).toFixed(4));
+      }
+      l.totalLinha = recalcLinhaTotal(l);
+      next[idx] = l;
+      return next;
+    });
+  };
+
   const addLinha = (tipo: TipoLinha) => {
     setLinhas(prev => [...prev, emptyLinha(prev.length, tipo)]);
   };
