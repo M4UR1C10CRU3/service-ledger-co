@@ -172,23 +172,41 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
     });
   };
 
-  // Handle "com IVA" toggle: recalc precoUnitario from gross or net
+  // Handle "com IVA" toggle: when checked, the displayed value stays the same
+  // but internally we store the net (sem IVA) price. When unchecked, value = net price directly.
   const toggleLinhaIva = (idx: number, comIva: boolean) => {
     setLinhaComIva(prev => ({ ...prev, [idx]: comIva }));
     setLinhas(prev => {
       const next = [...prev];
       const l = { ...next[idx] };
-      if (comIva && l.precoUnitario > 0) {
-        // User says price includes IVA — extract net price
+      if (comIva && !linhaComIva[idx] && l.precoUnitario > 0) {
+        // Turning ON: user says the current value already includes IVA
+        // Store the net value internally, display stays the same via getDisplayPrice
         l.precoUnitario = Number((l.precoUnitario / (1 + taxaIva / 100)).toFixed(4));
       } else if (!comIva && linhaComIva[idx] && l.precoUnitario > 0) {
-        // Switching back: restore gross
-        l.precoUnitario = Number((l.precoUnitario * (1 + taxaIva / 100)).toFixed(4));
+        // Turning OFF: restore to net value (which is already stored), no change needed
+        // precoUnitario is already net, so do nothing
       }
       l.totalLinha = recalcLinhaTotal(l);
       next[idx] = l;
       return next;
     });
+  };
+
+  // Get display price: if "c/ IVA" is checked, show gross value; otherwise show net
+  const getDisplayPrice = (idx: number, precoUnitario: number): number => {
+    if (linhaComIva[idx]) {
+      return Number((precoUnitario * (1 + taxaIva / 100)).toFixed(4));
+    }
+    return precoUnitario;
+  };
+
+  // Handle price input: if "c/ IVA" is checked, convert displayed gross to net for storage
+  const handlePriceChange = (idx: number, displayValue: number) => {
+    const netValue = linhaComIva[idx]
+      ? Number((displayValue / (1 + taxaIva / 100)).toFixed(4))
+      : displayValue;
+    updateLinha(idx, 'precoUnitario', netValue);
   };
 
   const addLinha = (tipo: TipoLinha) => {
@@ -680,8 +698,8 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={l.precoUnitario}
-                                onChange={e => updateLinha(idx, 'precoUnitario', Number(e.target.value))}
+                                value={getDisplayPrice(idx, l.precoUnitario)}
+                                onChange={e => handlePriceChange(idx, Number(e.target.value))}
                                 className="text-sm h-8 text-right w-28"
                               />
                               <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
