@@ -51,7 +51,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
   const { clientes } = useClientes();
   const { produtos } = useProdutos();
   const { employees } = useEmployees();
-  const { empresa } = useEmpresa();
+  const { empresa, getLogo } = useEmpresa();
   const { toast } = useToast();
 
   const [numeroProposta, setNumeroProposta] = useState('');
