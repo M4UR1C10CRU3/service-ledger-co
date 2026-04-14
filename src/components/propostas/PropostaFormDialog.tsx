@@ -254,7 +254,18 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
       return next;
     });
     setActiveProdutoDropdown(null);
+    setActiveDesignacaoDropdown(null);
     setProdutoSearches(prev => ({ ...prev, [idx]: '' }));
+    setDesignacaoSearches(prev => ({ ...prev, [idx]: '' }));
+  };
+
+  // Designação search
+  const getFilteredProdutosByDesignacao = (idx: number) => {
+    const s = (designacaoSearches[idx] || '').toLowerCase();
+    if (!s || s.length < 2) return [];
+    return produtos.filter(p =>
+      p.descricao.toLowerCase().includes(s) || p.refInterna.toLowerCase().includes(s)
+    ).slice(0, 8);
   };
 
   // Drag and drop
