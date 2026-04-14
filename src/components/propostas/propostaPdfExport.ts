@@ -35,11 +35,10 @@ function getSubtotal(linhas: PropostaLinhaForm[], idx: number): number {
   return sum;
 }
 
-export function exportPropostaPdf(data: PdfData, empresa: any) {
+export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   // Dynamic company branding
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
-  const logoPath = empresa?.logoPath || '';
 
   const dataFormatted = data.dataEmissao
     ? new Date(data.dataEmissao).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')
