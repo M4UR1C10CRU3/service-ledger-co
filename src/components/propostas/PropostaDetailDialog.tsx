@@ -29,7 +29,7 @@ const estadoColor: Record<PropostaEstado, string> = {
 
 export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: Props) {
   const { fetchLinhas, updateEstado } = usePropostas();
-  const { empresa } = useEmpresa();
+  const { empresa, getLogo } = useEmpresa();
   const { toast } = useToast();
   const [linhas, setLinhas] = useState<PropostaLinha[]>([]);
 
@@ -48,6 +48,23 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
   };
 
   const handlePdf = () => {
+    const logoSrc = getLogo();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL('image/png');
+      doExportPdf(dataUrl);
+    };
+    img.onerror = () => doExportPdf();
+    img.src = logoSrc;
+  };
+
+  const doExportPdf = (logoDataUrl?: string) => {
     exportPropostaPdf({
       numeroProposta: proposta.numeroProposta,
       clienteNome: proposta.clienteNome || '',
@@ -79,7 +96,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
       duracao: proposta.duracao || '',
       condicoesPagamento: proposta.condicoesPagamento || '',
       observacoes: proposta.observacoes || '',
-    }, empresa);
+    }, empresa, logoDataUrl);
   };
 
   const handleExcel = () => {
