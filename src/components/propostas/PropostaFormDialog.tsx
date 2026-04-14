@@ -76,7 +76,10 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
   const [produtoSearches, setProdutoSearches] = useState<Record<number, string>>({});
   const [activeProdutoDropdown, setActiveProdutoDropdown] = useState<number | null>(null);
+  const [activeDesignacaoDropdown, setActiveDesignacaoDropdown] = useState<number | null>(null);
+  const [designacaoSearches, setDesignacaoSearches] = useState<Record<number, string>>({});
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [linhaComIva, setLinhaComIva] = useState<Record<number, boolean>>({});
 
   // Load data when editing
   useEffect(() => {
