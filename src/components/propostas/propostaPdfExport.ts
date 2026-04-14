@@ -93,7 +93,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
   @media print { body { padding: 0; } }
 </style></head><body>
   <div class="header">
-    <div class="logo"><img src="" alt="${cfg.nomeDocumento}" /></div>
+    <div class="logo">${logoDataUrl ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" />` : `<strong style="font-size:16px;color:${primaryColor}">${cfg.nomeDocumento}</strong>`}</div>
     <div class="proposta-num">
       <span style="font-size:10px;color:#888">Não entra para SAF-T</span><br/>
       <strong>Pre-Proposta Nº ${data.numeroProposta}</strong><br/>
