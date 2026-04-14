@@ -698,8 +698,8 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                               <Input
                                 type="number"
                                 step="0.01"
-                                value={l.precoUnitario}
-                                onChange={e => updateLinha(idx, 'precoUnitario', Number(e.target.value))}
+                                value={getDisplayPrice(idx, l.precoUnitario)}
+                                onChange={e => handlePriceChange(idx, Number(e.target.value))}
                                 className="text-sm h-8 text-right w-28"
                               />
                               <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
