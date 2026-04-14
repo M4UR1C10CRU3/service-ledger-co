@@ -123,7 +123,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
     <span>Hora de emissão: ${data.horaEmissao}</span>
   </div>
 
-  <div class="phc-note">Software PHC — Emitido por programa certificado nº 0006/AT — Este documento não serve de fatura</div>
+  <div class="phc-note">Liberty Empresas — Vers. 1.0 — Este documento não serve de fatura</div>
 
   ${data.titulo ? `<p style="font-weight:bold;margin-bottom:5px">Trabalhos a executar:</p>` : ''}
   ${data.descricaoGeral ? `<p style="font-size:11px;margin-bottom:10px">${data.descricaoGeral}</p>` : ''}
