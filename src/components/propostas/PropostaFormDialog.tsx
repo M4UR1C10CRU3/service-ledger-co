@@ -51,7 +51,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
   const { clientes } = useClientes();
   const { produtos } = useProdutos();
   const { employees } = useEmployees();
-  const { empresa } = useEmpresa();
+  const { empresa, getLogo } = useEmpresa();
   const { toast } = useToast();
 
   const [numeroProposta, setNumeroProposta] = useState('');
@@ -327,14 +327,36 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
   };
 
   const handleExportPdf = () => {
-    exportPropostaPdf({
-      numeroProposta, clienteNome, clienteMorada, clienteNif,
-      vendedorNome, dataEmissao,
-      horaEmissao: proposta?.horaEmissao || new Date().toLocaleTimeString('pt-PT'),
-      titulo, descricaoGeral, linhas, taxaIva,
-      totalSemIva, valorIva, totalComIva,
-      condicoesGerais, validadeTexto, duracao, condicoesPagamento, observacoes,
-    }, empresa);
+    const logoSrc = getLogo();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL('image/png');
+      exportPropostaPdf({
+        numeroProposta, clienteNome, clienteMorada, clienteNif,
+        vendedorNome, dataEmissao,
+        horaEmissao: proposta?.horaEmissao || new Date().toLocaleTimeString('pt-PT'),
+        titulo, descricaoGeral, linhas, taxaIva,
+        totalSemIva, valorIva, totalComIva,
+        condicoesGerais, validadeTexto, duracao, condicoesPagamento, observacoes,
+      }, empresa, dataUrl);
+    };
+    img.onerror = () => {
+      exportPropostaPdf({
+        numeroProposta, clienteNome, clienteMorada, clienteNif,
+        vendedorNome, dataEmissao,
+        horaEmissao: proposta?.horaEmissao || new Date().toLocaleTimeString('pt-PT'),
+        titulo, descricaoGeral, linhas, taxaIva,
+        totalSemIva, valorIva, totalComIva,
+        condicoesGerais, validadeTexto, duracao, condicoesPagamento, observacoes,
+      }, empresa);
+    };
+    img.src = logoSrc;
   };
 
   const handleExportExcel = () => {

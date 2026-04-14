@@ -35,11 +35,10 @@ function getSubtotal(linhas: PropostaLinhaForm[], idx: number): number {
   return sum;
 }
 
-export function exportPropostaPdf(data: PdfData, empresa: any) {
+export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   // Dynamic company branding
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
-  const logoPath = empresa?.logoPath || '';
 
   const dataFormatted = data.dataEmissao
     ? new Date(data.dataEmissao).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')
@@ -94,7 +93,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
   @media print { body { padding: 0; } }
 </style></head><body>
   <div class="header">
-    <div class="logo"><img src="" alt="${cfg.nomeDocumento}" /></div>
+    <div class="logo">${logoDataUrl ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" />` : `<strong style="font-size:16px;color:${primaryColor}">${cfg.nomeDocumento}</strong>`}</div>
     <div class="proposta-num">
       <span style="font-size:10px;color:#888">Não entra para SAF-T</span><br/>
       <strong>Pre-Proposta Nº ${data.numeroProposta}</strong><br/>
@@ -124,7 +123,7 @@ export function exportPropostaPdf(data: PdfData, empresa: any) {
     <span>Hora de emissão: ${data.horaEmissao}</span>
   </div>
 
-  <div class="phc-note">Software PHC — Emitido por programa certificado nº 0006/AT — Este documento não serve de fatura</div>
+  <div class="phc-note">Liberty Empresas — Vers. 1.0 — Este documento não serve de fatura</div>
 
   ${data.titulo ? `<p style="font-weight:bold;margin-bottom:5px">Trabalhos a executar:</p>` : ''}
   ${data.descricaoGeral ? `<p style="font-size:11px;margin-bottom:10px">${data.descricaoGeral}</p>` : ''}
