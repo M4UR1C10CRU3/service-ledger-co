@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useClientes } from '@/hooks/useClientes';
 import { useProdutos } from '@/hooks/useProdutos';
@@ -627,13 +628,36 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                               </div>
                             )}
                           </td>
-                          <td className="p-1">
+                          <td className="p-1 relative">
                             <Input
                               value={l.designacao}
-                              onChange={e => updateLinha(idx, 'designacao', e.target.value)}
+                              onChange={e => {
+                                updateLinha(idx, 'designacao', e.target.value);
+                                setDesignacaoSearches(prev => ({ ...prev, [idx]: e.target.value }));
+                                setActiveDesignacaoDropdown(idx);
+                              }}
+                              onFocus={() => {
+                                if ((l.designacao || '').length >= 2) setActiveDesignacaoDropdown(idx);
+                              }}
+                              onBlur={() => setTimeout(() => setActiveDesignacaoDropdown(null), 200)}
                               placeholder="Designação..."
                               className="text-sm h-8"
                             />
+                            {activeDesignacaoDropdown === idx && getFilteredProdutosByDesignacao(idx).length > 0 && (
+                              <div className="absolute z-30 mt-1 w-80 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                                {getFilteredProdutosByDesignacao(idx).map(p => (
+                                  <div
+                                    key={p.id}
+                                    className="px-3 py-1.5 text-xs cursor-pointer hover:bg-muted/50"
+                                    onMouseDown={() => selectProduto(idx, p)}
+                                  >
+                                    <span className="font-medium">{p.refInterna}</span>
+                                    <span className="text-muted-foreground ml-2">— {p.descricao}</span>
+                                    {p.unidade && <span className="text-muted-foreground ml-1">({p.unidade})</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="p-1">
                             <Input
@@ -652,13 +676,23 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                             />
                           </td>
                           <td className="p-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={l.precoUnitario}
-                              onChange={e => updateLinha(idx, 'precoUnitario', Number(e.target.value))}
-                              className="text-sm h-8 text-right w-28"
-                            />
+                            <div className="flex flex-col gap-0.5">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={l.precoUnitario}
+                                onChange={e => updateLinha(idx, 'precoUnitario', Number(e.target.value))}
+                                className="text-sm h-8 text-right w-28"
+                              />
+                              <label className="flex items-center gap-1 text-[10px] text-muted-foreground cursor-pointer">
+                                <Checkbox
+                                  checked={!!linhaComIva[idx]}
+                                  onCheckedChange={(checked) => toggleLinhaIva(idx, !!checked)}
+                                  className="h-3 w-3"
+                                />
+                                c/ IVA
+                              </label>
+                            </div>
                           </td>
                           <td className="p-1">
                             <Input
