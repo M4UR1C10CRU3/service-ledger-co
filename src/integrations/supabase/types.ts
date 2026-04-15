@@ -556,6 +556,7 @@ export type Database = {
           email_subject: string | null
           email_type: string | null
           empresa_id: string
+          followup_date: string | null
           id: string
           notas: string | null
           sent_at: string | null
@@ -570,6 +571,7 @@ export type Database = {
           email_subject?: string | null
           email_type?: string | null
           empresa_id: string
+          followup_date?: string | null
           id?: string
           notas?: string | null
           sent_at?: string | null
@@ -584,6 +586,7 @@ export type Database = {
           email_subject?: string | null
           email_type?: string | null
           empresa_id?: string
+          followup_date?: string | null
           id?: string
           notas?: string | null
           sent_at?: string | null
