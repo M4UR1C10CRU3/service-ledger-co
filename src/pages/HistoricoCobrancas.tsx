@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -13,9 +14,17 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Search, Mail, ChevronLeft, ChevronRight, History,
-  Send, Clock, CalendarDays,
+  Send, Clock, CalendarDays, Eye, Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EmailRecord {
   id: string;
@@ -37,28 +46,37 @@ const HistoricoCobrancas = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  useEffect(() => {
-    const loadHistory = async () => {
-      if (!empresa?.id) return;
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('email_history')
-          .select('*')
-          .eq('empresa_id', empresa.id)
-          .order('sent_at', { ascending: false });
+  // Detail dialog
+  const [detailRecord, setDetailRecord] = useState<EmailRecord | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
-        if (error) {
-          console.error('Error loading email history:', error);
-        } else {
-          setRecords(data || []);
-        }
-      } catch (err) {
-        console.error('Error:', err);
-      } finally {
-        setIsLoading(false);
+  // Delete confirmation
+  const [deleteRecord, setDeleteRecord] = useState<EmailRecord | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const loadHistory = async () => {
+    if (!empresa?.id) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('email_history')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .order('sent_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading email history:', error);
+      } else {
+        setRecords(data || []);
       }
-    };
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadHistory();
   }, [empresa?.id]);
 
@@ -75,7 +93,6 @@ const HistoricoCobrancas = () => {
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  // Stats
   const stats = useMemo(() => ({
     total: records.length,
     totalValor: records.reduce((s, r) => s + (r.valor_debito || 0), 0),
@@ -86,6 +103,37 @@ const HistoricoCobrancas = () => {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
     return d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getTipoLabel = (tipo: string | null) => {
+    if (!tipo) return 'E-mail';
+    const map: Record<string, string> = {
+      email: 'E-mail',
+      whatsapp: 'WhatsApp',
+      telefone: 'Telefone',
+      presencial: 'Presencial',
+    };
+    return map[tipo] || tipo;
+  };
+
+  const handleDelete = async () => {
+    if (!deleteRecord) return;
+    try {
+      const { error } = await supabase
+        .from('email_history')
+        .delete()
+        .eq('id', deleteRecord.id);
+
+      if (error) throw error;
+      toast.success('Registo eliminado com sucesso');
+      setRecords(prev => prev.filter(r => r.id !== deleteRecord.id));
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao eliminar registo');
+    } finally {
+      setDeleteOpen(false);
+      setDeleteRecord(null);
+    }
   };
 
   if (isLoading) {
@@ -180,12 +228,13 @@ const HistoricoCobrancas = () => {
                 <TableHead className="text-right">Valor Débito</TableHead>
                 <TableHead className="text-right">Dias Atraso</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-center w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <History className="h-8 w-8" />
                       <p className="font-medium">Sem registos</p>
@@ -195,7 +244,7 @@ const HistoricoCobrancas = () => {
                 </TableRow>
               ) : (
                 paginated.map(record => (
-                  <TableRow key={record.id}>
+                  <TableRow key={record.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setDetailRecord(record); setDetailOpen(true); }}>
                     <TableCell>
                       <div className="flex items-center gap-1.5 text-sm">
                         <Clock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -231,6 +280,28 @@ const HistoricoCobrancas = () => {
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                         Registada
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Ver detalhes"
+                          onClick={e => { e.stopPropagation(); setDetailRecord(record); setDetailOpen(true); }}
+                        >
+                          <Eye className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Eliminar"
+                          onClick={e => { e.stopPropagation(); setDeleteRecord(record); setDeleteOpen(true); }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -268,6 +339,98 @@ const HistoricoCobrancas = () => {
           </div>
         </div>
       )}
+
+      {/* Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Detalhes da Cobrança
+            </DialogTitle>
+          </DialogHeader>
+          {detailRecord && (
+            <div className="space-y-4 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-foreground text-base">{detailRecord.cliente_nome}</span>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Registada</Badge>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-muted-foreground">Data/Hora:</span>
+                  <p className="font-medium">{formatDate(detailRecord.sent_at)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Meio de Contacto:</span>
+                  <p className="font-medium">{getTipoLabel(detailRecord.email_type)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">E-mail:</span>
+                  <p className="font-medium">{detailRecord.cliente_email}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Valor Débito:</span>
+                  <p className="font-bold text-destructive">{detailRecord.valor_debito ? formatEUR(detailRecord.valor_debito) : '—'}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <span className="text-muted-foreground">Dias em Atraso:</span>
+                <span className="ml-2 font-medium">{detailRecord.dias_atraso != null ? `${detailRecord.dias_atraso} dias` : '—'}</span>
+              </div>
+
+              <div>
+                <span className="text-muted-foreground">Assunto:</span>
+                <p className="font-medium mt-1">{detailRecord.email_subject || '—'}</p>
+              </div>
+
+              <div>
+                <span className="text-muted-foreground">ID Serviço:</span>
+                <p className="font-mono text-xs mt-1">{detailRecord.service_id}</p>
+              </div>
+
+              <Separator />
+
+              <DialogFooter>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => { setDetailOpen(false); setDeleteRecord(detailRecord); setDeleteOpen(true); }}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Eliminar
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setDetailOpen(false)}>
+                  Fechar
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Registo de Cobrança</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que pretende eliminar este registo de cobrança de <strong>{deleteRecord?.cliente_nome}</strong>? Esta ação não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
