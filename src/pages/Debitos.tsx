@@ -243,10 +243,10 @@ const Debitos = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={() => {
             const selected = debitosFiltrados.filter(d => selectedIds.has(d.id));
-            openEmailDialog(selected.length > 0 ? selected : []);
+            openContactDialog(selected.length > 0 ? selected : []);
           }} disabled={selectedIds.size === 0}>
-            <Mail className="h-4 w-4 mr-1" />
-            Enviar Cobranças ({selectedIds.size})
+            <Send className="h-4 w-4 mr-1" />
+            Registar Cobranças ({selectedIds.size})
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-1" />
