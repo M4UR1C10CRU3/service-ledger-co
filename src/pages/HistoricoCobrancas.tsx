@@ -390,6 +390,15 @@ const HistoricoCobrancas = () => {
                 <p className="font-medium mt-1">{detailRecord.email_subject || '—'}</p>
               </div>
 
+              {detailRecord.notas && (
+                <div>
+                  <span className="text-muted-foreground">Anotações / Apontamentos:</span>
+                  <p className="font-medium mt-1 whitespace-pre-wrap bg-muted/50 rounded-md p-3 text-sm">
+                    {detailRecord.notas}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <span className="text-muted-foreground">ID Serviço:</span>
                 <p className="font-mono text-xs mt-1">{detailRecord.service_id}</p>
