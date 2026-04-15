@@ -400,6 +400,15 @@ const HistoricoCobrancas = () => {
                 </div>
               )}
 
+              {detailRecord.followup_date && (
+                <div>
+                  <span className="text-muted-foreground">📅 Próximo Contacto Agendado:</span>
+                  <p className="font-medium mt-1 text-primary">
+                    {new Date(detailRecord.followup_date).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              )}
+
               <div>
                 <span className="text-muted-foreground">ID Serviço:</span>
                 <p className="font-mono text-xs mt-1">{detailRecord.service_id}</p>
