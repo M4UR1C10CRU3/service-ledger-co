@@ -202,6 +202,7 @@ const Debitos = () => {
           valor_debito: debito.executadoEmDebito,
           dias_atraso: debito.diasEmAtraso,
           notas: contactoNotas || null,
+          followup_date: agendarFollowup && followupData ? followupData : null,
         } as any);
         sent++;
       } catch {
