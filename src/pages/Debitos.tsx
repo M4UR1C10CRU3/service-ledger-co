@@ -21,10 +21,14 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertTriangle, Search, Mail, Download, Filter,
   ChevronLeft, ChevronRight, Eye, Clock, TrendingDown,
   Users, Calculator, Send, CheckCircle2, XCircle,
+  Phone, MessageCircle, MapPin,
 } from 'lucide-react';
 
 type CategoriaAtraso = 'ate30' | '31a90' | 'acima90';
