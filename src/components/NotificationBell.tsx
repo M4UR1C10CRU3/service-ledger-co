@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatDateToISO } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Bell, AlertTriangle, Clock, ArrowRight, X } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, ArrowRight, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,7 +16,16 @@ interface AlertAccount {
   valorLiquido: number;
   dataVencimento: string;
   status: string;
-  daysUntilDue: number; // negative = overdue
+  daysUntilDue: number;
+}
+
+interface FollowupAlert {
+  id: string;
+  clienteNome: string;
+  followupDate: string;
+  valorDebito: number | null;
+  emailType: string | null;
+  minutesUntil: number;
 }
 
 const fmt = (v: number) =>
@@ -27,10 +36,24 @@ const formatDatePT = (d: string) => {
   return `${day}/${m}/${y}`;
 };
 
+const formatDateTimePT = (d: string) => {
+  const date = new Date(d);
+  return date.toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const getMeioLabel = (emailType: string | null) => {
+  if (!emailType) return 'Contacto';
+  if (emailType.includes('whatsapp')) return 'WhatsApp';
+  if (emailType.includes('telefone')) return 'Telefone';
+  if (emailType.includes('presencial')) return 'Presencial';
+  return 'E-mail';
+};
+
 export function NotificationBell() {
   const { empresa } = useEmpresa();
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState<AlertAccount[]>([]);
+  const [followupAlerts, setFollowupAlerts] = useState<FollowupAlert[]>([]);
   const [open, setOpen] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
@@ -40,11 +63,11 @@ export function NotificationBell() {
     today.setHours(0, 0, 0, 0);
     const todayStr = formatDateToISO(today);
 
-    // Get accounts due within 2 days or already overdue
     const twoDaysFromNow = new Date(today);
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
     const limitStr = formatDateToISO(twoDaysFromNow);
 
+    // Fetch accounts payable alerts
     const { data, error } = await supabase
       .from('accounts_payable')
       .select('id, descricao, valor_liquido, data_vencimento, status, supplier_id, suppliers(razao_social)')
@@ -54,46 +77,102 @@ export function NotificationBell() {
       .lte('data_vencimento', limitStr)
       .order('data_vencimento', { ascending: true });
 
-    if (error || !data) return;
+    if (!error && data) {
+      const mapped: AlertAccount[] = data.map((row: any) => {
+        const dueDate = new Date(row.data_vencimento);
+        const diffTime = dueDate.getTime() - today.getTime();
+        const daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return {
+          id: row.id,
+          supplierName: row.suppliers?.razao_social || 'Fornecedor desconhecido',
+          descricao: row.descricao,
+          valorLiquido: Number(row.valor_liquido) || 0,
+          dataVencimento: row.data_vencimento,
+          status: row.status,
+          daysUntilDue,
+        };
+      });
+      setAlerts(mapped);
+    }
 
-    const mapped: AlertAccount[] = data.map((row: any) => {
-      const dueDate = new Date(row.data_vencimento);
-      const diffTime = dueDate.getTime() - today.getTime();
-      const daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // Fetch follow-up alerts for debt collection contacts
+    const now = new Date();
+    const oneDayFromNow = new Date(now);
+    oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
 
-      return {
-        id: row.id,
-        supplierName: row.suppliers?.razao_social || 'Fornecedor desconhecido',
-        descricao: row.descricao,
-        valorLiquido: Number(row.valor_liquido) || 0,
-        dataVencimento: row.data_vencimento,
-        status: row.status,
-        daysUntilDue,
-      };
-    });
+    const { data: followups, error: fError } = await supabase
+      .from('email_history')
+      .select('id, cliente_nome, followup_date, valor_debito, email_type')
+      .eq('empresa_id', empresa.id)
+      .not('followup_date', 'is', null)
+      .lte('followup_date', oneDayFromNow.toISOString())
+      .order('followup_date', { ascending: true });
 
-    setAlerts(mapped);
+    if (!fError && followups) {
+      const mapped: FollowupAlert[] = (followups as any[]).map(row => {
+        const fDate = new Date(row.followup_date);
+        const diffMs = fDate.getTime() - now.getTime();
+        const minutesUntil = Math.round(diffMs / 60000);
+        return {
+          id: row.id,
+          clienteNome: row.cliente_nome,
+          followupDate: row.followup_date,
+          valorDebito: row.valor_debito ? Number(row.valor_debito) : null,
+          emailType: row.email_type,
+          minutesUntil,
+        };
+      });
+      setFollowupAlerts(mapped);
+    }
   }, [empresa?.id]);
 
   useEffect(() => {
     fetchAlerts();
-    // Refresh every 5 minutes
     const interval = setInterval(fetchAlerts, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchAlerts]);
 
   const overdueAlerts = alerts.filter(a => a.daysUntilDue < 0);
   const nearDueAlerts = alerts.filter(a => a.daysUntilDue >= 0);
-  const totalAlerts = alerts.length;
+  const overdueFollowups = followupAlerts.filter(f => f.minutesUntil <= 0);
+  const upcomingFollowups = followupAlerts.filter(f => f.minutesUntil > 0);
+  const totalAlerts = alerts.length + followupAlerts.length;
 
   const handleViewAll = () => {
     setOpen(false);
     navigate('/despesas?filter=critico');
   };
 
-  const handleClickAlert = (alert: AlertAccount) => {
+  const handleClickAlert = () => {
     setOpen(false);
     navigate('/despesas?filter=critico');
+  };
+
+  const handleClickFollowup = () => {
+    setOpen(false);
+    navigate('/debitos');
+  };
+
+  const getFollowupTimeLabel = (f: FollowupAlert) => {
+    if (f.minutesUntil <= -1440) {
+      const days = Math.abs(Math.round(f.minutesUntil / 1440));
+      return `⏰ Atrasado há ${days} dia${days !== 1 ? 's' : ''}`;
+    }
+    if (f.minutesUntil <= -60) {
+      const hours = Math.abs(Math.round(f.minutesUntil / 60));
+      return `⏰ Atrasado há ${hours} hora${hours !== 1 ? 's' : ''}`;
+    }
+    if (f.minutesUntil <= 0) {
+      return '⏰ Agora!';
+    }
+    if (f.minutesUntil <= 60) {
+      return `🔔 Em ${f.minutesUntil} min`;
+    }
+    if (f.minutesUntil <= 1440) {
+      const hours = Math.round(f.minutesUntil / 60);
+      return `🔔 Em ${hours} hora${hours !== 1 ? 's' : ''}`;
+    }
+    return `🔔 ${formatDateTimePT(f.followupDate)}`;
   };
 
   return (
@@ -135,19 +214,91 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {/* Overdue section */}
+              {/* Follow-up overdue section */}
+              {overdueFollowups.length > 0 && (
+                <div>
+                  <div className="px-4 py-2 bg-orange-500/10">
+                    <p className="text-xs font-semibold text-orange-600 flex items-center gap-1.5">
+                      <Phone className="h-3 w-3" />
+                      Cobranças — Contactar agora ({overdueFollowups.length})
+                    </p>
+                  </div>
+                  {overdueFollowups.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={handleClickFollowup}
+                      className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{f.clienteNome}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Via {getMeioLabel(f.emailType)}
+                          </p>
+                          <p className="text-xs text-orange-600 mt-1">
+                            {getFollowupTimeLabel(f)} — {formatDateTimePT(f.followupDate)}
+                          </p>
+                        </div>
+                        {f.valorDebito && (
+                          <span className="text-sm font-semibold text-orange-600 whitespace-nowrap">
+                            {fmt(f.valorDebito)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Follow-up upcoming section */}
+              {upcomingFollowups.length > 0 && (
+                <div>
+                  <div className="px-4 py-2 bg-blue-500/10">
+                    <p className="text-xs font-semibold text-blue-600 flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" />
+                      Cobranças — Próximos contactos ({upcomingFollowups.length})
+                    </p>
+                  </div>
+                  {upcomingFollowups.map(f => (
+                    <button
+                      key={f.id}
+                      onClick={handleClickFollowup}
+                      className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{f.clienteNome}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Via {getMeioLabel(f.emailType)}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">
+                            {getFollowupTimeLabel(f)}
+                          </p>
+                        </div>
+                        {f.valorDebito && (
+                          <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
+                            {fmt(f.valorDebito)}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Overdue accounts section */}
               {overdueAlerts.length > 0 && (
                 <div>
                   <div className="px-4 py-2 bg-destructive/5">
                     <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
                       <AlertTriangle className="h-3 w-3" />
-                      Vencidas ({overdueAlerts.length})
+                      Contas vencidas ({overdueAlerts.length})
                     </p>
                   </div>
                   {overdueAlerts.map(alert => (
                     <button
                       key={alert.id}
-                      onClick={() => handleClickAlert(alert)}
+                      onClick={handleClickAlert}
                       className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -181,7 +332,7 @@ export function NotificationBell() {
                   {nearDueAlerts.map(alert => (
                     <button
                       key={alert.id}
-                      onClick={() => handleClickAlert(alert)}
+                      onClick={handleClickAlert}
                       className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
                     >
                       <div className="flex items-start justify-between gap-2">

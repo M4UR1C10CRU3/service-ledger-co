@@ -37,6 +37,7 @@ interface EmailRecord {
   sent_at: string | null;
   service_id: string;
   notas: string | null;
+  followup_date: string | null;
 }
 
 const HistoricoCobrancas = () => {
@@ -395,6 +396,15 @@ const HistoricoCobrancas = () => {
                   <span className="text-muted-foreground">Anotações / Apontamentos:</span>
                   <p className="font-medium mt-1 whitespace-pre-wrap bg-muted/50 rounded-md p-3 text-sm">
                     {detailRecord.notas}
+                  </p>
+                </div>
+              )}
+
+              {detailRecord.followup_date && (
+                <div>
+                  <span className="text-muted-foreground">📅 Próximo Contacto Agendado:</span>
+                  <p className="font-medium mt-1 text-primary">
+                    {new Date(detailRecord.followup_date).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
               )}
