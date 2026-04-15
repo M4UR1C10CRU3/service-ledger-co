@@ -557,6 +557,7 @@ export type Database = {
           email_type: string | null
           empresa_id: string
           id: string
+          notas: string | null
           sent_at: string | null
           service_id: string
           valor_debito: number | null
@@ -570,6 +571,7 @@ export type Database = {
           email_type?: string | null
           empresa_id: string
           id?: string
+          notas?: string | null
           sent_at?: string | null
           service_id: string
           valor_debito?: number | null
@@ -583,6 +585,7 @@ export type Database = {
           email_type?: string | null
           empresa_id?: string
           id?: string
+          notas?: string | null
           sent_at?: string | null
           service_id?: string
           valor_debito?: number | null
