@@ -493,55 +493,115 @@ const Debitos = () => {
         </div>
       )}
 
-      {/* Email Confirmation Dialog */}
-      <Dialog open={emailDialog.open} onOpenChange={open => !emailDialog.sending && setEmailDialog(prev => ({ ...prev, open }))}>
-        <DialogContent>
+      {/* Contact / Collection Dialog */}
+      <Dialog open={contactDialog.open} onOpenChange={open => !contactDialog.sending && setContactDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5 text-primary" />
-              Confirmar Envio de Cobranças
+              Registar Contacto de Cobrança
             </DialogTitle>
             <DialogDescription>
-              Será registada a cobrança para os seguintes clientes:
+              Registe o contacto efetuado para os seguintes clientes:
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-60 overflow-y-auto space-y-2">
-            {emailDialog.debitos.map(d => {
+
+          {/* Clients list */}
+          <div className="max-h-40 overflow-y-auto space-y-2">
+            {contactDialog.debitos.map(d => {
               const email = d.email || getClienteEmail(d.cliente);
               return (
                 <div key={d.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-sm">
                   <div>
                     <p className="font-medium">{d.cliente}</p>
-                    <p className="text-xs text-muted-foreground">{email}</p>
+                    <p className="text-xs text-muted-foreground">{email || 'Sem email'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono font-bold text-danger">{formatEUR(d.executadoEmDebito)}</p>
+                    <p className="font-mono font-bold text-destructive">{formatEUR(d.executadoEmDebito)}</p>
                     <p className="text-xs text-muted-foreground">{d.diasEmAtraso} dias</p>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div className="rounded-lg bg-warning-lighter p-3 text-sm">
-            <p className="font-medium text-warning-foreground">⚠️ Nota</p>
-            <p className="text-warning-foreground/80 mt-1">
-              O envio de emails requer configuração do serviço de email. Nesta fase, as cobranças serão registadas no histórico para acompanhamento.
-            </p>
+
+          {/* Contact method */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Meio de Contacto</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { value: 'email', label: 'Email', icon: <Mail className="h-4 w-4" /> },
+                { value: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle className="h-4 w-4" /> },
+                { value: 'telefone', label: 'Telefone', icon: <Phone className="h-4 w-4" /> },
+                { value: 'presencial', label: 'Presencial', icon: <MapPin className="h-4 w-4" /> },
+              ].map(m => (
+                <Button
+                  key={m.value}
+                  type="button"
+                  variant={meioContacto === m.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex items-center gap-1.5"
+                  onClick={() => setMeioContacto(m.value)}
+                >
+                  {m.icon} {m.label}
+                </Button>
+              ))}
+            </div>
           </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Anotações / Apontamentos</Label>
+            <Textarea
+              value={contactoNotas}
+              onChange={e => setContactoNotas(e.target.value)}
+              placeholder="Descreva o resultado do contacto, compromissos assumidos, etc..."
+              rows={3}
+            />
+          </div>
+
+          {/* Follow-up scheduling */}
+          <div className="space-y-3 border-t pt-3">
+            <div className="flex items-center gap-3">
+              <Switch checked={agendarFollowup} onCheckedChange={setAgendarFollowup} />
+              <Label className="text-sm font-medium">Agendar novo contacto futuro</Label>
+            </div>
+            {agendarFollowup && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Data e Hora</Label>
+                <Input
+                  type="datetime-local"
+                  value={followupData}
+                  onChange={e => setFollowupData(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            )}
+          </div>
+
+          {meioContacto === 'email' && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-sm">
+              <p className="font-medium text-amber-800 dark:text-amber-200">⚠️ Nota</p>
+              <p className="text-amber-700 dark:text-amber-300 mt-1">
+                O envio de emails requer configuração do serviço de email. Nesta fase, as cobranças serão registadas no histórico para acompanhamento.
+              </p>
+            </div>
+          )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailDialog({ open: false, debitos: [], sending: false })} disabled={emailDialog.sending}>
+            <Button variant="outline" onClick={() => setContactDialog({ open: false, debitos: [], sending: false })} disabled={contactDialog.sending}>
               Cancelar
             </Button>
-            <Button onClick={handleSendEmails} disabled={emailDialog.sending}>
-              {emailDialog.sending ? (
+            <Button onClick={handleRegistarContacto} disabled={contactDialog.sending}>
+              {contactDialog.sending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  A enviar...
+                  A registar...
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-1" />
-                  Registar Cobranças ({emailDialog.debitos.length})
+                  Registar Cobranças ({contactDialog.debitos.length})
                 </>
               )}
             </Button>
