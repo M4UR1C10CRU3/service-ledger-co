@@ -83,12 +83,16 @@ const Debitos = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // Email dialog
-  const [emailDialog, setEmailDialog] = useState<{
+  // Contact dialog
+  const [contactDialog, setContactDialog] = useState<{
     open: boolean;
     debitos: ServiceWithCalculations[];
     sending: boolean;
   }>({ open: false, debitos: [], sending: false });
+  const [meioContacto, setMeioContacto] = useState<string>('email');
+  const [contactoNotas, setContactoNotas] = useState('');
+  const [agendarFollowup, setAgendarFollowup] = useState(false);
+  const [followupData, setFollowupData] = useState('');
 
   // Detail dialog
   const [detailService, setDetailService] = useState<ServiceWithCalculations | null>(null);
