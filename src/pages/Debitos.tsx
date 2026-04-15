@@ -448,11 +448,10 @@ const Debitos = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => openEmailDialog([debito])}
-                            disabled={!clienteEmail}
-                            title={clienteEmail ? 'Enviar cobrança' : 'Cliente sem email'}
+                            onClick={() => openContactDialog([debito])}
+                            title="Registar cobrança"
                           >
-                            <Mail className="h-4 w-4" />
+                            <Send className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
