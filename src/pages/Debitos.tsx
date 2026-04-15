@@ -653,9 +653,8 @@ const Debitos = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDetailService(null)}>Fechar</Button>
-                <Button onClick={() => { setDetailService(null); openEmailDialog([detailService]); }}
-                  disabled={!(detailService.email || getClienteEmail(detailService.cliente))}>
-                  <Mail className="h-4 w-4 mr-1" /> Enviar Cobrança
+                <Button onClick={() => { setDetailService(null); openContactDialog([detailService]); }}>
+                  <Send className="h-4 w-4 mr-1" /> Registar Cobrança
                 </Button>
               </DialogFooter>
             </>
