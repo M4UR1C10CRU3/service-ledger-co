@@ -580,9 +580,9 @@ const Debitos = () => {
           </div>
 
           {meioContacto === 'email' && (
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-sm">
-              <p className="font-medium text-amber-800 dark:text-amber-200">⚠️ Nota</p>
-              <p className="text-amber-700 dark:text-amber-300 mt-1">
+            <div className="rounded-lg bg-muted border border-border p-3 text-sm">
+              <p className="font-medium text-foreground">⚠️ Nota</p>
+              <p className="text-muted-foreground mt-1">
                 O envio de emails requer configuração do serviço de email. Nesta fase, as cobranças serão registadas no histórico para acompanhamento.
               </p>
             </div>
