@@ -36,6 +36,7 @@ interface EmailRecord {
   dias_atraso: number | null;
   sent_at: string | null;
   service_id: string;
+  notas: string | null;
 }
 
 const HistoricoCobrancas = () => {

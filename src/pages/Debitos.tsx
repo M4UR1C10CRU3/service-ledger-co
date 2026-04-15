@@ -201,7 +201,8 @@ const Debitos = () => {
           email_type: meioContacto === 'email' ? 'cobranca' : `cobranca_${meioContacto}`,
           valor_debito: debito.executadoEmDebito,
           dias_atraso: debito.diasEmAtraso,
-        });
+          notas: contactoNotas || null,
+        } as any);
         sent++;
       } catch {
         failed++;
