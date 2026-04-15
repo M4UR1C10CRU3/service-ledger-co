@@ -21,10 +21,14 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertTriangle, Search, Mail, Download, Filter,
   ChevronLeft, ChevronRight, Eye, Clock, TrendingDown,
   Users, Calculator, Send, CheckCircle2, XCircle,
+  Phone, MessageCircle, MapPin,
 } from 'lucide-react';
 
 type CategoriaAtraso = 'ate30' | '31a90' | 'acima90';
@@ -79,12 +83,16 @@ const Debitos = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  // Email dialog
-  const [emailDialog, setEmailDialog] = useState<{
+  // Contact dialog
+  const [contactDialog, setContactDialog] = useState<{
     open: boolean;
     debitos: ServiceWithCalculations[];
     sending: boolean;
   }>({ open: false, debitos: [], sending: false });
+  const [meioContacto, setMeioContacto] = useState<string>('email');
+  const [contactoNotas, setContactoNotas] = useState('');
+  const [agendarFollowup, setAgendarFollowup] = useState(false);
+  const [followupData, setFollowupData] = useState('');
 
   // Detail dialog
   const [detailService, setDetailService] = useState<ServiceWithCalculations | null>(null);
@@ -159,40 +167,38 @@ const Debitos = () => {
     return cliente?.email;
   };
 
-  // Open email dialog
-  const openEmailDialog = (debitos: ServiceWithCalculations[]) => {
-    const withEmail = debitos.filter(d => {
-      const email = d.email || getClienteEmail(d.cliente);
-      return !!email;
-    });
-    if (withEmail.length === 0) {
-      toast({ title: 'Sem emails', description: 'Nenhum dos clientes selecionados possui email cadastrado.', variant: 'destructive' });
+  // Open contact dialog
+  const openContactDialog = (debitos: ServiceWithCalculations[]) => {
+    if (debitos.length === 0) {
+      toast({ title: 'Sem seleção', description: 'Selecione pelo menos um débito.', variant: 'destructive' });
       return;
     }
-    setEmailDialog({ open: true, debitos: withEmail, sending: false });
+    setMeioContacto('email');
+    setContactoNotas('');
+    setAgendarFollowup(false);
+    setFollowupData('');
+    setContactDialog({ open: true, debitos, sending: false });
   };
 
-  // Send billing emails
-  const handleSendEmails = async () => {
+  // Register contact action
+  const handleRegistarContacto = async () => {
     if (!empresa) return;
-    setEmailDialog(prev => ({ ...prev, sending: true }));
+    setContactDialog(prev => ({ ...prev, sending: true }));
 
     let sent = 0;
     let failed = 0;
 
-    for (const debito of emailDialog.debitos) {
+    for (const debito of contactDialog.debitos) {
       const email = debito.email || getClienteEmail(debito.cliente);
-      if (!email) continue;
 
       try {
-        // Log the email in history
         await supabase.from('email_history').insert({
           empresa_id: empresa.id,
           service_id: debito.id,
           cliente_nome: debito.cliente,
-          cliente_email: email,
-          email_subject: `Cobrança - ${empresa.nome} - ${debito.servico}`,
-          email_type: 'cobranca',
+          cliente_email: email || 'N/A',
+          email_subject: `Cobrança (${meioContacto}) - ${empresa.nome} - ${debito.servico}`,
+          email_type: meioContacto === 'email' ? 'cobranca' : `cobranca_${meioContacto}`,
           valor_debito: debito.executadoEmDebito,
           dias_atraso: debito.diasEmAtraso,
         });
@@ -202,12 +208,12 @@ const Debitos = () => {
       }
     }
 
-    setEmailDialog({ open: false, debitos: [], sending: false });
+    setContactDialog({ open: false, debitos: [], sending: false });
     setSelectedIds(new Set());
 
     toast({
       title: 'Cobranças registadas',
-      description: `${sent} cobrança(s) registada(s) com sucesso.${failed > 0 ? ` ${failed} falharam.` : ''}`,
+      description: `${sent} cobrança(s) registada(s) com sucesso.${failed > 0 ? ` ${failed} falharam.` : ''}${agendarFollowup && followupData ? ` Follow-up agendado para ${new Date(followupData).toLocaleString('pt-PT')}.` : ''}`,
     });
   };
 
@@ -237,10 +243,10 @@ const Debitos = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={() => {
             const selected = debitosFiltrados.filter(d => selectedIds.has(d.id));
-            openEmailDialog(selected.length > 0 ? selected : []);
+            openContactDialog(selected.length > 0 ? selected : []);
           }} disabled={selectedIds.size === 0}>
-            <Mail className="h-4 w-4 mr-1" />
-            Enviar Cobranças ({selectedIds.size})
+            <Send className="h-4 w-4 mr-1" />
+            Registar Cobranças ({selectedIds.size})
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-1" />
@@ -442,11 +448,10 @@ const Debitos = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => openEmailDialog([debito])}
-                            disabled={!clienteEmail}
-                            title={clienteEmail ? 'Enviar cobrança' : 'Cliente sem email'}
+                            onClick={() => openContactDialog([debito])}
+                            title="Registar cobrança"
                           >
-                            <Mail className="h-4 w-4" />
+                            <Send className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -488,55 +493,115 @@ const Debitos = () => {
         </div>
       )}
 
-      {/* Email Confirmation Dialog */}
-      <Dialog open={emailDialog.open} onOpenChange={open => !emailDialog.sending && setEmailDialog(prev => ({ ...prev, open }))}>
-        <DialogContent>
+      {/* Contact / Collection Dialog */}
+      <Dialog open={contactDialog.open} onOpenChange={open => !contactDialog.sending && setContactDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5 text-primary" />
-              Confirmar Envio de Cobranças
+              Registar Contacto de Cobrança
             </DialogTitle>
             <DialogDescription>
-              Será registada a cobrança para os seguintes clientes:
+              Registe o contacto efetuado para os seguintes clientes:
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-60 overflow-y-auto space-y-2">
-            {emailDialog.debitos.map(d => {
+
+          {/* Clients list */}
+          <div className="max-h-40 overflow-y-auto space-y-2">
+            {contactDialog.debitos.map(d => {
               const email = d.email || getClienteEmail(d.cliente);
               return (
                 <div key={d.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-sm">
                   <div>
                     <p className="font-medium">{d.cliente}</p>
-                    <p className="text-xs text-muted-foreground">{email}</p>
+                    <p className="text-xs text-muted-foreground">{email || 'Sem email'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono font-bold text-danger">{formatEUR(d.executadoEmDebito)}</p>
+                    <p className="font-mono font-bold text-destructive">{formatEUR(d.executadoEmDebito)}</p>
                     <p className="text-xs text-muted-foreground">{d.diasEmAtraso} dias</p>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div className="rounded-lg bg-warning-lighter p-3 text-sm">
-            <p className="font-medium text-warning-foreground">⚠️ Nota</p>
-            <p className="text-warning-foreground/80 mt-1">
-              O envio de emails requer configuração do serviço de email. Nesta fase, as cobranças serão registadas no histórico para acompanhamento.
-            </p>
+
+          {/* Contact method */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Meio de Contacto</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { value: 'email', label: 'Email', icon: <Mail className="h-4 w-4" /> },
+                { value: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle className="h-4 w-4" /> },
+                { value: 'telefone', label: 'Telefone', icon: <Phone className="h-4 w-4" /> },
+                { value: 'presencial', label: 'Presencial', icon: <MapPin className="h-4 w-4" /> },
+              ].map(m => (
+                <Button
+                  key={m.value}
+                  type="button"
+                  variant={meioContacto === m.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex items-center gap-1.5"
+                  onClick={() => setMeioContacto(m.value)}
+                >
+                  {m.icon} {m.label}
+                </Button>
+              ))}
+            </div>
           </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Anotações / Apontamentos</Label>
+            <Textarea
+              value={contactoNotas}
+              onChange={e => setContactoNotas(e.target.value)}
+              placeholder="Descreva o resultado do contacto, compromissos assumidos, etc..."
+              rows={3}
+            />
+          </div>
+
+          {/* Follow-up scheduling */}
+          <div className="space-y-3 border-t pt-3">
+            <div className="flex items-center gap-3">
+              <Switch checked={agendarFollowup} onCheckedChange={setAgendarFollowup} />
+              <Label className="text-sm font-medium">Agendar novo contacto futuro</Label>
+            </div>
+            {agendarFollowup && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Data e Hora</Label>
+                <Input
+                  type="datetime-local"
+                  value={followupData}
+                  onChange={e => setFollowupData(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            )}
+          </div>
+
+          {meioContacto === 'email' && (
+            <div className="rounded-lg bg-muted border border-border p-3 text-sm">
+              <p className="font-medium text-foreground">⚠️ Nota</p>
+              <p className="text-muted-foreground mt-1">
+                O envio de emails requer configuração do serviço de email. Nesta fase, as cobranças serão registadas no histórico para acompanhamento.
+              </p>
+            </div>
+          )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailDialog({ open: false, debitos: [], sending: false })} disabled={emailDialog.sending}>
+            <Button variant="outline" onClick={() => setContactDialog({ open: false, debitos: [], sending: false })} disabled={contactDialog.sending}>
               Cancelar
             </Button>
-            <Button onClick={handleSendEmails} disabled={emailDialog.sending}>
-              {emailDialog.sending ? (
+            <Button onClick={handleRegistarContacto} disabled={contactDialog.sending}>
+              {contactDialog.sending ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  A enviar...
+                  A registar...
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-1" />
-                  Registar Cobranças ({emailDialog.debitos.length})
+                  Registar Cobranças ({contactDialog.debitos.length})
                 </>
               )}
             </Button>
@@ -588,9 +653,8 @@ const Debitos = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDetailService(null)}>Fechar</Button>
-                <Button onClick={() => { setDetailService(null); openEmailDialog([detailService]); }}
-                  disabled={!(detailService.email || getClienteEmail(detailService.cliente))}>
-                  <Mail className="h-4 w-4 mr-1" /> Enviar Cobrança
+                <Button onClick={() => { setDetailService(null); openContactDialog([detailService]); }}>
+                  <Send className="h-4 w-4 mr-1" /> Registar Cobrança
                 </Button>
               </DialogFooter>
             </>
