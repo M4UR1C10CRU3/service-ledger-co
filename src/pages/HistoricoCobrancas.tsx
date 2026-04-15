@@ -37,6 +37,7 @@ interface EmailRecord {
   sent_at: string | null;
   service_id: string;
   notas: string | null;
+  followup_date: string | null;
 }
 
 const HistoricoCobrancas = () => {
