@@ -36,6 +36,7 @@ interface EmailRecord {
   dias_atraso: number | null;
   sent_at: string | null;
   service_id: string;
+  notas: string | null;
 }
 
 const HistoricoCobrancas = () => {
@@ -388,6 +389,15 @@ const HistoricoCobrancas = () => {
                 <span className="text-muted-foreground">Assunto:</span>
                 <p className="font-medium mt-1">{detailRecord.email_subject || '—'}</p>
               </div>
+
+              {detailRecord.notas && (
+                <div>
+                  <span className="text-muted-foreground">Anotações / Apontamentos:</span>
+                  <p className="font-medium mt-1 whitespace-pre-wrap bg-muted/50 rounded-md p-3 text-sm">
+                    {detailRecord.notas}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <span className="text-muted-foreground">ID Serviço:</span>
