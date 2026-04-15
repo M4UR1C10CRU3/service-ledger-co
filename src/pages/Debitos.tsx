@@ -167,40 +167,38 @@ const Debitos = () => {
     return cliente?.email;
   };
 
-  // Open email dialog
-  const openEmailDialog = (debitos: ServiceWithCalculations[]) => {
-    const withEmail = debitos.filter(d => {
-      const email = d.email || getClienteEmail(d.cliente);
-      return !!email;
-    });
-    if (withEmail.length === 0) {
-      toast({ title: 'Sem emails', description: 'Nenhum dos clientes selecionados possui email cadastrado.', variant: 'destructive' });
+  // Open contact dialog
+  const openContactDialog = (debitos: ServiceWithCalculations[]) => {
+    if (debitos.length === 0) {
+      toast({ title: 'Sem seleção', description: 'Selecione pelo menos um débito.', variant: 'destructive' });
       return;
     }
-    setEmailDialog({ open: true, debitos: withEmail, sending: false });
+    setMeioContacto('email');
+    setContactoNotas('');
+    setAgendarFollowup(false);
+    setFollowupData('');
+    setContactDialog({ open: true, debitos, sending: false });
   };
 
-  // Send billing emails
-  const handleSendEmails = async () => {
+  // Register contact action
+  const handleRegistarContacto = async () => {
     if (!empresa) return;
-    setEmailDialog(prev => ({ ...prev, sending: true }));
+    setContactDialog(prev => ({ ...prev, sending: true }));
 
     let sent = 0;
     let failed = 0;
 
-    for (const debito of emailDialog.debitos) {
+    for (const debito of contactDialog.debitos) {
       const email = debito.email || getClienteEmail(debito.cliente);
-      if (!email) continue;
 
       try {
-        // Log the email in history
         await supabase.from('email_history').insert({
           empresa_id: empresa.id,
           service_id: debito.id,
           cliente_nome: debito.cliente,
-          cliente_email: email,
-          email_subject: `Cobrança - ${empresa.nome} - ${debito.servico}`,
-          email_type: 'cobranca',
+          cliente_email: email || 'N/A',
+          email_subject: `Cobrança (${meioContacto}) - ${empresa.nome} - ${debito.servico}`,
+          email_type: meioContacto === 'email' ? 'cobranca' : `cobranca_${meioContacto}`,
           valor_debito: debito.executadoEmDebito,
           dias_atraso: debito.diasEmAtraso,
         });
@@ -210,12 +208,12 @@ const Debitos = () => {
       }
     }
 
-    setEmailDialog({ open: false, debitos: [], sending: false });
+    setContactDialog({ open: false, debitos: [], sending: false });
     setSelectedIds(new Set());
 
     toast({
       title: 'Cobranças registadas',
-      description: `${sent} cobrança(s) registada(s) com sucesso.${failed > 0 ? ` ${failed} falharam.` : ''}`,
+      description: `${sent} cobrança(s) registada(s) com sucesso.${failed > 0 ? ` ${failed} falharam.` : ''}${agendarFollowup && followupData ? ` Follow-up agendado para ${new Date(followupData).toLocaleString('pt-PT')}.` : ''}`,
     });
   };
 
