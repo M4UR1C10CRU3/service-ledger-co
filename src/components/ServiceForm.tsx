@@ -591,7 +591,41 @@ export const ServiceForm = ({
                     <div className="mt-2 p-2 bg-muted rounded-md flex justify-between items-center text-sm">
                       <span className="font-medium">Total Notas de Crédito:</span>
                       <span className="font-bold text-destructive">-€{formatNumber(calcTotalFaturado(creditNoteEntries))}</span>
-                    </div>
+                </div>
+
+                <Separator className="md:col-span-2 my-2" />
+
+                <FormField
+                  control={form.control}
+                  name="desconto"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Desconto / Negociação (€)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0,00"
+                          value={field.value ? formatInputValue(field.value.toString()) : ''}
+                          onChange={(e) => {
+                            const parsed = parseFormattedNumber(e.target.value);
+                            field.onChange(parsed);
+                          }}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Valor de desconto acordado durante a negociação. Será deduzido do total a liquidar.
+                      </p>
+                      {field.value && field.value > 0 ? (
+                        <div className="mt-2 p-2 bg-muted rounded-md flex justify-between items-center text-sm">
+                          <span className="font-medium">Desconto aplicado:</span>
+                          <span className="font-bold text-destructive">-€{formatNumber(field.value)}</span>
+                        </div>
+                      ) : null}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                   )}
                 </div>
 
