@@ -86,6 +86,7 @@ export const ServiceForm = ({
       contratoId: '',
       valorFaturado: 0,
       numeroFatura: '',
+      desconto: 0,
       telefone: '',
       email: '',
     },
@@ -124,6 +125,7 @@ export const ServiceForm = ({
         contratoId: editingService.contratoId || '',
         valorFaturado: editingService.valorFaturado || 0,
         numeroFatura: editingService.numeroFatura || '',
+        desconto: editingService.desconto || 0,
         telefone: editingService.telefone || '',
         email: editingService.email || '',
       });
