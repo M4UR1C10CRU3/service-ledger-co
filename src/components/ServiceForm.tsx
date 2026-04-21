@@ -608,10 +608,21 @@ export const ServiceForm = ({
                           type="text"
                           inputMode="decimal"
                           placeholder="0,00"
-                          value={field.value ? formatInputValue(field.value.toString()) : ''}
+                          value={field.value ? formatNumber(field.value) : ''}
                           onChange={(e) => {
-                            const parsed = parseFormattedNumber(e.target.value);
-                            field.onChange(parsed);
+                            const formatted = formatInputValue(e.target.value);
+                            if (formatted !== e.target.value) {
+                              const cursorPos = e.target.selectionStart;
+                              e.target.value = formatted;
+                              e.target.setSelectionRange(cursorPos, cursorPos);
+                            }
+                            field.onChange(parseFormattedNumber(formatted));
+                          }}
+                          onBlur={(e) => {
+                            const value = parseFormattedNumber(e.target.value);
+                            if (value) {
+                              e.target.value = formatNumber(value);
+                            }
                           }}
                         />
                       </FormControl>
