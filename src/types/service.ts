@@ -27,6 +27,9 @@ export interface Service {
   // Nota de crédito (formato: "NC1/2026|500; NC2/2026|300")
   notaCredito?: string;
   
+  // Desconto / Negociação (valor a deduzir do total a liquidar)
+  desconto?: number;
+  
   // ID da empresa
   empresaId?: string;
 }

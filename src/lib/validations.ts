@@ -90,6 +90,7 @@ export const serviceFormSchema = z.object({
   contratoId: z.string().optional(),
   valorFaturado: z.number().min(0).optional(),
   numeroFatura: z.string().max(100).optional(),
+  desconto: z.number().min(0).max(999999999).optional(),
   telefone: z
     .string()
     .max(40, { message: "Telefone deve ter no máximo 40 caracteres" })
