@@ -36,6 +36,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
           telefone: service.telefone || null,
           email: service.email || null,
           nota_credito: service.notaCredito || null,
+          desconto: service.desconto || 0,
         })
         .eq('service_id', service.id);
       
@@ -66,6 +67,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
           telefone: service.telefone || null,
           email: service.email || null,
           nota_credito: service.notaCredito || null,
+          desconto: service.desconto || 0,
           empresa_id: empresaId,
           created_at: service.createdAt.toISOString(),
         });
@@ -169,6 +171,7 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
       telefone: (row as any).telefone || undefined,
       email: (row as any).email || undefined,
       notaCredito: (row as any).nota_credito || undefined,
+      desconto: parseFloat(((row as any).desconto ?? 0).toString()),
       empresaId: (row as any).empresa_id || undefined,
     })) || [];
   } catch (error) {
@@ -308,10 +311,13 @@ export const useServices = (empresaId?: string) => {
       ? calcTotalFaturado(parseInvoiceEntries(service.notaCredito))
       : 0;
     
-    // Débito: para faturas é baseado no valorComIVA menos notas de crédito menos o que foi liquidado
+    // Desconto / Negociação (deduzido do total a liquidar)
+    const descontoNegociacao = service.desconto || 0;
+    
+    // Débito: para faturas é baseado no valorComIVA menos notas de crédito menos desconto menos o que foi liquidado
     // Para contratos o débito é 0 (o débito real está nas faturas vinculadas)
     const executadoEmDebito = service.tipoServico === 'fatura' 
-      ? Math.max(0, service.valorComIVA - totalNotasCredito - liquidadoCalculated)
+      ? Math.max(0, service.valorComIVA - totalNotasCredito - descontoNegociacao - liquidadoCalculated)
       : 0;
     
     // Percentual liquidado: para faturas é sobre valorComIVA; para contratos é sobre valorFaturado
