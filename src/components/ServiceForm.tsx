@@ -591,6 +591,8 @@ export const ServiceForm = ({
                     <div className="mt-2 p-2 bg-muted rounded-md flex justify-between items-center text-sm">
                       <span className="font-medium">Total Notas de Crédito:</span>
                       <span className="font-bold text-destructive">-€{formatNumber(calcTotalFaturado(creditNoteEntries))}</span>
+                    </div>
+                  )}
                 </div>
 
                 <Separator className="md:col-span-2 my-2" />
@@ -626,8 +628,6 @@ export const ServiceForm = ({
                     </FormItem>
                   )}
                 />
-                  )}
-                </div>
 
                 {/* Calculated value display */}
                 {(() => {
