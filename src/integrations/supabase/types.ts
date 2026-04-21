@@ -2250,6 +2250,7 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           data: string
+          desconto: number
           email: string | null
           empresa_id: string
           fatura: string | null
@@ -2276,6 +2277,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           data: string
+          desconto?: number
           email?: string | null
           empresa_id: string
           fatura?: string | null
@@ -2302,6 +2304,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           data?: string
+          desconto?: number
           email?: string | null
           empresa_id?: string
           fatura?: string | null
