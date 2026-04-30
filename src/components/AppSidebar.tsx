@@ -6,7 +6,7 @@ import {
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
-  UserCog,
+  UserCog, Megaphone, Trello,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -89,6 +89,13 @@ const sections: NavSection[] = [
       { title: 'Recrutamento', url: '/recursos-humanos/recrutamento', icon: UserSearch, permModulo: 'rh_recrutamento' },
       { title: 'Avaliações', url: '/recursos-humanos/avaliacoes', icon: ClipboardCheck, permModulo: 'rh_avaliacoes' },
       { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake, permModulo: 'rh_subempreiteiros' },
+    ],
+  },
+  {
+    label: 'Marketing',
+    icon: Megaphone,
+    items: [
+      { title: 'Kanban Editorial', url: '/marketing', icon: Trello },
     ],
   },
 ];

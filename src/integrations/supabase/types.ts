@@ -1514,6 +1514,184 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_anexos: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          id: string
+          mime_type: string | null
+          nome: string
+          tamanho_bytes: number | null
+          tarefa_id: string
+          tipo: string
+          uploaded_by: string | null
+          uploaded_by_nome: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          id?: string
+          mime_type?: string | null
+          nome: string
+          tamanho_bytes?: number | null
+          tarefa_id: string
+          tipo?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          tamanho_bytes?: number | null
+          tarefa_id?: string
+          tipo?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_anexos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_comentarios: {
+        Row: {
+          autor_id: string | null
+          autor_nome: string
+          conteudo: string
+          created_at: string
+          empresa_id: string
+          id: string
+          tarefa_id: string
+          tipo: string
+        }
+        Insert: {
+          autor_id?: string | null
+          autor_nome: string
+          conteudo: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          tarefa_id: string
+          tipo?: string
+        }
+        Update: {
+          autor_id?: string | null
+          autor_nome?: string
+          conteudo?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          tarefa_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_tarefas: {
+        Row: {
+          arquivado: boolean
+          arquivado_em: string | null
+          briefing: string | null
+          canal: string | null
+          copy_legenda: string | null
+          created_at: string
+          created_by: string | null
+          data_prevista: string | null
+          data_publicacao: string | null
+          delegado_por_id: string | null
+          delegado_por_nome: string | null
+          descricao: string | null
+          empresa_id: string
+          hashtags: string | null
+          hora_publicacao: string | null
+          id: string
+          link_externo: string | null
+          observacoes: string | null
+          ordem_kanban: number
+          prioridade: string
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          status: string
+          tipo_conteudo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivado?: boolean
+          arquivado_em?: string | null
+          briefing?: string | null
+          canal?: string | null
+          copy_legenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          data_publicacao?: string | null
+          delegado_por_id?: string | null
+          delegado_por_nome?: string | null
+          descricao?: string | null
+          empresa_id: string
+          hashtags?: string | null
+          hora_publicacao?: string | null
+          id?: string
+          link_externo?: string | null
+          observacoes?: string | null
+          ordem_kanban?: number
+          prioridade?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          tipo_conteudo?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivado?: boolean
+          arquivado_em?: string | null
+          briefing?: string | null
+          canal?: string | null
+          copy_legenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_prevista?: string | null
+          data_publicacao?: string | null
+          delegado_por_id?: string | null
+          delegado_por_nome?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          hashtags?: string | null
+          hora_publicacao?: string | null
+          id?: string
+          link_externo?: string | null
+          observacoes?: string | null
+          ordem_kanban?: number
+          prioridade?: string
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          status?: string
+          tipo_conteudo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           categoria: string
