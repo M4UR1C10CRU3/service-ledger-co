@@ -2,12 +2,15 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Plus, Search, Megaphone, Calendar as CalendarIcon, Sparkles } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Plus, Search, Megaphone, Calendar as CalendarIcon, Sparkles, LayoutGrid } from 'lucide-react';
 import { useMarketing } from '@/hooks/useMarketing';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingKanban } from '@/components/marketing/MarketingKanban';
+import { MarketingCalendar } from '@/components/marketing/MarketingCalendar';
 import { MarketingTarefaDialog } from '@/components/marketing/MarketingTarefaDialog';
 import { MarketingDetailDialog } from '@/components/marketing/MarketingDetailDialog';
+import { MarketingAIDialog } from '@/components/marketing/MarketingAIDialog';
 import {
   STATUS_CONFIG,
   STATUS_ORDER,
@@ -20,11 +23,13 @@ export default function Marketing() {
   const { toast } = useToast();
 
   const [search, setSearch] = useState('');
+  const [view, setView] = useState<'kanban' | 'calendario'>('kanban');
   const [formOpen, setFormOpen] = useState(false);
   const [editTarefa, setEditTarefa] = useState<MarketingTarefa | null>(null);
   const [defaultStatus, setDefaultStatus] = useState<MarketingStatus | undefined>(undefined);
   const [detailTarefa, setDetailTarefa] = useState<MarketingTarefa | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return tarefas;
@@ -83,15 +88,11 @@ export default function Marketing() {
             Marketing
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gestão de campanhas e conteúdo — Kanban editorial
+            Gestão de campanhas e conteúdo — Kanban, Calendário e geração com IA
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" disabled title="Disponível na Fase 2">
-            <CalendarIcon className="h-4 w-4 mr-1" />
-            Calendário
-          </Button>
-          <Button variant="outline" disabled title="Disponível na Fase 2">
+          <Button variant="outline" onClick={() => setAiOpen(true)}>
             <Sparkles className="h-4 w-4 mr-1" />
             Gerar com IA
           </Button>
@@ -126,26 +127,46 @@ export default function Marketing() {
         />
       </div>
 
-      {/* Kanban */}
+      {/* Tabs Kanban / Calendário */}
       {isLoading ? (
         <p className="text-center text-muted-foreground py-12">A carregar...</p>
       ) : tarefas.length === 0 ? (
         <Card className="p-12 text-center">
           <Megaphone className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground">Ainda não tem tarefas de marketing.</p>
-          <Button onClick={handleNew} className="mt-4" style={{ backgroundColor: '#E8561A' }}>
-            <Plus className="h-4 w-4 mr-1" /> Criar primeira tarefa
-          </Button>
+          <div className="flex gap-2 justify-center mt-4">
+            <Button onClick={handleNew} style={{ backgroundColor: '#E8561A' }}>
+              <Plus className="h-4 w-4 mr-1" /> Criar primeira tarefa
+            </Button>
+            <Button variant="outline" onClick={() => setAiOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1" /> Gerar com IA
+            </Button>
+          </div>
         </Card>
       ) : (
-        <MarketingKanban
-          tarefas={filtered}
-          onUpdateStatus={updateStatus}
-          onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onAddInColumn={handleAddInColumn}
-        />
+        <Tabs value={view} onValueChange={v => setView(v as 'kanban' | 'calendario')}>
+          <TabsList>
+            <TabsTrigger value="kanban">
+              <LayoutGrid className="h-4 w-4 mr-1" /> Kanban
+            </TabsTrigger>
+            <TabsTrigger value="calendario">
+              <CalendarIcon className="h-4 w-4 mr-1" /> Calendário
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="kanban" className="mt-4">
+            <MarketingKanban
+              tarefas={filtered}
+              onUpdateStatus={updateStatus}
+              onView={handleView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onAddInColumn={handleAddInColumn}
+            />
+          </TabsContent>
+          <TabsContent value="calendario" className="mt-4">
+            <MarketingCalendar tarefas={filtered} onCardClick={handleView} />
+          </TabsContent>
+        </Tabs>
       )}
 
       <MarketingTarefaDialog
@@ -160,6 +181,8 @@ export default function Marketing() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
+
+      <MarketingAIDialog open={aiOpen} onOpenChange={setAiOpen} />
     </div>
   );
 }
