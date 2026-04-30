@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -22,7 +23,17 @@ export default function Marketing() {
   const { tarefas, isLoading, updateStatus, deleteTarefa } = useMarketing();
   const { toast } = useToast();
 
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
+  const [view, setView] = useState<'kanban' | 'calendario'>(
+    searchParams.get('vista') === 'calendario' ? 'calendario' : 'kanban'
+  );
+
+  useEffect(() => {
+    const v = searchParams.get('vista');
+    if (v === 'calendario') setView('calendario');
+    else if (v === 'kanban') setView('kanban');
+  }, [searchParams]);
   const [view, setView] = useState<'kanban' | 'calendario'>('kanban');
   const [formOpen, setFormOpen] = useState(false);
   const [editTarefa, setEditTarefa] = useState<MarketingTarefa | null>(null);
