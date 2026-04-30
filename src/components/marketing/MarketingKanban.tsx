@@ -14,7 +14,7 @@ import {
 } from '@/types/marketing';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { parseLocalDate } from '@/lib/date-utils';
+import { parseLocalDate } from '@/lib/utils';
 
 interface Props {
   tarefas: MarketingTarefa[];
