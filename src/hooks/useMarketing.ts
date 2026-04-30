@@ -314,10 +314,85 @@ export function useMarketing() {
     return true;
   };
 
+  // ============= BULK CREATE (IA) =============
+  const createTarefasBulk = async (inputs: MarketingTarefaInput[]): Promise<number> => {
+    if (!empresa || inputs.length === 0) return 0;
+    const { data: userResp } = await supabase.auth.getUser();
+    const rows = inputs.map(input => ({
+      empresa_id: empresa.id,
+      titulo: input.titulo,
+      descricao: input.descricao || null,
+      tipo_conteudo: input.tipoConteudo || null,
+      canal: input.canal || null,
+      status: input.status || 'agendado',
+      prioridade: input.prioridade || 'media',
+      responsavel_nome: input.responsavelNome || null,
+      delegado_por_nome: input.delegadoPorNome || null,
+      data_prevista: input.dataPrevista || null,
+      data_publicacao: input.dataPublicacao || null,
+      hora_publicacao: input.horaPublicacao || null,
+      hashtags: input.hashtags || null,
+      copy_legenda: input.copyLegenda || null,
+      link_externo: input.linkExterno || null,
+      briefing: input.briefing || null,
+      observacoes: input.observacoes || null,
+      created_by: userResp?.user?.id || null,
+    }));
+    const { error, data } = await supabase.from('marketing_tarefas').insert(rows).select('id');
+    if (error) { console.error('[marketing] bulk create:', error); return 0; }
+    await fetchTarefas();
+    return data?.length || 0;
+  };
+
+  // ============= AI GENERATE =============
+  const generateWithAI = async (input: {
+    briefing: string;
+    dataInicio?: string;
+    dataFim?: string;
+    canais?: string[];
+    qtdPublicacoes?: number;
+    tom?: string;
+  }): Promise<{ tarefas: MarketingTarefaInput[]; error?: string }> => {
+    if (!empresa) return { tarefas: [], error: 'Empresa não selecionada' };
+    const { data, error } = await supabase.functions.invoke('marketing-ai-generate', {
+      body: {
+        briefing: input.briefing,
+        empresa_nome: empresa.nome,
+        data_inicio: input.dataInicio,
+        data_fim: input.dataFim,
+        canais: input.canais,
+        qtd_publicacoes: input.qtdPublicacoes,
+        tom: input.tom,
+      },
+    });
+    if (error) {
+      console.error('[marketing] AI invoke error:', error);
+      return { tarefas: [], error: error.message || 'Erro ao chamar IA' };
+    }
+    if (data?.error) {
+      return { tarefas: [], error: data.error };
+    }
+    const raw = (data?.tarefas || []) as any[];
+    const mapped: MarketingTarefaInput[] = raw.map(t => ({
+      titulo: String(t.titulo || 'Sem título').slice(0, 200),
+      tipoConteudo: t.tipo_conteudo,
+      canal: t.canal,
+      prioridade: t.prioridade || 'media',
+      status: 'agendado',
+      dataPublicacao: t.data_publicacao || null,
+      horaPublicacao: t.hora_publicacao || null,
+      briefing: t.briefing || null,
+      copyLegenda: t.copy_legenda || null,
+      hashtags: t.hashtags || null,
+    }));
+    return { tarefas: mapped };
+  };
+
   return {
     tarefas, isLoading, fetchTarefas,
     createTarefa, updateTarefa, updateStatus, deleteTarefa,
     fetchAnexos, uploadAnexo, addLinkAnexo, deleteAnexo, getAnexoSignedUrl,
     fetchComentarios, addComentario,
+    createTarefasBulk, generateWithAI,
   };
 }
