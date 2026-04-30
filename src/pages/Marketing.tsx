@@ -34,7 +34,7 @@ export default function Marketing() {
     if (v === 'calendario') setView('calendario');
     else if (v === 'kanban') setView('kanban');
   }, [searchParams]);
-  const [view, setView] = useState<'kanban' | 'calendario'>('kanban');
+  
   const [formOpen, setFormOpen] = useState(false);
   const [editTarefa, setEditTarefa] = useState<MarketingTarefa | null>(null);
   const [defaultStatus, setDefaultStatus] = useState<MarketingStatus | undefined>(undefined);
