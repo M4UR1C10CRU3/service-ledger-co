@@ -179,7 +179,14 @@ export default function Marketing() {
             />
           </TabsContent>
           <TabsContent value="calendario" className="mt-4">
-            <MarketingCalendar tarefas={filtered} onCardClick={handleView} />
+            {isTudoCasa ? (
+              <MarketingEditorialCalendar
+                empresaIniciais="TC"
+                empresaNome={empresa?.nome || 'Loja Tudo Casa'}
+              />
+            ) : (
+              <MarketingCalendar tarefas={filtered} onCardClick={handleView} />
+            )}
           </TabsContent>
         </Tabs>
       )}
