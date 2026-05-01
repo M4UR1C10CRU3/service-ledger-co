@@ -145,7 +145,7 @@ export default function Marketing() {
       {/* Tabs Kanban / Calendário */}
       {isLoading ? (
         <p className="text-center text-muted-foreground py-12">A carregar...</p>
-      ) : tarefas.length === 0 ? (
+      ) : tarefas.length === 0 && !isTudoCasa ? (
         <Card className="p-12 text-center">
           <Megaphone className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground">Ainda não tem tarefas de marketing.</p>
