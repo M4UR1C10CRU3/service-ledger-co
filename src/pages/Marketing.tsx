@@ -9,7 +9,9 @@ import { useMarketing } from '@/hooks/useMarketing';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingKanban } from '@/components/marketing/MarketingKanban';
 import { MarketingCalendar } from '@/components/marketing/MarketingCalendar';
+import { MarketingEditorialCalendar } from '@/components/marketing/MarketingEditorialCalendar';
 import { MarketingTarefaDialog } from '@/components/marketing/MarketingTarefaDialog';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 import { MarketingDetailDialog } from '@/components/marketing/MarketingDetailDialog';
 import { MarketingAIDialog } from '@/components/marketing/MarketingAIDialog';
 import {
@@ -22,6 +24,8 @@ import {
 export default function Marketing() {
   const { tarefas, isLoading, updateStatus, deleteTarefa } = useMarketing();
   const { toast } = useToast();
+  const { empresa } = useEmpresa();
+  const isTudoCasa = !!empresa?.slug && empresa.slug.toLowerCase().startsWith('tudocasa');
 
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
@@ -175,7 +179,14 @@ export default function Marketing() {
             />
           </TabsContent>
           <TabsContent value="calendario" className="mt-4">
-            <MarketingCalendar tarefas={filtered} onCardClick={handleView} />
+            {isTudoCasa ? (
+              <MarketingEditorialCalendar
+                empresaIniciais="TC"
+                empresaNome={empresa?.nome || 'Loja Tudo Casa'}
+              />
+            ) : (
+              <MarketingCalendar tarefas={filtered} onCardClick={handleView} />
+            )}
           </TabsContent>
         </Tabs>
       )}
