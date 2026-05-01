@@ -9,7 +9,9 @@ import { useMarketing } from '@/hooks/useMarketing';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingKanban } from '@/components/marketing/MarketingKanban';
 import { MarketingCalendar } from '@/components/marketing/MarketingCalendar';
+import { MarketingEditorialCalendar } from '@/components/marketing/MarketingEditorialCalendar';
 import { MarketingTarefaDialog } from '@/components/marketing/MarketingTarefaDialog';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 import { MarketingDetailDialog } from '@/components/marketing/MarketingDetailDialog';
 import { MarketingAIDialog } from '@/components/marketing/MarketingAIDialog';
 import {
