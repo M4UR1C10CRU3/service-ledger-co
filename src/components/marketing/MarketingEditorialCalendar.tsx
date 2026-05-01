@@ -1,218 +1,227 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Printer, RotateCcw, FileJson, Plus, Eye } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 /**
- * Calendário Editorial — Loja Tudo Casa (Maio 2026)
- * Layout estático conforme spec visual aprovada.
- * Dados hardcoded como template demonstrativo. "Repor original" restaura.
+ * Calendário Editorial — Marketing
+ * Implementação fiel à spec: 7 tipos, horários por dia da semana,
+ * dados iniciais Maio 2026, drag-and-drop, modal Briefing/Editar,
+ * persistência isolada por empresa (localStorage com chave por empresa).
  */
 
-type EditorialCategoria =
-  | 'carrossel_promo'
-  | 'produto'
-  | 'dica_util'
-  | 'data_especial'
-  | 'interacao'
-  | 'institucional'
-  | 'bastidores';
+// ───────────────────────────── TIPOS ─────────────────────────────
+
+type PostType = 'carrossel' | 'produto' | 'dica' | 'data' | 'eng' | 'inst' | 'bastidores';
 
 interface EditorialPost {
-  id: string;
-  day: number; // dia do mês (Maio 2026)
-  categoria: EditorialCategoria;
-  titulo: string;
-  badge?: string; // ex: "Dia do Trabalhador" / "Dia da Mãe" / "Siga o Instagram"
-  fb?: string; // hora FB ex "10:00h"
-  ig?: string; // hora IG ex "12:00h"
-  briefing?: string;
+  type: PostType;
+  plat: string;
+  title: string;
+  copy: string;
+  tip: string;
+  tags: string;
+  holiday?: string;
+  hfb?: string;
+  hig?: string;
 }
 
-const CATEGORIA_CONFIG: Record<EditorialCategoria, { label: string; color: string; bg: string; text: string }> = {
-  carrossel_promo: { label: 'Carrossel promo', color: '#A855F7', bg: 'bg-purple-100', text: 'text-purple-700' },
-  produto:         { label: 'Produto',          color: '#22C55E', bg: 'bg-green-100',  text: 'text-green-700' },
-  dica_util:       { label: 'Dica útil',        color: '#F97316', bg: 'bg-orange-100', text: 'text-orange-700' },
-  data_especial:   { label: 'Data especial',    color: '#EF4444', bg: 'bg-red-100',    text: 'text-red-700' },
-  interacao:       { label: 'Interação',        color: '#3B82F6', bg: 'bg-blue-100',   text: 'text-blue-700' },
-  institucional:   { label: 'Institucional',    color: '#64748B', bg: 'bg-slate-200',  text: 'text-slate-700' },
-  bastidores:      { label: 'Bastidores',       color: '#EC4899', bg: 'bg-pink-100',   text: 'text-pink-700' },
+type CalendarState = Record<number, EditorialPost>;
+
+// ─────────────────────── CONFIG DE CATEGORIAS ─────────────────────
+
+const TYPE_CONFIG: Record<PostType, { label: string; bg: string; text: string }> = {
+  carrossel:  { label: 'Carrossel promo', bg: '#EEEDFE', text: '#3C3489' },
+  produto:    { label: 'Produto',         bg: '#E1F5EE', text: '#085041' },
+  dica:       { label: 'Dica útil',       bg: '#FAEEDA', text: '#633806' },
+  data:       { label: 'Data especial',   bg: '#FAECE7', text: '#712B13' },
+  eng:        { label: 'Interação',       bg: '#E6F1FB', text: '#0C447C' },
+  inst:       { label: 'Institucional',   bg: '#F1EFE8', text: '#444441' },
+  bastidores: { label: 'Bastidores',      bg: '#FBEAF0', text: '#72243E' },
 };
 
-// Exatamente os 18 posts visíveis na imagem de referência (Maio 2026)
-const ORIGINAL_POSTS: EditorialPost[] = [
-  // Semana 1 (1–3)
-  { id: 'p-01', day: 1, categoria: 'data_especial', badge: 'Dia do Trabalhador', titulo: 'Dia do Trabalhador — Às mãos que c…', fb: '10:00h', ig: '12:00h',
-    briefing: 'Homenagem ao Dia do Trabalhador — celebrar as mãos que constroem casa. Tom emotivo, agradecer clientes e equipa.' },
-  { id: 'p-02', day: 2, categoria: 'institucional', titulo: 'Siga o Instagram', fb: '11:00h', ig: '18:00h',
-    briefing: 'Convite para seguir o Instagram da Loja Tudo Casa — destacar conteúdo exclusivo e novidades.' },
-  { id: 'p-03', day: 3, categoria: 'data_especial', badge: 'Dia da Mãe', titulo: 'Dia da Mãe — Para quem faz da casa…', fb: '11:00h', ig: '20:00h',
-    briefing: 'Homenagem ao Dia da Mãe — "para quem faz da casa um lar". CTA: visitar loja para presente especial.' },
-
-  // Semana 2 (4–10)
-  { id: 'p-05', day: 5, categoria: 'produto', titulo: 'Ar condicionado', fb: '10:00h', ig: '18:00h',
-    briefing: 'Apresentar gama de ar condicionado disponível para o verão — eficiência energética, instalação e marcas.' },
-  { id: 'p-06', day: 6, categoria: 'dica_util', titulo: 'Manutenção de primavera', fb: '09:00h', ig: '11:00h',
-    briefing: 'Dicas práticas de manutenção de primavera para a casa: limpezas, revisões e pequenas reparações.' },
-  { id: 'p-07', day: 7, categoria: 'carrossel_promo', titulo: 'Semana 1', fb: '09:00h', ig: '19:00h',
-    briefing: 'Carrossel promocional — destaques da Semana 1 de Maio. 5 a 7 produtos com preços.' },
-  { id: 'p-08', day: 8, categoria: 'institucional', titulo: 'Compra online, levanta na loja', fb: '10:00h', ig: '12:00h',
-    briefing: 'Reforçar serviço click & collect — comprar online no site e levantar gratuitamente na loja física.' },
-
-  // Semana 3 (11–17)
-  { id: 'p-11', day: 11, categoria: 'bastidores', titulo: 'O nosso showroom', fb: '09:00h', ig: '19:00h',
-    briefing: 'Bastidores — apresentar o showroom da loja, mostrar ambientes, equipa e variedade de produtos.' },
-  { id: 'p-12', day: 12, categoria: 'produto', titulo: 'Casa de banho', fb: '10:00h', ig: '19:00h',
-    briefing: 'Apresentar coleções de casa de banho — louças sanitárias, móveis e acessórios.' },
-  { id: 'p-13', day: 13, categoria: 'dica_util', titulo: 'Jardim para o verão', fb: '09:00h', ig: '11:00h',
-    briefing: 'Dicas para preparar o jardim para o verão — rega, plantas, mobiliário e iluminação exterior.' },
-  { id: 'p-14', day: 14, categoria: 'carrossel_promo', titulo: 'Semana 2', fb: '09:00h', ig: '19:00h',
-    briefing: 'Carrossel promocional — destaques da Semana 2 de Maio. 5 a 7 produtos com preços.' },
-  { id: 'p-15', day: 15, categoria: 'interacao', titulo: 'Mostra a tua casa', fb: '09:00h', ig: '12:00h',
-    briefing: 'Pedido de interação — convidar seguidores a partilhar fotos da casa renovada com produtos da loja.' },
-
-  // Semana 4 (18–24)
-  { id: 'p-18', day: 18, categoria: 'institucional', titulo: 'Atendimento via WhatsApp', fb: '09:00h', ig: '19:00h',
-    briefing: 'Reforçar canal WhatsApp para atendimento rápido — tirar dúvidas, orçamentos e disponibilidade.' },
-  { id: 'p-19', day: 19, categoria: 'produto', titulo: 'Pavimento Vinil', fb: '10:00h', ig: '19:00h',
-    briefing: 'Apresentar pavimento vinílico — vantagens, cores, fácil instalação e resistência.' },
-  { id: 'p-21', day: 21, categoria: 'carrossel_promo', titulo: 'Semana 3', fb: '09:00h', ig: '19:00h',
-    briefing: 'Carrossel promocional — destaques da Semana 3 de Maio.' },
-  { id: 'p-22', day: 22, categoria: 'dica_util', titulo: 'Janelas: PVC ou alumínio?', fb: '09:00h', ig: '12:00h',
-    briefing: 'Comparativo entre janelas em PVC e alumínio — vantagens, isolamento, manutenção e preço.' },
-
-  // Semana 5 (25–31)
-  { id: 'p-25', day: 25, categoria: 'institucional', titulo: 'Loja online Tudo Casa', fb: '10:00h', ig: '19:00h',
-    briefing: 'Apresentar a loja online — catálogo, encomendas, envios e segurança.' },
-  { id: 'p-26', day: 26, categoria: 'produto', titulo: 'Iluminação', fb: '10:00h', ig: '19:00h',
-    briefing: 'Apresentar gama de iluminação interior e exterior — candeeiros, LED, focos.' },
-  { id: 'p-28', day: 28, categoria: 'carrossel_promo', titulo: 'Semana 4', fb: '09:00h', ig: '19:00h',
-    briefing: 'Carrossel promocional — destaques da Semana 4 de Maio.' },
-  { id: 'p-29', day: 29, categoria: 'institucional', titulo: 'Visita-nos em Mirandela', fb: '09:00h', ig: '19:00h',
-    briefing: 'Convite para visitar a loja física em Mirandela — morada, horário e mapa.' },
-  { id: 'p-30', day: 30, categoria: 'interacao', titulo: 'Qual é o teu próximo projeto?', fb: '11:00h', ig: '18:00h',
-    briefing: 'Pergunta aberta nos comentários — qual o próximo projeto de casa do seguidor?' },
+const PLATFORM_OPTIONS = [
+  'FB + IG',
+  'Apenas FB',
+  'Apenas IG',
+  'IG Reels + FB',
+  'FB + IG Stories',
 ];
 
-const STORAGE_KEY = 'tudocasa_editorial_maio2026_v1';
+// ─────────────────── HORÁRIOS POR DIA DA SEMANA ───────────────────
+// 0=Seg, 6=Dom. Para Maio 2026, dia 1 é Sexta → weekday(d) = (d + 3) % 7
+type WeekdayInfo = { fb: string; ig: string; note: string; name: string };
 
-const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-
-// Maio 2026: 1 = sexta-feira. Calculamos as semanas Seg→Dom
-const MAIO_2026 = {
-  ano: 2026,
-  mes: 5, // Maio
-  diasNoMes: 31,
-  // weekday do dia 1 (0=Dom..6=Sáb) — 2026-05-01 é Sexta-feira → 5
-  primeiroWeekday: 5,
+const WEEKDAY_INFO: Record<number, WeekdayInfo> = {
+  0: { name: 'Segunda', fb: '09:00', ig: '18:00', note: 'Segunda-feira: utilizadores voltam ao trabalho. FB tem bom alcance matinal às 9h. IG performa melhor ao fim do dia (18h) quando há mais tempo livre.' },
+  1: { name: 'Terça',   fb: '10:00', ig: '18:30', note: 'Terça-feira: um dos melhores dias para alcance orgânico. FB entre 10-11h. IG às 18:30h apanha a saída do trabalho.' },
+  2: { name: 'Quarta',  fb: '09:00', ig: '11:00', note: 'Quarta-feira: pico de meio de semana. Ambas as plataformas funcionam bem de manhã. IG às 11h apanha pausa de trabalho remoto.' },
+  3: { name: 'Quinta',  fb: '09:00', ig: '19:00', note: 'Quinta-feira: excelente para promoções pois antecipa o fim de semana. FB cedo às 9h; IG às 19h apanha utilizadores em modo lazer.' },
+  4: { name: 'Sexta',   fb: '10:00', ig: '12:00', note: 'Sexta-feira: atenção elevada a partir das 10h. IG ao meio-dia apanha quem planeia o fim de semana e pode estar a pensar em casa ou obras.' },
+  5: { name: 'Sábado',  fb: '11:00', ig: '10:00', note: 'Sábado: menos tráfego profissional, mais lazer. Publicar mais tarde (10-11h). IG matinal funciona bem pois as pessoas acordam e usam o telemóvel.' },
+  6: { name: 'Domingo', fb: '11:00', ig: '20:00', note: 'Domingo: dia de planeamento doméstico com alta intenção de compra. FB ao almoço; IG à noite apanha quem planeia a semana seguinte.' },
 };
 
-interface WeekRow {
-  label: string;
-  days: (number | null)[]; // 7 colunas Seg..Dom
-}
+// Maio 2026: dia 1 = Sexta. weekday(d) = (d + 3) % 7
+const weekdayOf = (day: number) => (day + 3) % 7;
 
-function buildWeeks(): WeekRow[] {
-  const weeks: WeekRow[] = [];
-  // converter para Mon-first: Mon=0..Sun=6
-  const firstColumn = (MAIO_2026.primeiroWeekday + 6) % 7; // 5+6=11 %7 = 4 → Sex (correto)
-  let currentRow: (number | null)[] = Array(7).fill(null);
-  let col = firstColumn;
-  let weekStart: number | null = null;
-  let weekEnd: number | null = null;
+// ─────────────────────── DADOS INICIAIS ──────────────────────────
 
-  for (let day = 1; day <= MAIO_2026.diasNoMes; day++) {
-    if (weekStart === null) weekStart = day;
-    currentRow[col] = day;
-    weekEnd = day;
-    if (col === 6) {
-      weeks.push({
-        label: `${weekStart} a ${weekEnd} de maio`,
-        days: currentRow,
-      });
-      currentRow = Array(7).fill(null);
-      col = 0;
-      weekStart = null;
-    } else {
-      col++;
-    }
-  }
-  if (weekStart !== null) {
-    weeks.push({
-      label: `${weekStart} a ${weekEnd} de maio`,
-      days: currentRow,
-    });
-  }
-  return weeks;
-}
+const ORIGINAL_MAIO_2026: CalendarState = {
+  1:  { holiday: 'Dia do Trabalhador', type: 'data', plat: 'FB + IG', title: 'Dia do Trabalhador — Às mãos que constroem', copy: 'Primeiro de maio é feriado, mas há quem nunca pare de construir o futuro — tijolo a tijolo, parafuso a parafuso. A equipa da Tudo Casa saúda todos os trabalhadores de Trás-os-Montes e do país inteiro. Bom descanso e bom trabalho!', tip: 'Imagem emocional com ferramentas ou mãos a trabalhar. Tom de proximidade, sem venda. Publicar cedo (9h).', tags: '#DiaDOTrabalhador #TudoCasa #TrásOsMontes #Mirandela #TrabalhoHonesto' },
+  2:  { type: 'inst', plat: 'FB + IG', title: 'Institucional — Siga o Instagram', copy: 'Ainda não nos segues no Instagram? É por lá que partilhamos as melhores dicas para a tua casa, promoções em primeira mão e as novidades da loja. Segue-nos em @loja.tudocasa e fica sempre a par!', tip: 'Post estático com identidade visual da marca. Incluir print/mockup do perfil IG.', tags: '#TudoCasa #Instagram #SigaNos #DicasDeCasa #Mirandela' },
+  3:  { holiday: 'Dia da Mãe', type: 'data', plat: 'FB + IG', title: 'Dia da Mãe — Para quem faz da casa um lar', copy: 'Há quem diga que a casa é feita de paredes e telhado. Mas quem tem uma mãe sabe que a casa é feita de carinho, de cheiro a cozinha e de braços abertos. Feliz Dia da Mãe! A Tudo Casa abraça todas as mães de Trás-os-Montes e de mais além.', tip: 'Post emocional, sem promoção agressiva. Imagem quente de interior de casa. Publicar de manhã.', tags: '#DiaDaMãe #TudoCasa #ParaAMelhorMãe #TrásOsMontes #Lar' },
+  5:  { type: 'produto', plat: 'FB + IG', title: 'Produto — Ar condicionado', copy: 'O calor já se começa a fazer sentir por estas bandas! Não deixes para a última hora — os melhores modelos de ar condicionado saem depressa. Na Tudo Casa tens modelos de 9 a 24 mil BTUs com preços que não vês em mais lado nenhum. Passa pela loja ou encomenda no site!', tip: 'Foto do produto com preço em destaque. CTA para loja online e loja física.', tags: '#ArCondicionado #TudoCasa #Verão2026 #Mirandela #Climatização' },
+  6:  { type: 'dica', plat: 'FB + IG', title: 'Dica — Manutenção de primavera', copy: 'A primavera chegou e há trabalho a fazer! Caleiras entupidas, impermeabilizações gastas, jardim a pedir atenção… Por cá em Trás-os-Montes já se sente a diferença. A Tudo Casa tem tudo o que precisas para pôr a tua casa em ordem antes do verão.', tip: 'Carrossel com 4-5 tarefas de manutenção sazonal. Conteúdo que gera guardados.', tags: '#Primavera #ManutençãoCasa #TudoCasa #TrásOsMontes #DicasDeCasa' },
+  7:  { type: 'carrossel', plat: 'FB + IG', title: 'CARROSSEL PROMO — Semana 1', copy: '5 produtos para dar uma nova vida à tua casa esta primavera — com preços especiais só esta semana. Desliza e descobre as ofertas da Tudo Casa!', tip: 'Slide 1: capa apelativa. Slides 2-5: produto + preço + CTA. Slide final: link da loja + morada.', tags: '#Promoção #TudoCasa #OfertasDaSemana #Primavera #Mirandela' },
+  8:  { type: 'inst', plat: 'FB + IG', title: 'Institucional — Compra online, levanta na loja', copy: 'Sabes que podes comprar no nosso site e levantar na loja em Mirandela sem pagar portes? É simples, rápido e cómodo. Escolhes no sofá, levantas quando te der jeito. Experimenta em lojatudocasa.com!', tip: 'Post estático com os 3 passos: escolhe online → paga → levanta na loja.', tags: '#ClickAndCollect #TudoCasa #Mirandela #CompraOnline #LojaTudoCasa' },
+  11: { type: 'bastidores', plat: 'IG Reels + FB', title: 'Bastidores — O nosso showroom', copy: '500 metros quadrados de inspiração no coração de Mirandela. Cozinhas, casas de banho, caixilharia, climatização… tudo em exposição para vires ver ao vivo. A equipa está cá à tua espera — passa por nós!', tip: 'Vídeo/Reels curto do showroom (30-45s). Humaniza a marca. Mostrar equipa se possível.', tags: '#Showroom #TudoCasa #Mirandela #TrásOsMontes #VisitaNos' },
+  12: { type: 'produto', plat: 'FB + IG', title: 'Produto — Casa de banho', copy: 'Uma casa de banho nova muda tudo — e não tens de gastar uma fortuna para isso. Na Tudo Casa tens colunas de hidromassagem, banheiras, resguardos de duche e muito mais. Dá uma vista de olhos ao nosso catálogo e sonha à vontade!', tip: 'Fotomontagem de casa de banho completa com produtos disponíveis na loja.', tags: '#CasaDeBanho #Hidromassagem #TudoCasa #Remodelação #Mirandela' },
+  13: { type: 'dica', plat: 'FB + IG', title: 'Dica — Jardim para o verão', copy: 'Por estas terras de Trás-os-Montes, maio é altura de arregaçar as mangas e tratar do jardim. Sistemas de rega automática, relva artificial, móveis de exterior e churrasqueiras — a Tudo Casa tem tudo o que precisas para um jardim que dá gosto ver.', tip: 'Reels curto ou carrossel com dicas práticas de jardim. Linguagem descontraída.', tags: '#Jardim #Exterior #TudoCasa #TrásOsMontes #Verão2026' },
+  14: { type: 'carrossel', plat: 'FB + IG', title: 'CARROSSEL PROMO — Semana 2', copy: 'Esta semana na Tudo Casa: 5 ofertas para a tua casa de banho e jardim. Preços que não encontras em mais lado nenhum — garante o teu antes que acabe!', tip: 'Slides com produtos de casa de banho e jardim. Urgência de stock.', tags: '#PromoçõesTudoCasa #CasaDeBanho #Jardim #Mirandela #Oferta' },
+  15: { type: 'eng', plat: 'FB + IG Stories', title: 'Interação — Mostra a tua casa', copy: 'Já fizeste obras ou decoraste a tua casa com produtos da Tudo Casa? Partilha uma fotinha nos comentários — as melhores ficam em destaque no nosso perfil! Por cá adoramos ver o resultado do vosso trabalho.', tip: 'Post de UGC (conteúdo gerado por utilizadores). Responder a todos os comentários. Alto valor para o algoritmo.', tags: '#MinhasTudoCasa #AnteseDepois #TudoCasa #Remodelação #Mirandela' },
+  18: { type: 'inst', plat: 'FB + IG', title: 'Institucional — Atendimento via WhatsApp', copy: 'Preferes tratar de tudo sem sair de casa? Fala connosco diretamente pelo WhatsApp! Tiramos dúvidas, enviamos orçamentos e ajudamos a escolher o produto certo para o teu projeto. É só mandar mensagem — estamos aqui!', tip: 'Post estático com número de WhatsApp em destaque e ícone. Simples e direto.', tags: '#WhatsApp #TudoCasa #AtendimentoPersonalizado #Mirandela #FacilAssim' },
+  19: { type: 'produto', plat: 'FB + IG', title: 'Produto — Pavimento Vinil', copy: 'Já pensaste em renovar os teus pavimentos sem obras pesadas? O pavimento vinil da Tudo Casa é a solução perfeita: 100% impermeável, resistente ao desgaste diário, fácil de instalar e com uma aparência que não ficas a saber que não é madeira ou pedra real.', tip: 'Carrossel com 4-5 slides: Antes/depois de um pavimento. Vantagens visuais. Gama de padrões disponíveis. CTA para showroom/site.', tags: '#PavimentoVinil #TudoCasa #Remodelação #PavimentosFáceis #Mirandela #SemObras' },
+  21: { type: 'carrossel', plat: 'FB + IG', title: 'CARROSSEL PROMO — Semana 3', copy: 'Quinta-feira de ofertas! Esta semana os materiais de construção e ferramentas estão com preços especiais. Do cimento cola à impermeabilização — se tens obra pela frente, é agora!', tip: 'Foco em construção/bricolage. Público: profissionais e DIY. Linguagem prática e direta.', tags: '#Construção #Bricolage #TudoCasa #Obras #Mirandela' },
+  22: { type: 'dica', plat: 'FB + IG', title: 'Dica — Janelas: PVC ou alumínio?', copy: 'É uma dúvida que ouvimos muito aqui na loja: PVC ou alumínio? Cada um tem as suas vantagens — e a escolha certa pode fazer diferença na fatura da luz. Fizemos um guia simples para te ajudar a decidir sem dores de cabeça.', tip: 'Carrossel educativo com comparação clara entre os dois materiais. Alto potencial de guardados e partilhas.', tags: '#Janelas #PVCouAluminio #EficiênciaEnergética #TudoCasa #Caixilharia' },
+  25: { type: 'inst', plat: 'FB + IG', title: 'Institucional — Loja online Tudo Casa', copy: 'Sabes que tens toda a nossa gama disponível online? Materiais de construção, casa de banho, climatização e muito mais — entregues em tua casa ou prontos a levantar em Mirandela. Visita lojatudocasa.com e descobre!', tip: 'Post com destaque para o site, com imagem de produto + ecrã da loja online.', tags: '#LojaOnline #TudoCasa #Ecommerce #Mirandela #CompraFacil' },
+  26: { type: 'produto', plat: 'FB + IG', title: 'Produto — Iluminação', copy: 'A iluminação certa transforma qualquer divisão — e às vezes é só isso que falta para uma casa parecer completamente diferente. Na Tudo Casa tens luminárias para todos os gostos e todos os orçamentos. Vem ver ao showroom!', tip: 'Montagem fotográfica com diferentes ambientes iluminados. Tom aspiracional.', tags: '#Iluminação #TudoCasa #Decoração #Interior #Mirandela' },
+  28: { type: 'carrossel', plat: 'FB + IG', title: 'CARROSSEL PROMO — Semana 4', copy: 'Acabar maio em beleza! As melhores promoções do mês reunidas num só lugar — não percas, só até domingo. Desliza e garante o teu!', tip: 'Urgência de fim de mês. Produtos com maior stock ou margem. CTA claro para a loja online e física.', tags: '#FimDeMaio #PromoçõesTudoCasa #Oferta #Mirandela #NãoPercas' },
+  29: { type: 'inst', plat: 'FB + IG', title: 'Institucional — Visita-nos em Mirandela', copy: 'Estamos na Rua Eng. José Machado Vaz, Loja nº 8, em Mirandela — com 500m² de exposição para explorares ao teu ritmo. Se vieres de longe, vale mesmo a pena! Esperamos por ti.', tip: 'Imagem apelativa do exterior ou interior da loja. Incluir mapa/pin de localização.', tags: '#TudoCasa #Mirandela #TrásOsMontes #VemCa #Showroom' },
+  30: { type: 'eng', plat: 'FB + IG Stories', title: 'Interação — Qual é o teu próximo projeto?', copy: 'Vai ser a casa de banho nova? O jardim? Ou talvez um ar condicionado que já devia ter posto há mais tempo? Conta-nos nos comentários — e se precisares de ajuda a planear, é só dizer!', tip: 'Pergunta direta que gera comentários e leads qualificados. Responder a cada comentário individualmente.', tags: '#ProjetoCasa #TudoCasa #TrásOsMontes #Obras2026 #Remodelação' },
+};
+
+// ─────────────────────── ESTRUTURA DA GRELHA ──────────────────────
+
+const WEEKDAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+// Maio 2026 — 5 semanas conforme spec
+const MAIO_2026_WEEKS: { label: string; days: (number | null)[] }[] = [
+  { label: 'Semana 1 — 1 a 3 de maio',   days: [null, null, null, null, 1, 2, 3] },
+  { label: 'Semana 2 — 4 a 10 de maio',  days: [4, 5, 6, 7, 8, 9, 10] },
+  { label: 'Semana 3 — 11 a 17 de maio', days: [11, 12, 13, 14, 15, 16, 17] },
+  { label: 'Semana 4 — 18 a 24 de maio', days: [18, 19, 20, 21, 22, 23, 24] },
+  { label: 'Semana 5 — 25 a 31 de maio', days: [25, 26, 27, 28, 29, 30, 31] },
+];
+
+// ─────────────────────────── HELPERS ──────────────────────────────
+
+const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
+
+const storageKey = (empresaId: string | undefined, year: number, month: number) =>
+  `editorial_calendar::${empresaId || 'default'}::${year}-${String(month).padStart(2, '0')}`;
+
+// ─────────────────────────── COMPONENTE ───────────────────────────
 
 interface Props {
-  empresaIniciais?: string; // para o avatar do header
+  empresaIniciais?: string;
   empresaNome?: string;
 }
 
 export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome = 'Loja Tudo Casa' }: Props) {
   const { toast } = useToast();
+  const { empresa } = useEmpresa();
 
-  // Carregar do localStorage ou usar original
-  const [posts, setPosts] = useState<EditorialPost[]>(() => {
+  // Mês/Ano selecionado (preparado para outros meses; arranque em Maio 2026)
+  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(5);
+
+  const isMaio2026 = year === 2026 && month === 5;
+
+  // Estado: { day -> post }
+  const [state, setState] = useState<CalendarState>({});
+
+  // Carregar do localStorage por empresa/mês, fallback para original (apenas Maio 2026)
+  useEffect(() => {
+    const key = storageKey(empresa?.id, year, month);
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        setState(JSON.parse(saved));
+        return;
+      }
     } catch {}
-    return ORIGINAL_POSTS;
-  });
-  const [viewPost, setViewPost] = useState<EditorialPost | null>(null);
-  const [dragId, setDragId] = useState<string | null>(null);
+    setState(isMaio2026 ? { ...ORIGINAL_MAIO_2026 } : {});
+  }, [empresa?.id, year, month, isMaio2026]);
+
+  const persist = useCallback((next: CalendarState) => {
+    setState(next);
+    try {
+      localStorage.setItem(storageKey(empresa?.id, year, month), JSON.stringify(next));
+    } catch {}
+  }, [empresa?.id, year, month]);
+
+  // ───────── Drag & Drop ─────────
+  const [dragDay, setDragDay] = useState<number | null>(null);
   const [hoverDay, setHoverDay] = useState<number | null>(null);
 
-  const weeks = useMemo(() => buildWeeks(), []);
-
-  const persist = useCallback((next: EditorialPost[]) => {
-    setPosts(next);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
-  }, []);
-
-  const byDay = useMemo(() => {
-    const m: Record<number, EditorialPost[]> = {};
-    for (const p of posts) (m[p.day] = m[p.day] || []).push(p);
-    return m;
-  }, [posts]);
-
   const handleDrop = (targetDay: number) => {
-    if (!dragId) return;
-    const post = posts.find(p => p.id === dragId);
-    setDragId(null);
-    setHoverDay(null);
-    if (!post || post.day === targetDay) return;
-    const next = posts.map(p => p.id === dragId ? { ...p, day: targetDay } : p);
+    if (dragDay === null || dragDay === targetDay) {
+      setDragDay(null);
+      setHoverDay(null);
+      return;
+    }
+    const next = { ...state };
+    const a = next[dragDay];
+    const b = next[targetDay];
+    if (b) next[dragDay] = b; else delete next[dragDay];
+    if (a) next[targetDay] = a; else delete next[targetDay];
     persist(next);
-    toast({ title: 'Post movido', description: `${post.titulo} → dia ${targetDay} de maio` });
+    setDragDay(null);
+    setHoverDay(null);
+    toast({ title: 'Publicações trocadas', description: `Dia ${dragDay} ↔ Dia ${targetDay}` });
   };
 
+  // ───────── Modal ─────────
+  const [modalDay, setModalDay] = useState<number | null>(null);
+  const [modalTab, setModalTab] = useState<'briefing' | 'editar'>('briefing');
+
+  const openView = (day: number) => {
+    setModalDay(day);
+    setModalTab(state[day] ? 'briefing' : 'editar');
+  };
+  const openAdd = (day: number) => {
+    setModalDay(day);
+    setModalTab('editar');
+  };
+
+  // ───────── Acções topo ─────────
   const handleResetOriginal = () => {
-    if (!confirm('Repor o calendário editorial original de Maio 2026? Todas as alterações locais serão perdidas.')) return;
-    persist(ORIGINAL_POSTS);
-    toast({ title: 'Calendário reposto', description: 'Voltou ao layout original de Maio 2026.' });
+    if (!isMaio2026) {
+      toast({ title: 'Sem dados originais', description: 'Os dados originais só existem para Maio 2026.', variant: 'destructive' });
+      return;
+    }
+    if (!confirm('Repor o calendário editorial original de Maio 2026? Todas as alterações serão perdidas.')) return;
+    persist({ ...ORIGINAL_MAIO_2026 });
+    toast({ title: 'Calendário reposto' });
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleExportJson = () => {
     const blob = new Blob([JSON.stringify({
       empresa: empresaNome,
-      titulo: 'Calendário Editorial',
-      mes: 'Maio 2026',
-      canais: ['Facebook', 'Instagram'],
-      posts,
+      empresa_id: empresa?.id,
+      ano: year,
+      mes: month,
+      posts: state,
     }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `calendario-editorial-maio-2026-${empresaNome.toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.download = `calendario-editorial-${year}-${String(month).padStart(2, '0')}-${(empresaNome || 'empresa').toLowerCase().replace(/\s+/g, '-')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -220,9 +229,46 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     toast({ title: 'JSON exportado' });
   };
 
+  const handleAI = () => {
+    toast({ title: 'Em breve', description: 'Geração com IA será disponibilizada em breve.' });
+  };
+
+  // ───────── Render helpers ─────────
+
+  const weeks = useMemo(() => {
+    if (isMaio2026) return MAIO_2026_WEEKS;
+    // genérico: gera Mon-first weeks para qualquer mês/ano
+    const first = new Date(year, month - 1, 1);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstColumn = (first.getDay() + 6) % 7; // Mon=0..Sun=6
+    const out: { label: string; days: (number | null)[] }[] = [];
+    let row: (number | null)[] = Array(7).fill(null);
+    let col = firstColumn;
+    let weekStart: number | null = null;
+    let weekEnd: number | null = null;
+    let weekIdx = 1;
+    const monthName = first.toLocaleDateString('pt-PT', { month: 'long' });
+    for (let d = 1; d <= daysInMonth; d++) {
+      if (weekStart === null) weekStart = d;
+      row[col] = d;
+      weekEnd = d;
+      if (col === 6) {
+        out.push({ label: `Semana ${weekIdx} — ${weekStart} a ${weekEnd} de ${monthName}`, days: row });
+        row = Array(7).fill(null);
+        col = 0;
+        weekStart = null;
+        weekIdx++;
+      } else {
+        col++;
+      }
+    }
+    if (weekStart !== null) out.push({ label: `Semana ${weekIdx} — ${weekStart} a ${weekEnd} de ${monthName}`, days: row });
+    return out;
+  }, [year, month, isMaio2026]);
+
   return (
     <div className="space-y-4 editorial-calendar">
-      {/* Header card */}
+      {/* Header */}
       <Card className="p-4 flex items-center justify-between gap-3 flex-wrap print:shadow-none print:border-0">
         <div className="flex items-center gap-3">
           <div
@@ -233,114 +279,149 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
           </div>
           <div>
             <h2 className="text-lg font-semibold leading-tight">Calendário Editorial — {empresaNome}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Maio 2026 · Facebook & Instagram</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Facebook & Instagram</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 print:hidden">
+
+        <div className="flex items-center gap-2 print:hidden flex-wrap">
+          {/* Selector mês/ano */}
+          <Select value={String(month)} onValueChange={v => setMonth(Number(v))}>
+            <SelectTrigger className="w-[130px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
+            <SelectTrigger className="w-[100px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[2025, 2026, 2027, 2028].map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button variant="outline" size="sm" onClick={handleResetOriginal}>
             <RotateCcw className="h-4 w-4 mr-1" /> Repor original
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1" /> Imprimir
           </Button>
-          <Button size="sm" onClick={handleExportJson} style={{ backgroundColor: '#E8561A' }}>
+          <Button variant="outline" size="sm" onClick={handleExportJson}>
             <FileJson className="h-4 w-4 mr-1" /> Exportar JSON
+          </Button>
+          <Button size="sm" onClick={handleAI} style={{ backgroundColor: '#E8561A' }}>
+            <Sparkles className="h-4 w-4 mr-1" /> Gerar com IA
           </Button>
         </div>
       </Card>
 
       {/* Legenda */}
       <Card className="p-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
-        {(Object.keys(CATEGORIA_CONFIG) as EditorialCategoria[]).map(k => (
+        {(Object.keys(TYPE_CONFIG) as PostType[]).map(k => (
           <div key={k} className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CATEGORIA_CONFIG[k].color }} />
-            <span className="text-muted-foreground">{CATEGORIA_CONFIG[k].label}</span>
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: TYPE_CONFIG[k].text }} />
+            <span className="text-muted-foreground">{TYPE_CONFIG[k].label}</span>
           </div>
         ))}
       </Card>
 
       <p className="text-xs text-muted-foreground text-right print:hidden">
-        💡 Arrasta posts entre dias para trocar datas · Clica "Ver" para briefing completo
+        💡 Arrasta cards entre dias para trocar publicações · Clica "Ver" para abrir briefing/editar
       </p>
-
-      {/* Title */}
-      <h3 className="text-sm font-semibold tracking-wider text-muted-foreground uppercase">Maio 2026</h3>
 
       {/* Weekday header */}
       <div className="grid grid-cols-7 gap-2 text-xs font-semibold text-muted-foreground">
-        {WEEKDAYS.map(d => <div key={d} className="px-2">{d}</div>)}
+        {WEEKDAY_LABELS.map(d => <div key={d} className="px-2">{d}</div>)}
       </div>
 
       {/* Weeks */}
       <div className="space-y-3">
-        {weeks.map((w, idx) => (
-          <div key={idx} className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">
-              Semana {idx + 1} <span className="opacity-50">—</span> {w.label}
-            </p>
+        {weeks.map((w, wi) => (
+          <div key={wi} className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">{w.label}</p>
             <div className="grid grid-cols-7 gap-2">
               {w.days.map((day, ci) => {
                 if (day === null) return <div key={ci} />;
-                const items = byDay[day] || [];
+                const post = state[day];
                 const isHover = hoverDay === day;
+                const wkInfo = WEEKDAY_INFO[weekdayOf(day)];
                 return (
                   <div
                     key={ci}
                     onDragOver={e => { e.preventDefault(); setHoverDay(day); }}
                     onDragLeave={() => setHoverDay(p => p === day ? null : p)}
                     onDrop={() => handleDrop(day)}
-                    className={`rounded-lg border bg-card transition-colors ${isHover ? 'border-primary bg-accent/30' : ''}`}
-                    style={{ minHeight: 138 }}
+                    className={`group relative rounded-[10px] border bg-card transition-colors ${isHover ? 'border-primary bg-accent/30' : ''}`}
+                    style={{ minHeight: 110 }}
                   >
-                    <div className="px-2 pt-1.5 text-[11px] font-semibold text-foreground/70">{day}</div>
-                    <div className="px-1.5 pb-1.5 mt-1 space-y-1">
-                      {items.length === 0 ? (
+                    <div className="px-2 pt-1.5 text-[11px] font-semibold text-foreground/70 flex items-center justify-between">
+                      <span>{day}</span>
+                      {post && (
                         <button
-                          className="w-full h-[100px] rounded border border-dashed text-[11px] text-muted-foreground hover:bg-accent/30 transition-colors flex items-center justify-center gap-1 print:hidden"
-                          onClick={() => toast({ title: 'Em breve', description: 'Adição manual de posts disponível em breve.' })}
+                          onClick={() => openView(day)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 print:hidden"
+                        >
+                          <Eye className="h-3 w-3" /> Ver
+                        </button>
+                      )}
+                    </div>
+                    <div className="px-1.5 pb-1.5 mt-1">
+                      {!post ? (
+                        <button
+                          className="w-full h-[80px] rounded border border-dashed text-[11px] text-muted-foreground hover:bg-accent/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 print:hidden"
+                          onClick={() => openAdd(day)}
                         >
                           <Plus className="h-3 w-3" /> Adicionar
                         </button>
                       ) : (
-                        items.map(p => {
-                          const cfg = CATEGORIA_CONFIG[p.categoria];
-                          return (
-                            <Card
-                              key={p.id}
-                              draggable
-                              onDragStart={() => setDragId(p.id)}
-                              className="p-1.5 text-left cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                        <div
+                          draggable
+                          onDragStart={() => setDragDay(day)}
+                          onClick={() => openView(day)}
+                          className="cursor-grab active:cursor-grabbing rounded p-1 hover:bg-accent/20 transition-colors"
+                        >
+                          {post.holiday && (
+                            <div
+                              className="inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded mb-1"
+                              style={{ backgroundColor: '#FFE8D9', color: '#9A3D0A' }}
                             >
-                              {p.badge && (
-                                <div className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded mb-1 ${cfg.bg} ${cfg.text}`}>
-                                  {p.badge}
-                                </div>
-                              )}
-                              <div className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded ${cfg.bg} ${cfg.text}`}>
-                                {cfg.label}
-                              </div>
-                              <p className="text-[11px] font-medium leading-tight mt-1 line-clamp-2">{p.titulo}</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {p.fb && (
-                                  <span className="inline-flex items-center gap-0.5 text-[9px] bg-blue-50 text-blue-700 px-1 py-0.5 rounded font-medium">
-                                    <span className="font-bold">FB</span> {p.fb}
-                                  </span>
-                                )}
-                                {p.ig && (
-                                  <span className="inline-flex items-center gap-0.5 text-[9px] bg-pink-50 text-pink-700 px-1 py-0.5 rounded font-medium">
-                                    <span className="font-bold">IG</span> {p.ig}
-                                  </span>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => setViewPost(p)}
-                                className="mt-1 w-full text-[9px] text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-0.5 print:hidden"
+                              {post.holiday}
+                            </div>
+                          )}
+                          <div
+                            className="inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                            style={{ backgroundColor: TYPE_CONFIG[post.type].bg, color: TYPE_CONFIG[post.type].text }}
+                          >
+                            {TYPE_CONFIG[post.type].label}
+                          </div>
+                          <p className="font-medium leading-tight mt-1" style={{ fontSize: '9.5px' }}>
+                            {truncate(post.title, 36)}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {post.plat.includes('FB') && (
+                              <span
+                                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded font-semibold"
+                                style={{ fontSize: '8px', backgroundColor: '#E6F1FB', color: '#0C447C' }}
                               >
-                                <Eye className="h-2.5 w-2.5" /> Ver
-                              </button>
-                            </Card>
-                          );
-                        })
+                                FB {post.hfb || wkInfo.fb}
+                              </span>
+                            )}
+                            {post.plat.includes('IG') && (
+                              <span
+                                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded font-semibold"
+                                style={{ fontSize: '8px', backgroundColor: '#FBEAF0', color: '#72243E' }}
+                              >
+                                IG {post.hig || wkInfo.ig}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -351,40 +432,31 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         ))}
       </div>
 
-      {/* Briefing modal (simples) */}
-      {viewPost && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 print:hidden"
-          onClick={() => setViewPost(null)}
-        >
-          <Card className="max-w-md w-full p-5 space-y-3" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <span
-                  className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded ${CATEGORIA_CONFIG[viewPost.categoria].bg} ${CATEGORIA_CONFIG[viewPost.categoria].text}`}
-                >
-                  {CATEGORIA_CONFIG[viewPost.categoria].label}
-                </span>
-                <h3 className="text-base font-semibold mt-1">{viewPost.titulo}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Dia {viewPost.day} de maio de 2026</p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setViewPost(null)}>✕</Button>
-            </div>
-            {viewPost.briefing && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-1">Briefing</p>
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{viewPost.briefing}</p>
-              </div>
-            )}
-            <div className="flex gap-2 pt-2 border-t">
-              {viewPost.fb && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded"><b>FB</b> {viewPost.fb}</span>}
-              {viewPost.ig && <span className="text-xs bg-pink-50 text-pink-700 px-2 py-1 rounded"><b>IG</b> {viewPost.ig}</span>}
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Modal */}
+      <PostDialog
+        day={modalDay}
+        post={modalDay !== null ? state[modalDay] : undefined}
+        tab={modalTab}
+        onTabChange={setModalTab}
+        onClose={() => setModalDay(null)}
+        onSave={(p) => {
+          if (modalDay === null) return;
+          const next = { ...state, [modalDay]: p };
+          persist(next);
+          setModalDay(null);
+          toast({ title: 'Publicação guardada' });
+        }}
+        onDelete={() => {
+          if (modalDay === null) return;
+          const next = { ...state };
+          delete next[modalDay];
+          persist(next);
+          setModalDay(null);
+          toast({ title: 'Publicação eliminada' });
+        }}
+      />
 
-      {/* Print styles */}
+      {/* Print */}
       <style>{`
         @media print {
           @page { size: A4 landscape; margin: 10mm; }
@@ -394,5 +466,228 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         }
       `}</style>
     </div>
+  );
+}
+
+// ─────────────────────────── DIALOG ───────────────────────────────
+
+interface PostDialogProps {
+  day: number | null;
+  post?: EditorialPost;
+  tab: 'briefing' | 'editar';
+  onTabChange: (t: 'briefing' | 'editar') => void;
+  onClose: () => void;
+  onSave: (p: EditorialPost) => void;
+  onDelete: () => void;
+}
+
+function PostDialog({ day, post, tab, onTabChange, onClose, onSave, onDelete }: PostDialogProps) {
+  const open = day !== null;
+  const wkInfo = day !== null ? WEEKDAY_INFO[weekdayOf(day)] : null;
+
+  const [form, setForm] = useState<EditorialPost>({
+    type: 'inst',
+    plat: 'FB + IG',
+    title: '',
+    copy: '',
+    tip: '',
+    tags: '',
+    holiday: '',
+    hfb: '',
+    hig: '',
+  });
+
+  useEffect(() => {
+    if (!open || !wkInfo) return;
+    setForm(post
+      ? { ...post, holiday: post.holiday || '', hfb: post.hfb || '', hig: post.hig || '' }
+      : { type: 'inst', plat: 'FB + IG', title: '', copy: '', tip: '', tags: '', holiday: '', hfb: wkInfo.fb, hig: wkInfo.ig });
+  }, [open, post, wkInfo]);
+
+  if (!open || !wkInfo || day === null) return null;
+
+  const fbTime = (post?.hfb) || wkInfo.fb;
+  const igTime = (post?.hig) || wkInfo.ig;
+
+  const handleSave = () => {
+    if (!form.title.trim()) return;
+    const cleaned: EditorialPost = {
+      type: form.type,
+      plat: form.plat,
+      title: form.title.trim(),
+      copy: form.copy,
+      tip: form.tip,
+      tags: form.tags,
+    };
+    if (form.holiday?.trim()) cleaned.holiday = form.holiday.trim();
+    if (form.hfb && form.hfb !== wkInfo.fb) cleaned.hfb = form.hfb;
+    if (form.hig && form.hig !== wkInfo.ig) cleaned.hig = form.hig;
+    onSave(cleaned);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span>Dia {day}</span>
+            <span className="text-xs font-normal text-muted-foreground">· {wkInfo.name}</span>
+            {post?.holiday && (
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                style={{ backgroundColor: '#FFE8D9', color: '#9A3D0A' }}
+              >
+                {post.holiday}
+              </span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <Tabs value={tab} onValueChange={(v) => onTabChange(v as any)}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="briefing" disabled={!post}>Briefing</TabsTrigger>
+            <TabsTrigger value="editar">Editar</TabsTrigger>
+          </TabsList>
+
+          {/* BRIEFING */}
+          <TabsContent value="briefing" className="space-y-4 mt-4">
+            {post ? (
+              <>
+                <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: '#FFF4EC', border: '1px solid #F4C9A5' }}>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold"
+                      style={{ backgroundColor: '#E6F1FB', color: '#0C447C' }}
+                    >
+                      FB {fbTime}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold"
+                      style={{ backgroundColor: '#FBEAF0', color: '#72243E' }}
+                    >
+                      IG {igTime}
+                    </span>
+                    <span className="text-xs text-muted-foreground">· {post.plat}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: '#7A3811' }}>{wkInfo.note}</p>
+                </div>
+
+                <div>
+                  <span
+                    className="inline-block text-xs font-semibold px-2 py-1 rounded"
+                    style={{ backgroundColor: TYPE_CONFIG[post.type].bg, color: TYPE_CONFIG[post.type].text }}
+                  >
+                    {TYPE_CONFIG[post.type].label}
+                  </span>
+                  <h3 className="text-base font-semibold mt-2">{post.title}</h3>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Copy sugerida</p>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{post.copy}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Nota criativa</p>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground/80">{post.tip}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">Hashtags</p>
+                  <p className="text-sm font-mono text-primary">{post.tags}</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Sem publicação para este dia.</p>
+            )}
+          </TabsContent>
+
+          {/* EDITAR */}
+          <TabsContent value="editar" className="space-y-3 mt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tipo de conteúdo</Label>
+                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as PostType })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TYPE_CONFIG) as PostType[]).map(k => (
+                      <SelectItem key={k} value={k}>{TYPE_CONFIG[k].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Plataforma(s)</Label>
+                <Select value={form.plat} onValueChange={(v) => setForm({ ...form, plat: v })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PLATFORM_OPTIONS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Título da publicação</Label>
+              <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="h-9" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Hora FB</Label>
+                <Input
+                  value={form.hfb || ''}
+                  placeholder={wkInfo.fb}
+                  onChange={e => setForm({ ...form, hfb: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Hora IG</Label>
+                <Input
+                  value={form.hig || ''}
+                  placeholder={wkInfo.ig}
+                  onChange={e => setForm({ ...form, hig: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Data especial / feriado</Label>
+                <Input
+                  value={form.holiday || ''}
+                  placeholder="(opcional)"
+                  onChange={e => setForm({ ...form, holiday: e.target.value })}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Copy / legenda</Label>
+              <Textarea value={form.copy} onChange={e => setForm({ ...form, copy: e.target.value })} rows={4} />
+            </div>
+            <div>
+              <Label className="text-xs">Nota criativa</Label>
+              <Textarea value={form.tip} onChange={e => setForm({ ...form, tip: e.target.value })} rows={2} />
+            </div>
+            <div>
+              <Label className="text-xs">Hashtags</Label>
+              <Textarea value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} rows={2} />
+            </div>
+
+            <div className="flex justify-between pt-2 border-t">
+              {post ? (
+                <Button variant="destructive" size="sm" onClick={onDelete}>
+                  <Trash2 className="h-4 w-4 mr-1" /> Eliminar publicação
+                </Button>
+              ) : <span />}
+              <Button size="sm" onClick={handleSave} style={{ backgroundColor: '#E8561A' }} disabled={!form.title.trim()}>
+                <Save className="h-4 w-4 mr-1" /> Guardar alterações
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }
