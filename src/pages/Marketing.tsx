@@ -24,6 +24,8 @@ import {
 export default function Marketing() {
   const { tarefas, isLoading, updateStatus, deleteTarefa } = useMarketing();
   const { toast } = useToast();
+  const { empresa } = useEmpresa();
+  const isTudoCasa = !!empresa?.slug && empresa.slug.toLowerCase().startsWith('tudocasa');
 
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
