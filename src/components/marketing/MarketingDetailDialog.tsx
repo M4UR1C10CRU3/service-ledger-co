@@ -19,6 +19,7 @@ import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink } from 'lucide
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { MarketingWorkflowPanel } from './MarketingWorkflowPanel';
 
 interface Props {
   tarefa: MarketingTarefa | null;
