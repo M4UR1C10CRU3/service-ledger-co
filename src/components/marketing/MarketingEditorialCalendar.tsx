@@ -11,9 +11,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save } from 'lucide-react';
+import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save, Upload, CheckCircle2, XCircle, Clock, Paperclip, Download, FileImage } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Calendário Editorial — Marketing
@@ -39,6 +40,28 @@ interface EditorialPost {
 }
 
 type CalendarState = Record<number, EditorialPost>;
+
+const BUCKET = 'marketing-editorial';
+
+export interface Entrega {
+  id: string;
+  empresa_id: string;
+  ano: number;
+  mes: number;
+  dia: number;
+  nome: string;
+  storage_path: string;
+  mime_type: string | null;
+  tamanho_bytes: number | null;
+  status: 'pendente' | 'aprovado' | 'rejeitado';
+  comentario_aprovacao: string | null;
+  uploaded_by: string | null;
+  uploaded_by_nome: string | null;
+  aprovado_por: string | null;
+  aprovado_por_nome: string | null;
+  aprovado_em: string | null;
+  created_at: string;
+}
 
 // ─────────────────────── CONFIG DE CATEGORIAS ─────────────────────
 
@@ -163,6 +186,84 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     } catch {}
   }, [empresa?.id, year, month]);
 
+  // ───────── Entregas (uploads + aprovação) ─────────
+  const [entregas, setEntregas] = useState<Record<number, Entrega[]>>({});
+
+  const fetchEntregas = useCallback(async () => {
+    if (!empresa?.id) { setEntregas({}); return; }
+    const { data, error } = await supabase
+      .from('marketing_editorial_entregas')
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year)
+      .eq('mes', month)
+      .order('created_at', { ascending: false });
+    if (error) { console.error('[entregas]', error); return; }
+    const grouped: Record<number, Entrega[]> = {};
+    (data || []).forEach((r: any) => {
+      grouped[r.dia] = grouped[r.dia] || [];
+      grouped[r.dia].push(r as Entrega);
+    });
+    setEntregas(grouped);
+  }, [empresa?.id, year, month]);
+
+  useEffect(() => { fetchEntregas(); }, [fetchEntregas]);
+
+  const uploadEntrega = async (dia: number, file: File): Promise<boolean> => {
+    if (!empresa?.id) return false;
+    const ext = file.name.split('.').pop() || 'bin';
+    const path = `${empresa.id}/${year}-${String(month).padStart(2, '0')}/dia-${dia}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) { console.error(upErr); toast({ title: 'Erro no upload', description: upErr.message, variant: 'destructive' }); return false; }
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from('marketing_editorial_entregas').insert({
+      empresa_id: empresa.id, ano: year, mes: month, dia,
+      nome: file.name, storage_path: path,
+      mime_type: file.type || null, tamanho_bytes: file.size,
+      status: 'pendente',
+      uploaded_by: u?.user?.id || null,
+      uploaded_by_nome: u?.user?.email || null,
+    });
+    if (error) { console.error(error); toast({ title: 'Erro a registar entrega', variant: 'destructive' }); return false; }
+    await fetchEntregas();
+    toast({ title: 'Entrega enviada', description: 'Aguarda aprovação.' });
+    return true;
+  };
+
+  const decidirEntrega = async (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string): Promise<boolean> => {
+    const { data: u } = await supabase.auth.getUser();
+    if (u?.user?.id && u.user.id === e.uploaded_by) {
+      toast({ title: 'Não permitido', description: 'A aprovação deve ser feita por outro membro da equipa.', variant: 'destructive' });
+      return false;
+    }
+    const { error } = await supabase.from('marketing_editorial_entregas').update({
+      status,
+      comentario_aprovacao: comentario || null,
+      aprovado_por: u?.user?.id || null,
+      aprovado_por_nome: u?.user?.email || null,
+      aprovado_em: new Date().toISOString(),
+    }).eq('id', e.id);
+    if (error) { toast({ title: 'Erro', variant: 'destructive' }); return false; }
+    await fetchEntregas();
+    toast({ title: status === 'aprovado' ? 'Entrega aprovada' : 'Entrega rejeitada' });
+    return true;
+  };
+
+  const removerEntrega = async (e: Entrega): Promise<boolean> => {
+    if (!confirm(`Remover ficheiro "${e.nome}"?`)) return false;
+    await supabase.storage.from(BUCKET).remove([e.storage_path]);
+    const { error } = await supabase.from('marketing_editorial_entregas').delete().eq('id', e.id);
+    if (error) { toast({ title: 'Erro', variant: 'destructive' }); return false; }
+    await fetchEntregas();
+    return true;
+  };
+
+  const downloadEntrega = async (e: Entrega) => {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(e.storage_path, 3600);
+    if (error || !data) { toast({ title: 'Erro', variant: 'destructive' }); return; }
+    window.open(data.signedUrl, '_blank');
+  };
+
   // ───────── Drag & Drop ─────────
   const [dragDay, setDragDay] = useState<number | null>(null);
   const [hoverDay, setHoverDay] = useState<number | null>(null);
@@ -186,7 +287,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   // ───────── Modal ─────────
   const [modalDay, setModalDay] = useState<number | null>(null);
-  const [modalTab, setModalTab] = useState<'briefing' | 'editar'>('briefing');
+  const [modalTab, setModalTab] = useState<'briefing' | 'editar' | 'entregas'>('briefing');
 
   const openView = (day: number) => {
     setModalDay(day);
@@ -421,6 +522,25 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                               </span>
                             )}
                           </div>
+                          {(entregas[day]?.length || 0) > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              {(() => {
+                                const list = entregas[day] || [];
+                                const aprov = list.filter(x => x.status === 'aprovado').length;
+                                const pend = list.filter(x => x.status === 'pendente').length;
+                                const rej = list.filter(x => x.status === 'rejeitado').length;
+                                return (
+                                  <>
+                                    <Paperclip className="h-2.5 w-2.5 text-muted-foreground" />
+                                    <span className="text-[8px] text-muted-foreground">{list.length}</span>
+                                    {aprov > 0 && <CheckCircle2 className="h-2.5 w-2.5" style={{ color: '#16a34a' }} />}
+                                    {pend > 0 && <Clock className="h-2.5 w-2.5" style={{ color: '#d97706' }} />}
+                                    {rej > 0 && <XCircle className="h-2.5 w-2.5" style={{ color: '#dc2626' }} />}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -438,6 +558,11 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         post={modalDay !== null ? state[modalDay] : undefined}
         tab={modalTab}
         onTabChange={setModalTab}
+        entregas={modalDay !== null ? (entregas[modalDay] || []) : []}
+        onUpload={(file) => modalDay !== null && uploadEntrega(modalDay, file)}
+        onDecidir={decidirEntrega}
+        onRemoverEntrega={removerEntrega}
+        onDownloadEntrega={downloadEntrega}
         onClose={() => setModalDay(null)}
         onSave={(p) => {
           if (modalDay === null) return;
@@ -474,14 +599,23 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 interface PostDialogProps {
   day: number | null;
   post?: EditorialPost;
-  tab: 'briefing' | 'editar';
-  onTabChange: (t: 'briefing' | 'editar') => void;
+  tab: 'briefing' | 'editar' | 'entregas';
+  onTabChange: (t: 'briefing' | 'editar' | 'entregas') => void;
+  entregas: Entrega[];
+  onUpload: (file: File) => Promise<boolean> | void;
+  onDecidir: (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string) => Promise<boolean>;
+  onRemoverEntrega: (e: Entrega) => Promise<boolean>;
+  onDownloadEntrega: (e: Entrega) => void;
   onClose: () => void;
   onSave: (p: EditorialPost) => void;
   onDelete: () => void;
 }
 
-function PostDialog({ day, post, tab, onTabChange, onClose, onSave, onDelete }: PostDialogProps) {
+function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega, onClose, onSave, onDelete }: PostDialogProps) {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
+  }, []);
   const open = day !== null;
   const wkInfo = day !== null ? WEEKDAY_INFO[weekdayOf(day)] : null;
 
@@ -544,9 +678,12 @@ function PostDialog({ day, post, tab, onTabChange, onClose, onSave, onDelete }: 
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => onTabChange(v as any)}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="briefing" disabled={!post}>Briefing</TabsTrigger>
             <TabsTrigger value="editar">Editar</TabsTrigger>
+            <TabsTrigger value="entregas">
+              Entregas {entregas.length > 0 && <span className="ml-1 text-[10px] opacity-70">({entregas.length})</span>}
+            </TabsTrigger>
           </TabsList>
 
           {/* BRIEFING */}
@@ -686,8 +823,151 @@ function PostDialog({ day, post, tab, onTabChange, onClose, onSave, onDelete }: 
               </Button>
             </div>
           </TabsContent>
+
+          {/* ENTREGAS */}
+          <TabsContent value="entregas" className="space-y-3 mt-4">
+            <EntregasPanel
+              entregas={entregas}
+              currentUserId={currentUserId}
+              onUpload={onUpload}
+              onDecidir={onDecidir}
+              onRemoverEntrega={onRemoverEntrega}
+              onDownloadEntrega={onDownloadEntrega}
+            />
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─────────────────────── PAINEL ENTREGAS ──────────────────────────
+
+interface EntregasPanelProps {
+  entregas: Entrega[];
+  currentUserId: string | null;
+  onUpload: (file: File) => Promise<boolean> | void;
+  onDecidir: (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string) => Promise<boolean>;
+  onRemoverEntrega: (e: Entrega) => Promise<boolean>;
+  onDownloadEntrega: (e: Entrega) => void;
+}
+
+function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega }: EntregasPanelProps) {
+  const [uploading, setUploading] = useState(false);
+  const [comentarios, setComentarios] = useState<Record<string, string>>({});
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    for (let i = 0; i < files.length; i++) {
+      await onUpload(files[i]);
+    }
+    setUploading(false);
+  };
+
+  const fmtSize = (b: number | null) => {
+    if (!b) return '';
+    if (b < 1024) return `${b} B`;
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+    return `${(b / 1024 / 1024).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">Carregar ficheiro (PNG, JPG, carrossel — múltiplos ficheiros aceites)</Label>
+        <div className="mt-2 border-2 border-dashed rounded-lg p-4 text-center hover:bg-accent/20 transition-colors">
+          <input
+            id="entrega-upload"
+            type="file"
+            multiple
+            accept="image/*,application/pdf,video/*"
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+            disabled={uploading}
+          />
+          <label htmlFor="entrega-upload" className="cursor-pointer flex flex-col items-center gap-1.5">
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <span className="text-sm font-medium">{uploading ? 'A enviar…' : 'Clica para escolher ou arrasta ficheiros'}</span>
+            <span className="text-xs text-muted-foreground">As entregas ficam pendentes até serem aprovadas por outro membro.</span>
+          </label>
+        </div>
+      </div>
+
+      {entregas.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">Sem entregas para este dia.</p>
+      ) : (
+        <div className="space-y-2">
+          {entregas.map(e => {
+            const isOwner = currentUserId && currentUserId === e.uploaded_by;
+            const statusCfg =
+              e.status === 'aprovado' ? { label: 'Aprovado', icon: CheckCircle2, color: '#16a34a', bg: '#DCFCE7' } :
+              e.status === 'rejeitado' ? { label: 'Rejeitado', icon: XCircle, color: '#dc2626', bg: '#FEE2E2' } :
+              { label: 'Pendente', icon: Clock, color: '#d97706', bg: '#FEF3C7' };
+            const StatusIcon = statusCfg.icon;
+            const isImg = (e.mime_type || '').startsWith('image/');
+            return (
+              <div key={e.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isImg ? <FileImage className="h-4 w-4 text-muted-foreground shrink-0" /> : <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{e.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {fmtSize(e.tamanho_bytes)} · {e.uploaded_by_nome || 'Anónimo'} · {new Date(e.created_at).toLocaleString('pt-PT')}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold shrink-0"
+                    style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                  >
+                    <StatusIcon className="h-3 w-3" /> {statusCfg.label}
+                  </span>
+                </div>
+
+                {e.status !== 'pendente' && (e.aprovado_por_nome || e.comentario_aprovacao) && (
+                  <div className="text-xs text-muted-foreground border-l-2 pl-2" style={{ borderColor: statusCfg.color }}>
+                    {e.aprovado_por_nome && <p><b>{e.status === 'aprovado' ? 'Aprovado por' : 'Rejeitado por'}:</b> {e.aprovado_por_nome}{e.aprovado_em ? ` · ${new Date(e.aprovado_em).toLocaleString('pt-PT')}` : ''}</p>}
+                    {e.comentario_aprovacao && <p className="mt-0.5">"{e.comentario_aprovacao}"</p>}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => onDownloadEntrega(e)}>
+                    <Download className="h-3.5 w-3.5 mr-1" /> Abrir / Download
+                  </Button>
+
+                  {e.status === 'pendente' && !isOwner && (
+                    <>
+                      <Input
+                        placeholder="Comentário (opcional)"
+                        value={comentarios[e.id] || ''}
+                        onChange={ev => setComentarios(c => ({ ...c, [e.id]: ev.target.value }))}
+                        className="h-8 text-xs flex-1 min-w-[180px]"
+                      />
+                      <Button size="sm" onClick={() => onDecidir(e, 'aprovado', comentarios[e.id])} style={{ backgroundColor: '#16a34a' }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Aprovar
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => onDecidir(e, 'rejeitado', comentarios[e.id])}>
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Rejeitar
+                      </Button>
+                    </>
+                  )}
+
+                  {e.status === 'pendente' && isOwner && (
+                    <span className="text-xs text-muted-foreground italic">Aguarda aprovação por outro membro da equipa.</span>
+                  )}
+
+                  <Button size="sm" variant="ghost" onClick={() => onRemoverEntrega(e)} className="ml-auto text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

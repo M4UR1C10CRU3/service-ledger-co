@@ -1605,6 +1605,69 @@ export type Database = {
           },
         ]
       }
+      marketing_editorial_entregas: {
+        Row: {
+          ano: number
+          aprovado_em: string | null
+          aprovado_por: string | null
+          aprovado_por_nome: string | null
+          comentario_aprovacao: string | null
+          created_at: string
+          dia: number
+          empresa_id: string
+          id: string
+          mes: number
+          mime_type: string | null
+          nome: string
+          status: string
+          storage_path: string
+          tamanho_bytes: number | null
+          updated_at: string
+          uploaded_by: string | null
+          uploaded_by_nome: string | null
+        }
+        Insert: {
+          ano: number
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          comentario_aprovacao?: string | null
+          created_at?: string
+          dia: number
+          empresa_id: string
+          id?: string
+          mes: number
+          mime_type?: string | null
+          nome: string
+          status?: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+        }
+        Update: {
+          ano?: number
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          comentario_aprovacao?: string | null
+          created_at?: string
+          dia?: number
+          empresa_id?: string
+          id?: string
+          mes?: number
+          mime_type?: string | null
+          nome?: string
+          status?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+        }
+        Relationships: []
+      }
       marketing_tarefas: {
         Row: {
           arquivado: boolean
