@@ -158,6 +158,14 @@ export function useMarketing() {
       link_externo: input.linkExterno || null,
       briefing: input.briefing || null,
       observacoes: input.observacoes || null,
+      etapa_atual: input.etapaAtual || 'briefing',
+      aprovador_nome: input.aprovadorNome || null,
+      solicitante_nome: input.solicitanteNome || (userResp?.user?.email || null),
+      solicitante_id: userResp?.user?.id || null,
+      prazo_briefing: input.prazoBriefing || null,
+      prazo_criacao: input.prazoCriacao || null,
+      prazo_revisao: input.prazoRevisao || null,
+      prazo_aprovacao: input.prazoAprovacao || null,
       created_by: userResp?.user?.id || null,
     }).select('id').single();
     if (error || !row) { console.error('[marketing] create:', error); return null; }
