@@ -33,7 +33,7 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState<MarketingTarefaInput>(() => ({
+  const buildInitial = (): MarketingTarefaInput => ({
     titulo: initial?.titulo || '',
     descricao: initial?.descricao || '',
     tipoConteudo: initial?.tipoConteudo || null,
@@ -50,31 +50,21 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
     linkExterno: initial?.linkExterno || '',
     briefing: initial?.briefing || '',
     observacoes: initial?.observacoes || '',
-  }));
+    aprovadorNome: initial?.aprovadorNome || '',
+    solicitanteNome: initial?.solicitanteNome || '',
+    prazoBriefing: initial?.prazoBriefing || '',
+    prazoCriacao: initial?.prazoCriacao || '',
+    prazoRevisao: initial?.prazoRevisao || '',
+    prazoAprovacao: initial?.prazoAprovacao || '',
+  });
 
-  // Reset form when dialog opens/changes target
+  const [form, setForm] = useState<MarketingTarefaInput>(buildInitial);
+
   const lastInitialId = initial?.id || '__new__';
   const [trackedKey, setTrackedKey] = useState(lastInitialId);
   if (open && trackedKey !== lastInitialId) {
     setTrackedKey(lastInitialId);
-    setForm({
-      titulo: initial?.titulo || '',
-      descricao: initial?.descricao || '',
-      tipoConteudo: initial?.tipoConteudo || null,
-      canal: initial?.canal || null,
-      status: initial?.status || defaultStatus || 'ideias',
-      prioridade: initial?.prioridade || 'media',
-      responsavelNome: initial?.responsavelNome || '',
-      delegadoPorNome: initial?.delegadoPorNome || '',
-      dataPrevista: initial?.dataPrevista || '',
-      dataPublicacao: initial?.dataPublicacao || '',
-      horaPublicacao: initial?.horaPublicacao || '',
-      hashtags: initial?.hashtags || '',
-      copyLegenda: initial?.copyLegenda || '',
-      linkExterno: initial?.linkExterno || '',
-      briefing: initial?.briefing || '',
-      observacoes: initial?.observacoes || '',
-    });
+    setForm(buildInitial());
   }
 
   const handleSubmit = async () => {
