@@ -99,6 +99,14 @@ export interface MarketingTarefaInput {
   linkExterno?: string | null;
   briefing?: string | null;
   observacoes?: string | null;
+  // Workflow
+  etapaAtual?: string | null;
+  aprovadorNome?: string | null;
+  solicitanteNome?: string | null;
+  prazoBriefing?: string | null;
+  prazoCriacao?: string | null;
+  prazoRevisao?: string | null;
+  prazoAprovacao?: string | null;
 }
 
 export function useMarketing() {
