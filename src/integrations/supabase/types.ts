@@ -1668,8 +1668,169 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_tarefa_checklist: {
+        Row: {
+          concluido: boolean
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          etapa: string
+          id: string
+          ordem: number
+          prazo: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          tarefa_id: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          concluido?: boolean
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          etapa?: string
+          id?: string
+          ordem?: number
+          prazo?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          tarefa_id: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          concluido?: boolean
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          etapa?: string
+          id?: string
+          ordem?: number
+          prazo?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          tarefa_id?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_tarefa_etapa_historico: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          etapa_anterior: string | null
+          etapa_nova: string
+          id: string
+          observacoes: string | null
+          tarefa_id: string
+          utilizador_id: string | null
+          utilizador_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          etapa_anterior?: string | null
+          etapa_nova: string
+          id?: string
+          observacoes?: string | null
+          tarefa_id: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          etapa_anterior?: string | null
+          etapa_nova?: string
+          id?: string
+          observacoes?: string | null
+          tarefa_id?: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Relationships: []
+      }
+      marketing_tarefa_notificacoes: {
+        Row: {
+          created_at: string
+          destinatario_id: string | null
+          destinatario_nome: string | null
+          empresa_id: string
+          id: string
+          lida: boolean
+          lida_em: string | null
+          mensagem: string
+          tarefa_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          destinatario_id?: string | null
+          destinatario_nome?: string | null
+          empresa_id: string
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          mensagem: string
+          tarefa_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          destinatario_id?: string | null
+          destinatario_nome?: string | null
+          empresa_id?: string
+          id?: string
+          lida?: boolean
+          lida_em?: string | null
+          mensagem?: string
+          tarefa_id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      marketing_tarefa_responsaveis: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          funcao: string | null
+          id: string
+          tarefa_id: string
+          utilizador_id: string | null
+          utilizador_nome: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          funcao?: string | null
+          id?: string
+          tarefa_id: string
+          utilizador_id?: string | null
+          utilizador_nome: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          funcao?: string | null
+          id?: string
+          tarefa_id?: string
+          utilizador_id?: string | null
+          utilizador_nome?: string
+        }
+        Relationships: []
+      }
       marketing_tarefas: {
         Row: {
+          aprovador_id: string | null
+          aprovador_nome: string | null
           arquivado: boolean
           arquivado_em: string | null
           briefing: string | null
@@ -1683,21 +1844,30 @@ export type Database = {
           delegado_por_nome: string | null
           descricao: string | null
           empresa_id: string
+          etapa_atual: string
           hashtags: string | null
           hora_publicacao: string | null
           id: string
           link_externo: string | null
           observacoes: string | null
           ordem_kanban: number
+          prazo_aprovacao: string | null
+          prazo_briefing: string | null
+          prazo_criacao: string | null
+          prazo_revisao: string | null
           prioridade: string
           responsavel_id: string | null
           responsavel_nome: string | null
+          solicitante_id: string | null
+          solicitante_nome: string | null
           status: string
           tipo_conteudo: string | null
           titulo: string
           updated_at: string
         }
         Insert: {
+          aprovador_id?: string | null
+          aprovador_nome?: string | null
           arquivado?: boolean
           arquivado_em?: string | null
           briefing?: string | null
@@ -1711,21 +1881,30 @@ export type Database = {
           delegado_por_nome?: string | null
           descricao?: string | null
           empresa_id: string
+          etapa_atual?: string
           hashtags?: string | null
           hora_publicacao?: string | null
           id?: string
           link_externo?: string | null
           observacoes?: string | null
           ordem_kanban?: number
+          prazo_aprovacao?: string | null
+          prazo_briefing?: string | null
+          prazo_criacao?: string | null
+          prazo_revisao?: string | null
           prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          solicitante_id?: string | null
+          solicitante_nome?: string | null
           status?: string
           tipo_conteudo?: string | null
           titulo: string
           updated_at?: string
         }
         Update: {
+          aprovador_id?: string | null
+          aprovador_nome?: string | null
           arquivado?: boolean
           arquivado_em?: string | null
           briefing?: string | null
@@ -1739,15 +1918,22 @@ export type Database = {
           delegado_por_nome?: string | null
           descricao?: string | null
           empresa_id?: string
+          etapa_atual?: string
           hashtags?: string | null
           hora_publicacao?: string | null
           id?: string
           link_externo?: string | null
           observacoes?: string | null
           ordem_kanban?: number
+          prazo_aprovacao?: string | null
+          prazo_briefing?: string | null
+          prazo_criacao?: string | null
+          prazo_revisao?: string | null
           prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          solicitante_id?: string | null
+          solicitante_nome?: string | null
           status?: string
           tipo_conteudo?: string | null
           titulo?: string
