@@ -186,6 +186,84 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     } catch {}
   }, [empresa?.id, year, month]);
 
+  // ───────── Entregas (uploads + aprovação) ─────────
+  const [entregas, setEntregas] = useState<Record<number, Entrega[]>>({});
+
+  const fetchEntregas = useCallback(async () => {
+    if (!empresa?.id) { setEntregas({}); return; }
+    const { data, error } = await supabase
+      .from('marketing_editorial_entregas')
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year)
+      .eq('mes', month)
+      .order('created_at', { ascending: false });
+    if (error) { console.error('[entregas]', error); return; }
+    const grouped: Record<number, Entrega[]> = {};
+    (data || []).forEach((r: any) => {
+      grouped[r.dia] = grouped[r.dia] || [];
+      grouped[r.dia].push(r as Entrega);
+    });
+    setEntregas(grouped);
+  }, [empresa?.id, year, month]);
+
+  useEffect(() => { fetchEntregas(); }, [fetchEntregas]);
+
+  const uploadEntrega = async (dia: number, file: File): Promise<boolean> => {
+    if (!empresa?.id) return false;
+    const ext = file.name.split('.').pop() || 'bin';
+    const path = `${empresa.id}/${year}-${String(month).padStart(2, '0')}/dia-${dia}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+    if (upErr) { console.error(upErr); toast({ title: 'Erro no upload', description: upErr.message, variant: 'destructive' }); return false; }
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from('marketing_editorial_entregas').insert({
+      empresa_id: empresa.id, ano: year, mes: month, dia,
+      nome: file.name, storage_path: path,
+      mime_type: file.type || null, tamanho_bytes: file.size,
+      status: 'pendente',
+      uploaded_by: u?.user?.id || null,
+      uploaded_by_nome: u?.user?.email || null,
+    });
+    if (error) { console.error(error); toast({ title: 'Erro a registar entrega', variant: 'destructive' }); return false; }
+    await fetchEntregas();
+    toast({ title: 'Entrega enviada', description: 'Aguarda aprovação.' });
+    return true;
+  };
+
+  const decidirEntrega = async (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string): Promise<boolean> => {
+    const { data: u } = await supabase.auth.getUser();
+    if (u?.user?.id && u.user.id === e.uploaded_by) {
+      toast({ title: 'Não permitido', description: 'A aprovação deve ser feita por outro membro da equipa.', variant: 'destructive' });
+      return false;
+    }
+    const { error } = await supabase.from('marketing_editorial_entregas').update({
+      status,
+      comentario_aprovacao: comentario || null,
+      aprovado_por: u?.user?.id || null,
+      aprovado_por_nome: u?.user?.email || null,
+      aprovado_em: new Date().toISOString(),
+    }).eq('id', e.id);
+    if (error) { toast({ title: 'Erro', variant: 'destructive' }); return false; }
+    await fetchEntregas();
+    toast({ title: status === 'aprovado' ? 'Entrega aprovada' : 'Entrega rejeitada' });
+    return true;
+  };
+
+  const removerEntrega = async (e: Entrega): Promise<boolean> => {
+    if (!confirm(`Remover ficheiro "${e.nome}"?`)) return false;
+    await supabase.storage.from(BUCKET).remove([e.storage_path]);
+    const { error } = await supabase.from('marketing_editorial_entregas').delete().eq('id', e.id);
+    if (error) { toast({ title: 'Erro', variant: 'destructive' }); return false; }
+    await fetchEntregas();
+    return true;
+  };
+
+  const downloadEntrega = async (e: Entrega) => {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(e.storage_path, 3600);
+    if (error || !data) { toast({ title: 'Erro', variant: 'destructive' }); return; }
+    window.open(data.signedUrl, '_blank');
+  };
+
   // ───────── Drag & Drop ─────────
   const [dragDay, setDragDay] = useState<number | null>(null);
   const [hoverDay, setHoverDay] = useState<number | null>(null);
