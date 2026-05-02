@@ -270,6 +270,125 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     window.open(data.signedUrl, '_blank');
   };
 
+  // ───────── Ligação ao Kanban (Tarefas Marketing) ─────────
+  const [linkedTarefas, setLinkedTarefas] = useState<Record<number, TarefaLink>>({});
+
+  const fetchLinked = useCallback(async () => {
+    if (!empresa?.id) { setLinkedTarefas({}); return; }
+    let map: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
+      if (raw) map = JSON.parse(raw);
+    } catch {}
+    const ids = Object.values(map).filter(Boolean);
+    if (ids.length === 0) { setLinkedTarefas({}); return; }
+    const { data, error } = await supabase
+      .from('marketing_tarefas')
+      .select('id, status, etapa_atual')
+      .in('id', ids);
+    if (error) { console.error('[linked tarefas]', error); return; }
+    const byId = new Map<string, any>((data || []).map((r: any) => [r.id, r]));
+    const cleaned: Record<string, string> = {};
+    const out: Record<number, TarefaLink> = {};
+    Object.entries(map).forEach(([dia, id]) => {
+      const r = byId.get(id);
+      if (r) {
+        cleaned[dia] = id;
+        out[Number(dia)] = { id, status: r.status, etapa: r.etapa_atual };
+      }
+    });
+    if (Object.keys(cleaned).length !== Object.keys(map).length) {
+      localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(cleaned));
+    }
+    setLinkedTarefas(out);
+  }, [empresa?.id, year, month]);
+
+  useEffect(() => { fetchLinked(); }, [fetchLinked]);
+
+  const persistLink = useCallback((day: number, tarefaId: string | null) => {
+    if (!empresa?.id) return;
+    let map: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
+      if (raw) map = JSON.parse(raw);
+    } catch {}
+    if (tarefaId) map[String(day)] = tarefaId;
+    else delete map[String(day)];
+    localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(map));
+  }, [empresa?.id, year, month]);
+
+  const promoverParaKanban = async (day: number): Promise<boolean> => {
+    if (!empresa?.id) return false;
+    const post = state[day];
+    if (!post) {
+      toast({ title: 'Sem publicação para promover', variant: 'destructive' });
+      return false;
+    }
+    if (linkedTarefas[day]) {
+      toast({ title: 'Já existe uma tarefa Kanban associada' });
+      return false;
+    }
+    const dataPub = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const wkInfo = WEEKDAY_INFO[weekdayOf(day)];
+    const horaPub = post.hfb || wkInfo.fb;
+    const tipoConteudo =
+      post.type === 'carrossel' ? 'post' :
+      post.type === 'bastidores' ? 'reels' :
+      post.type === 'eng' ? 'story' : 'post';
+    const canal =
+      post.plat.includes('IG') && !post.plat.includes('FB') ? 'instagram' :
+      post.plat.includes('FB') && !post.plat.includes('IG') ? 'facebook' : 'instagram';
+    const { data: userResp } = await supabase.auth.getUser();
+    const briefingTxt = [
+      `Publicação editorial — Dia ${day} (${wkInfo.name})`,
+      `Tipo: ${TYPE_CONFIG[post.type].label}`,
+      `Plataformas: ${post.plat}`,
+      post.holiday ? `Data especial: ${post.holiday}` : '',
+      '',
+      'Nota criativa:',
+      post.tip || '—',
+    ].filter(Boolean).join('\n');
+    const { data: row, error } = await supabase.from('marketing_tarefas').insert({
+      empresa_id: empresa.id,
+      titulo: post.title,
+      descricao: `Promovido do Calendário Editorial — Dia ${day}/${month}/${year}`,
+      tipo_conteudo: tipoConteudo,
+      canal,
+      status: 'em_producao',
+      prioridade: 'media',
+      data_publicacao: dataPub,
+      hora_publicacao: horaPub,
+      hashtags: post.tags || null,
+      copy_legenda: post.copy || null,
+      briefing: briefingTxt,
+      etapa_atual: 'criacao',
+      solicitante_nome: userResp?.user?.email || null,
+      solicitante_id: userResp?.user?.id || null,
+      created_by: userResp?.user?.id || null,
+    }).select('id, status, etapa_atual').single();
+    if (error || !row) {
+      console.error('[promover]', error);
+      toast({ title: 'Erro a promover', description: error?.message, variant: 'destructive' });
+      return false;
+    }
+    persistLink(day, row.id);
+    setLinkedTarefas(prev => ({ ...prev, [day]: { id: row.id, status: row.status, etapa: row.etapa_atual } }));
+    toast({ title: 'Promovido ao Kanban', description: 'Tarefa criada em "Em Produção".' });
+    return true;
+  };
+
+  const desligarDoKanban = async (day: number) => {
+    if (!confirm('Desligar este post da tarefa Kanban? A tarefa permanece no Kanban; só o vínculo é removido.')) return;
+    persistLink(day, null);
+    setLinkedTarefas(prev => {
+      const next = { ...prev };
+      delete next[day];
+      return next;
+    });
+    toast({ title: 'Vínculo removido' });
+  };
+
+
   // ───────── Drag & Drop ─────────
   const [dragDay, setDragDay] = useState<number | null>(null);
   const [hoverDay, setHoverDay] = useState<number | null>(null);
