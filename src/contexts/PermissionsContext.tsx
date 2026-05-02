@@ -59,7 +59,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Load liberty_utilizadores record
+      // Load liberty_utilizadores record (must be active and not deleted)
       const { data: lutilizador } = await (supabase
         .from('liberty_utilizadores') as any)
         .select('*')
@@ -69,39 +69,9 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
 
       if (!lutilizador) {
-        // Auto-register current auth user as administrador if no record exists
-        try {
-          const userName = user.user_metadata?.nome || user.email?.split('@')[0] || 'Utilizador';
-          const { data: newRecord } = await (supabase
-            .from('liberty_utilizadores') as any)
-            .insert({
-              auth_user_id: user.id,
-              nome: userName,
-              email: user.email || '',
-              perfil: 'administrador',
-              empresa_padrao: empresa?.id || null,
-              criado_por: user.id,
-            })
-            .select()
-            .single();
-
-          if (newRecord) {
-            // Also create empresa association if empresa is selected
-            if (empresa?.id) {
-              await (supabase.from('liberty_utilizador_empresas') as any)
-                .insert({ utilizador_id: newRecord.id, empresa_id: empresa.id });
-            }
-            setUtilizador(newRecord);
-            setPerfil('administrador');
-            setPermissoes({});
-            setIsLoading(false);
-            return;
-          }
-        } catch (autoRegError) {
-          console.warn('Auto-register failed:', autoRegError);
-        }
-
-        // Fallback: allow all
+        // SECURITY: Do NOT auto-register. Force sign out — access is controlled
+        // exclusively by liberty_utilizadores. ProtectedRoute will redirect to /auth.
+        await supabase.auth.signOut();
         setPerfil(null);
         setPermissoes({});
         setUtilizador(null);
