@@ -191,6 +191,13 @@ export function useMarketing() {
     if (updates.linkExterno !== undefined) dbUpdates.link_externo = updates.linkExterno;
     if (updates.briefing !== undefined) dbUpdates.briefing = updates.briefing;
     if (updates.observacoes !== undefined) dbUpdates.observacoes = updates.observacoes;
+    if (updates.etapaAtual !== undefined) dbUpdates.etapa_atual = updates.etapaAtual;
+    if (updates.aprovadorNome !== undefined) dbUpdates.aprovador_nome = updates.aprovadorNome;
+    if (updates.solicitanteNome !== undefined) dbUpdates.solicitante_nome = updates.solicitanteNome;
+    if (updates.prazoBriefing !== undefined) dbUpdates.prazo_briefing = updates.prazoBriefing;
+    if (updates.prazoCriacao !== undefined) dbUpdates.prazo_criacao = updates.prazoCriacao;
+    if (updates.prazoRevisao !== undefined) dbUpdates.prazo_revisao = updates.prazoRevisao;
+    if (updates.prazoAprovacao !== undefined) dbUpdates.prazo_aprovacao = updates.prazoAprovacao;
 
     const { error } = await supabase.from('marketing_tarefas').update(dbUpdates).eq('id', id);
     if (error) { console.error('[marketing] update:', error); return false; }
