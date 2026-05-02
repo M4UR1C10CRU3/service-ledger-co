@@ -558,6 +558,11 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         post={modalDay !== null ? state[modalDay] : undefined}
         tab={modalTab}
         onTabChange={setModalTab}
+        entregas={modalDay !== null ? (entregas[modalDay] || []) : []}
+        onUpload={(file) => modalDay !== null && uploadEntrega(modalDay, file)}
+        onDecidir={decidirEntrega}
+        onRemoverEntrega={removerEntrega}
+        onDownloadEntrega={downloadEntrega}
         onClose={() => setModalDay(null)}
         onSave={(p) => {
           if (modalDay === null) return;
