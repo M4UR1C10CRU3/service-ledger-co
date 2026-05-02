@@ -7,9 +7,10 @@ export function usePermissions() {
   const can = useCallback((modulo: string, acao: 'ver' | 'criar' | 'editar' | 'eliminar'): boolean => {
     // While loading, allow everything (don't block UI during load)
     if (isLoading) return true;
-    
-    // If no liberty_utilizadores record exists (backwards compat), allow all
-    if (!utilizador) return true;
+
+    // SECURITY: If no liberty_utilizadores record exists, deny everything.
+    // ProtectedRoute will sign the user out.
+    if (!utilizador) return false;
 
     // Administrador always has access
     if (perfil === 'administrador') return true;
@@ -28,8 +29,7 @@ export function usePermissions() {
 
   const canAny = useCallback((modulo: string): boolean => can(modulo, 'ver'), [can]);
 
-  // If no liberty_utilizadores record exists (backwards compat), treat as admin
-  const isAdmin = perfil === 'administrador' || (!isLoading && !utilizador);
+  const isAdmin = perfil === 'administrador';
 
   return { can, canAny, perfil, isAdmin, isLoading, utilizador };
 }
