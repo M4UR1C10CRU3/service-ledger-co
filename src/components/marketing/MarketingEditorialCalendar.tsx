@@ -855,6 +855,7 @@ interface EntregasPanelProps {
 function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega }: EntregasPanelProps) {
   const [uploading, setUploading] = useState(false);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime: string | null } | null>(null);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -908,11 +909,11 @@ function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemover
             const isImg = (e.mime_type || '').startsWith('image/');
             return (
               <div key={e.id} className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {isImg ? <FileImage className="h-4 w-4 text-muted-foreground shrink-0" /> : <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{e.nome}</p>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <EntregaThumb entrega={e} onPreview={setPreview} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium break-words">{e.nome}</p>
                       <p className="text-xs text-muted-foreground">
                         {fmtSize(e.tamanho_bytes)} · {e.uploaded_by_nome || 'Anónimo'} · {new Date(e.created_at).toLocaleString('pt-PT')}
                       </p>
@@ -968,6 +969,77 @@ function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemover
           })}
         </div>
       )}
+
+      {/* Lightbox de pré-visualização */}
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-2">
+          <DialogHeader className="px-2 pt-1">
+            <DialogTitle className="text-sm font-medium truncate">{preview?.nome}</DialogTitle>
+          </DialogHeader>
+          {preview && (
+            (preview.mime || '').startsWith('image/') ? (
+              <img src={preview.url} alt={preview.nome} className="max-w-full max-h-[75vh] mx-auto object-contain" />
+            ) : (preview.mime || '').startsWith('video/') ? (
+              <video src={preview.url} controls className="max-w-full max-h-[75vh] mx-auto" />
+            ) : (preview.mime === 'application/pdf') ? (
+              <iframe src={preview.url} className="w-full h-[75vh]" title={preview.nome} />
+            ) : (
+              <p className="text-sm text-muted-foreground p-4 text-center">
+                Pré-visualização indisponível para este tipo de ficheiro.
+              </p>
+            )
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// ─────────────────────── THUMB DE ENTREGA ─────────────────────────
+
+function EntregaThumb({ entrega, onPreview }: { entrega: Entrega; onPreview: (p: { url: string; nome: string; mime: string | null }) => void }) {
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const isImg = (entrega.mime_type || '').startsWith('image/');
+  const isVideo = (entrega.mime_type || '').startsWith('video/');
+  const isPdf = entrega.mime_type === 'application/pdf';
+  const previewable = isImg || isVideo || isPdf;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isImg) return;
+    supabase.storage.from('marketing-editorial').createSignedUrl(entrega.storage_path, 3600).then(({ data }) => {
+      if (!cancelled && data?.signedUrl) setThumbUrl(data.signedUrl);
+    });
+    return () => { cancelled = true; };
+  }, [entrega.storage_path, isImg]);
+
+  const handleClick = async () => {
+    if (!previewable) return;
+    if (thumbUrl) {
+      onPreview({ url: thumbUrl, nome: entrega.nome, mime: entrega.mime_type });
+      return;
+    }
+    const { data } = await supabase.storage.from('marketing-editorial').createSignedUrl(entrega.storage_path, 3600);
+    if (data?.signedUrl) onPreview({ url: data.signedUrl, nome: entrega.nome, mime: entrega.mime_type });
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={!previewable}
+      className="h-16 w-16 rounded-md border bg-muted/30 shrink-0 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition disabled:cursor-default disabled:hover:ring-0"
+      title={previewable ? 'Pré-visualizar' : entrega.nome}
+    >
+      {isImg && thumbUrl ? (
+        <img src={thumbUrl} alt={entrega.nome} className="h-full w-full object-cover" />
+      ) : isVideo ? (
+        <FileImage className="h-6 w-6 text-muted-foreground" />
+      ) : isPdf ? (
+        <span className="text-[10px] font-bold text-muted-foreground">PDF</span>
+      ) : (
+        <Paperclip className="h-5 w-5 text-muted-foreground" />
+      )}
+    </button>
   );
 }
