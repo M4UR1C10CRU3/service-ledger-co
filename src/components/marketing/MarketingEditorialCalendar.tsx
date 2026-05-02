@@ -11,10 +11,11 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save, Upload, CheckCircle2, XCircle, Clock, Paperclip, Download, FileImage } from 'lucide-react';
+import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save, Upload, CheckCircle2, XCircle, Clock, Paperclip, Download, FileImage, Send, Unlink, ExternalLink, Kanban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * Calendário Editorial — Marketing
@@ -146,6 +147,11 @@ const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '
 const storageKey = (empresaId: string | undefined, year: number, month: number) =>
   `editorial_calendar::${empresaId || 'default'}::${year}-${String(month).padStart(2, '0')}`;
 
+const linkKey = (empresaId: string | undefined, year: number, month: number) =>
+  `editorial_calendar_kanban::${empresaId || 'default'}::${year}-${String(month).padStart(2, '0')}`;
+
+type TarefaLink = { id: string; status: string; etapa: string | null };
+
 // ─────────────────────────── COMPONENTE ───────────────────────────
 
 interface Props {
@@ -263,6 +269,125 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     if (error || !data) { toast({ title: 'Erro', variant: 'destructive' }); return; }
     window.open(data.signedUrl, '_blank');
   };
+
+  // ───────── Ligação ao Kanban (Tarefas Marketing) ─────────
+  const [linkedTarefas, setLinkedTarefas] = useState<Record<number, TarefaLink>>({});
+
+  const fetchLinked = useCallback(async () => {
+    if (!empresa?.id) { setLinkedTarefas({}); return; }
+    let map: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
+      if (raw) map = JSON.parse(raw);
+    } catch {}
+    const ids = Object.values(map).filter(Boolean);
+    if (ids.length === 0) { setLinkedTarefas({}); return; }
+    const { data, error } = await supabase
+      .from('marketing_tarefas')
+      .select('id, status, etapa_atual')
+      .in('id', ids);
+    if (error) { console.error('[linked tarefas]', error); return; }
+    const byId = new Map<string, any>((data || []).map((r: any) => [r.id, r]));
+    const cleaned: Record<string, string> = {};
+    const out: Record<number, TarefaLink> = {};
+    Object.entries(map).forEach(([dia, id]) => {
+      const r = byId.get(id);
+      if (r) {
+        cleaned[dia] = id;
+        out[Number(dia)] = { id, status: r.status, etapa: r.etapa_atual };
+      }
+    });
+    if (Object.keys(cleaned).length !== Object.keys(map).length) {
+      localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(cleaned));
+    }
+    setLinkedTarefas(out);
+  }, [empresa?.id, year, month]);
+
+  useEffect(() => { fetchLinked(); }, [fetchLinked]);
+
+  const persistLink = useCallback((day: number, tarefaId: string | null) => {
+    if (!empresa?.id) return;
+    let map: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
+      if (raw) map = JSON.parse(raw);
+    } catch {}
+    if (tarefaId) map[String(day)] = tarefaId;
+    else delete map[String(day)];
+    localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(map));
+  }, [empresa?.id, year, month]);
+
+  const promoverParaKanban = async (day: number): Promise<boolean> => {
+    if (!empresa?.id) return false;
+    const post = state[day];
+    if (!post) {
+      toast({ title: 'Sem publicação para promover', variant: 'destructive' });
+      return false;
+    }
+    if (linkedTarefas[day]) {
+      toast({ title: 'Já existe uma tarefa Kanban associada' });
+      return false;
+    }
+    const dataPub = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const wkInfo = WEEKDAY_INFO[weekdayOf(day)];
+    const horaPub = post.hfb || wkInfo.fb;
+    const tipoConteudo =
+      post.type === 'carrossel' ? 'post' :
+      post.type === 'bastidores' ? 'reels' :
+      post.type === 'eng' ? 'story' : 'post';
+    const canal =
+      post.plat.includes('IG') && !post.plat.includes('FB') ? 'instagram' :
+      post.plat.includes('FB') && !post.plat.includes('IG') ? 'facebook' : 'instagram';
+    const { data: userResp } = await supabase.auth.getUser();
+    const briefingTxt = [
+      `Publicação editorial — Dia ${day} (${wkInfo.name})`,
+      `Tipo: ${TYPE_CONFIG[post.type].label}`,
+      `Plataformas: ${post.plat}`,
+      post.holiday ? `Data especial: ${post.holiday}` : '',
+      '',
+      'Nota criativa:',
+      post.tip || '—',
+    ].filter(Boolean).join('\n');
+    const { data: row, error } = await supabase.from('marketing_tarefas').insert({
+      empresa_id: empresa.id,
+      titulo: post.title,
+      descricao: `Promovido do Calendário Editorial — Dia ${day}/${month}/${year}`,
+      tipo_conteudo: tipoConteudo,
+      canal,
+      status: 'em_producao',
+      prioridade: 'media',
+      data_publicacao: dataPub,
+      hora_publicacao: horaPub,
+      hashtags: post.tags || null,
+      copy_legenda: post.copy || null,
+      briefing: briefingTxt,
+      etapa_atual: 'criacao',
+      solicitante_nome: userResp?.user?.email || null,
+      solicitante_id: userResp?.user?.id || null,
+      created_by: userResp?.user?.id || null,
+    }).select('id, status, etapa_atual').single();
+    if (error || !row) {
+      console.error('[promover]', error);
+      toast({ title: 'Erro a promover', description: error?.message, variant: 'destructive' });
+      return false;
+    }
+    persistLink(day, row.id);
+    setLinkedTarefas(prev => ({ ...prev, [day]: { id: row.id, status: row.status, etapa: row.etapa_atual } }));
+    toast({ title: 'Promovido ao Kanban', description: 'Tarefa criada em "Em Produção".' });
+    return true;
+  };
+
+  const desligarDoKanban = async (day: number) => {
+    if (!confirm('Desligar este post da tarefa Kanban? A tarefa permanece no Kanban; só o vínculo é removido.')) return;
+    persistLink(day, null);
+    setLinkedTarefas(prev => {
+      const next = { ...prev };
+      delete next[day];
+      return next;
+    });
+    toast({ title: 'Vínculo removido' });
+  };
+
 
   // ───────── Drag & Drop ─────────
   const [dragDay, setDragDay] = useState<number | null>(null);
@@ -541,6 +666,24 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                               })()}
                             </div>
                           )}
+                          {linkedTarefas[day] && (() => {
+                            const lk = linkedTarefas[day];
+                            const isPub = lk.status === 'publicado' || lk.etapa === 'publicado';
+                            const isAprov = lk.etapa === 'aprovacao';
+                            const bg = isPub ? '#DCFCE7' : isAprov ? '#F3E8FF' : '#E0F2FE';
+                            const fg = isPub ? '#166534' : isAprov ? '#6B21A8' : '#075985';
+                            const label = isPub ? '✅ Publicado' : isAprov ? '✋ Aprovação' : '📋 No Kanban';
+                            return (
+                              <div
+                                className="inline-flex items-center mt-1 px-1 py-0.5 rounded font-semibold"
+                                style={{ fontSize: '8px', backgroundColor: bg, color: fg }}
+                                title={`Tarefa Kanban — etapa: ${lk.etapa || lk.status}`}
+                              >
+                                {label}
+                              </div>
+                            );
+                          })()}
+
                         </div>
                       )}
                     </div>
@@ -559,6 +702,10 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         tab={modalTab}
         onTabChange={setModalTab}
         entregas={modalDay !== null ? (entregas[modalDay] || []) : []}
+        linkedTarefa={modalDay !== null ? linkedTarefas[modalDay] : undefined}
+        onPromover={() => modalDay !== null && promoverParaKanban(modalDay)}
+        onDesligar={() => modalDay !== null && desligarDoKanban(modalDay)}
+        onRefreshLinked={fetchLinked}
         onUpload={(file) => modalDay !== null && uploadEntrega(modalDay, file)}
         onDecidir={decidirEntrega}
         onRemoverEntrega={removerEntrega}
@@ -602,6 +749,10 @@ interface PostDialogProps {
   tab: 'briefing' | 'editar' | 'entregas';
   onTabChange: (t: 'briefing' | 'editar' | 'entregas') => void;
   entregas: Entrega[];
+  linkedTarefa?: TarefaLink;
+  onPromover: () => Promise<boolean> | void;
+  onDesligar: () => void;
+  onRefreshLinked: () => void;
   onUpload: (file: File) => Promise<boolean> | void;
   onDecidir: (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string) => Promise<boolean>;
   onRemoverEntrega: (e: Entrega) => Promise<boolean>;
@@ -611,11 +762,13 @@ interface PostDialogProps {
   onDelete: () => void;
 }
 
-function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega, onClose, onSave, onDelete }: PostDialogProps) {
+function PostDialog({ day, post, tab, onTabChange, entregas, linkedTarefa, onPromover, onDesligar, onRefreshLinked, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega, onClose, onSave, onDelete }: PostDialogProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
   }, []);
+  // Refresh do estado da tarefa Kanban sempre que o modal abre
+  useEffect(() => { if (day !== null) onRefreshLinked(); }, [day, onRefreshLinked]);
   const open = day !== null;
   const wkInfo = day !== null ? WEEKDAY_INFO[weekdayOf(day)] : null;
 
@@ -708,6 +861,54 @@ function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir
                   </div>
                   <p className="text-xs leading-relaxed" style={{ color: '#7A3811' }}>{wkInfo.note}</p>
                 </div>
+
+                {/* Bloco Workflow Kanban */}
+                <div className="rounded-lg p-3 border bg-muted/30 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Kanban className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-semibold">Workflow no Kanban</span>
+                    {linkedTarefa ? (() => {
+                      const isPub = linkedTarefa.status === 'publicado' || linkedTarefa.etapa === 'publicado';
+                      const isAprov = linkedTarefa.etapa === 'aprovacao';
+                      const variant = isPub ? 'default' : 'secondary';
+                      const label = isPub
+                        ? '✅ Aprovado / Publicado'
+                        : isAprov
+                          ? '✋ Em Aprovação'
+                          : `📋 ${linkedTarefa.etapa || linkedTarefa.status}`;
+                      return <Badge variant={variant as any} className="text-[10px]">{label}</Badge>;
+                    })() : (
+                      <span className="text-[11px] text-muted-foreground">Ainda não está no Kanban</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {linkedTarefa ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            window.open(`/marketing?vista=kanban&tarefa=${linkedTarefa.id}`, '_blank');
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" /> Abrir no Kanban
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={onDesligar} title="Desligar vínculo (mantém a tarefa no Kanban)">
+                          <Unlink className="h-3 w-3 mr-1" /> Desligar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        style={{ backgroundColor: '#E8561A' }}
+                        onClick={async () => { await onPromover(); onRefreshLinked(); }}
+                      >
+                        <Send className="h-3 w-3 mr-1" /> Promover ao Kanban
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
 
                 <div>
                   <span
