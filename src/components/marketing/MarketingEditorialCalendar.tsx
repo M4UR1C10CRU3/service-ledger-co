@@ -823,6 +823,18 @@ function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir
               </Button>
             </div>
           </TabsContent>
+
+          {/* ENTREGAS */}
+          <TabsContent value="entregas" className="space-y-3 mt-4">
+            <EntregasPanel
+              entregas={entregas}
+              currentUserId={currentUserId}
+              onUpload={onUpload}
+              onDecidir={onDecidir}
+              onRemoverEntrega={onRemoverEntrega}
+              onDownloadEntrega={onDownloadEntrega}
+            />
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
