@@ -121,11 +121,16 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
         </DialogHeader>
 
         <Tabs defaultValue="detalhes">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="workflow">Workflow</TabsTrigger>
             <TabsTrigger value="entregas">Entregas ({anexos.length})</TabsTrigger>
             <TabsTrigger value="comentarios">Histórico ({comentarios.length})</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="workflow" className="mt-4">
+            <MarketingWorkflowPanel tarefa={tarefa} />
+          </TabsContent>
 
           <TabsContent value="detalhes" className="space-y-3 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
