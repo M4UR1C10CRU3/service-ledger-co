@@ -33,7 +33,7 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState<MarketingTarefaInput>(() => ({
+  const buildInitial = (): MarketingTarefaInput => ({
     titulo: initial?.titulo || '',
     descricao: initial?.descricao || '',
     tipoConteudo: initial?.tipoConteudo || null,
@@ -50,31 +50,21 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
     linkExterno: initial?.linkExterno || '',
     briefing: initial?.briefing || '',
     observacoes: initial?.observacoes || '',
-  }));
+    aprovadorNome: initial?.aprovadorNome || '',
+    solicitanteNome: initial?.solicitanteNome || '',
+    prazoBriefing: initial?.prazoBriefing || '',
+    prazoCriacao: initial?.prazoCriacao || '',
+    prazoRevisao: initial?.prazoRevisao || '',
+    prazoAprovacao: initial?.prazoAprovacao || '',
+  });
 
-  // Reset form when dialog opens/changes target
+  const [form, setForm] = useState<MarketingTarefaInput>(buildInitial);
+
   const lastInitialId = initial?.id || '__new__';
   const [trackedKey, setTrackedKey] = useState(lastInitialId);
   if (open && trackedKey !== lastInitialId) {
     setTrackedKey(lastInitialId);
-    setForm({
-      titulo: initial?.titulo || '',
-      descricao: initial?.descricao || '',
-      tipoConteudo: initial?.tipoConteudo || null,
-      canal: initial?.canal || null,
-      status: initial?.status || defaultStatus || 'ideias',
-      prioridade: initial?.prioridade || 'media',
-      responsavelNome: initial?.responsavelNome || '',
-      delegadoPorNome: initial?.delegadoPorNome || '',
-      dataPrevista: initial?.dataPrevista || '',
-      dataPublicacao: initial?.dataPublicacao || '',
-      horaPublicacao: initial?.horaPublicacao || '',
-      hashtags: initial?.hashtags || '',
-      copyLegenda: initial?.copyLegenda || '',
-      linkExterno: initial?.linkExterno || '',
-      briefing: initial?.briefing || '',
-      observacoes: initial?.observacoes || '',
-    });
+    setForm(buildInitial());
   }
 
   const handleSubmit = async () => {
@@ -220,6 +210,40 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
                 onChange={e => setForm({ ...form, horaPublicacao: e.target.value })}
               />
             </div>
+          </div>
+
+          {/* Workflow: aprovador + prazos por etapa */}
+          <div className="border rounded-lg p-3 bg-muted/20 space-y-3">
+            <div className="text-xs font-semibold text-muted-foreground">Fluxo de aprovação</div>
+            <div>
+              <Label>Aprovador (revisão final) *</Label>
+              <Input
+                value={form.aprovadorNome || ''}
+                onChange={e => setForm({ ...form, aprovadorNome: e.target.value })}
+                placeholder="Quem aprova o job"
+              />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <Label className="text-xs">Prazo Briefing</Label>
+                <Input type="date" value={form.prazoBriefing || ''} onChange={e => setForm({ ...form, prazoBriefing: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo Criação</Label>
+                <Input type="date" value={form.prazoCriacao || ''} onChange={e => setForm({ ...form, prazoCriacao: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo Revisão</Label>
+                <Input type="date" value={form.prazoRevisao || ''} onChange={e => setForm({ ...form, prazoRevisao: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo Aprovação</Label>
+                <Input type="date" value={form.prazoAprovacao || ''} onChange={e => setForm({ ...form, prazoAprovacao: e.target.value })} />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Após criar o job poderás adicionar respondsáveis adicionais e checklist por etapa no separador "Workflow" dos detalhes.
+            </p>
           </div>
 
           <div>

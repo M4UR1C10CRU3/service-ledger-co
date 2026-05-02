@@ -9,6 +9,10 @@ import type {
   MarketingPrioridade,
   MarketingTipoConteudo,
   MarketingCanal,
+  MarketingResponsavel,
+  MarketingChecklistItem,
+  MarketingEtapaHistorico,
+  MarketingEtapa,
 } from '@/types/marketing';
 
 const BUCKET = 'marketing-entregas';
@@ -41,6 +45,15 @@ function mapTarefa(r: any): MarketingTarefa {
     createdBy: r.created_by,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    etapaAtual: r.etapa_atual,
+    aprovadorId: r.aprovador_id,
+    aprovadorNome: r.aprovador_nome,
+    solicitanteId: r.solicitante_id,
+    solicitanteNome: r.solicitante_nome,
+    prazoBriefing: r.prazo_briefing,
+    prazoCriacao: r.prazo_criacao,
+    prazoRevisao: r.prazo_revisao,
+    prazoAprovacao: r.prazo_aprovacao,
   };
 }
 
@@ -90,6 +103,14 @@ export interface MarketingTarefaInput {
   linkExterno?: string | null;
   briefing?: string | null;
   observacoes?: string | null;
+  // Workflow
+  etapaAtual?: string | null;
+  aprovadorNome?: string | null;
+  solicitanteNome?: string | null;
+  prazoBriefing?: string | null;
+  prazoCriacao?: string | null;
+  prazoRevisao?: string | null;
+  prazoAprovacao?: string | null;
 }
 
 export function useMarketing() {
@@ -137,6 +158,14 @@ export function useMarketing() {
       link_externo: input.linkExterno || null,
       briefing: input.briefing || null,
       observacoes: input.observacoes || null,
+      etapa_atual: input.etapaAtual || 'briefing',
+      aprovador_nome: input.aprovadorNome || null,
+      solicitante_nome: input.solicitanteNome || (userResp?.user?.email || null),
+      solicitante_id: userResp?.user?.id || null,
+      prazo_briefing: input.prazoBriefing || null,
+      prazo_criacao: input.prazoCriacao || null,
+      prazo_revisao: input.prazoRevisao || null,
+      prazo_aprovacao: input.prazoAprovacao || null,
       created_by: userResp?.user?.id || null,
     }).select('id').single();
     if (error || !row) { console.error('[marketing] create:', error); return null; }
@@ -162,6 +191,13 @@ export function useMarketing() {
     if (updates.linkExterno !== undefined) dbUpdates.link_externo = updates.linkExterno;
     if (updates.briefing !== undefined) dbUpdates.briefing = updates.briefing;
     if (updates.observacoes !== undefined) dbUpdates.observacoes = updates.observacoes;
+    if (updates.etapaAtual !== undefined) dbUpdates.etapa_atual = updates.etapaAtual;
+    if (updates.aprovadorNome !== undefined) dbUpdates.aprovador_nome = updates.aprovadorNome;
+    if (updates.solicitanteNome !== undefined) dbUpdates.solicitante_nome = updates.solicitanteNome;
+    if (updates.prazoBriefing !== undefined) dbUpdates.prazo_briefing = updates.prazoBriefing;
+    if (updates.prazoCriacao !== undefined) dbUpdates.prazo_criacao = updates.prazoCriacao;
+    if (updates.prazoRevisao !== undefined) dbUpdates.prazo_revisao = updates.prazoRevisao;
+    if (updates.prazoAprovacao !== undefined) dbUpdates.prazo_aprovacao = updates.prazoAprovacao;
 
     const { error } = await supabase.from('marketing_tarefas').update(dbUpdates).eq('id', id);
     if (error) { console.error('[marketing] update:', error); return false; }
@@ -388,11 +424,145 @@ export function useMarketing() {
     return { tarefas: mapped };
   };
 
+  // ============= WORKFLOW =============
+  const fetchResponsaveis = async (tarefaId: string): Promise<MarketingResponsavel[]> => {
+    const { data } = await supabase
+      .from('marketing_tarefa_responsaveis' as any)
+      .select('*')
+      .eq('tarefa_id', tarefaId)
+      .order('created_at', { ascending: true });
+    return ((data as any[]) || []).map((r: any) => ({
+      id: r.id, tarefaId: r.tarefa_id, empresaId: r.empresa_id,
+      utilizadorId: r.utilizador_id, utilizadorNome: r.utilizador_nome,
+      funcao: r.funcao, createdAt: r.created_at,
+    }));
+  };
+
+  const addResponsavel = async (tarefaId: string, nome: string, funcao?: string): Promise<boolean> => {
+    if (!empresa) return false;
+    const { error } = await supabase.from('marketing_tarefa_responsaveis' as any).insert({
+      tarefa_id: tarefaId, empresa_id: empresa.id,
+      utilizador_nome: nome, funcao: funcao || null,
+    });
+    if (error) { console.error('[marketing] addResponsavel:', error); return false; }
+    return true;
+  };
+
+  const removeResponsavel = async (id: string): Promise<boolean> => {
+    const { error } = await supabase.from('marketing_tarefa_responsaveis' as any).delete().eq('id', id);
+    return !error;
+  };
+
+  const fetchChecklist = async (tarefaId: string): Promise<MarketingChecklistItem[]> => {
+    const { data } = await supabase
+      .from('marketing_tarefa_checklist' as any)
+      .select('*')
+      .eq('tarefa_id', tarefaId)
+      .order('etapa', { ascending: true })
+      .order('ordem', { ascending: true });
+    return ((data as any[]) || []).map((r: any) => ({
+      id: r.id, tarefaId: r.tarefa_id, empresaId: r.empresa_id,
+      etapa: r.etapa, titulo: r.titulo,
+      responsavelId: r.responsavel_id, responsavelNome: r.responsavel_nome,
+      prazo: r.prazo, concluido: !!r.concluido, concluidoEm: r.concluido_em,
+      ordem: r.ordem || 0, createdAt: r.created_at,
+    }));
+  };
+
+  const addChecklistItem = async (
+    tarefaId: string,
+    etapa: MarketingEtapa,
+    titulo: string,
+    responsavelNome?: string,
+    prazo?: string
+  ): Promise<boolean> => {
+    if (!empresa) return false;
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from('marketing_tarefa_checklist' as any).insert({
+      tarefa_id: tarefaId, empresa_id: empresa.id,
+      etapa, titulo,
+      responsavel_nome: responsavelNome || null,
+      prazo: prazo || null,
+      created_by: u?.user?.id || null,
+    });
+    if (error) { console.error('[marketing] addChecklistItem:', error); return false; }
+    return true;
+  };
+
+  const toggleChecklistItem = async (id: string, concluido: boolean): Promise<boolean> => {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from('marketing_tarefa_checklist' as any).update({
+      concluido,
+      concluido_em: concluido ? new Date().toISOString() : null,
+      concluido_por: concluido ? (u?.user?.id || null) : null,
+    }).eq('id', id);
+    return !error;
+  };
+
+  const removeChecklistItem = async (id: string): Promise<boolean> => {
+    const { error } = await supabase.from('marketing_tarefa_checklist' as any).delete().eq('id', id);
+    return !error;
+  };
+
+  const fetchEtapaHistorico = async (tarefaId: string): Promise<MarketingEtapaHistorico[]> => {
+    const { data } = await supabase
+      .from('marketing_tarefa_etapa_historico' as any)
+      .select('*')
+      .eq('tarefa_id', tarefaId)
+      .order('created_at', { ascending: true });
+    return ((data as any[]) || []).map((r: any) => ({
+      id: r.id, tarefaId: r.tarefa_id,
+      etapaAnterior: r.etapa_anterior, etapaNova: r.etapa_nova,
+      utilizadorNome: r.utilizador_nome, observacoes: r.observacoes,
+      createdAt: r.created_at,
+    }));
+  };
+
+  const moverEtapa = async (
+    tarefaId: string,
+    etapaNova: MarketingEtapa,
+    observacoes?: string
+  ): Promise<boolean> => {
+    if (!empresa) return false;
+    const tarefa = tarefas.find(t => t.id === tarefaId);
+    const etapaAnterior = tarefa?.etapaAtual || 'briefing';
+    const { data: u } = await supabase.auth.getUser();
+    const userName = u?.user?.email || 'Sistema';
+
+    const { error } = await supabase.from('marketing_tarefas')
+      .update({ etapa_atual: etapaNova })
+      .eq('id', tarefaId);
+    if (error) { console.error('[marketing] moverEtapa:', error); return false; }
+
+    await supabase.from('marketing_tarefa_etapa_historico' as any).insert({
+      tarefa_id: tarefaId, empresa_id: empresa.id,
+      etapa_anterior: etapaAnterior, etapa_nova: etapaNova,
+      utilizador_id: u?.user?.id || null, utilizador_nome: userName,
+      observacoes: observacoes || null,
+    });
+
+    // Notificar aprovador quando entra em aprovação
+    if (etapaNova === 'aprovacao' && tarefa?.aprovadorNome) {
+      await supabase.from('marketing_tarefa_notificacoes' as any).insert({
+        tarefa_id: tarefaId, empresa_id: empresa.id,
+        destinatario_id: tarefa.aprovadorId || null,
+        destinatario_nome: tarefa.aprovadorNome,
+        tipo: 'aprovacao_solicitada',
+        mensagem: `Job "${tarefa.titulo}" aguarda a tua aprovação.`,
+      });
+    }
+    await fetchTarefas();
+    return true;
+  };
+
   return {
     tarefas, isLoading, fetchTarefas,
     createTarefa, updateTarefa, updateStatus, deleteTarefa,
     fetchAnexos, uploadAnexo, addLinkAnexo, deleteAnexo, getAnexoSignedUrl,
     fetchComentarios, addComentario,
     createTarefasBulk, generateWithAI,
+    fetchResponsaveis, addResponsavel, removeResponsavel,
+    fetchChecklist, addChecklistItem, toggleChecklistItem, removeChecklistItem,
+    fetchEtapaHistorico, moverEtapa,
   };
 }
