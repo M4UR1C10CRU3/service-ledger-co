@@ -840,3 +840,134 @@ function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir
     </Dialog>
   );
 }
+
+// ─────────────────────── PAINEL ENTREGAS ──────────────────────────
+
+interface EntregasPanelProps {
+  entregas: Entrega[];
+  currentUserId: string | null;
+  onUpload: (file: File) => Promise<boolean> | void;
+  onDecidir: (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string) => Promise<boolean>;
+  onRemoverEntrega: (e: Entrega) => Promise<boolean>;
+  onDownloadEntrega: (e: Entrega) => void;
+}
+
+function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega }: EntregasPanelProps) {
+  const [uploading, setUploading] = useState(false);
+  const [comentarios, setComentarios] = useState<Record<string, string>>({});
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    for (let i = 0; i < files.length; i++) {
+      await onUpload(files[i]);
+    }
+    setUploading(false);
+  };
+
+  const fmtSize = (b: number | null) => {
+    if (!b) return '';
+    if (b < 1024) return `${b} B`;
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+    return `${(b / 1024 / 1024).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">Carregar ficheiro (PNG, JPG, carrossel — múltiplos ficheiros aceites)</Label>
+        <div className="mt-2 border-2 border-dashed rounded-lg p-4 text-center hover:bg-accent/20 transition-colors">
+          <input
+            id="entrega-upload"
+            type="file"
+            multiple
+            accept="image/*,application/pdf,video/*"
+            className="hidden"
+            onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+            disabled={uploading}
+          />
+          <label htmlFor="entrega-upload" className="cursor-pointer flex flex-col items-center gap-1.5">
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <span className="text-sm font-medium">{uploading ? 'A enviar…' : 'Clica para escolher ou arrasta ficheiros'}</span>
+            <span className="text-xs text-muted-foreground">As entregas ficam pendentes até serem aprovadas por outro membro.</span>
+          </label>
+        </div>
+      </div>
+
+      {entregas.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">Sem entregas para este dia.</p>
+      ) : (
+        <div className="space-y-2">
+          {entregas.map(e => {
+            const isOwner = currentUserId && currentUserId === e.uploaded_by;
+            const statusCfg =
+              e.status === 'aprovado' ? { label: 'Aprovado', icon: CheckCircle2, color: '#16a34a', bg: '#DCFCE7' } :
+              e.status === 'rejeitado' ? { label: 'Rejeitado', icon: XCircle, color: '#dc2626', bg: '#FEE2E2' } :
+              { label: 'Pendente', icon: Clock, color: '#d97706', bg: '#FEF3C7' };
+            const StatusIcon = statusCfg.icon;
+            const isImg = (e.mime_type || '').startsWith('image/');
+            return (
+              <div key={e.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isImg ? <FileImage className="h-4 w-4 text-muted-foreground shrink-0" /> : <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{e.nome}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {fmtSize(e.tamanho_bytes)} · {e.uploaded_by_nome || 'Anónimo'} · {new Date(e.created_at).toLocaleString('pt-PT')}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold shrink-0"
+                    style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                  >
+                    <StatusIcon className="h-3 w-3" /> {statusCfg.label}
+                  </span>
+                </div>
+
+                {e.status !== 'pendente' && (e.aprovado_por_nome || e.comentario_aprovacao) && (
+                  <div className="text-xs text-muted-foreground border-l-2 pl-2" style={{ borderColor: statusCfg.color }}>
+                    {e.aprovado_por_nome && <p><b>{e.status === 'aprovado' ? 'Aprovado por' : 'Rejeitado por'}:</b> {e.aprovado_por_nome}{e.aprovado_em ? ` · ${new Date(e.aprovado_em).toLocaleString('pt-PT')}` : ''}</p>}
+                    {e.comentario_aprovacao && <p className="mt-0.5">"{e.comentario_aprovacao}"</p>}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => onDownloadEntrega(e)}>
+                    <Download className="h-3.5 w-3.5 mr-1" /> Abrir / Download
+                  </Button>
+
+                  {e.status === 'pendente' && !isOwner && (
+                    <>
+                      <Input
+                        placeholder="Comentário (opcional)"
+                        value={comentarios[e.id] || ''}
+                        onChange={ev => setComentarios(c => ({ ...c, [e.id]: ev.target.value }))}
+                        className="h-8 text-xs flex-1 min-w-[180px]"
+                      />
+                      <Button size="sm" onClick={() => onDecidir(e, 'aprovado', comentarios[e.id])} style={{ backgroundColor: '#16a34a' }}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Aprovar
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => onDecidir(e, 'rejeitado', comentarios[e.id])}>
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Rejeitar
+                      </Button>
+                    </>
+                  )}
+
+                  {e.status === 'pendente' && isOwner && (
+                    <span className="text-xs text-muted-foreground italic">Aguarda aprovação por outro membro da equipa.</span>
+                  )}
+
+                  <Button size="sm" variant="ghost" onClick={() => onRemoverEntrega(e)} className="ml-auto text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
