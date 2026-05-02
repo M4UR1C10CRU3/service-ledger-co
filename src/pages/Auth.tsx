@@ -74,6 +74,24 @@ export default function Auth() {
       if (error) throw error;
 
       if (data.session) {
+        // SECURITY: Validate user has active access in liberty_utilizadores
+        const { data: lu } = await (supabase
+          .from('liberty_utilizadores') as any)
+          .select('id, ativo, eliminado')
+          .eq('auth_user_id', data.session.user.id)
+          .maybeSingle();
+
+        if (!lu || lu.eliminado === true || lu.ativo === false) {
+          await supabase.auth.signOut();
+          toast({
+            variant: 'destructive',
+            title: 'Acesso bloqueado',
+            description: 'A sua conta não tem acesso autorizado ao Liberty. Contacte o administrador.',
+          });
+          setLoading(false);
+          return;
+        }
+
         toast({
           title: "Login realizado com sucesso!",
           description: `Bem-vindo de volta ao ${empresa?.nome || 'sistema'}.`,
