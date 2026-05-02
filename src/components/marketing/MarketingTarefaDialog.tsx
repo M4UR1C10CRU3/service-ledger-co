@@ -212,6 +212,40 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
             </div>
           </div>
 
+          {/* Workflow: aprovador + prazos por etapa */}
+          <div className="border rounded-lg p-3 bg-muted/20 space-y-3">
+            <div className="text-xs font-semibold text-muted-foreground">Fluxo de aprovação</div>
+            <div>
+              <Label>Aprovador (revisão final) *</Label>
+              <Input
+                value={form.aprovadorNome || ''}
+                onChange={e => setForm({ ...form, aprovadorNome: e.target.value })}
+                placeholder="Quem aprova o job"
+              />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <Label className="text-xs">Prazo Briefing</Label>
+                <Input type="date" value={form.prazoBriefing || ''} onChange={e => setForm({ ...form, prazoBriefing: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo Criação</Label>
+                <Input type="date" value={form.prazoCriacao || ''} onChange={e => setForm({ ...form, prazoCriacao: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo Revisão</Label>
+                <Input type="date" value={form.prazoRevisao || ''} onChange={e => setForm({ ...form, prazoRevisao: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Prazo Aprovação</Label>
+                <Input type="date" value={form.prazoAprovacao || ''} onChange={e => setForm({ ...form, prazoAprovacao: e.target.value })} />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Após criar o job poderás adicionar respondsáveis adicionais e checklist por etapa no separador "Workflow" dos detalhes.
+            </p>
+          </div>
+
           <div>
             <Label>Briefing / Descrição</Label>
             <Textarea
