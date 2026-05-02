@@ -147,6 +147,11 @@ const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '
 const storageKey = (empresaId: string | undefined, year: number, month: number) =>
   `editorial_calendar::${empresaId || 'default'}::${year}-${String(month).padStart(2, '0')}`;
 
+const linkKey = (empresaId: string | undefined, year: number, month: number) =>
+  `editorial_calendar_kanban::${empresaId || 'default'}::${year}-${String(month).padStart(2, '0')}`;
+
+type TarefaLink = { id: string; status: string; etapa: string | null };
+
 // ─────────────────────────── COMPONENTE ───────────────────────────
 
 interface Props {
