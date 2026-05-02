@@ -749,6 +749,10 @@ interface PostDialogProps {
   tab: 'briefing' | 'editar' | 'entregas';
   onTabChange: (t: 'briefing' | 'editar' | 'entregas') => void;
   entregas: Entrega[];
+  linkedTarefa?: TarefaLink;
+  onPromover: () => Promise<boolean> | void;
+  onDesligar: () => void;
+  onRefreshLinked: () => void;
   onUpload: (file: File) => Promise<boolean> | void;
   onDecidir: (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string) => Promise<boolean>;
   onRemoverEntrega: (e: Entrega) => Promise<boolean>;
@@ -758,7 +762,7 @@ interface PostDialogProps {
   onDelete: () => void;
 }
 
-function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega, onClose, onSave, onDelete }: PostDialogProps) {
+function PostDialog({ day, post, tab, onTabChange, entregas, linkedTarefa, onPromover, onDesligar, onRefreshLinked, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega, onClose, onSave, onDelete }: PostDialogProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
