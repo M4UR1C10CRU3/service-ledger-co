@@ -41,6 +41,15 @@ function mapTarefa(r: any): MarketingTarefa {
     createdBy: r.created_by,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    etapaAtual: r.etapa_atual,
+    aprovadorId: r.aprovador_id,
+    aprovadorNome: r.aprovador_nome,
+    solicitanteId: r.solicitante_id,
+    solicitanteNome: r.solicitante_nome,
+    prazoBriefing: r.prazo_briefing,
+    prazoCriacao: r.prazo_criacao,
+    prazoRevisao: r.prazo_revisao,
+    prazoAprovacao: r.prazo_aprovacao,
   };
 }
 
