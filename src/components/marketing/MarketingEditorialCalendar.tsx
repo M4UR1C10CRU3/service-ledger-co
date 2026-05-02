@@ -11,10 +11,11 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save, Upload, CheckCircle2, XCircle, Clock, Paperclip, Download, FileImage } from 'lucide-react';
+import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save, Upload, CheckCircle2, XCircle, Clock, Paperclip, Download, FileImage, Send, Unlink, ExternalLink, Kanban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * Calendário Editorial — Marketing
