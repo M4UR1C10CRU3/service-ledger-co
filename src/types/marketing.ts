@@ -126,3 +126,56 @@ export interface MarketingComentario {
   tipo: 'comentario' | 'mudanca_status' | 'sistema';
   createdAt: string;
 }
+
+// ============= WORKFLOW =============
+export type MarketingEtapa =
+  | 'briefing'
+  | 'criacao'
+  | 'revisao'
+  | 'aprovacao'
+  | 'publicado';
+
+export const ETAPA_ORDER: MarketingEtapa[] = ['briefing', 'criacao', 'revisao', 'aprovacao', 'publicado'];
+
+export const ETAPA_CONFIG: Record<MarketingEtapa, { label: string; color: string; icon: string }> = {
+  briefing:  { label: 'Briefing',   color: '#94A3B8', icon: '📝' },
+  criacao:   { label: 'Criação',    color: '#3B82F6', icon: '🎨' },
+  revisao:   { label: 'Revisão',    color: '#EAB308', icon: '🔍' },
+  aprovacao: { label: 'Aprovação',  color: '#A855F7', icon: '✋' },
+  publicado: { label: 'Publicado',  color: '#22C55E', icon: '🚀' },
+};
+
+export interface MarketingResponsavel {
+  id: string;
+  tarefaId: string;
+  empresaId: string;
+  utilizadorId: string | null;
+  utilizadorNome: string;
+  funcao: string | null;
+  createdAt: string;
+}
+
+export interface MarketingChecklistItem {
+  id: string;
+  tarefaId: string;
+  empresaId: string;
+  etapa: MarketingEtapa;
+  titulo: string;
+  responsavelId: string | null;
+  responsavelNome: string | null;
+  prazo: string | null;
+  concluido: boolean;
+  concluidoEm: string | null;
+  ordem: number;
+  createdAt: string;
+}
+
+export interface MarketingEtapaHistorico {
+  id: string;
+  tarefaId: string;
+  etapaAnterior: string | null;
+  etapaNova: string;
+  utilizadorNome: string | null;
+  observacoes: string | null;
+  createdAt: string;
+}
