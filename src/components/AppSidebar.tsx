@@ -6,7 +6,7 @@ import {
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
-  UserCog, Megaphone, Trello,
+  UserCog, Megaphone, Trello, KeyRound,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -234,6 +234,16 @@ export function AppSidebar() {
             <span>Auditoria</span>
           </SidebarMenuButton>
         )}
+        <SidebarMenuButton
+          onClick={() => navigate('/alterar-senha')}
+          className={cn(
+            'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
+            isActive('/alterar-senha') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+          )}
+        >
+          <KeyRound className="h-4 w-4 shrink-0" />
+          <span>Alterar Senha</span>
+        </SidebarMenuButton>
         <SidebarMenuButton
           onClick={() => navigate('/configuracoes')}
           className={cn(
