@@ -522,6 +522,25 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                               </span>
                             )}
                           </div>
+                          {(entregas[day]?.length || 0) > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              {(() => {
+                                const list = entregas[day] || [];
+                                const aprov = list.filter(x => x.status === 'aprovado').length;
+                                const pend = list.filter(x => x.status === 'pendente').length;
+                                const rej = list.filter(x => x.status === 'rejeitado').length;
+                                return (
+                                  <>
+                                    <Paperclip className="h-2.5 w-2.5 text-muted-foreground" />
+                                    <span className="text-[8px] text-muted-foreground">{list.length}</span>
+                                    {aprov > 0 && <CheckCircle2 className="h-2.5 w-2.5" style={{ color: '#16a34a' }} />}
+                                    {pend > 0 && <Clock className="h-2.5 w-2.5" style={{ color: '#d97706' }} />}
+                                    {rej > 0 && <XCircle className="h-2.5 w-2.5" style={{ color: '#dc2626' }} />}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
