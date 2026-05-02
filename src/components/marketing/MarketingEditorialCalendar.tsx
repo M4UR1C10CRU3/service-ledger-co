@@ -287,7 +287,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   // ───────── Modal ─────────
   const [modalDay, setModalDay] = useState<number | null>(null);
-  const [modalTab, setModalTab] = useState<'briefing' | 'editar'>('briefing');
+  const [modalTab, setModalTab] = useState<'briefing' | 'editar' | 'entregas'>('briefing');
 
   const openView = (day: number) => {
     setModalDay(day);
