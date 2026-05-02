@@ -666,6 +666,24 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                               })()}
                             </div>
                           )}
+                          {linkedTarefas[day] && (() => {
+                            const lk = linkedTarefas[day];
+                            const isPub = lk.status === 'publicado' || lk.etapa === 'publicado';
+                            const isAprov = lk.etapa === 'aprovacao';
+                            const bg = isPub ? '#DCFCE7' : isAprov ? '#F3E8FF' : '#E0F2FE';
+                            const fg = isPub ? '#166534' : isAprov ? '#6B21A8' : '#075985';
+                            const label = isPub ? '✅ Publicado' : isAprov ? '✋ Aprovação' : '📋 No Kanban';
+                            return (
+                              <div
+                                className="inline-flex items-center mt-1 px-1 py-0.5 rounded font-semibold"
+                                style={{ fontSize: '8px', backgroundColor: bg, color: fg }}
+                                title={`Tarefa Kanban — etapa: ${lk.etapa || lk.status}`}
+                              >
+                                {label}
+                              </div>
+                            );
+                          })()}
+
                         </div>
                       )}
                     </div>
