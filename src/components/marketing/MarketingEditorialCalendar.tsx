@@ -860,6 +860,54 @@ function PostDialog({ day, post, tab, onTabChange, entregas, linkedTarefa, onPro
                   <p className="text-xs leading-relaxed" style={{ color: '#7A3811' }}>{wkInfo.note}</p>
                 </div>
 
+                {/* Bloco Workflow Kanban */}
+                <div className="rounded-lg p-3 border bg-muted/30 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Kanban className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-semibold">Workflow no Kanban</span>
+                    {linkedTarefa ? (() => {
+                      const isPub = linkedTarefa.status === 'publicado' || linkedTarefa.etapa === 'publicado';
+                      const isAprov = linkedTarefa.etapa === 'aprovacao';
+                      const variant = isPub ? 'default' : 'secondary';
+                      const label = isPub
+                        ? '✅ Aprovado / Publicado'
+                        : isAprov
+                          ? '✋ Em Aprovação'
+                          : `📋 ${linkedTarefa.etapa || linkedTarefa.status}`;
+                      return <Badge variant={variant as any} className="text-[10px]">{label}</Badge>;
+                    })() : (
+                      <span className="text-[11px] text-muted-foreground">Ainda não está no Kanban</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {linkedTarefa ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            window.open(`/marketing?vista=kanban&tarefa=${linkedTarefa.id}`, '_blank');
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" /> Abrir no Kanban
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={onDesligar} title="Desligar vínculo (mantém a tarefa no Kanban)">
+                          <Unlink className="h-3 w-3 mr-1" /> Desligar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        style={{ backgroundColor: '#E8561A' }}
+                        onClick={async () => { await onPromover(); onRefreshLinked(); }}
+                      >
+                        <Send className="h-3 w-3 mr-1" /> Promover ao Kanban
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+
                 <div>
                   <span
                     className="inline-block text-xs font-semibold px-2 py-1 rounded"
