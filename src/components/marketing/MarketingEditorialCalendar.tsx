@@ -41,6 +41,28 @@ interface EditorialPost {
 
 type CalendarState = Record<number, EditorialPost>;
 
+const BUCKET = 'marketing-editorial';
+
+export interface Entrega {
+  id: string;
+  empresa_id: string;
+  ano: number;
+  mes: number;
+  dia: number;
+  nome: string;
+  storage_path: string;
+  mime_type: string | null;
+  tamanho_bytes: number | null;
+  status: 'pendente' | 'aprovado' | 'rejeitado';
+  comentario_aprovacao: string | null;
+  uploaded_by: string | null;
+  uploaded_by_nome: string | null;
+  aprovado_por: string | null;
+  aprovado_por_nome: string | null;
+  aprovado_em: string | null;
+  created_at: string;
+}
+
 // ─────────────────────── CONFIG DE CATEGORIAS ─────────────────────
 
 const TYPE_CONFIG: Record<PostType, { label: string; bg: string; text: string }> = {
