@@ -767,6 +767,8 @@ function PostDialog({ day, post, tab, onTabChange, entregas, linkedTarefa, onPro
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
   }, []);
+  // Refresh do estado da tarefa Kanban sempre que o modal abre
+  useEffect(() => { if (day !== null) onRefreshLinked(); }, [day, onRefreshLinked]);
   const open = day !== null;
   const wkInfo = day !== null ? WEEKDAY_INFO[weekdayOf(day)] : null;
 
