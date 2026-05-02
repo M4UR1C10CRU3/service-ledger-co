@@ -678,9 +678,12 @@ function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => onTabChange(v as any)}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="briefing" disabled={!post}>Briefing</TabsTrigger>
             <TabsTrigger value="editar">Editar</TabsTrigger>
+            <TabsTrigger value="entregas">
+              Entregas {entregas.length > 0 && <span className="ml-1 text-[10px] opacity-70">({entregas.length})</span>}
+            </TabsTrigger>
           </TabsList>
 
           {/* BRIEFING */}
