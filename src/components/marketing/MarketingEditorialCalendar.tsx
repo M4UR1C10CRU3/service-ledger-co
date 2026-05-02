@@ -908,11 +908,11 @@ function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemover
             const isImg = (e.mime_type || '').startsWith('image/');
             return (
               <div key={e.id} className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {isImg ? <FileImage className="h-4 w-4 text-muted-foreground shrink-0" /> : <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />}
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{e.nome}</p>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <EntregaThumb entrega={e} onPreview={setPreview} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium break-words">{e.nome}</p>
                       <p className="text-xs text-muted-foreground">
                         {fmtSize(e.tamanho_bytes)} · {e.uploaded_by_nome || 'Anónimo'} · {new Date(e.created_at).toLocaleString('pt-PT')}
                       </p>
