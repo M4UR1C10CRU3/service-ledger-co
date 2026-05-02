@@ -1622,6 +1622,7 @@ export type Database = {
           status: string
           storage_path: string
           tamanho_bytes: number | null
+          tarefa_id: string | null
           updated_at: string
           uploaded_by: string | null
           uploaded_by_nome: string | null
@@ -1642,6 +1643,7 @@ export type Database = {
           status?: string
           storage_path: string
           tamanho_bytes?: number | null
+          tarefa_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
           uploaded_by_nome?: string | null
@@ -1662,6 +1664,7 @@ export type Database = {
           status?: string
           storage_path?: string
           tamanho_bytes?: number | null
+          tarefa_id?: string | null
           updated_at?: string
           uploaded_by?: string | null
           uploaded_by_nome?: string | null
