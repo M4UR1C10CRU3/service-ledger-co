@@ -855,6 +855,7 @@ interface EntregasPanelProps {
 function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega }: EntregasPanelProps) {
   const [uploading, setUploading] = useState(false);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime: string | null } | null>(null);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
