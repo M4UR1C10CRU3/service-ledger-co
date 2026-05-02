@@ -599,14 +599,23 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 interface PostDialogProps {
   day: number | null;
   post?: EditorialPost;
-  tab: 'briefing' | 'editar';
-  onTabChange: (t: 'briefing' | 'editar') => void;
+  tab: 'briefing' | 'editar' | 'entregas';
+  onTabChange: (t: 'briefing' | 'editar' | 'entregas') => void;
+  entregas: Entrega[];
+  onUpload: (file: File) => Promise<boolean> | void;
+  onDecidir: (e: Entrega, status: 'aprovado' | 'rejeitado', comentario?: string) => Promise<boolean>;
+  onRemoverEntrega: (e: Entrega) => Promise<boolean>;
+  onDownloadEntrega: (e: Entrega) => void;
   onClose: () => void;
   onSave: (p: EditorialPost) => void;
   onDelete: () => void;
 }
 
-function PostDialog({ day, post, tab, onTabChange, onClose, onSave, onDelete }: PostDialogProps) {
+function PostDialog({ day, post, tab, onTabChange, entregas, onUpload, onDecidir, onRemoverEntrega, onDownloadEntrega, onClose, onSave, onDelete }: PostDialogProps) {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data?.user?.id || null));
+  }, []);
   const open = day !== null;
   const wkInfo = day !== null ? WEEKDAY_INFO[weekdayOf(day)] : null;
 
