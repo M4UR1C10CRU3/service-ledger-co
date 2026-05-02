@@ -100,6 +100,16 @@ export interface MarketingTarefa {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+  // Workflow
+  etapaAtual?: string | null;
+  aprovadorId?: string | null;
+  aprovadorNome?: string | null;
+  solicitanteId?: string | null;
+  solicitanteNome?: string | null;
+  prazoBriefing?: string | null;
+  prazoCriacao?: string | null;
+  prazoRevisao?: string | null;
+  prazoAprovacao?: string | null;
 }
 
 export interface MarketingAnexo {
