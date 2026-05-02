@@ -702,6 +702,10 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         tab={modalTab}
         onTabChange={setModalTab}
         entregas={modalDay !== null ? (entregas[modalDay] || []) : []}
+        linkedTarefa={modalDay !== null ? linkedTarefas[modalDay] : undefined}
+        onPromover={() => modalDay !== null && promoverParaKanban(modalDay)}
+        onDesligar={() => modalDay !== null && desligarDoKanban(modalDay)}
+        onRefreshLinked={fetchLinked}
         onUpload={(file) => modalDay !== null && uploadEntrega(modalDay, file)}
         onDecidir={decidirEntrega}
         onRemoverEntrega={removerEntrega}
