@@ -9,6 +9,10 @@ import type {
   MarketingPrioridade,
   MarketingTipoConteudo,
   MarketingCanal,
+  MarketingResponsavel,
+  MarketingChecklistItem,
+  MarketingEtapaHistorico,
+  MarketingEtapa,
 } from '@/types/marketing';
 
 const BUCKET = 'marketing-entregas';
