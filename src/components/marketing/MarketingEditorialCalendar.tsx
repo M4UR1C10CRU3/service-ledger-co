@@ -1196,6 +1196,10 @@ function PostDialog({ day, post, tab, onTabChange, entregas, linkedTarefa, onPro
   );
 }
 
+// Helper: bucket correto consoante origem da entrega
+const bucketDe = (e: Entrega) => e.id.startsWith('kanban-') ? 'marketing-entregas' : BUCKET;
+const isKanbanEntrega = (e: Entrega) => e.id.startsWith('kanban-');
+
 // ─────────────────────── PAINEL ENTREGAS ──────────────────────────
 
 interface EntregasPanelProps {
@@ -1220,6 +1224,7 @@ function EntregasPanel({ entregas, currentUserId, onUpload, onDecidir, onRemover
     }
     setUploading(false);
   };
+
 
   const fmtSize = (b: number | null) => {
     if (!b) return '';
