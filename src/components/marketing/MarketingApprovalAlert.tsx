@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Eye } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Bell, CheckCircle2, Eye, RotateCcw } from 'lucide-react';
 import { useMarketing } from '@/hooks/useMarketing';
 import { useUtilizadores, type LibertyUtilizador } from '@/hooks/useUtilizadores';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,13 +24,16 @@ const normalizeApproverName = (value?: string | null) =>
  * Também atualiza o título da página com a contagem de pendências.
  */
 export function MarketingApprovalAlert() {
-  const { tarefas } = useMarketing();
+  const { tarefas, addComentario, updateStatus, updateTarefa } = useMarketing();
   const { utilizadores } = useUtilizadores();
   const { empresa } = useEmpresa();
   const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [shownKey, setShownKey] = useState<string | null>(null);
   const [detailTarefa, setDetailTarefa] = useState<MarketingTarefa | null>(null);
+  const [requestChangeId, setRequestChangeId] = useState<string | null>(null);
+  const [changeNote, setChangeNote] = useState('');
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
@@ -73,6 +77,29 @@ export function MarketingApprovalAlert() {
 
 
   if (!currentUserNome || pendentes.length === 0) return null;
+
+  const handleAprovar = async (tarefa: MarketingTarefa) => {
+    setActionBusyId(tarefa.id);
+    const ok = await updateStatus(tarefa.id, 'agendado');
+    if (ok) {
+      await addComentario(tarefa.id, `✅ Aprovado por ${currentUserNome}.`);
+      await updateTarefa(tarefa.id, { etapaAtual: 'publicado' });
+    }
+    setActionBusyId(null);
+  };
+
+  const handleSolicitarAlteracao = async (tarefa: MarketingTarefa) => {
+    if (!changeNote.trim()) return;
+    setActionBusyId(tarefa.id);
+    await addComentario(tarefa.id, `🔄 Alteração solicitada por ${currentUserNome}: ${changeNote.trim()}`);
+    const ok = await updateStatus(tarefa.id, 'em_producao');
+    if (ok) {
+      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' });
+      setRequestChangeId(null);
+      setChangeNote('');
+    }
+    setActionBusyId(null);
+  };
 
   return (
     <>
