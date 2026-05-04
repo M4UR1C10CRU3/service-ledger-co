@@ -115,28 +115,41 @@ export function MarketingApprovalAlert() {
           </DialogHeader>
           <div className="space-y-2 max-h-[50vh] overflow-y-auto py-2">
             {pendentes.map(t => (
-              <div
-                key={t.id}
-                className="border rounded-md p-3 flex items-start justify-between gap-3 hover:bg-muted/40 transition"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{t.titulo}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 gap-y-1">
-                    {t.solicitanteNome && <span>Solicitante: {t.solicitanteNome}</span>}
-                    {t.prazoAprovacao && (
-                      <span>
-                        Prazo: {t.prazoAprovacao}{t.horaAprovacao ? ` ${t.horaAprovacao.slice(0, 5)}` : ''}
-                      </span>
-                    )}
+              <div key={t.id} className="border rounded-md p-3 space-y-3 hover:bg-muted/40 transition">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{t.titulo}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 gap-y-1">
+                      {t.solicitanteNome && <span>Solicitante: {t.solicitanteNome}</span>}
+                      {t.prazoAprovacao && (
+                        <span>
+                          Prazo: {t.prazoAprovacao}{t.horaAprovacao ? ` ${t.horaAprovacao.slice(0, 5)}` : ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <Button size="sm" variant="outline" onClick={() => { setOpen(false); setDetailTarefa(t); }}>
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Abrir
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setDetailTarefa(t); }}
-                >
-                  <Eye className="h-3.5 w-3.5 mr-1" /> Abrir
-                </Button>
+                {requestChangeId === t.id ? (
+                  <div className="space-y-2">
+                    <Textarea rows={2} placeholder="Descreva a alteração necessária..." value={changeNote} onChange={e => setChangeNote(e.target.value)} />
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => { setRequestChangeId(null); setChangeNote(''); }} disabled={actionBusyId === t.id}>Cancelar</Button>
+                      <Button size="sm" onClick={() => handleSolicitarAlteracao(t)} disabled={actionBusyId === t.id || !changeNote.trim()}>Enviar alteração</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setRequestChangeId(t.id)} disabled={actionBusyId === t.id}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" /> Solicitar Alteração
+                    </Button>
+                    <Button size="sm" onClick={() => handleAprovar(t)} disabled={actionBusyId === t.id}>
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Aprovado
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
