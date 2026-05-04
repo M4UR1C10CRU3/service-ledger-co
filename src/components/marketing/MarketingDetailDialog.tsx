@@ -26,6 +26,13 @@ import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingWorkflowPanel } from './MarketingWorkflowPanel';
 
+const normalizeApproverName = (value?: string | null) =>
+  (value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 interface Props {
   tarefa: MarketingTarefa | null;
   open: boolean;
@@ -54,15 +61,18 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
   }, []);
 
-  const currentUserNome = useMemo(() => {
+  const currentUser = useMemo(() => {
     if (!authUserId) return null;
-    const u = utilizadores.find((x: any) => x.auth_user_id === authUserId);
-    return u?.nome || null;
+    return utilizadores.find((x: any) => x.auth_user_id === authUserId) || null;
   }, [authUserId, utilizadores]);
 
-  const isApprover = !!tarefa && !!currentUserNome &&
-    tarefa.status === 'em_revisao' &&
-    (tarefa.aprovadorNome || '').trim() === currentUserNome.trim();
+  const currentUserNome = currentUser?.nome || null;
+
+  const isAwaitingApproval = !!tarefa && (tarefa.status === 'em_revisao' || tarefa.etapaAtual === 'aprovacao');
+  const isApprover = !!tarefa && isAwaitingApproval && !!currentUserNome && (
+    normalizeApproverName(tarefa.aprovadorNome) === normalizeApproverName(currentUserNome) ||
+    (!!tarefa.aprovadorId && (tarefa.aprovadorId === authUserId || tarefa.aprovadorId === (currentUser as any)?.id))
+  );
 
   const isImage = (a: MarketingAnexo) =>
     a.tipo === 'upload' && (
