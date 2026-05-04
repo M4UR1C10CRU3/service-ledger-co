@@ -46,21 +46,31 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(a.nome)
     );
 
-  const reload = async () => {
-    if (!tarefa) return;
-    const [a, c] = await Promise.all([fetchAnexos(tarefa.id), fetchComentarios(tarefa.id)]);
+  const reload = async (tarefaId: string) => {
+    const [a, c] = await Promise.all([fetchAnexos(tarefaId), fetchComentarios(tarefaId)]);
+    // Garante que ainda estamos na mesma tarefa antes de aplicar resultados
+    if (!tarefa || tarefa.id !== tarefaId) return;
     setAnexos(a);
     setComentarios(c);
-    // Pré-carregar URLs assinadas para imagens (thumbnails)
+    // Pré-carregar URLs assinadas para imagens (thumbnails) — chave por anexo.id (único por tarefa)
     const imgs = a.filter(isImage);
     const entries = await Promise.all(
       imgs.map(async x => [x.id, (await getAnexoSignedUrl(x.url)) || ''] as const)
     );
+    if (!tarefa || tarefa.id !== tarefaId) return;
     setSignedUrls(Object.fromEntries(entries.filter(([, u]) => u)));
   };
 
+  // Limpa estado ao trocar de tarefa ou fechar — evita exibir anexos/thumbnails da tarefa anterior
   useEffect(() => {
-    if (open && tarefa) reload();
+    setAnexos([]);
+    setComentarios([]);
+    setSignedUrls({});
+    setPreview(null);
+    setNovoComentario('');
+    setLinkNome('');
+    setLinkUrl('');
+    if (open && tarefa) reload(tarefa.id);
   }, [open, tarefa?.id]);
 
   if (!tarefa) return null;
