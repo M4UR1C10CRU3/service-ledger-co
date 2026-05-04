@@ -1671,6 +1671,48 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_editorial_posts: {
+        Row: {
+          ano: number
+          created_at: string
+          dia: number
+          empresa_id: string
+          id: string
+          mes: number
+          post: Json
+          tarefa_id: string | null
+          updated_at: string
+          updated_by: string | null
+          updated_by_nome: string | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          dia: number
+          empresa_id: string
+          id?: string
+          mes: number
+          post: Json
+          tarefa_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          dia?: number
+          empresa_id?: string
+          id?: string
+          mes?: number
+          post?: Json
+          tarefa_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_nome?: string | null
+        }
+        Relationships: []
+      }
       marketing_tarefa_checklist: {
         Row: {
           concluido: boolean

@@ -216,28 +216,115 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const isMaio2026 = year === 2026 && month === 5;
 
-  // Estado: { day -> post }
+  // Estado: { day -> post } — partilhado entre todos os utilizadores via Supabase.
   const [state, setState] = useState<CalendarState>({});
 
-  // Carregar do localStorage por empresa/mês, fallback para original (apenas Maio 2026)
-  useEffect(() => {
-    const key = storageKey(empresa?.id, year, month);
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        setState(JSON.parse(saved));
-        return;
+  // Carrega do Supabase (partilhado por todos os utilizadores da empresa).
+  // Faz seeding automático dos dados originais de Maio 2026 se a tabela
+  // ainda estiver vazia para essa empresa/mês.
+  const fetchPosts = useCallback(async () => {
+    if (!empresa?.id) {
+      setState(isMaio2026 ? { ...ORIGINAL_MAIO_2026 } : {});
+      return;
+    }
+    const { data, error } = await supabase
+      .from('marketing_editorial_posts')
+      .select('dia, post')
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year)
+      .eq('mes', month);
+    if (error) { console.error('[editorial-posts]', error); return; }
+
+    if ((data || []).length === 0 && isMaio2026) {
+      // Seed inicial em base de dados (uma única vez por empresa)
+      const rows = Object.entries(ORIGINAL_MAIO_2026).map(([dia, post]) => ({
+        empresa_id: empresa.id,
+        ano: year, mes: month, dia: Number(dia),
+        post: post as any,
+      }));
+      // Migração leve: se existir conteúdo antigo no localStorage, importa-o
+      try {
+        const legacy = localStorage.getItem(storageKey(empresa.id, year, month));
+        if (legacy) {
+          const parsed: CalendarState = JSON.parse(legacy);
+          rows.length = 0;
+          Object.entries(parsed).forEach(([dia, post]) => {
+            rows.push({
+              empresa_id: empresa.id,
+              ano: year, mes: month, dia: Number(dia),
+              post: post as any,
+            });
+          });
+        }
+      } catch {}
+      if (rows.length) {
+        await supabase.from('marketing_editorial_posts').upsert(rows, {
+          onConflict: 'empresa_id,ano,mes,dia',
+        });
       }
-    } catch {}
-    setState(isMaio2026 ? { ...ORIGINAL_MAIO_2026 } : {});
+      const next: CalendarState = {};
+      rows.forEach(r => { next[r.dia] = r.post as EditorialPost; });
+      setState(next);
+      return;
+    }
+
+    const next: CalendarState = {};
+    (data || []).forEach((r: any) => { next[r.dia] = r.post as EditorialPost; });
+    setState(next);
   }, [empresa?.id, year, month, isMaio2026]);
 
-  const persist = useCallback((next: CalendarState) => {
-    setState(next);
-    try {
-      localStorage.setItem(storageKey(empresa?.id, year, month), JSON.stringify(next));
-    } catch {}
-  }, [empresa?.id, year, month]);
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  // Persiste UM dia (upsert) no Supabase. Atualiza estado local
+  // imediatamente para feedback instantâneo; outros utilizadores recebem
+  // via realtime.
+  const persistDay = useCallback(async (day: number, post: EditorialPost | null) => {
+    if (!empresa?.id) return;
+    setState(prev => {
+      const next = { ...prev };
+      if (post) next[day] = post; else delete next[day];
+      return next;
+    });
+    if (post) {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('marketing_editorial_posts')
+        .upsert({
+          empresa_id: empresa.id,
+          ano: year, mes: month, dia: day,
+          post: post as any,
+          updated_by: u?.user?.id || null,
+          updated_by_nome: u?.user?.email || null,
+        }, { onConflict: 'empresa_id,ano,mes,dia' });
+      if (error) {
+        console.error('[persistDay]', error);
+        toast({ title: 'Erro a guardar', description: error.message, variant: 'destructive' });
+      }
+    } else {
+      const { error } = await supabase
+        .from('marketing_editorial_posts')
+        .delete()
+        .eq('empresa_id', empresa.id)
+        .eq('ano', year).eq('mes', month).eq('dia', day);
+      if (error) {
+        console.error('[persistDay-del]', error);
+        toast({ title: 'Erro a eliminar', description: error.message, variant: 'destructive' });
+      }
+    }
+  }, [empresa?.id, year, month, toast]);
+
+  // Realtime: refletir alterações de outros utilizadores.
+  useEffect(() => {
+    if (!empresa?.id) return;
+    const ch = supabase
+      .channel(`editorial-posts-${empresa.id}-${year}-${month}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'marketing_editorial_posts',
+        filter: `empresa_id=eq.${empresa.id}`,
+      }, () => fetchPosts())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [empresa?.id, year, month, fetchPosts]);
 
   // ───────── Entregas (uploads + aprovação) ─────────
   const [entregas, setEntregas] = useState<Record<number, Entrega[]>>({});
@@ -327,31 +414,29 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const fetchLinked = useCallback(async () => {
     if (!empresa?.id) { setLinkedTarefas({}); return; }
-    let map: Record<string, string> = {};
-    try {
-      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
-      if (raw) map = JSON.parse(raw);
-    } catch {}
-    const ids = Object.values(map).filter(Boolean);
+    // Lê os vínculos a partir da tabela partilhada marketing_editorial_posts.tarefa_id
+    const { data: rows, error } = await supabase
+      .from('marketing_editorial_posts')
+      .select('dia, tarefa_id')
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year)
+      .eq('mes', month)
+      .not('tarefa_id', 'is', null);
+    if (error) { console.error('[linked tarefas]', error); return; }
+    const dayByTarefa = new Map<string, number>();
+    (rows || []).forEach((r: any) => { if (r.tarefa_id) dayByTarefa.set(r.tarefa_id, r.dia); });
+    const ids = Array.from(dayByTarefa.keys());
     if (ids.length === 0) { setLinkedTarefas({}); return; }
-    const { data, error } = await supabase
+    const { data: tarefas, error: e2 } = await supabase
       .from('marketing_tarefas')
       .select('id, status, etapa_atual')
       .in('id', ids);
-    if (error) { console.error('[linked tarefas]', error); return; }
-    const byId = new Map<string, any>((data || []).map((r: any) => [r.id, r]));
-    const cleaned: Record<string, string> = {};
+    if (e2) { console.error('[linked tarefas]', e2); return; }
     const out: Record<number, TarefaLink> = {};
-    Object.entries(map).forEach(([dia, id]) => {
-      const r = byId.get(id);
-      if (r) {
-        cleaned[dia] = id;
-        out[Number(dia)] = { id, status: r.status, etapa: r.etapa_atual };
-      }
+    (tarefas || []).forEach((t: any) => {
+      const dia = dayByTarefa.get(t.id);
+      if (dia !== undefined) out[dia] = { id: t.id, status: t.status, etapa: t.etapa_atual };
     });
-    if (Object.keys(cleaned).length !== Object.keys(map).length) {
-      localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(cleaned));
-    }
     setLinkedTarefas(out);
   }, [empresa?.id, year, month]);
 
@@ -436,16 +521,16 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   }, [empresa?.id, year, month, fetchKanbanSync]);
 
 
-  const persistLink = useCallback((day: number, tarefaId: string | null) => {
+  const persistLink = useCallback(async (day: number, tarefaId: string | null) => {
     if (!empresa?.id) return;
-    let map: Record<string, string> = {};
-    try {
-      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
-      if (raw) map = JSON.parse(raw);
-    } catch {}
-    if (tarefaId) map[String(day)] = tarefaId;
-    else delete map[String(day)];
-    localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(map));
+    // Atualiza tarefa_id na tabela partilhada (a linha do dia já existe pois
+    // só promovemos dias com post).
+    const { error } = await supabase
+      .from('marketing_editorial_posts')
+      .update({ tarefa_id: tarefaId })
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year).eq('mes', month).eq('dia', day);
+    if (error) console.error('[persistLink]', error);
   }, [empresa?.id, year, month]);
 
   const promoverParaKanban = async (day: number): Promise<boolean> => {
@@ -502,7 +587,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       toast({ title: 'Erro a promover', description: error?.message, variant: 'destructive' });
       return false;
     }
-    persistLink(day, row.id);
+    await persistLink(day, row.id);
     setLinkedTarefas(prev => ({ ...prev, [day]: { id: row.id, status: row.status, etapa: row.etapa_atual } }));
     toast({ title: 'Promovido ao Kanban', description: 'Tarefa criada em "Em Produção".' });
     return true;
@@ -510,7 +595,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const desligarDoKanban = async (day: number) => {
     if (!confirm('Desligar este post da tarefa Kanban? A tarefa permanece no Kanban; só o vínculo é removido.')) return;
-    persistLink(day, null);
+    await persistLink(day, null);
     setLinkedTarefas(prev => {
       const next = { ...prev };
       delete next[day];
@@ -530,12 +615,11 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       setHoverDay(null);
       return;
     }
-    const next = { ...state };
-    const a = next[dragDay];
-    const b = next[targetDay];
-    if (b) next[dragDay] = b; else delete next[dragDay];
-    if (a) next[targetDay] = a; else delete next[targetDay];
-    persist(next);
+    const a = state[dragDay];
+    const b = state[targetDay];
+    // Persistência atómica de ambos os dias (cada um vai para a BD).
+    persistDay(dragDay, b || null);
+    persistDay(targetDay, a || null);
     setDragDay(null);
     setHoverDay(null);
     toast({ title: 'Publicações trocadas', description: `Dia ${dragDay} ↔ Dia ${targetDay}` });
@@ -589,8 +673,18 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       return;
     }
     if (!confirm('Repor o calendário editorial original de Maio 2026? Todas as alterações serão perdidas.')) return;
-    persist({ ...ORIGINAL_MAIO_2026 });
-    toast({ title: 'Calendário reposto' });
+    if (!empresa?.id) return;
+    (async () => {
+      // apaga tudo do mês e re-insere o original
+      await supabase.from('marketing_editorial_posts')
+        .delete().eq('empresa_id', empresa.id).eq('ano', year).eq('mes', month);
+      const rows = Object.entries(ORIGINAL_MAIO_2026).map(([dia, post]) => ({
+        empresa_id: empresa.id, ano: year, mes: month, dia: Number(dia), post: post as any,
+      }));
+      await supabase.from('marketing_editorial_posts').upsert(rows, { onConflict: 'empresa_id,ano,mes,dia' });
+      await fetchPosts();
+      toast({ title: 'Calendário reposto' });
+    })();
   };
 
   const handlePrint = () => window.print();
@@ -872,16 +966,13 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         onClose={() => setModalDay(null)}
         onSave={(p) => {
           if (modalDay === null) return;
-          const next = { ...state, [modalDay]: p };
-          persist(next);
+          persistDay(modalDay, p);
           setModalDay(null);
           toast({ title: 'Publicação guardada' });
         }}
         onDelete={() => {
           if (modalDay === null) return;
-          const next = { ...state };
-          delete next[modalDay];
-          persist(next);
+          persistDay(modalDay, null);
           setModalDay(null);
           toast({ title: 'Publicação eliminada' });
         }}
