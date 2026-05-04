@@ -260,6 +260,35 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y divide-border">
+              {/* Marketing approvals section */}
+              {marketingApprovals.length > 0 && (
+                <div>
+                  <div className="px-4 py-2 bg-purple-500/10">
+                    <p className="text-xs font-semibold text-purple-600 flex items-center gap-1.5">
+                      <Megaphone className="h-3 w-3" />
+                      Marketing — A aguardar a sua aprovação ({marketingApprovals.length})
+                    </p>
+                  </div>
+                  {marketingApprovals.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={handleClickMarketing}
+                      className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                    >
+                      <p className="text-sm font-medium text-foreground truncate">{m.titulo}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {m.solicitanteNome ? `Solicitante: ${m.solicitanteNome}` : 'Aguarda aprovação'}
+                      </p>
+                      {m.prazoAprovacao && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          Prazo: {formatDatePT(m.prazoAprovacao)}{m.horaAprovacao ? ` ${m.horaAprovacao.slice(0, 5)}` : ''}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Follow-up overdue section */}
               {overdueFollowups.length > 0 && (
                 <div>
