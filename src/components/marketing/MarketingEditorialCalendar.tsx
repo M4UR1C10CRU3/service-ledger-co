@@ -521,16 +521,16 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   }, [empresa?.id, year, month, fetchKanbanSync]);
 
 
-  const persistLink = useCallback((day: number, tarefaId: string | null) => {
+  const persistLink = useCallback(async (day: number, tarefaId: string | null) => {
     if (!empresa?.id) return;
-    let map: Record<string, string> = {};
-    try {
-      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
-      if (raw) map = JSON.parse(raw);
-    } catch {}
-    if (tarefaId) map[String(day)] = tarefaId;
-    else delete map[String(day)];
-    localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(map));
+    // Atualiza tarefa_id na tabela partilhada (a linha do dia já existe pois
+    // só promovemos dias com post).
+    const { error } = await supabase
+      .from('marketing_editorial_posts')
+      .update({ tarefa_id: tarefaId })
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year).eq('mes', month).eq('dia', day);
+    if (error) console.error('[persistLink]', error);
   }, [empresa?.id, year, month]);
 
   const promoverParaKanban = async (day: number): Promise<boolean> => {
