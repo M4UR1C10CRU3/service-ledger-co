@@ -82,6 +82,15 @@ export function stringifyCanais(canais: MarketingCanal[]): string | null {
   return canais.length ? (canais.join(',') as any) : null;
 }
 
+/** Tipo de conteúdo pode ser único ou CSV (e.g. "post,story"). */
+export function parseTipos(tipo: string | null | undefined): MarketingTipoConteudo[] {
+  if (!tipo) return [];
+  return tipo.split(',').map(t => t.trim()).filter(Boolean) as MarketingTipoConteudo[];
+}
+export function stringifyTipos(tipos: MarketingTipoConteudo[]): string | null {
+  return tipos.length ? (tipos.join(',') as any) : null;
+}
+
 export interface MarketingTarefa {
   id: string;
   empresaId: string;
