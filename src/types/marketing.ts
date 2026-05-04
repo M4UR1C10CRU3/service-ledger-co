@@ -2,6 +2,7 @@ export type MarketingStatus =
   | 'ideias'
   | 'em_producao'
   | 'em_revisao'
+  | 'em_aprovacao'
   | 'agendado'
   | 'publicado'
   | 'arquivado';
