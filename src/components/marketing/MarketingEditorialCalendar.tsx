@@ -303,6 +303,10 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   };
 
   const removerEntrega = async (e: Entrega): Promise<boolean> => {
+    if (e.id.startsWith('kanban-')) {
+      toast({ title: 'Gerido no Kanban', description: 'Este ficheiro veio de uma tarefa do Kanban — gere-o por lá.', variant: 'destructive' });
+      return false;
+    }
     if (!confirm(`Remover ficheiro "${e.nome}"?`)) return false;
     await supabase.storage.from(BUCKET).remove([e.storage_path]);
     const { error } = await supabase.from('marketing_editorial_entregas').delete().eq('id', e.id);
@@ -312,7 +316,8 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   };
 
   const downloadEntrega = async (e: Entrega) => {
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(e.storage_path, 3600);
+    const bucket = e.id.startsWith('kanban-') ? 'marketing-entregas' : BUCKET;
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(e.storage_path, 3600);
     if (error || !data) { toast({ title: 'Erro', variant: 'destructive' }); return; }
     window.open(data.signedUrl, '_blank');
   };
