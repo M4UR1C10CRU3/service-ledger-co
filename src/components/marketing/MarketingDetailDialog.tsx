@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMarketing } from '@/hooks/useMarketing';
-import { useUtilizadores } from '@/hooks/useUtilizadores';
+import { useUtilizadores, type LibertyUtilizador } from '@/hooks/useUtilizadores';
 import { supabase } from '@/integrations/supabase/client';
 import {
   STATUS_CONFIG,
@@ -25,6 +25,13 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingWorkflowPanel } from './MarketingWorkflowPanel';
+
+const normalizeApproverName = (value?: string | null) =>
+  (value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 
 interface Props {
   tarefa: MarketingTarefa | null;
@@ -54,15 +61,18 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
   }, []);
 
-  const currentUserNome = useMemo(() => {
+  const currentUser = useMemo<LibertyUtilizador | null>(() => {
     if (!authUserId) return null;
-    const u = utilizadores.find((x: any) => x.auth_user_id === authUserId);
-    return u?.nome || null;
+    return utilizadores.find((x) => x.auth_user_id === authUserId) || null;
   }, [authUserId, utilizadores]);
 
-  const isApprover = !!tarefa && !!currentUserNome &&
-    tarefa.status === 'em_revisao' &&
-    (tarefa.aprovadorNome || '').trim() === currentUserNome.trim();
+  const currentUserNome = currentUser?.nome || null;
+
+  const isAwaitingApproval = !!tarefa && (tarefa.status === 'em_revisao' || tarefa.etapaAtual === 'aprovacao');
+  const isApprover = !!tarefa && isAwaitingApproval && !!currentUserNome && (
+    normalizeApproverName(tarefa.aprovadorNome) === normalizeApproverName(currentUserNome) ||
+    (!!tarefa.aprovadorId && (tarefa.aprovadorId === authUserId || tarefa.aprovadorId === currentUser?.id))
+  );
 
   const isImage = (a: MarketingAnexo) =>
     a.tipo === 'upload' && (
@@ -171,7 +181,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await updateStatus(tarefa.id, 'agendado');
     if (ok) {
       await addComentario(tarefa.id, `✅ Aprovado por ${currentUserNome || 'aprovador'}.`);
-      await updateTarefa(tarefa.id, { etapaAtual: 'publicado' as any });
+      await updateTarefa(tarefa.id, { etapaAtual: 'publicado' });
       toast({ title: 'Job aprovado', description: 'Movido para Agendado.' });
       await reload(tarefa.id);
     } else {
@@ -191,7 +201,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     await addComentario(tarefa.id, note);
     const ok = await updateStatus(tarefa.id, 'em_producao');
     if (ok) {
-      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' as any });
+      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' });
       toast({ title: 'Alteração solicitada', description: 'O job voltou para "Em Produção".' });
       setChangeNote('');
       setShowRequestChange(false);
@@ -281,7 +291,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           <TabsContent value="detalhes" className="space-y-3 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               {(() => {
-                const tipos = parseTipos(tarefa.tipoConteudo as any);
+                const tipos = parseTipos(tarefa.tipoConteudo);
                 if (!tipos.length) return null;
                 return (
                   <div>
@@ -294,7 +304,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 );
               })()}
               {(() => {
-                const canais = parseCanais(tarefa.canal as any);
+                const canais = parseCanais(tarefa.canal);
                 if (!canais.length) return null;
                 return (
                   <div>
