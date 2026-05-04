@@ -852,11 +852,11 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       {/* Modal */}
       <PostDialog
         day={modalDay}
-        post={modalDay !== null ? state[modalDay] : undefined}
+        post={modalDay !== null ? mergedState[modalDay] : undefined}
         tab={modalTab}
         onTabChange={setModalTab}
-        entregas={modalDay !== null ? (entregas[modalDay] || []) : []}
-        linkedTarefa={modalDay !== null ? linkedTarefas[modalDay] : undefined}
+        entregas={modalDay !== null ? (mergedEntregas[modalDay] || []) : []}
+        linkedTarefa={modalDay !== null ? mergedLinks[modalDay] : undefined}
         onPromover={() => modalDay !== null && promoverParaKanban(modalDay)}
         onDesligar={() => modalDay !== null && desligarDoKanban(modalDay)}
         onRefreshLinked={fetchLinked}
