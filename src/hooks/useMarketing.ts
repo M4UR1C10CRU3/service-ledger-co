@@ -54,6 +54,10 @@ function mapTarefa(r: any): MarketingTarefa {
     prazoCriacao: r.prazo_criacao,
     prazoRevisao: r.prazo_revisao,
     prazoAprovacao: r.prazo_aprovacao,
+    horaBriefing: r.hora_briefing,
+    horaCriacao: r.hora_criacao,
+    horaRevisao: r.hora_revisao,
+    horaAprovacao: r.hora_aprovacao,
   };
 }
 
@@ -111,6 +115,10 @@ export interface MarketingTarefaInput {
   prazoCriacao?: string | null;
   prazoRevisao?: string | null;
   prazoAprovacao?: string | null;
+  horaBriefing?: string | null;
+  horaCriacao?: string | null;
+  horaRevisao?: string | null;
+  horaAprovacao?: string | null;
 }
 
 export function useMarketing() {

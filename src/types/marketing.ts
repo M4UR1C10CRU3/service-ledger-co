@@ -128,6 +128,10 @@ export interface MarketingTarefa {
   prazoCriacao?: string | null;
   prazoRevisao?: string | null;
   prazoAprovacao?: string | null;
+  horaBriefing?: string | null;
+  horaCriacao?: string | null;
+  horaRevisao?: string | null;
+  horaAprovacao?: string | null;
 }
 
 export interface MarketingAnexo {
