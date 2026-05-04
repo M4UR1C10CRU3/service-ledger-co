@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMarketing } from '@/hooks/useMarketing';
-import { useUtilizadores } from '@/hooks/useUtilizadores';
+import { useUtilizadores, type LibertyUtilizador } from '@/hooks/useUtilizadores';
 import { supabase } from '@/integrations/supabase/client';
 import {
   STATUS_CONFIG,
@@ -61,9 +61,9 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
   }, []);
 
-  const currentUser = useMemo(() => {
+  const currentUser = useMemo<LibertyUtilizador | null>(() => {
     if (!authUserId) return null;
-    return utilizadores.find((x: any) => x.auth_user_id === authUserId) || null;
+    return utilizadores.find((x) => x.auth_user_id === authUserId) || null;
   }, [authUserId, utilizadores]);
 
   const currentUserNome = currentUser?.nome || null;
@@ -71,7 +71,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const isAwaitingApproval = !!tarefa && (tarefa.status === 'em_revisao' || tarefa.etapaAtual === 'aprovacao');
   const isApprover = !!tarefa && isAwaitingApproval && !!currentUserNome && (
     normalizeApproverName(tarefa.aprovadorNome) === normalizeApproverName(currentUserNome) ||
-    (!!tarefa.aprovadorId && (tarefa.aprovadorId === authUserId || tarefa.aprovadorId === (currentUser as any)?.id))
+    (!!tarefa.aprovadorId && (tarefa.aprovadorId === authUserId || tarefa.aprovadorId === currentUser?.id))
   );
 
   const isImage = (a: MarketingAnexo) =>
