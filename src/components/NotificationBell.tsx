@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatDateToISO } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Bell, AlertTriangle, Clock, ArrowRight, Phone } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, ArrowRight, Phone, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,6 +26,14 @@ interface FollowupAlert {
   valorDebito: number | null;
   emailType: string | null;
   minutesUntil: number;
+}
+
+interface MarketingApproval {
+  id: string;
+  titulo: string;
+  prazoAprovacao: string | null;
+  horaAprovacao: string | null;
+  solicitanteNome: string | null;
 }
 
 const fmt = (v: number) =>
@@ -54,6 +62,7 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState<AlertAccount[]>([]);
   const [followupAlerts, setFollowupAlerts] = useState<FollowupAlert[]>([]);
+  const [marketingApprovals, setMarketingApprovals] = useState<MarketingApproval[]>([]);
   const [open, setOpen] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
