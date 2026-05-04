@@ -45,20 +45,23 @@ export function MarketingApprovalAlert() {
     );
   }, [tarefas, currentUserNome]);
 
-  // Mostrar uma vez por sessão (por empresa)
+  // Abre imediatamente quando há pendências e re-abre a cada 5 minutos
+  // enquanto continuar a haver tarefas a aguardar aprovação. O utilizador pode
+  // fechar para silenciar até ao próximo ciclo.
   useEffect(() => {
-    if (!empresa?.id || !currentUserNome || pendentes.length === 0) return;
-    const key = `mkt-approval-shown:${empresa.id}:${currentUserNome}`;
-    if (shownKey === key) return;
-    try {
-      const already = sessionStorage.getItem(key);
-      if (!already) {
-        setOpen(true);
-        sessionStorage.setItem(key, '1');
-      }
-      setShownKey(key);
-    } catch { /* ignore */ }
-  }, [empresa?.id, currentUserNome, pendentes.length, shownKey]);
+    if (!empresa?.id || !currentUserNome || pendentes.length === 0) {
+      setOpen(false);
+      return;
+    }
+    // Abre logo ao montar / quando surgem novas pendências
+    setOpen(true);
+    // E reabre a cada 5 minutos caso ainda existam pendências
+    const interval = setInterval(() => {
+      if (pendentes.length > 0) setOpen(true);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [empresa?.id, currentUserNome, pendentes.length]);
+
 
   if (!currentUserNome || pendentes.length === 0) return null;
 
