@@ -133,6 +133,38 @@ export function NotificationBell() {
       });
       setFollowupAlerts(mapped);
     }
+
+    // Fetch marketing approval pending for current user
+    const { data: authResp } = await supabase.auth.getUser();
+    const authId = authResp?.user?.id;
+    if (authId) {
+      const { data: lu } = await (supabase.from('liberty_utilizadores') as any)
+        .select('nome')
+        .eq('auth_user_id', authId)
+        .eq('eliminado', false)
+        .maybeSingle();
+      const nome = lu?.nome;
+      if (nome) {
+        const { data: mkts } = await supabase
+          .from('marketing_tarefas')
+          .select('id, titulo, prazo_aprovacao, hora_aprovacao, solicitante_nome, status, aprovador_nome, arquivado')
+          .eq('empresa_id', empresa.id)
+          .eq('status', 'em_revisao')
+          .eq('aprovador_nome', nome)
+          .eq('arquivado', false);
+        if (mkts) {
+          setMarketingApprovals((mkts as any[]).map(m => ({
+            id: m.id,
+            titulo: m.titulo,
+            prazoAprovacao: m.prazo_aprovacao,
+            horaAprovacao: m.hora_aprovacao,
+            solicitanteNome: m.solicitante_nome,
+          })));
+        }
+      } else {
+        setMarketingApprovals([]);
+      }
+    }
   }, [empresa?.id]);
 
   useEffect(() => {
@@ -145,7 +177,7 @@ export function NotificationBell() {
   const nearDueAlerts = alerts.filter(a => a.daysUntilDue >= 0);
   const overdueFollowups = followupAlerts.filter(f => f.minutesUntil <= 0);
   const upcomingFollowups = followupAlerts.filter(f => f.minutesUntil > 0);
-  const totalAlerts = alerts.length + followupAlerts.length;
+  const totalAlerts = alerts.length + followupAlerts.length + marketingApprovals.length;
 
   const handleViewAll = () => {
     setOpen(false);
@@ -160,6 +192,11 @@ export function NotificationBell() {
   const handleClickFollowup = () => {
     setOpen(false);
     navigate('/debitos');
+  };
+
+  const handleClickMarketing = () => {
+    setOpen(false);
+    navigate('/marketing');
   };
 
   const getFollowupTimeLabel = (f: FollowupAlert) => {
