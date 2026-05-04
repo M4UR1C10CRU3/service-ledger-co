@@ -181,7 +181,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await updateStatus(tarefa.id, 'agendado');
     if (ok) {
       await addComentario(tarefa.id, `✅ Aprovado por ${currentUserNome || 'aprovador'}.`);
-      await updateTarefa(tarefa.id, { etapaAtual: 'publicado' as any });
+      await updateTarefa(tarefa.id, { etapaAtual: 'publicado' });
       toast({ title: 'Job aprovado', description: 'Movido para Agendado.' });
       await reload(tarefa.id);
     } else {
@@ -201,7 +201,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     await addComentario(tarefa.id, note);
     const ok = await updateStatus(tarefa.id, 'em_producao');
     if (ok) {
-      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' as any });
+      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' });
       toast({ title: 'Alteração solicitada', description: 'O job voltou para "Em Produção".' });
       setChangeNote('');
       setShowRequestChange(false);
@@ -291,7 +291,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           <TabsContent value="detalhes" className="space-y-3 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               {(() => {
-                const tipos = parseTipos(tarefa.tipoConteudo as any);
+                const tipos = parseTipos(tarefa.tipoConteudo);
                 if (!tipos.length) return null;
                 return (
                   <div>
@@ -304,7 +304,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 );
               })()}
               {(() => {
-                const canais = parseCanais(tarefa.canal as any);
+                const canais = parseCanais(tarefa.canal);
                 if (!canais.length) return null;
                 return (
                   <div>
