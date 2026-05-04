@@ -103,9 +103,17 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       window.open(anexo.url, '_blank');
       return;
     }
-    const url = await getAnexoSignedUrl(anexo.url);
-    if (url) window.open(url, '_blank');
-    else toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
+    const url = signedUrls[anexo.id] || (await getAnexoSignedUrl(anexo.url));
+    if (!url) {
+      toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
+      return;
+    }
+    // Imagens e PDFs abrem no preview interno; outros abrem em nova aba
+    if (isImage(anexo) || anexo.mimeType === 'application/pdf' || /\.pdf$/i.test(anexo.nome)) {
+      setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
+    } else {
+      window.open(url, '_blank');
+    }
   };
 
   const handleDeleteAnexo = async (anexo: MarketingAnexo) => {
