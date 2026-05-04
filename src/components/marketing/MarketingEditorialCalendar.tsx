@@ -152,6 +152,53 @@ const linkKey = (empresaId: string | undefined, year: number, month: number) =>
 
 type TarefaLink = { id: string; status: string; etapa: string | null };
 
+// Anexo da tarefa Kanban convertido para formato Entrega (para reaproveitar UI)
+function tarefaAnexoToEntrega(a: any, dia: number, ano: number, mes: number): Entrega {
+  return {
+    id: `kanban-${a.id}`,
+    empresa_id: a.empresa_id,
+    ano, mes, dia,
+    nome: a.nome,
+    storage_path: a.url, // path no bucket marketing-entregas
+    mime_type: a.mime_type,
+    tamanho_bytes: a.tamanho_bytes ? Number(a.tamanho_bytes) : null,
+    status: 'aprovado', // se a tarefa Kanban foi publicada, considera-se aprovado
+    comentario_aprovacao: null,
+    uploaded_by: a.uploaded_by,
+    uploaded_by_nome: a.uploaded_by_nome,
+    aprovado_por: null,
+    aprovado_por_nome: null,
+    aprovado_em: null,
+    created_at: a.created_at,
+  };
+}
+
+// Mapeia tipo_conteudo + canal de tarefa Kanban para PostType e plat do calendário
+function tarefaToPost(t: any): EditorialPost {
+  const canalLower = (t.canal || '').toLowerCase();
+  const hasIG = canalLower.includes('instagram') || canalLower.includes('ig');
+  const hasFB = canalLower.includes('facebook') || canalLower.includes('fb');
+  const plat = hasIG && hasFB ? 'FB + IG' : hasIG ? 'Apenas IG' : hasFB ? 'Apenas FB' : 'FB + IG';
+  const titulo = String(t.titulo || '').toLowerCase();
+  let type: PostType = 'inst';
+  if (titulo.includes('carrossel') || titulo.includes('promo')) type = 'carrossel';
+  else if (titulo.includes('produto')) type = 'produto';
+  else if (titulo.includes('dica')) type = 'dica';
+  else if (titulo.includes('bastidor')) type = 'bastidores';
+  else if (titulo.includes('interaç') || titulo.includes('engaj')) type = 'eng';
+  else if (titulo.includes('dia ') || titulo.includes('feriado') || titulo.includes('data especial')) type = 'data';
+  return {
+    type,
+    plat,
+    title: t.titulo || 'Sem título',
+    copy: t.copy_legenda || '',
+    tip: t.briefing || '',
+    tags: t.hashtags || '',
+    hfb: t.hora_publicacao || undefined,
+    hig: t.hora_publicacao || undefined,
+  };
+}
+
 // ─────────────────────────── COMPONENTE ───────────────────────────
 
 interface Props {
