@@ -155,7 +155,7 @@ export function MarketingApprovalAlert() {
           </div>
           <DialogFooter>
             <Badge variant="secondary" className="mr-auto">
-              Pode rever depois — este aviso só reaparece no próximo login
+              Pode rever depois — este aviso reaparece em até 5 minutos
             </Badge>
             <Button onClick={() => setOpen(false)}>Entendido</Button>
           </DialogFooter>
