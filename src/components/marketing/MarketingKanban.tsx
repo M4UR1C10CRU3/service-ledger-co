@@ -9,6 +9,8 @@ import {
   PRIORIDADE_CONFIG,
   TIPO_CONTEUDO_CONFIG,
   CANAL_CONFIG,
+  parseTipos,
+  parseCanais,
   type MarketingTarefa,
   type MarketingStatus,
 } from '@/types/marketing';
