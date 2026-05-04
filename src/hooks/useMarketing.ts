@@ -54,6 +54,10 @@ function mapTarefa(r: any): MarketingTarefa {
     prazoCriacao: r.prazo_criacao,
     prazoRevisao: r.prazo_revisao,
     prazoAprovacao: r.prazo_aprovacao,
+    horaBriefing: r.hora_briefing,
+    horaCriacao: r.hora_criacao,
+    horaRevisao: r.hora_revisao,
+    horaAprovacao: r.hora_aprovacao,
   };
 }
 
@@ -111,6 +115,10 @@ export interface MarketingTarefaInput {
   prazoCriacao?: string | null;
   prazoRevisao?: string | null;
   prazoAprovacao?: string | null;
+  horaBriefing?: string | null;
+  horaCriacao?: string | null;
+  horaRevisao?: string | null;
+  horaAprovacao?: string | null;
 }
 
 export function useMarketing() {
@@ -166,6 +174,10 @@ export function useMarketing() {
       prazo_criacao: input.prazoCriacao || null,
       prazo_revisao: input.prazoRevisao || null,
       prazo_aprovacao: input.prazoAprovacao || null,
+      hora_briefing: input.horaBriefing || null,
+      hora_criacao: input.horaCriacao || null,
+      hora_revisao: input.horaRevisao || null,
+      hora_aprovacao: input.horaAprovacao || null,
       created_by: userResp?.user?.id || null,
     }).select('id').single();
     if (error || !row) { console.error('[marketing] create:', error); return null; }
@@ -198,6 +210,10 @@ export function useMarketing() {
     if (updates.prazoCriacao !== undefined) dbUpdates.prazo_criacao = updates.prazoCriacao;
     if (updates.prazoRevisao !== undefined) dbUpdates.prazo_revisao = updates.prazoRevisao;
     if (updates.prazoAprovacao !== undefined) dbUpdates.prazo_aprovacao = updates.prazoAprovacao;
+    if (updates.horaBriefing !== undefined) dbUpdates.hora_briefing = updates.horaBriefing;
+    if (updates.horaCriacao !== undefined) dbUpdates.hora_criacao = updates.horaCriacao;
+    if (updates.horaRevisao !== undefined) dbUpdates.hora_revisao = updates.horaRevisao;
+    if (updates.horaAprovacao !== undefined) dbUpdates.hora_aprovacao = updates.horaAprovacao;
 
     const { error } = await supabase.from('marketing_tarefas').update(dbUpdates).eq('id', id);
     if (error) { console.error('[marketing] update:', error); return false; }

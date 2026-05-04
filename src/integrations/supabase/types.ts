@@ -1891,7 +1891,11 @@ export type Database = {
           empresa_id: string
           etapa_atual: string
           hashtags: string | null
+          hora_aprovacao: string | null
+          hora_briefing: string | null
+          hora_criacao: string | null
           hora_publicacao: string | null
+          hora_revisao: string | null
           id: string
           link_externo: string | null
           observacoes: string | null
@@ -1928,7 +1932,11 @@ export type Database = {
           empresa_id: string
           etapa_atual?: string
           hashtags?: string | null
+          hora_aprovacao?: string | null
+          hora_briefing?: string | null
+          hora_criacao?: string | null
           hora_publicacao?: string | null
+          hora_revisao?: string | null
           id?: string
           link_externo?: string | null
           observacoes?: string | null
@@ -1965,7 +1973,11 @@ export type Database = {
           empresa_id?: string
           etapa_atual?: string
           hashtags?: string | null
+          hora_aprovacao?: string | null
+          hora_briefing?: string | null
+          hora_criacao?: string | null
           hora_publicacao?: string | null
+          hora_revisao?: string | null
           id?: string
           link_externo?: string | null
           observacoes?: string | null

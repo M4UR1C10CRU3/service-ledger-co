@@ -67,6 +67,10 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
     prazoCriacao: initial?.prazoCriacao || '',
     prazoRevisao: initial?.prazoRevisao || '',
     prazoAprovacao: initial?.prazoAprovacao || '',
+    horaBriefing: initial?.horaBriefing || '',
+    horaCriacao: initial?.horaCriacao || '',
+    horaRevisao: initial?.horaRevisao || '',
+    horaAprovacao: initial?.horaAprovacao || '',
   });
 
   const [form, setForm] = useState<MarketingTarefaInput>(buildInitial);
@@ -94,6 +98,10 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
       prazoCriacao: form.prazoCriacao || null,
       prazoRevisao: form.prazoRevisao || null,
       prazoAprovacao: form.prazoAprovacao || null,
+      horaBriefing: form.horaBriefing || null,
+      horaCriacao: form.horaCriacao || null,
+      horaRevisao: form.horaRevisao || null,
+      horaAprovacao: form.horaAprovacao || null,
     };
     const ok = initial
       ? await updateTarefa(initial.id, payload)
@@ -327,22 +335,46 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <Label className="text-xs">Prazo Briefing</Label>
-                <Input type="date" value={form.prazoBriefing || ''} onChange={e => setForm({ ...form, prazoBriefing: e.target.value })} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Prazo Briefing</Label>
+                  <Input type="date" value={form.prazoBriefing || ''} onChange={e => setForm({ ...form, prazoBriefing: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Hora</Label>
+                  <Input type="time" value={form.horaBriefing || ''} onChange={e => setForm({ ...form, horaBriefing: e.target.value })} />
+                </div>
               </div>
-              <div>
-                <Label className="text-xs">Prazo Criação</Label>
-                <Input type="date" value={form.prazoCriacao || ''} onChange={e => setForm({ ...form, prazoCriacao: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Prazo Criação</Label>
+                  <Input type="date" value={form.prazoCriacao || ''} onChange={e => setForm({ ...form, prazoCriacao: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Hora</Label>
+                  <Input type="time" value={form.horaCriacao || ''} onChange={e => setForm({ ...form, horaCriacao: e.target.value })} />
+                </div>
               </div>
-              <div>
-                <Label className="text-xs">Prazo Revisão</Label>
-                <Input type="date" value={form.prazoRevisao || ''} onChange={e => setForm({ ...form, prazoRevisao: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Prazo Revisão</Label>
+                  <Input type="date" value={form.prazoRevisao || ''} onChange={e => setForm({ ...form, prazoRevisao: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Hora</Label>
+                  <Input type="time" value={form.horaRevisao || ''} onChange={e => setForm({ ...form, horaRevisao: e.target.value })} />
+                </div>
               </div>
-              <div>
-                <Label className="text-xs">Prazo Aprovação</Label>
-                <Input type="date" value={form.prazoAprovacao || ''} onChange={e => setForm({ ...form, prazoAprovacao: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Prazo Aprovação</Label>
+                  <Input type="date" value={form.prazoAprovacao || ''} onChange={e => setForm({ ...form, prazoAprovacao: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Hora</Label>
+                  <Input type="time" value={form.horaAprovacao || ''} onChange={e => setForm({ ...form, horaAprovacao: e.target.value })} />
+                </div>
               </div>
             </div>
             <p className="text-[11px] text-muted-foreground">

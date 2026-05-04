@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMarketing } from '@/hooks/useMarketing';
+import { useUtilizadores } from '@/hooks/useUtilizadores';
+import { supabase } from '@/integrations/supabase/client';
 import {
   STATUS_CONFIG,
   PRIORIDADE_CONFIG,
@@ -18,7 +20,7 @@ import {
   type MarketingAnexo,
   type MarketingComentario,
 } from '@/types/marketing';
-import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon } from 'lucide-react';
+import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon, CheckCircle2, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -31,8 +33,10 @@ interface Props {
 }
 
 export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
-  const { fetchAnexos, uploadAnexo, addLinkAnexo, deleteAnexo, getAnexoSignedUrl, fetchComentarios, addComentario } = useMarketing();
+  const { fetchAnexos, uploadAnexo, addLinkAnexo, deleteAnexo, getAnexoSignedUrl, fetchComentarios, addComentario, updateStatus, updateTarefa } = useMarketing();
+  const { utilizadores } = useUtilizadores();
   const { toast } = useToast();
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [anexos, setAnexos] = useState<MarketingAnexo[]>([]);
   const [comentarios, setComentarios] = useState<MarketingComentario[]>([]);
   const [novoComentario, setNovoComentario] = useState('');
@@ -42,6 +46,23 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<{ url: string; nome: string; mime?: string | null } | null>(null);
+  const [showRequestChange, setShowRequestChange] = useState(false);
+  const [changeNote, setChangeNote] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
+  }, []);
+
+  const currentUserNome = useMemo(() => {
+    if (!authUserId) return null;
+    const u = utilizadores.find((x: any) => x.auth_user_id === authUserId);
+    return u?.nome || null;
+  }, [authUserId, utilizadores]);
+
+  const isApprover = !!tarefa && !!currentUserNome &&
+    tarefa.status === 'em_revisao' &&
+    (tarefa.aprovadorNome || '').trim() === currentUserNome.trim();
 
   const isImage = (a: MarketingAnexo) =>
     a.tipo === 'upload' && (
@@ -144,6 +165,43 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     }
   };
 
+  const handleAprovar = async () => {
+    if (!tarefa) return;
+    setActionBusy(true);
+    const ok = await updateStatus(tarefa.id, 'agendado');
+    if (ok) {
+      await addComentario(tarefa.id, `✅ Aprovado por ${currentUserNome || 'aprovador'}.`);
+      await updateTarefa(tarefa.id, { etapaAtual: 'publicado' as any });
+      toast({ title: 'Job aprovado', description: 'Movido para Agendado.' });
+      await reload(tarefa.id);
+    } else {
+      toast({ title: 'Erro ao aprovar', variant: 'destructive' });
+    }
+    setActionBusy(false);
+  };
+
+  const handleSolicitarAlteracao = async () => {
+    if (!tarefa) return;
+    if (!changeNote.trim()) {
+      toast({ title: 'Comentário obrigatório', description: 'Descreva o que deve ser alterado.', variant: 'destructive' });
+      return;
+    }
+    setActionBusy(true);
+    const note = `🔄 Alteração solicitada por ${currentUserNome || 'aprovador'}: ${changeNote.trim()}`;
+    await addComentario(tarefa.id, note);
+    const ok = await updateStatus(tarefa.id, 'em_producao');
+    if (ok) {
+      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' as any });
+      toast({ title: 'Alteração solicitada', description: 'O job voltou para "Em Produção".' });
+      setChangeNote('');
+      setShowRequestChange(false);
+      await reload(tarefa.id);
+    } else {
+      toast({ title: 'Erro', variant: 'destructive' });
+    }
+    setActionBusy(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -154,6 +212,59 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
             <Badge className={prio.badgeClass}>{prio.label}</Badge>
           </DialogTitle>
         </DialogHeader>
+
+        {isApprover && (
+          <div className="border-2 border-orange-300 bg-orange-50 dark:bg-orange-950/20 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-sm">
+                <span className="font-semibold">A sua aprovação é necessária.</span>{' '}
+                {tarefa.prazoAprovacao && (
+                  <span className="text-muted-foreground">
+                    Prazo: {tarefa.prazoAprovacao}{tarefa.horaAprovacao ? ` ${tarefa.horaAprovacao.slice(0, 5)}` : ''}
+                  </span>
+                )}
+              </div>
+              {!showRequestChange && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowRequestChange(true)}
+                    disabled={actionBusy}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" /> Solicitar Alteração
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleAprovar}
+                    disabled={actionBusy}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-1" /> Aprovado
+                  </Button>
+                </div>
+              )}
+            </div>
+            {showRequestChange && (
+              <div className="space-y-2 pt-1">
+                <Textarea
+                  rows={2}
+                  placeholder="Descreva o que deve ser alterado (obrigatório)..."
+                  value={changeNote}
+                  onChange={e => setChangeNote(e.target.value)}
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="ghost" onClick={() => { setShowRequestChange(false); setChangeNote(''); }} disabled={actionBusy}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={handleSolicitarAlteracao} disabled={actionBusy || !changeNote.trim()}>
+                    Enviar pedido
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <Tabs defaultValue="detalhes">
           <TabsList className="grid w-full grid-cols-4">

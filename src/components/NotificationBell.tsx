@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatDateToISO } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Bell, AlertTriangle, Clock, ArrowRight, Phone } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, ArrowRight, Phone, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,6 +26,14 @@ interface FollowupAlert {
   valorDebito: number | null;
   emailType: string | null;
   minutesUntil: number;
+}
+
+interface MarketingApproval {
+  id: string;
+  titulo: string;
+  prazoAprovacao: string | null;
+  horaAprovacao: string | null;
+  solicitanteNome: string | null;
 }
 
 const fmt = (v: number) =>
@@ -54,6 +62,7 @@ export function NotificationBell() {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState<AlertAccount[]>([]);
   const [followupAlerts, setFollowupAlerts] = useState<FollowupAlert[]>([]);
+  const [marketingApprovals, setMarketingApprovals] = useState<MarketingApproval[]>([]);
   const [open, setOpen] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
@@ -124,6 +133,38 @@ export function NotificationBell() {
       });
       setFollowupAlerts(mapped);
     }
+
+    // Fetch marketing approval pending for current user
+    const { data: authResp } = await supabase.auth.getUser();
+    const authId = authResp?.user?.id;
+    if (authId) {
+      const { data: lu } = await (supabase.from('liberty_utilizadores') as any)
+        .select('nome')
+        .eq('auth_user_id', authId)
+        .eq('eliminado', false)
+        .maybeSingle();
+      const nome = lu?.nome;
+      if (nome) {
+        const { data: mkts } = await supabase
+          .from('marketing_tarefas')
+          .select('id, titulo, prazo_aprovacao, hora_aprovacao, solicitante_nome, status, aprovador_nome, arquivado')
+          .eq('empresa_id', empresa.id)
+          .eq('status', 'em_revisao')
+          .eq('aprovador_nome', nome)
+          .eq('arquivado', false);
+        if (mkts) {
+          setMarketingApprovals((mkts as any[]).map(m => ({
+            id: m.id,
+            titulo: m.titulo,
+            prazoAprovacao: m.prazo_aprovacao,
+            horaAprovacao: m.hora_aprovacao,
+            solicitanteNome: m.solicitante_nome,
+          })));
+        }
+      } else {
+        setMarketingApprovals([]);
+      }
+    }
   }, [empresa?.id]);
 
   useEffect(() => {
@@ -136,7 +177,7 @@ export function NotificationBell() {
   const nearDueAlerts = alerts.filter(a => a.daysUntilDue >= 0);
   const overdueFollowups = followupAlerts.filter(f => f.minutesUntil <= 0);
   const upcomingFollowups = followupAlerts.filter(f => f.minutesUntil > 0);
-  const totalAlerts = alerts.length + followupAlerts.length;
+  const totalAlerts = alerts.length + followupAlerts.length + marketingApprovals.length;
 
   const handleViewAll = () => {
     setOpen(false);
@@ -151,6 +192,11 @@ export function NotificationBell() {
   const handleClickFollowup = () => {
     setOpen(false);
     navigate('/debitos');
+  };
+
+  const handleClickMarketing = () => {
+    setOpen(false);
+    navigate('/marketing');
   };
 
   const getFollowupTimeLabel = (f: FollowupAlert) => {
@@ -214,6 +260,35 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y divide-border">
+              {/* Marketing approvals section */}
+              {marketingApprovals.length > 0 && (
+                <div>
+                  <div className="px-4 py-2 bg-purple-500/10">
+                    <p className="text-xs font-semibold text-purple-600 flex items-center gap-1.5">
+                      <Megaphone className="h-3 w-3" />
+                      Marketing — A aguardar a sua aprovação ({marketingApprovals.length})
+                    </p>
+                  </div>
+                  {marketingApprovals.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={handleClickMarketing}
+                      className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+                    >
+                      <p className="text-sm font-medium text-foreground truncate">{m.titulo}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {m.solicitanteNome ? `Solicitante: ${m.solicitanteNome}` : 'Aguarda aprovação'}
+                      </p>
+                      {m.prazoAprovacao && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          Prazo: {formatDatePT(m.prazoAprovacao)}{m.horaAprovacao ? ` ${m.horaAprovacao.slice(0, 5)}` : ''}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Follow-up overdue section */}
               {overdueFollowups.length > 0 && (
                 <div>
