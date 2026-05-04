@@ -12,6 +12,8 @@ import {
   PRIORIDADE_CONFIG,
   TIPO_CONTEUDO_CONFIG,
   CANAL_CONFIG,
+  parseTipos,
+  parseCanais,
   type MarketingTarefa,
   type MarketingAnexo,
   type MarketingComentario,
@@ -167,12 +169,32 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
 
           <TabsContent value="detalhes" className="space-y-3 mt-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
-              {tarefa.tipoConteudo && (
-                <div><span className="text-muted-foreground">Tipo:</span> {TIPO_CONTEUDO_CONFIG[tarefa.tipoConteudo].icon} {TIPO_CONTEUDO_CONFIG[tarefa.tipoConteudo].label}</div>
-              )}
-              {tarefa.canal && (
-                <div><span className="text-muted-foreground">Canal:</span> {CANAL_CONFIG[tarefa.canal].icon} {CANAL_CONFIG[tarefa.canal].label}</div>
-              )}
+              {(() => {
+                const tipos = parseTipos(tarefa.tipoConteudo as any);
+                if (!tipos.length) return null;
+                return (
+                  <div>
+                    <span className="text-muted-foreground">Tipo:</span>{' '}
+                    {tipos.map(tp => {
+                      const cfg = TIPO_CONTEUDO_CONFIG[tp];
+                      return cfg ? `${cfg.icon} ${cfg.label}` : tp;
+                    }).join(', ')}
+                  </div>
+                );
+              })()}
+              {(() => {
+                const canais = parseCanais(tarefa.canal as any);
+                if (!canais.length) return null;
+                return (
+                  <div>
+                    <span className="text-muted-foreground">Canal:</span>{' '}
+                    {canais.map(cn => {
+                      const cfg = CANAL_CONFIG[cn];
+                      return cfg ? `${cfg.icon} ${cfg.label}` : cn;
+                    }).join(', ')}
+                  </div>
+                );
+              })()}
               {tarefa.responsavelNome && <div><span className="text-muted-foreground">Responsável:</span> {tarefa.responsavelNome}</div>}
               {tarefa.delegadoPorNome && <div><span className="text-muted-foreground">Delegado por:</span> {tarefa.delegadoPorNome}</div>}
               {tarefa.dataPrevista && <div><span className="text-muted-foreground">Data prevista:</span> {tarefa.dataPrevista}</div>}

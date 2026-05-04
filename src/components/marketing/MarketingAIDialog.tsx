@@ -188,8 +188,8 @@ export function MarketingAIDialog({ open, onOpenChange, onCreated }: Props) {
             </div>
             <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
               {sugestoes.map((s, i) => {
-                const tipo = s.tipoConteudo ? TIPO_CONTEUDO_CONFIG[s.tipoConteudo] : null;
-                const canal = s.canal ? CANAL_CONFIG[s.canal] : null;
+                const tipo = s.tipoConteudo ? (TIPO_CONTEUDO_CONFIG as any)[s.tipoConteudo] : null;
+                const canal = s.canal ? (CANAL_CONFIG as any)[s.canal] : null;
                 const prio = s.prioridade ? PRIORIDADE_CONFIG[s.prioridade] : null;
                 const checked = selecionadas.has(i);
                 return (
