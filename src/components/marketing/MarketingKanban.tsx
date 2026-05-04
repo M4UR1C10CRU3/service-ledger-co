@@ -74,8 +74,8 @@ export function MarketingKanban({ tarefas, onUpdateStatus, onView, onEdit, onDel
             <div className="p-2 flex-1 space-y-2 overflow-y-auto max-h-[65vh]">
               {items.map(t => {
                 const prio = PRIORIDADE_CONFIG[t.prioridade];
-                const tipoLabel = t.tipoConteudo ? TIPO_CONTEUDO_CONFIG[t.tipoConteudo] : null;
-                const canalLabel = t.canal ? CANAL_CONFIG[t.canal] : null;
+                const tipos = parseTipos(t.tipoConteudo as any);
+                const canais = parseCanais(t.canal as any);
                 return (
                   <Card
                     key={t.id}
@@ -90,16 +90,24 @@ export function MarketingKanban({ tarefas, onUpdateStatus, onView, onEdit, onDel
                     </div>
 
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {tipoLabel && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">
-                          {tipoLabel.icon} {tipoLabel.label}
-                        </span>
-                      )}
-                      {canalLabel && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted">
-                          {canalLabel.icon} {canalLabel.label}
-                        </span>
-                      )}
+                      {tipos.map(tp => {
+                        const cfg = TIPO_CONTEUDO_CONFIG[tp];
+                        if (!cfg) return null;
+                        return (
+                          <span key={tp} className="text-[10px] px-1.5 py-0.5 rounded bg-muted">
+                            {cfg.icon} {cfg.label}
+                          </span>
+                        );
+                      })}
+                      {canais.map(cn => {
+                        const cfg = CANAL_CONFIG[cn];
+                        if (!cfg) return null;
+                        return (
+                          <span key={cn} className="text-[10px] px-1.5 py-0.5 rounded bg-muted">
+                            {cfg.icon} {cfg.label}
+                          </span>
+                        );
+                      })}
                     </div>
 
                     {t.responsavelNome && (
