@@ -160,37 +160,85 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
               </Select>
             </div>
             <div>
-              <Label>Canal</Label>
-              <Select
-                value={form.canal || ''}
-                onValueChange={v => setForm({ ...form, canal: (v || null) as MarketingCanal | null })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(CANAL_CONFIG) as MarketingCanal[]).map(c => (
-                    <SelectItem key={c} value={c}>{CANAL_CONFIG[c].icon} {CANAL_CONFIG[c].label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Canais (selecione um ou mais)</Label>
+              {(() => {
+                const canaisSelecionados = parseCanais(form.canal);
+                const toggleCanal = (c: MarketingCanal) => {
+                  const novo = canaisSelecionados.includes(c)
+                    ? canaisSelecionados.filter(x => x !== c)
+                    : [...canaisSelecionados, c];
+                  setForm({ ...form, canal: stringifyCanais(novo) as any });
+                };
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between font-normal">
+                        <span className="truncate">
+                          {canaisSelecionados.length === 0
+                            ? 'Selecione...'
+                            : canaisSelecionados.map(c => `${CANAL_CONFIG[c as MarketingCanal]?.icon || ''} ${CANAL_CONFIG[c as MarketingCanal]?.label || c}`).join(', ')}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 opacity-50 ml-2" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-2" align="start">
+                      <div className="space-y-1 max-h-64 overflow-y-auto">
+                        {(Object.keys(CANAL_CONFIG) as MarketingCanal[]).map(c => {
+                          const checked = canaisSelecionados.includes(c);
+                          return (
+                            <label key={c} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer">
+                              <Checkbox checked={checked} onCheckedChange={() => toggleCanal(c)} />
+                              <span className="text-sm">{CANAL_CONFIG[c].icon} {CANAL_CONFIG[c].label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {canaisSelecionados.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t">
+                          {canaisSelecionados.map(c => (
+                            <Badge key={c} variant="secondary" className="text-xs">
+                              {CANAL_CONFIG[c as MarketingCanal]?.label || c}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Responsável (Executor)</Label>
-              <Input
-                value={form.responsavelNome || ''}
-                onChange={e => setForm({ ...form, responsavelNome: e.target.value })}
-                placeholder="Nome de quem executa"
-              />
+              <Select
+                value={form.responsavelNome || '__none__'}
+                onValueChange={v => setForm({ ...form, responsavelNome: v === '__none__' ? '' : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Nenhum —</SelectItem>
+                  {utilizadoresAtivos.map(u => (
+                    <SelectItem key={u.id} value={u.nome}>{u.nome}{u.cargo ? ` (${u.cargo})` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Delegado por</Label>
-              <Input
-                value={form.delegadoPorNome || ''}
-                onChange={e => setForm({ ...form, delegadoPorNome: e.target.value })}
-                placeholder="Nome de quem delegou"
-              />
+              <Select
+                value={form.delegadoPorNome || '__none__'}
+                onValueChange={v => setForm({ ...form, delegadoPorNome: v === '__none__' ? '' : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Nenhum —</SelectItem>
+                  {utilizadoresAtivos.map(u => (
+                    <SelectItem key={u.id} value={u.nome}>{u.nome}{u.cargo ? ` (${u.cargo})` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -226,11 +274,18 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
             <div className="text-xs font-semibold text-muted-foreground">Fluxo de aprovação</div>
             <div>
               <Label>Aprovador (revisão final) *</Label>
-              <Input
-                value={form.aprovadorNome || ''}
-                onChange={e => setForm({ ...form, aprovadorNome: e.target.value })}
-                placeholder="Quem aprova o job"
-              />
+              <Select
+                value={form.aprovadorNome || '__none__'}
+                onValueChange={v => setForm({ ...form, aprovadorNome: v === '__none__' ? '' : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione o aprovador..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Nenhum —</SelectItem>
+                  {utilizadoresAtivos.map(u => (
+                    <SelectItem key={u.id} value={u.nome}>{u.nome}{u.cargo ? ` (${u.cargo})` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
