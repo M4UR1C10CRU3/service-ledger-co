@@ -51,7 +51,7 @@ export function MarketingApprovalAlert() {
   const pendentes = useMemo(() => {
     if (!currentUserNome) return [];
     return tarefas.filter(t =>
-      (t.status === 'em_revisao' || t.etapaAtual === 'aprovacao') &&
+      (t.status === 'em_revisao' || t.status === 'em_aprovacao' || t.etapaAtual === 'aprovacao') &&
       !t.arquivado &&
       (normalizeApproverName(t.aprovadorNome) === normalizeApproverName(currentUserNome) ||
         (!!t.aprovadorId && (t.aprovadorId === authUserId || t.aprovadorId === currentUser?.id)))

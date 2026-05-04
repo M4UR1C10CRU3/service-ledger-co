@@ -149,7 +149,7 @@ export function NotificationBell() {
           .from('marketing_tarefas')
           .select('id, titulo, prazo_aprovacao, hora_aprovacao, solicitante_nome, status, aprovador_nome, arquivado')
           .eq('empresa_id', empresa.id)
-          .eq('status', 'em_revisao')
+          .in('status', ['em_revisao', 'em_aprovacao'])
           .eq('aprovador_nome', nome)
           .eq('arquivado', false);
         if (mkts) {

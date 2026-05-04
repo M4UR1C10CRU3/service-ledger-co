@@ -68,7 +68,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
 
   const currentUserNome = currentUser?.nome || null;
 
-  const isAwaitingApproval = !!tarefa && (tarefa.status === 'em_revisao' || tarefa.etapaAtual === 'aprovacao');
+  const isAwaitingApproval = !!tarefa && (tarefa.status === 'em_revisao' || tarefa.status === 'em_aprovacao' || tarefa.etapaAtual === 'aprovacao');
   const isApprover = !!tarefa && isAwaitingApproval && !!currentUserNome && (
     normalizeApproverName(tarefa.aprovadorNome) === normalizeApproverName(currentUserNome) ||
     (!!tarefa.aprovadorId && (tarefa.aprovadorId === authUserId || tarefa.aprovadorId === currentUser?.id))
