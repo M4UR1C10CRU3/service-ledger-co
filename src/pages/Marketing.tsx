@@ -206,6 +206,8 @@ export default function Marketing() {
       />
 
       <MarketingAIDialog open={aiOpen} onOpenChange={setAiOpen} />
+
+      <MarketingApprovalAlert />
     </div>
   );
 }
