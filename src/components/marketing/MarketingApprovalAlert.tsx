@@ -10,6 +10,13 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import type { MarketingTarefa } from '@/types/marketing';
 import { MarketingDetailDialog } from './MarketingDetailDialog';
 
+const normalizeApproverName = (value?: string | null) =>
+  (value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
 /**
  * Pop-up exibido uma vez por sessão (por empresa) ao utilizador que tem tarefas
  * de marketing aguardando a sua aprovação (status `em_revisao` e ele é o aprovador).
@@ -29,21 +36,23 @@ export function MarketingApprovalAlert() {
   }, []);
 
   // Nome do utilizador atual em liberty_utilizadores
-  const currentUserNome = useMemo(() => {
+  const currentUser = useMemo(() => {
     if (!authUserId) return null;
-    const u = utilizadores.find((x: any) => x.auth_user_id === authUserId);
-    return u?.nome || null;
+    return utilizadores.find((x: any) => x.auth_user_id === authUserId) || null;
   }, [authUserId, utilizadores]);
+
+  const currentUserNome = currentUser?.nome || null;
 
   // Tarefas aguardando aprovação deste utilizador
   const pendentes = useMemo(() => {
     if (!currentUserNome) return [];
     return tarefas.filter(t =>
-      t.status === 'em_revisao' &&
+      (t.status === 'em_revisao' || t.etapaAtual === 'aprovacao') &&
       !t.arquivado &&
-      (t.aprovadorNome || '').trim() === currentUserNome.trim()
+      (normalizeApproverName(t.aprovadorNome) === normalizeApproverName(currentUserNome) ||
+        (!!t.aprovadorId && (t.aprovadorId === authUserId || t.aprovadorId === (currentUser as any)?.id)))
     );
-  }, [tarefas, currentUserNome]);
+  }, [tarefas, currentUserNome, authUserId, currentUser]);
 
   // Abre imediatamente quando há pendências e re-abre a cada 5 minutos
   // enquanto continuar a haver tarefas a aguardar aprovação. O utilizador pode
