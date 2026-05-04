@@ -617,12 +617,11 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       setHoverDay(null);
       return;
     }
-    const next = { ...state };
-    const a = next[dragDay];
-    const b = next[targetDay];
-    if (b) next[dragDay] = b; else delete next[dragDay];
-    if (a) next[targetDay] = a; else delete next[targetDay];
-    persist(next);
+    const a = state[dragDay];
+    const b = state[targetDay];
+    // Persistência atómica de ambos os dias (cada um vai para a BD).
+    persistDay(dragDay, b || null);
+    persistDay(targetDay, a || null);
     setDragDay(null);
     setHoverDay(null);
     toast({ title: 'Publicações trocadas', description: `Dia ${dragDay} ↔ Dia ${targetDay}` });
@@ -676,8 +675,18 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       return;
     }
     if (!confirm('Repor o calendário editorial original de Maio 2026? Todas as alterações serão perdidas.')) return;
-    persist({ ...ORIGINAL_MAIO_2026 });
-    toast({ title: 'Calendário reposto' });
+    if (!empresa?.id) return;
+    (async () => {
+      // apaga tudo do mês e re-insere o original
+      await supabase.from('marketing_editorial_posts')
+        .delete().eq('empresa_id', empresa.id).eq('ano', year).eq('mes', month);
+      const rows = Object.entries(ORIGINAL_MAIO_2026).map(([dia, post]) => ({
+        empresa_id: empresa.id, ano: year, mes: month, dia: Number(dia), post: post as any,
+      }));
+      await supabase.from('marketing_editorial_posts').upsert(rows, { onConflict: 'empresa_id,ano,mes,dia' });
+      await fetchPosts();
+      toast({ title: 'Calendário reposto' });
+    })();
   };
 
   const handlePrint = () => window.print();
@@ -959,16 +968,13 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         onClose={() => setModalDay(null)}
         onSave={(p) => {
           if (modalDay === null) return;
-          const next = { ...state, [modalDay]: p };
-          persist(next);
+          persistDay(modalDay, p);
           setModalDay(null);
           toast({ title: 'Publicação guardada' });
         }}
         onDelete={() => {
           if (modalDay === null) return;
-          const next = { ...state };
-          delete next[modalDay];
-          persist(next);
+          persistDay(modalDay, null);
           setModalDay(null);
           toast({ title: 'Publicação eliminada' });
         }}
