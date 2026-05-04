@@ -352,6 +352,85 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   useEffect(() => { fetchLinked(); }, [fetchLinked]);
 
+  // ───────── Sincronização automática Kanban → Calendário ─────────
+  // Carrega TODAS as tarefas Kanban com data_publicacao no mês visível
+  // e os respetivos anexos. Garante que tarefas publicadas aparecem
+  // no calendário com toda a info + ficheiro carregado.
+  const [kanbanPosts, setKanbanPosts] = useState<Record<number, EditorialPost>>({});
+  const [kanbanEntregas, setKanbanEntregas] = useState<Record<number, Entrega[]>>({});
+  const [kanbanLinks, setKanbanLinks] = useState<Record<number, TarefaLink>>({});
+
+  const fetchKanbanSync = useCallback(async () => {
+    if (!empresa?.id) {
+      setKanbanPosts({}); setKanbanEntregas({}); setKanbanLinks({});
+      return;
+    }
+    const monthStr = String(month).padStart(2, '0');
+    const startDate = `${year}-${monthStr}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+    const { data: tarefas, error } = await supabase
+      .from('marketing_tarefas')
+      .select('id, titulo, descricao, tipo_conteudo, canal, status, etapa_atual, data_publicacao, hora_publicacao, hashtags, copy_legenda, briefing')
+      .eq('empresa_id', empresa.id)
+      .not('data_publicacao', 'is', null)
+      .gte('data_publicacao', startDate)
+      .lte('data_publicacao', endDate);
+    if (error) { console.error('[kanban-sync]', error); return; }
+
+    const postsByDay: Record<number, EditorialPost> = {};
+    const linksByDay: Record<number, TarefaLink> = {};
+    const tarefasIds: string[] = [];
+    const tarefaDayMap = new Map<string, number>();
+
+    (tarefas || []).forEach((t: any) => {
+      const d = new Date(t.data_publicacao);
+      const dia = d.getUTCDate();
+      tarefaDayMap.set(t.id, dia);
+      tarefasIds.push(t.id);
+      // overlay apenas para tarefas publicadas
+      if (t.status === 'publicado' || t.etapa_atual === 'publicado') {
+        postsByDay[dia] = tarefaToPost(t);
+      }
+      linksByDay[dia] = { id: t.id, status: t.status, etapa: t.etapa_atual };
+    });
+
+    setKanbanPosts(postsByDay);
+    setKanbanLinks(linksByDay);
+
+    // Carregar anexos das tarefas
+    if (tarefasIds.length === 0) { setKanbanEntregas({}); return; }
+    const { data: anexos } = await supabase
+      .from('marketing_anexos')
+      .select('*')
+      .in('tarefa_id', tarefasIds)
+      .eq('tipo', 'upload');
+
+    const entregasByDay: Record<number, Entrega[]> = {};
+    (anexos || []).forEach((a: any) => {
+      const dia = tarefaDayMap.get(a.tarefa_id);
+      if (!dia) return;
+      entregasByDay[dia] = entregasByDay[dia] || [];
+      entregasByDay[dia].push(tarefaAnexoToEntrega(a, dia, year, month));
+    });
+    setKanbanEntregas(entregasByDay);
+  }, [empresa?.id, year, month]);
+
+  useEffect(() => { fetchKanbanSync(); }, [fetchKanbanSync]);
+
+  // Realtime: re-sincronizar sempre que tarefas/anexos mudam
+  useEffect(() => {
+    if (!empresa?.id) return;
+    const channel = supabase
+      .channel(`marketing-sync-${empresa.id}-${year}-${month}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_tarefas', filter: `empresa_id=eq.${empresa.id}` }, () => fetchKanbanSync())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'marketing_anexos', filter: `empresa_id=eq.${empresa.id}` }, () => fetchKanbanSync())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [empresa?.id, year, month, fetchKanbanSync]);
+
+
   const persistLink = useCallback((day: number, tarefaId: string | null) => {
     if (!empresa?.id) return;
     let map: Record<string, string> = {};
