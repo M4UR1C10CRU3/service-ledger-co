@@ -570,7 +570,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const openView = (day: number) => {
     setModalDay(day);
-    setModalTab(state[day] ? 'briefing' : 'editar');
+    setModalTab(mergedState[day] ? 'briefing' : 'editar');
   };
   const openAdd = (day: number) => {
     setModalDay(day);
