@@ -216,28 +216,115 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const isMaio2026 = year === 2026 && month === 5;
 
-  // Estado: { day -> post }
+  // Estado: { day -> post } — partilhado entre todos os utilizadores via Supabase.
   const [state, setState] = useState<CalendarState>({});
 
-  // Carregar do localStorage por empresa/mês, fallback para original (apenas Maio 2026)
-  useEffect(() => {
-    const key = storageKey(empresa?.id, year, month);
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        setState(JSON.parse(saved));
-        return;
+  // Carrega do Supabase (partilhado por todos os utilizadores da empresa).
+  // Faz seeding automático dos dados originais de Maio 2026 se a tabela
+  // ainda estiver vazia para essa empresa/mês.
+  const fetchPosts = useCallback(async () => {
+    if (!empresa?.id) {
+      setState(isMaio2026 ? { ...ORIGINAL_MAIO_2026 } : {});
+      return;
+    }
+    const { data, error } = await supabase
+      .from('marketing_editorial_posts')
+      .select('dia, post')
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year)
+      .eq('mes', month);
+    if (error) { console.error('[editorial-posts]', error); return; }
+
+    if ((data || []).length === 0 && isMaio2026) {
+      // Seed inicial em base de dados (uma única vez por empresa)
+      const rows = Object.entries(ORIGINAL_MAIO_2026).map(([dia, post]) => ({
+        empresa_id: empresa.id,
+        ano: year, mes: month, dia: Number(dia),
+        post: post as any,
+      }));
+      // Migração leve: se existir conteúdo antigo no localStorage, importa-o
+      try {
+        const legacy = localStorage.getItem(storageKey(empresa.id, year, month));
+        if (legacy) {
+          const parsed: CalendarState = JSON.parse(legacy);
+          rows.length = 0;
+          Object.entries(parsed).forEach(([dia, post]) => {
+            rows.push({
+              empresa_id: empresa.id,
+              ano: year, mes: month, dia: Number(dia),
+              post: post as any,
+            });
+          });
+        }
+      } catch {}
+      if (rows.length) {
+        await supabase.from('marketing_editorial_posts').upsert(rows, {
+          onConflict: 'empresa_id,ano,mes,dia',
+        });
       }
-    } catch {}
-    setState(isMaio2026 ? { ...ORIGINAL_MAIO_2026 } : {});
+      const next: CalendarState = {};
+      rows.forEach(r => { next[r.dia] = r.post as EditorialPost; });
+      setState(next);
+      return;
+    }
+
+    const next: CalendarState = {};
+    (data || []).forEach((r: any) => { next[r.dia] = r.post as EditorialPost; });
+    setState(next);
   }, [empresa?.id, year, month, isMaio2026]);
 
-  const persist = useCallback((next: CalendarState) => {
-    setState(next);
-    try {
-      localStorage.setItem(storageKey(empresa?.id, year, month), JSON.stringify(next));
-    } catch {}
-  }, [empresa?.id, year, month]);
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
+
+  // Persiste UM dia (upsert) no Supabase. Atualiza estado local
+  // imediatamente para feedback instantâneo; outros utilizadores recebem
+  // via realtime.
+  const persistDay = useCallback(async (day: number, post: EditorialPost | null) => {
+    if (!empresa?.id) return;
+    setState(prev => {
+      const next = { ...prev };
+      if (post) next[day] = post; else delete next[day];
+      return next;
+    });
+    if (post) {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('marketing_editorial_posts')
+        .upsert({
+          empresa_id: empresa.id,
+          ano: year, mes: month, dia: day,
+          post: post as any,
+          updated_by: u?.user?.id || null,
+          updated_by_nome: u?.user?.email || null,
+        }, { onConflict: 'empresa_id,ano,mes,dia' });
+      if (error) {
+        console.error('[persistDay]', error);
+        toast({ title: 'Erro a guardar', description: error.message, variant: 'destructive' });
+      }
+    } else {
+      const { error } = await supabase
+        .from('marketing_editorial_posts')
+        .delete()
+        .eq('empresa_id', empresa.id)
+        .eq('ano', year).eq('mes', month).eq('dia', day);
+      if (error) {
+        console.error('[persistDay-del]', error);
+        toast({ title: 'Erro a eliminar', description: error.message, variant: 'destructive' });
+      }
+    }
+  }, [empresa?.id, year, month, toast]);
+
+  // Realtime: refletir alterações de outros utilizadores.
+  useEffect(() => {
+    if (!empresa?.id) return;
+    const ch = supabase
+      .channel(`editorial-posts-${empresa.id}-${year}-${month}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'marketing_editorial_posts',
+        filter: `empresa_id=eq.${empresa.id}`,
+      }, () => fetchPosts())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [empresa?.id, year, month, fetchPosts]);
 
   // ───────── Entregas (uploads + aprovação) ─────────
   const [entregas, setEntregas] = useState<Record<number, Entrega[]>>({});
