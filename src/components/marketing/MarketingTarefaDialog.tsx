@@ -6,12 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useMarketing, type MarketingTarefaInput } from '@/hooks/useMarketing';
+import { useUtilizadores } from '@/hooks/useUtilizadores';
 import {
   STATUS_CONFIG,
   STATUS_ORDER,
   PRIORIDADE_CONFIG,
   TIPO_CONTEUDO_CONFIG,
   CANAL_CONFIG,
+  parseCanais,
+  stringifyCanais,
   type MarketingTarefa,
   type MarketingStatus,
   type MarketingPrioridade,
@@ -19,6 +22,10 @@ import {
   type MarketingCanal,
 } from '@/types/marketing';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { ChevronsUpDown } from 'lucide-react';
 
 interface Props {
   open: boolean;
