@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,21 +47,31 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(a.nome)
     );
 
-  const reload = async () => {
-    if (!tarefa) return;
-    const [a, c] = await Promise.all([fetchAnexos(tarefa.id), fetchComentarios(tarefa.id)]);
+  const reload = async (tarefaId: string) => {
+    const [a, c] = await Promise.all([fetchAnexos(tarefaId), fetchComentarios(tarefaId)]);
+    // Garante que ainda estamos na mesma tarefa antes de aplicar resultados
+    if (!tarefa || tarefa.id !== tarefaId) return;
     setAnexos(a);
     setComentarios(c);
-    // Pré-carregar URLs assinadas para imagens (thumbnails)
+    // Pré-carregar URLs assinadas para imagens (thumbnails) — chave por anexo.id (único por tarefa)
     const imgs = a.filter(isImage);
     const entries = await Promise.all(
       imgs.map(async x => [x.id, (await getAnexoSignedUrl(x.url)) || ''] as const)
     );
+    if (!tarefa || tarefa.id !== tarefaId) return;
     setSignedUrls(Object.fromEntries(entries.filter(([, u]) => u)));
   };
 
+  // Limpa estado ao trocar de tarefa ou fechar — evita exibir anexos/thumbnails da tarefa anterior
   useEffect(() => {
-    if (open && tarefa) reload();
+    setAnexos([]);
+    setComentarios([]);
+    setSignedUrls({});
+    setPreview(null);
+    setNovoComentario('');
+    setLinkNome('');
+    setLinkUrl('');
+    if (open && tarefa) reload(tarefa.id);
   }, [open, tarefa?.id]);
 
   if (!tarefa) return null;
@@ -80,7 +91,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     setUploading(false);
     if (ok) {
       toast({ title: 'Ficheiro enviado' });
-      await reload();
+      await reload(tarefa.id);
     } else {
       toast({ title: 'Erro no upload', variant: 'destructive' });
     }
@@ -94,7 +105,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       toast({ title: 'Link adicionado' });
       setLinkNome('');
       setLinkUrl('');
-      await reload();
+      await reload(tarefa.id);
     }
   };
 
@@ -119,7 +130,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const handleDeleteAnexo = async (anexo: MarketingAnexo) => {
     if (!confirm(`Remover "${anexo.nome}"?`)) return;
     const ok = await deleteAnexo(anexo);
-    if (ok) await reload();
+    if (ok) await reload(tarefa.id);
   };
 
   const handleAddComentario = async () => {
@@ -127,7 +138,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await addComentario(tarefa.id, novoComentario.trim());
     if (ok) {
       setNovoComentario('');
-      await reload();
+      await reload(tarefa.id);
     }
   };
 
@@ -304,14 +315,14 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        {preview && (
+        {preview && createPortal(
           <div
-            className="fixed inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center p-4"
+            className="fixed inset-0 z-[200] bg-black/90 flex flex-col p-4"
             onClick={() => setPreview(null)}
           >
-            <div className="w-full flex items-center justify-between text-white mb-2 max-w-5xl">
+            <div className="w-full flex items-center justify-between text-white mb-3 px-2">
               <span className="text-sm truncate">{preview.nome}</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <a
                   href={preview.url}
                   target="_blank"
@@ -321,19 +332,35 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 >
                   Abrir em nova aba
                 </a>
-                <button onClick={() => setPreview(null)} className="p-1 hover:bg-white/10 rounded">
-                  <XIcon className="h-5 w-5" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPreview(null); }}
+                  className="p-1 hover:bg-white/10 rounded"
+                  aria-label="Fechar"
+                >
+                  <XIcon className="h-6 w-6" />
                 </button>
               </div>
             </div>
-            <div className="max-w-5xl max-h-[85vh] w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <div
+              className="flex-1 w-full flex items-center justify-center overflow-auto"
+              onClick={e => e.stopPropagation()}
+            >
               {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
-                <iframe src={preview.url} className="w-full h-[85vh] bg-white rounded" title={preview.nome} />
+                <iframe
+                  src={preview.url}
+                  className="w-full h-full bg-white rounded"
+                  title={preview.nome}
+                />
               ) : (
-                <img src={preview.url} alt={preview.nome} className="max-w-full max-h-[85vh] object-contain rounded" />
+                <img
+                  src={preview.url}
+                  alt={preview.nome}
+                  className="max-w-full max-h-full object-contain rounded shadow-2xl"
+                />
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </DialogContent>
     </Dialog>
