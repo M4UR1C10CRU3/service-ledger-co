@@ -1367,7 +1367,7 @@ function EntregaThumb({ entrega, onPreview }: { entrega: Entrega; onPreview: (p:
   useEffect(() => {
     let cancelled = false;
     if (!isImg) return;
-    supabase.storage.from('marketing-editorial').createSignedUrl(entrega.storage_path, 3600).then(({ data }) => {
+    supabase.storage.from(bucketDe(entrega)).createSignedUrl(entrega.storage_path, 3600).then(({ data }) => {
       if (!cancelled && data?.signedUrl) setThumbUrl(data.signedUrl);
     });
     return () => { cancelled = true; };
