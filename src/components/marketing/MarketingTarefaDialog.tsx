@@ -15,6 +15,8 @@ import {
   CANAL_CONFIG,
   parseCanais,
   stringifyCanais,
+  parseTipos,
+  stringifyTipos,
   type MarketingTarefa,
   type MarketingStatus,
   type MarketingPrioridade,
@@ -150,18 +152,52 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Tipo de Conteúdo</Label>
-              <Select
-                value={form.tipoConteudo || ''}
-                onValueChange={v => setForm({ ...form, tipoConteudo: (v || null) as MarketingTipoConteudo | null })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(TIPO_CONTEUDO_CONFIG) as MarketingTipoConteudo[]).map(t => (
-                    <SelectItem key={t} value={t}>{TIPO_CONTEUDO_CONFIG[t].icon} {TIPO_CONTEUDO_CONFIG[t].label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Tipo de Conteúdo (selecione um ou mais)</Label>
+              {(() => {
+                const tiposSelecionados = parseTipos(form.tipoConteudo);
+                const toggleTipo = (t: MarketingTipoConteudo) => {
+                  const novo = tiposSelecionados.includes(t)
+                    ? tiposSelecionados.filter(x => x !== t)
+                    : [...tiposSelecionados, t];
+                  setForm({ ...form, tipoConteudo: stringifyTipos(novo) as any });
+                };
+                return (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between font-normal">
+                        <span className="truncate">
+                          {tiposSelecionados.length === 0
+                            ? 'Selecione...'
+                            : tiposSelecionados.map(t => `${TIPO_CONTEUDO_CONFIG[t]?.icon || ''} ${TIPO_CONTEUDO_CONFIG[t]?.label || t}`).join(', ')}
+                        </span>
+                        <ChevronsUpDown className="h-4 w-4 opacity-50 ml-2" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-2" align="start">
+                      <div className="space-y-1 max-h-64 overflow-y-auto">
+                        {(Object.keys(TIPO_CONTEUDO_CONFIG) as MarketingTipoConteudo[]).map(t => {
+                          const checked = tiposSelecionados.includes(t);
+                          return (
+                            <label key={t} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer">
+                              <Checkbox checked={checked} onCheckedChange={() => toggleTipo(t)} />
+                              <span className="text-sm">{TIPO_CONTEUDO_CONFIG[t].icon} {TIPO_CONTEUDO_CONFIG[t].label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {tiposSelecionados.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t">
+                          {tiposSelecionados.map(t => (
+                            <Badge key={t} variant="secondary" className="text-xs">
+                              {TIPO_CONTEUDO_CONFIG[t]?.label || t}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                );
+              })()}
             </div>
             <div>
               <Label>Canais (selecione um ou mais)</Label>
