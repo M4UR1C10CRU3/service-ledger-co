@@ -14,7 +14,7 @@ import { MarketingTarefaDialog } from '@/components/marketing/MarketingTarefaDia
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { MarketingDetailDialog } from '@/components/marketing/MarketingDetailDialog';
 import { MarketingAIDialog } from '@/components/marketing/MarketingAIDialog';
-import { MarketingApprovalAlert } from '@/components/marketing/MarketingApprovalAlert';
+
 import {
   STATUS_CONFIG,
   STATUS_ORDER,
@@ -206,8 +206,6 @@ export default function Marketing() {
       />
 
       <MarketingAIDialog open={aiOpen} onOpenChange={setAiOpen} />
-
-      <MarketingApprovalAlert />
     </div>
   );
 }

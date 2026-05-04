@@ -7,6 +7,7 @@ import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { NotificationBell } from '@/components/NotificationBell';
+import { MarketingApprovalAlert } from '@/components/marketing/MarketingApprovalAlert';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -85,6 +86,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
+      {/* Global popup: avisa aprovador de marketing 1x por sessão */}
+      <MarketingApprovalAlert />
     </SidebarProvider>
   );
 }
