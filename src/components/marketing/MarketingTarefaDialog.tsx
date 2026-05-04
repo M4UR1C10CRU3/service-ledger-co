@@ -274,11 +274,18 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
             <div className="text-xs font-semibold text-muted-foreground">Fluxo de aprovação</div>
             <div>
               <Label>Aprovador (revisão final) *</Label>
-              <Input
-                value={form.aprovadorNome || ''}
-                onChange={e => setForm({ ...form, aprovadorNome: e.target.value })}
-                placeholder="Quem aprova o job"
-              />
+              <Select
+                value={form.aprovadorNome || '__none__'}
+                onValueChange={v => setForm({ ...form, aprovadorNome: v === '__none__' ? '' : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione o aprovador..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— Nenhum —</SelectItem>
+                  {utilizadoresAtivos.map(u => (
+                    <SelectItem key={u.id} value={u.nome}>{u.nome}{u.cargo ? ` (${u.cargo})` : ''}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
