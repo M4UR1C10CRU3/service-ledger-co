@@ -15,6 +15,8 @@ import {
   CANAL_CONFIG,
   parseCanais,
   stringifyCanais,
+  parseTipos,
+  stringifyTipos,
   type MarketingTarefa,
   type MarketingStatus,
   type MarketingPrioridade,
