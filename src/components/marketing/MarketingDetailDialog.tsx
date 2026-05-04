@@ -33,8 +33,10 @@ interface Props {
 }
 
 export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
-  const { fetchAnexos, uploadAnexo, addLinkAnexo, deleteAnexo, getAnexoSignedUrl, fetchComentarios, addComentario } = useMarketing();
+  const { fetchAnexos, uploadAnexo, addLinkAnexo, deleteAnexo, getAnexoSignedUrl, fetchComentarios, addComentario, updateStatus, updateTarefa } = useMarketing();
+  const { utilizadores } = useUtilizadores();
   const { toast } = useToast();
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [anexos, setAnexos] = useState<MarketingAnexo[]>([]);
   const [comentarios, setComentarios] = useState<MarketingComentario[]>([]);
   const [novoComentario, setNovoComentario] = useState('');
@@ -44,6 +46,23 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<{ url: string; nome: string; mime?: string | null } | null>(null);
+  const [showRequestChange, setShowRequestChange] = useState(false);
+  const [changeNote, setChangeNote] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
+  }, []);
+
+  const currentUserNome = useMemo(() => {
+    if (!authUserId) return null;
+    const u = utilizadores.find((x: any) => x.auth_user_id === authUserId);
+    return u?.nome || null;
+  }, [authUserId, utilizadores]);
+
+  const isApprover = !!tarefa && !!currentUserNome &&
+    tarefa.status === 'em_revisao' &&
+    (tarefa.aprovadorNome || '').trim() === currentUserNome.trim();
 
   const isImage = (a: MarketingAnexo) =>
     a.tipo === 'upload' && (
