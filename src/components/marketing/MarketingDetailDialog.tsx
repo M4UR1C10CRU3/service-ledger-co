@@ -90,7 +90,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     setUploading(false);
     if (ok) {
       toast({ title: 'Ficheiro enviado' });
-      await reload();
+      await reload(tarefa.id);
     } else {
       toast({ title: 'Erro no upload', variant: 'destructive' });
     }
@@ -104,7 +104,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       toast({ title: 'Link adicionado' });
       setLinkNome('');
       setLinkUrl('');
-      await reload();
+      await reload(tarefa.id);
     }
   };
 
@@ -129,7 +129,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const handleDeleteAnexo = async (anexo: MarketingAnexo) => {
     if (!confirm(`Remover "${anexo.nome}"?`)) return;
     const ok = await deleteAnexo(anexo);
-    if (ok) await reload();
+    if (ok) await reload(tarefa.id);
   };
 
   const handleAddComentario = async () => {
@@ -137,7 +137,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await addComentario(tarefa.id, novoComentario.trim());
     if (ok) {
       setNovoComentario('');
-      await reload();
+      await reload(tarefa.id);
     }
   };
 
