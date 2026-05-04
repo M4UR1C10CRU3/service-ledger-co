@@ -540,6 +540,34 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   const [modalDay, setModalDay] = useState<number | null>(null);
   const [modalTab, setModalTab] = useState<'briefing' | 'editar' | 'entregas'>('briefing');
 
+  // ───────── Vistas combinadas (Calendário ⊕ Kanban) ─────────
+  // Tarefas Kanban publicadas têm prioridade sobre o estado local
+  // para garantir reflexo imediato e completo no calendário.
+  const mergedState = useMemo<CalendarState>(() => {
+    const out: CalendarState = { ...state };
+    Object.entries(kanbanPosts).forEach(([dia, post]) => {
+      out[Number(dia)] = post;
+    });
+    return out;
+  }, [state, kanbanPosts]);
+
+  const mergedEntregas = useMemo<Record<number, Entrega[]>>(() => {
+    const out: Record<number, Entrega[]> = {};
+    const days = new Set<number>([
+      ...Object.keys(entregas).map(Number),
+      ...Object.keys(kanbanEntregas).map(Number),
+    ]);
+    days.forEach(d => {
+      out[d] = [...(entregas[d] || []), ...(kanbanEntregas[d] || [])];
+    });
+    return out;
+  }, [entregas, kanbanEntregas]);
+
+  const mergedLinks = useMemo<Record<number, TarefaLink>>(() => {
+    return { ...kanbanLinks, ...linkedTarefas };
+  }, [linkedTarefas, kanbanLinks]);
+
+
   const openView = (day: number) => {
     setModalDay(day);
     setModalTab(state[day] ? 'briefing' : 'editar');
