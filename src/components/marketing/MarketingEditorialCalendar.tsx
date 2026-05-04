@@ -587,7 +587,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
       toast({ title: 'Erro a promover', description: error?.message, variant: 'destructive' });
       return false;
     }
-    persistLink(day, row.id);
+    await persistLink(day, row.id);
     setLinkedTarefas(prev => ({ ...prev, [day]: { id: row.id, status: row.status, etapa: row.etapa_atual } }));
     toast({ title: 'Promovido ao Kanban', description: 'Tarefa criada em "Em Produção".' });
     return true;
@@ -595,7 +595,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const desligarDoKanban = async (day: number) => {
     if (!confirm('Desligar este post da tarefa Kanban? A tarefa permanece no Kanban; só o vínculo é removido.')) return;
-    persistLink(day, null);
+    await persistLink(day, null);
     setLinkedTarefas(prev => {
       const next = { ...prev };
       delete next[day];
