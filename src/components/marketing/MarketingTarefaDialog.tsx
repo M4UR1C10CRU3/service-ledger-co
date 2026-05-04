@@ -37,6 +37,8 @@ interface Props {
 
 export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStatus, onSaved }: Props) {
   const { createTarefa, updateTarefa } = useMarketing();
+  const { utilizadores } = useUtilizadores();
+  const utilizadoresAtivos = utilizadores.filter(u => u.ativo);
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
