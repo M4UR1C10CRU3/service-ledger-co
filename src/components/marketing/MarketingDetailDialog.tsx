@@ -15,7 +15,7 @@ import {
   type MarketingAnexo,
   type MarketingComentario,
 } from '@/types/marketing';
-import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink } from 'lucide-react';
+import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -37,12 +37,26 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const [linkUrl, setLinkUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime?: string | null } | null>(null);
+
+  const isImage = (a: MarketingAnexo) =>
+    a.tipo === 'upload' && (
+      (a.mimeType?.startsWith('image/')) ||
+      /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(a.nome)
+    );
 
   const reload = async () => {
     if (!tarefa) return;
     const [a, c] = await Promise.all([fetchAnexos(tarefa.id), fetchComentarios(tarefa.id)]);
     setAnexos(a);
     setComentarios(c);
+    // Pré-carregar URLs assinadas para imagens (thumbnails)
+    const imgs = a.filter(isImage);
+    const entries = await Promise.all(
+      imgs.map(async x => [x.id, (await getAnexoSignedUrl(x.url)) || ''] as const)
+    );
+    setSignedUrls(Object.fromEntries(entries.filter(([, u]) => u)));
   };
 
   useEffect(() => {
@@ -89,9 +103,17 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       window.open(anexo.url, '_blank');
       return;
     }
-    const url = await getAnexoSignedUrl(anexo.url);
-    if (url) window.open(url, '_blank');
-    else toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
+    const url = signedUrls[anexo.id] || (await getAnexoSignedUrl(anexo.url));
+    if (!url) {
+      toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
+      return;
+    }
+    // Imagens e PDFs abrem no preview interno; outros abrem em nova aba
+    if (isImage(anexo) || anexo.mimeType === 'application/pdf' || /\.pdf$/i.test(anexo.nome)) {
+      setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
+    } else {
+      window.open(url, '_blank');
+    }
   };
 
   const handleDeleteAnexo = async (anexo: MarketingAnexo) => {
@@ -218,21 +240,36 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               {anexos.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">Sem entregas ainda</p>
               )}
-              {anexos.map(a => (
-                <div key={a.id} className="flex items-center gap-2 border rounded p-2 hover:bg-muted/30">
-                  {a.tipo === 'upload' ? <Download className="h-4 w-4 text-muted-foreground" /> : <ExternalLink className="h-4 w-4 text-muted-foreground" />}
-                  <button onClick={() => handleOpenAnexo(a)} className="flex-1 text-left text-sm truncate hover:underline">
-                    {a.nome}
-                  </button>
-                  <span className="text-[11px] text-muted-foreground shrink-0">
-                    {a.uploadedByNome ? `${a.uploadedByNome} · ` : ''}
-                    {format(new Date(a.createdAt), 'dd/MM HH:mm', { locale: pt })}
-                  </span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAnexo(a)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+              {anexos.map(a => {
+                const img = isImage(a) ? signedUrls[a.id] : null;
+                return (
+                  <div key={a.id} className="flex items-center gap-3 border rounded p-2 hover:bg-muted/30">
+                    <button
+                      onClick={() => handleOpenAnexo(a)}
+                      className="shrink-0 h-14 w-14 rounded overflow-hidden bg-muted flex items-center justify-center border"
+                      title="Pré-visualizar"
+                    >
+                      {img ? (
+                        <img src={img} alt={a.nome} className="h-full w-full object-cover" loading="lazy" />
+                      ) : a.tipo === 'link' ? (
+                        <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                    <button onClick={() => handleOpenAnexo(a)} className="flex-1 text-left text-sm truncate hover:underline">
+                      {a.nome}
+                    </button>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {a.uploadedByNome ? `${a.uploadedByNome} · ` : ''}
+                      {format(new Date(a.createdAt), 'dd/MM HH:mm', { locale: pt })}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAnexo(a)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </TabsContent>
 
@@ -266,6 +303,38 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
             </div>
           </TabsContent>
         </Tabs>
+
+        {preview && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center p-4"
+            onClick={() => setPreview(null)}
+          >
+            <div className="w-full flex items-center justify-between text-white mb-2 max-w-5xl">
+              <span className="text-sm truncate">{preview.nome}</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={preview.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="text-xs underline opacity-80 hover:opacity-100"
+                >
+                  Abrir em nova aba
+                </a>
+                <button onClick={() => setPreview(null)} className="p-1 hover:bg-white/10 rounded">
+                  <XIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="max-w-5xl max-h-[85vh] w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+              {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
+                <iframe src={preview.url} className="w-full h-[85vh] bg-white rounded" title={preview.nome} />
+              ) : (
+                <img src={preview.url} alt={preview.nome} className="max-w-full max-h-[85vh] object-contain rounded" />
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
