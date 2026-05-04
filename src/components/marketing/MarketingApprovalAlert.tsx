@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Eye } from 'lucide-react';
 import { useMarketing } from '@/hooks/useMarketing';
-import { useUtilizadores } from '@/hooks/useUtilizadores';
+import { useUtilizadores, type LibertyUtilizador } from '@/hooks/useUtilizadores';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import type { MarketingTarefa } from '@/types/marketing';
@@ -36,9 +36,9 @@ export function MarketingApprovalAlert() {
   }, []);
 
   // Nome do utilizador atual em liberty_utilizadores
-  const currentUser = useMemo(() => {
+  const currentUser = useMemo<LibertyUtilizador | null>(() => {
     if (!authUserId) return null;
-    return utilizadores.find((x: any) => x.auth_user_id === authUserId) || null;
+    return utilizadores.find((x) => x.auth_user_id === authUserId) || null;
   }, [authUserId, utilizadores]);
 
   const currentUserNome = currentUser?.nome || null;
@@ -50,7 +50,7 @@ export function MarketingApprovalAlert() {
       (t.status === 'em_revisao' || t.etapaAtual === 'aprovacao') &&
       !t.arquivado &&
       (normalizeApproverName(t.aprovadorNome) === normalizeApproverName(currentUserNome) ||
-        (!!t.aprovadorId && (t.aprovadorId === authUserId || t.aprovadorId === (currentUser as any)?.id)))
+        (!!t.aprovadorId && (t.aprovadorId === authUserId || t.aprovadorId === currentUser?.id)))
     );
   }, [tarefas, currentUserNome, authUserId, currentUser]);
 
