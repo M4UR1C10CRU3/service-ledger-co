@@ -315,14 +315,14 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        {preview && (
+        {preview && createPortal(
           <div
-            className="fixed inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center p-4"
+            className="fixed inset-0 z-[200] bg-black/90 flex flex-col p-4"
             onClick={() => setPreview(null)}
           >
-            <div className="w-full flex items-center justify-between text-white mb-2 max-w-5xl">
+            <div className="w-full flex items-center justify-between text-white mb-3 px-2">
               <span className="text-sm truncate">{preview.nome}</span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <a
                   href={preview.url}
                   target="_blank"
@@ -332,19 +332,35 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 >
                   Abrir em nova aba
                 </a>
-                <button onClick={() => setPreview(null)} className="p-1 hover:bg-white/10 rounded">
-                  <XIcon className="h-5 w-5" />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPreview(null); }}
+                  className="p-1 hover:bg-white/10 rounded"
+                  aria-label="Fechar"
+                >
+                  <XIcon className="h-6 w-6" />
                 </button>
               </div>
             </div>
-            <div className="max-w-5xl max-h-[85vh] w-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <div
+              className="flex-1 w-full flex items-center justify-center overflow-auto"
+              onClick={e => e.stopPropagation()}
+            >
               {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
-                <iframe src={preview.url} className="w-full h-[85vh] bg-white rounded" title={preview.nome} />
+                <iframe
+                  src={preview.url}
+                  className="w-full h-full bg-white rounded"
+                  title={preview.nome}
+                />
               ) : (
-                <img src={preview.url} alt={preview.nome} className="max-w-full max-h-[85vh] object-contain rounded" />
+                <img
+                  src={preview.url}
+                  alt={preview.nome}
+                  className="max-w-full max-h-full object-contain rounded shadow-2xl"
+                />
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </DialogContent>
     </Dialog>
