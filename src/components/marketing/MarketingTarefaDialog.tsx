@@ -88,6 +88,10 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
       dataPrevista: form.dataPrevista || null,
       dataPublicacao: form.dataPublicacao || null,
       horaPublicacao: form.horaPublicacao || null,
+      prazoBriefing: form.prazoBriefing || null,
+      prazoCriacao: form.prazoCriacao || null,
+      prazoRevisao: form.prazoRevisao || null,
+      prazoAprovacao: form.prazoAprovacao || null,
     };
     const ok = initial
       ? await updateTarefa(initial.id, payload)
