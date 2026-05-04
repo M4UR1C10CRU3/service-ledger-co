@@ -1379,7 +1379,7 @@ function EntregaThumb({ entrega, onPreview }: { entrega: Entrega; onPreview: (p:
       onPreview({ url: thumbUrl, nome: entrega.nome, mime: entrega.mime_type });
       return;
     }
-    const { data } = await supabase.storage.from('marketing-editorial').createSignedUrl(entrega.storage_path, 3600);
+    const { data } = await supabase.storage.from(bucketDe(entrega)).createSignedUrl(entrega.storage_path, 3600);
     if (data?.signedUrl) onPreview({ url: data.signedUrl, nome: entrega.nome, mime: entrega.mime_type });
   };
 
