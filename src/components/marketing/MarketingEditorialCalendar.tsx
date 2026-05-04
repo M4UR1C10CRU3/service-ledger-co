@@ -414,31 +414,29 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const fetchLinked = useCallback(async () => {
     if (!empresa?.id) { setLinkedTarefas({}); return; }
-    let map: Record<string, string> = {};
-    try {
-      const raw = localStorage.getItem(linkKey(empresa.id, year, month));
-      if (raw) map = JSON.parse(raw);
-    } catch {}
-    const ids = Object.values(map).filter(Boolean);
+    // Lê os vínculos a partir da tabela partilhada marketing_editorial_posts.tarefa_id
+    const { data: rows, error } = await supabase
+      .from('marketing_editorial_posts')
+      .select('dia, tarefa_id')
+      .eq('empresa_id', empresa.id)
+      .eq('ano', year)
+      .eq('mes', month)
+      .not('tarefa_id', 'is', null);
+    if (error) { console.error('[linked tarefas]', error); return; }
+    const dayByTarefa = new Map<string, number>();
+    (rows || []).forEach((r: any) => { if (r.tarefa_id) dayByTarefa.set(r.tarefa_id, r.dia); });
+    const ids = Array.from(dayByTarefa.keys());
     if (ids.length === 0) { setLinkedTarefas({}); return; }
-    const { data, error } = await supabase
+    const { data: tarefas, error: e2 } = await supabase
       .from('marketing_tarefas')
       .select('id, status, etapa_atual')
       .in('id', ids);
-    if (error) { console.error('[linked tarefas]', error); return; }
-    const byId = new Map<string, any>((data || []).map((r: any) => [r.id, r]));
-    const cleaned: Record<string, string> = {};
+    if (e2) { console.error('[linked tarefas]', e2); return; }
     const out: Record<number, TarefaLink> = {};
-    Object.entries(map).forEach(([dia, id]) => {
-      const r = byId.get(id);
-      if (r) {
-        cleaned[dia] = id;
-        out[Number(dia)] = { id, status: r.status, etapa: r.etapa_atual };
-      }
+    (tarefas || []).forEach((t: any) => {
+      const dia = dayByTarefa.get(t.id);
+      if (dia !== undefined) out[dia] = { id: t.id, status: t.status, etapa: t.etapa_atual };
     });
-    if (Object.keys(cleaned).length !== Object.keys(map).length) {
-      localStorage.setItem(linkKey(empresa.id, year, month), JSON.stringify(cleaned));
-    }
     setLinkedTarefas(out);
   }, [empresa?.id, year, month]);
 
