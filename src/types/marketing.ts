@@ -73,6 +73,15 @@ export const CANAL_CONFIG: Record<MarketingCanal, { label: string; icon: string 
   outro:     { label: 'Outro',     icon: '✨' },
 };
 
+/** Canal field may store a single canal or a CSV of canais (e.g. "instagram,facebook"). */
+export function parseCanais(canal: string | null | undefined): MarketingCanal[] {
+  if (!canal) return [];
+  return canal.split(',').map(c => c.trim()).filter(Boolean) as MarketingCanal[];
+}
+export function stringifyCanais(canais: MarketingCanal[]): string | null {
+  return canais.length ? (canais.join(',') as any) : null;
+}
+
 export interface MarketingTarefa {
   id: string;
   empresaId: string;
