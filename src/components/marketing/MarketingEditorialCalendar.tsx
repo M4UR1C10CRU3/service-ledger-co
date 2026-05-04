@@ -801,10 +801,10 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                               </span>
                             )}
                           </div>
-                          {(entregas[day]?.length || 0) > 0 && (
+                          {(mergedEntregas[day]?.length || 0) > 0 && (
                             <div className="flex items-center gap-1 mt-1">
                               {(() => {
-                                const list = entregas[day] || [];
+                                const list = mergedEntregas[day] || [];
                                 const aprov = list.filter(x => x.status === 'aprovado').length;
                                 const pend = list.filter(x => x.status === 'pendente').length;
                                 const rej = list.filter(x => x.status === 'rejeitado').length;
