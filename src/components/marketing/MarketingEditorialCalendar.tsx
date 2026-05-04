@@ -820,8 +820,8 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                               })()}
                             </div>
                           )}
-                          {linkedTarefas[day] && (() => {
-                            const lk = linkedTarefas[day];
+                          {mergedLinks[day] && (() => {
+                            const lk = mergedLinks[day];
                             const isPub = lk.status === 'publicado' || lk.etapa === 'publicado';
                             const isAprov = lk.etapa === 'aprovacao';
                             const bg = isPub ? '#DCFCE7' : isAprov ? '#F3E8FF' : '#E0F2FE';
