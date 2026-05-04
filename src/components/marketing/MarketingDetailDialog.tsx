@@ -240,21 +240,36 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               {anexos.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">Sem entregas ainda</p>
               )}
-              {anexos.map(a => (
-                <div key={a.id} className="flex items-center gap-2 border rounded p-2 hover:bg-muted/30">
-                  {a.tipo === 'upload' ? <Download className="h-4 w-4 text-muted-foreground" /> : <ExternalLink className="h-4 w-4 text-muted-foreground" />}
-                  <button onClick={() => handleOpenAnexo(a)} className="flex-1 text-left text-sm truncate hover:underline">
-                    {a.nome}
-                  </button>
-                  <span className="text-[11px] text-muted-foreground shrink-0">
-                    {a.uploadedByNome ? `${a.uploadedByNome} · ` : ''}
-                    {format(new Date(a.createdAt), 'dd/MM HH:mm', { locale: pt })}
-                  </span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAnexo(a)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+              {anexos.map(a => {
+                const img = isImage(a) ? signedUrls[a.id] : null;
+                return (
+                  <div key={a.id} className="flex items-center gap-3 border rounded p-2 hover:bg-muted/30">
+                    <button
+                      onClick={() => handleOpenAnexo(a)}
+                      className="shrink-0 h-14 w-14 rounded overflow-hidden bg-muted flex items-center justify-center border"
+                      title="Pré-visualizar"
+                    >
+                      {img ? (
+                        <img src={img} alt={a.nome} className="h-full w-full object-cover" loading="lazy" />
+                      ) : a.tipo === 'link' ? (
+                        <ExternalLink className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                    <button onClick={() => handleOpenAnexo(a)} className="flex-1 text-left text-sm truncate hover:underline">
+                      {a.nome}
+                    </button>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {a.uploadedByNome ? `${a.uploadedByNome} · ` : ''}
+                      {format(new Date(a.createdAt), 'dd/MM HH:mm', { locale: pt })}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAnexo(a)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           </TabsContent>
 
