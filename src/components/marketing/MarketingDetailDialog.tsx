@@ -37,12 +37,26 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const [linkUrl, setLinkUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<{ url: string; nome: string; mime?: string | null } | null>(null);
+
+  const isImage = (a: MarketingAnexo) =>
+    a.tipo === 'upload' && (
+      (a.mimeType?.startsWith('image/')) ||
+      /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(a.nome)
+    );
 
   const reload = async () => {
     if (!tarefa) return;
     const [a, c] = await Promise.all([fetchAnexos(tarefa.id), fetchComentarios(tarefa.id)]);
     setAnexos(a);
     setComentarios(c);
+    // Pré-carregar URLs assinadas para imagens (thumbnails)
+    const imgs = a.filter(isImage);
+    const entries = await Promise.all(
+      imgs.map(async x => [x.id, (await getAnexoSignedUrl(x.url)) || ''] as const)
+    );
+    setSignedUrls(Object.fromEntries(entries.filter(([, u]) => u)));
   };
 
   useEffect(() => {
