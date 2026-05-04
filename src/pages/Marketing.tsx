@@ -23,7 +23,7 @@ import {
 } from '@/types/marketing';
 
 export default function Marketing() {
-  const { tarefas, isLoading, updateStatus, deleteTarefa } = useMarketing();
+  const { tarefas, isLoading, updateStatus, deleteTarefa, fetchTarefas } = useMarketing();
   const { toast } = useToast();
   const { empresa } = useEmpresa();
   const isTudoCasa = !!empresa?.slug && empresa.slug.toLowerCase().startsWith('tudocasa');
@@ -197,6 +197,7 @@ export default function Marketing() {
         onOpenChange={setFormOpen}
         initial={editTarefa}
         defaultStatus={defaultStatus}
+        onSaved={fetchTarefas}
       />
 
       <MarketingDetailDialog
