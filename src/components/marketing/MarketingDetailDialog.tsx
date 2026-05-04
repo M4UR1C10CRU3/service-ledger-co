@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMarketing } from '@/hooks/useMarketing';
+import { useUtilizadores } from '@/hooks/useUtilizadores';
+import { supabase } from '@/integrations/supabase/client';
 import {
   STATUS_CONFIG,
   PRIORIDADE_CONFIG,
@@ -18,7 +20,7 @@ import {
   type MarketingAnexo,
   type MarketingComentario,
 } from '@/types/marketing';
-import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon } from 'lucide-react';
+import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon, CheckCircle2, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
