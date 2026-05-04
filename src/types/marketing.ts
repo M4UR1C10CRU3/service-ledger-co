@@ -32,18 +32,20 @@ export const STATUS_ORDER: MarketingStatus[] = [
   'ideias',
   'em_producao',
   'em_revisao',
+  'em_aprovacao',
   'agendado',
   'publicado',
   'arquivado',
 ];
 
 export const STATUS_CONFIG: Record<MarketingStatus, { label: string; color: string }> = {
-  ideias:      { label: '💡 Ideias',       color: '#94A3B8' },
-  em_producao: { label: '🛠 Em Produção',   color: '#3B82F6' },
-  em_revisao:  { label: '👀 Em Revisão',    color: '#EAB308' },
-  agendado:    { label: '📅 Agendado',      color: '#A855F7' },
-  publicado:   { label: '✅ Publicado',     color: '#22C55E' },
-  arquivado:   { label: '📦 Arquivado',     color: '#6B7280' },
+  ideias:       { label: '💡 Ideias',       color: '#94A3B8' },
+  em_producao:  { label: '🛠 Em Produção',   color: '#3B82F6' },
+  em_revisao:   { label: '👀 Em Revisão',    color: '#EAB308' },
+  em_aprovacao: { label: '✋ Em Aprovação',  color: '#A855F7' },
+  agendado:     { label: '📅 Agendado',      color: '#6366F1' },
+  publicado:    { label: '✅ Publicado',     color: '#22C55E' },
+  arquivado:    { label: '📦 Arquivado',     color: '#6B7280' },
 };
 
 export const PRIORIDADE_CONFIG: Record<MarketingPrioridade, { label: string; color: string; badgeClass: string }> = {
