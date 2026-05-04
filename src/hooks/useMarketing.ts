@@ -174,6 +174,10 @@ export function useMarketing() {
       prazo_criacao: input.prazoCriacao || null,
       prazo_revisao: input.prazoRevisao || null,
       prazo_aprovacao: input.prazoAprovacao || null,
+      hora_briefing: input.horaBriefing || null,
+      hora_criacao: input.horaCriacao || null,
+      hora_revisao: input.horaRevisao || null,
+      hora_aprovacao: input.horaAprovacao || null,
       created_by: userResp?.user?.id || null,
     }).select('id').single();
     if (error || !row) { console.error('[marketing] create:', error); return null; }
@@ -206,6 +210,10 @@ export function useMarketing() {
     if (updates.prazoCriacao !== undefined) dbUpdates.prazo_criacao = updates.prazoCriacao;
     if (updates.prazoRevisao !== undefined) dbUpdates.prazo_revisao = updates.prazoRevisao;
     if (updates.prazoAprovacao !== undefined) dbUpdates.prazo_aprovacao = updates.prazoAprovacao;
+    if (updates.horaBriefing !== undefined) dbUpdates.hora_briefing = updates.horaBriefing;
+    if (updates.horaCriacao !== undefined) dbUpdates.hora_criacao = updates.horaCriacao;
+    if (updates.horaRevisao !== undefined) dbUpdates.hora_revisao = updates.horaRevisao;
+    if (updates.horaAprovacao !== undefined) dbUpdates.hora_aprovacao = updates.horaAprovacao;
 
     const { error } = await supabase.from('marketing_tarefas').update(dbUpdates).eq('id', id);
     if (error) { console.error('[marketing] update:', error); return false; }
