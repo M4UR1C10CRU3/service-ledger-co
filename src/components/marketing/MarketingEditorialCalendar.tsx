@@ -728,7 +728,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
             <div className="grid grid-cols-7 gap-2">
               {w.days.map((day, ci) => {
                 if (day === null) return <div key={ci} />;
-                const post = state[day];
+                const post = mergedState[day];
                 const isHover = hoverDay === day;
                 const wkInfo = WEEKDAY_INFO[weekdayOf(day)];
                 return (
