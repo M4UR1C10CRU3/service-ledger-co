@@ -142,9 +142,51 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     }
   };
 
+  const imageAnexos = useMemo(() => anexos.filter(isImage), [anexos]);
+  const [previewIndex, setPreviewIndex] = useState<number>(-1);
+
+  const openImagePreview = async (anexo: MarketingAnexo) => {
+    const idx = imageAnexos.findIndex(a => a.id === anexo.id);
+    if (idx < 0) return;
+    let url = signedUrls[anexo.id];
+    if (!url) {
+      url = (await getAnexoSignedUrl(anexo.url)) || '';
+      if (url) setSignedUrls(prev => ({ ...prev, [anexo.id]: url }));
+    }
+    if (!url) {
+      toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
+      return;
+    }
+    setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
+    setPreviewIndex(idx);
+  };
+
+  const navigatePreview = async (dir: 1 | -1) => {
+    if (previewIndex < 0 || imageAnexos.length === 0) return;
+    const next = (previewIndex + dir + imageAnexos.length) % imageAnexos.length;
+    const a = imageAnexos[next];
+    let url = signedUrls[a.id];
+    if (!url) {
+      url = (await getAnexoSignedUrl(a.url)) || '';
+      if (url) setSignedUrls(prev => ({ ...prev, [a.id]: url }));
+    }
+    if (!url) return;
+    setPreview({ url, nome: a.nome, mime: a.mimeType });
+    setPreviewIndex(next);
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    setPreviewIndex(-1);
+  };
+
   const handleOpenAnexo = async (anexo: MarketingAnexo) => {
     if (anexo.tipo === 'link') {
       window.open(anexo.url, '_blank');
+      return;
+    }
+    if (isImage(anexo)) {
+      await openImagePreview(anexo);
       return;
     }
     const url = signedUrls[anexo.id] || (await getAnexoSignedUrl(anexo.url));
@@ -152,9 +194,9 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
       return;
     }
-    // Imagens e PDFs abrem no preview interno; outros abrem em nova aba
-    if (isImage(anexo) || anexo.mimeType === 'application/pdf' || /\.pdf$/i.test(anexo.nome)) {
+    if (anexo.mimeType === 'application/pdf' || /\.pdf$/i.test(anexo.nome)) {
       setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
+      setPreviewIndex(-1);
     } else {
       window.open(url, '_blank');
     }
