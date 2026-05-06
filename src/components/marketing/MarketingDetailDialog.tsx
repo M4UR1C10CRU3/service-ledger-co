@@ -20,7 +20,7 @@ import {
   type MarketingAnexo,
   type MarketingComentario,
 } from '@/types/marketing';
-import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon, CheckCircle2, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
