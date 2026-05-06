@@ -574,11 +574,16 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   title={preview.nome}
                 />
               ) : (
-                <img
-                  src={preview.url}
-                  alt={preview.nome}
-                  className="max-w-full max-h-full object-contain rounded shadow-2xl"
-                />
+                <div
+                  className="bg-black/40 rounded shadow-2xl flex items-center justify-center overflow-hidden"
+                  style={{ width: 'min(90vw, 720px)', height: 'min(80vh, 800px)' }}
+                >
+                  <img
+                    src={preview.url}
+                    alt={preview.nome}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               )}
               {previewIndex >= 0 && imageAnexos.length > 1 && (
                 <button
