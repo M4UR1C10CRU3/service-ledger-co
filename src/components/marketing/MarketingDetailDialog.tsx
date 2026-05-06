@@ -529,10 +529,6 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
             onPointerDownCapture={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
           >
-            onClick={closePreview}
-            onPointerDownCapture={e => e.stopPropagation()}
-            onPointerDown={e => e.stopPropagation()}
-          >
             <div className="w-full flex items-center justify-between text-white mb-3 px-2">
               <span className="text-sm truncate">
                 {preview.nome}
