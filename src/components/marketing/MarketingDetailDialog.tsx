@@ -578,8 +578,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 <img
                   src={preview.url}
                   alt={preview.nome}
-                  className="w-screen h-screen object-contain"
-                  style={{ maxWidth: '100vw', maxHeight: '100vh' }}
+                  className="max-w-full max-h-full object-contain"
                 />
               )}
               {previewIndex >= 0 && imageAnexos.length > 1 && (
