@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ import {
   type MarketingAnexo,
   type MarketingComentario,
 } from '@/types/marketing';
-import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Upload, Link as LinkIcon, Trash2, Download, ExternalLink, FileText, X as XIcon, CheckCircle2, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -60,6 +60,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
   }, []);
+
 
   const currentUser = useMemo<LibertyUtilizador | null>(() => {
     if (!authUserId) return null;
@@ -142,9 +143,63 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     }
   };
 
+  const imageAnexos = useMemo(() => anexos.filter(isImage), [anexos]);
+  const [previewIndex, setPreviewIndex] = useState<number>(-1);
+
+  const openImagePreview = async (anexo: MarketingAnexo) => {
+    const idx = imageAnexos.findIndex(a => a.id === anexo.id);
+    if (idx < 0) return;
+    let url = signedUrls[anexo.id];
+    if (!url) {
+      url = (await getAnexoSignedUrl(anexo.url)) || '';
+      if (url) setSignedUrls(prev => ({ ...prev, [anexo.id]: url }));
+    }
+    if (!url) {
+      toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
+      return;
+    }
+    setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
+    setPreviewIndex(idx);
+  };
+
+  const navigatePreview = async (dir: 1 | -1) => {
+    if (previewIndex < 0 || imageAnexos.length === 0) return;
+    const next = (previewIndex + dir + imageAnexos.length) % imageAnexos.length;
+    const a = imageAnexos[next];
+    let url = signedUrls[a.id];
+    if (!url) {
+      url = (await getAnexoSignedUrl(a.url)) || '';
+      if (url) setSignedUrls(prev => ({ ...prev, [a.id]: url }));
+    }
+    if (!url) return;
+    setPreview({ url, nome: a.nome, mime: a.mimeType });
+    setPreviewIndex(next);
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    setPreviewIndex(-1);
+  };
+
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closePreview(); }
+      else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
+      else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, previewIndex, imageAnexos]);
+
   const handleOpenAnexo = async (anexo: MarketingAnexo) => {
     if (anexo.tipo === 'link') {
       window.open(anexo.url, '_blank');
+      return;
+    }
+    if (isImage(anexo)) {
+      await openImagePreview(anexo);
       return;
     }
     const url = signedUrls[anexo.id] || (await getAnexoSignedUrl(anexo.url));
@@ -152,9 +207,9 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       toast({ title: 'Erro a abrir ficheiro', variant: 'destructive' });
       return;
     }
-    // Imagens e PDFs abrem no preview interno; outros abrem em nova aba
-    if (isImage(anexo) || anexo.mimeType === 'application/pdf' || /\.pdf$/i.test(anexo.nome)) {
+    if (anexo.mimeType === 'application/pdf' || /\.pdf$/i.test(anexo.nome)) {
       setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
+      setPreviewIndex(-1);
     } else {
       window.open(url, '_blank');
     }
@@ -458,13 +513,20 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        {preview && createPortal(
+        {preview && (
           <div
             className="fixed inset-0 z-[200] bg-black/90 flex flex-col p-4"
-            onClick={() => setPreview(null)}
+            onClick={closePreview}
+            onPointerDownCapture={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
           >
             <div className="w-full flex items-center justify-between text-white mb-3 px-2">
-              <span className="text-sm truncate">{preview.nome}</span>
+              <span className="text-sm truncate">
+                {preview.nome}
+                {previewIndex >= 0 && imageAnexos.length > 1 && (
+                  <span className="ml-2 opacity-70">({previewIndex + 1}/{imageAnexos.length})</span>
+                )}
+              </span>
               <div className="flex items-center gap-3">
                 <a
                   href={preview.url}
@@ -476,7 +538,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   Abrir em nova aba
                 </a>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setPreview(null); }}
+                  onClick={(e) => { e.stopPropagation(); closePreview(); }}
                   className="p-1 hover:bg-white/10 rounded"
                   aria-label="Fechar"
                 >
@@ -485,9 +547,18 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               </div>
             </div>
             <div
-              className="flex-1 w-full flex items-center justify-center overflow-auto"
+              className="relative flex-1 w-full flex items-center justify-center overflow-auto"
               onClick={e => e.stopPropagation()}
             >
+              {previewIndex >= 0 && imageAnexos.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="h-7 w-7" />
+                </button>
+              )}
               {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
                 <iframe
                   src={preview.url}
@@ -501,9 +572,41 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   className="max-w-full max-h-full object-contain rounded shadow-2xl"
                 />
               )}
+              {previewIndex >= 0 && imageAnexos.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  aria-label="Próxima"
+                >
+                  <ChevronRight className="h-7 w-7" />
+                </button>
+              )}
             </div>
-          </div>,
-          document.body
+            {previewIndex >= 0 && imageAnexos.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+                {imageAnexos.map((a, i) => {
+                  const thumb = signedUrls[a.id];
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (i === previewIndex) return;
+                        await openImagePreview(a);
+                      }}
+                      className={`h-16 w-16 rounded overflow-hidden border-2 flex-shrink-0 ${i === previewIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    >
+                      {thumb ? (
+                        <img src={thumb} alt={a.nome} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-white/10" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
       </DialogContent>
     </Dialog>
