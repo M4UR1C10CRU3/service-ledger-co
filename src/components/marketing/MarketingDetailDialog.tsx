@@ -500,13 +500,20 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        {preview && createPortal(
+        {preview && (
           <div
             className="fixed inset-0 z-[200] bg-black/90 flex flex-col p-4"
-            onClick={() => setPreview(null)}
+            onClick={closePreview}
+            onPointerDownCapture={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
           >
             <div className="w-full flex items-center justify-between text-white mb-3 px-2">
-              <span className="text-sm truncate">{preview.nome}</span>
+              <span className="text-sm truncate">
+                {preview.nome}
+                {previewIndex >= 0 && imageAnexos.length > 1 && (
+                  <span className="ml-2 opacity-70">({previewIndex + 1}/{imageAnexos.length})</span>
+                )}
+              </span>
               <div className="flex items-center gap-3">
                 <a
                   href={preview.url}
@@ -518,7 +525,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   Abrir em nova aba
                 </a>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setPreview(null); }}
+                  onClick={(e) => { e.stopPropagation(); closePreview(); }}
                   className="p-1 hover:bg-white/10 rounded"
                   aria-label="Fechar"
                 >
@@ -527,9 +534,18 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               </div>
             </div>
             <div
-              className="flex-1 w-full flex items-center justify-center overflow-auto"
+              className="relative flex-1 w-full flex items-center justify-center overflow-auto"
               onClick={e => e.stopPropagation()}
             >
+              {previewIndex >= 0 && imageAnexos.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="h-7 w-7" />
+                </button>
+              )}
               {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
                 <iframe
                   src={preview.url}
@@ -543,9 +559,41 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   className="max-w-full max-h-full object-contain rounded shadow-2xl"
                 />
               )}
+              {previewIndex >= 0 && imageAnexos.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  aria-label="Próxima"
+                >
+                  <ChevronRight className="h-7 w-7" />
+                </button>
+              )}
             </div>
-          </div>,
-          document.body
+            {previewIndex >= 0 && imageAnexos.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+                {imageAnexos.map((a, i) => {
+                  const thumb = signedUrls[a.id];
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (i === previewIndex) return;
+                        await openImagePreview(a);
+                      }}
+                      className={`h-16 w-16 rounded overflow-hidden border-2 flex-shrink-0 ${i === previewIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    >
+                      {thumb ? (
+                        <img src={thumb} alt={a.nome} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="h-full w-full bg-white/10" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
       </DialogContent>
     </Dialog>
