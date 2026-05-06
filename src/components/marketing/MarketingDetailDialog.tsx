@@ -118,6 +118,37 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     if (open && tarefa) reload(tarefa.id);
   }, [open, tarefa?.id]);
 
+  const navigatePreview = async (dir: 1 | -1) => {
+    if (previewIndex < 0 || imageAnexos.length === 0) return;
+    const next = (previewIndex + dir + imageAnexos.length) % imageAnexos.length;
+    const a = imageAnexos[next];
+    let url = signedUrls[a.id];
+    if (!url) {
+      url = (await getAnexoSignedUrl(a.url)) || '';
+      if (url) setSignedUrls(prev => ({ ...prev, [a.id]: url }));
+    }
+    if (!url) return;
+    setPreview({ url, nome: a.nome, mime: a.mimeType });
+    setPreviewIndex(next);
+  };
+
+  const closePreview = () => {
+    setPreview(null);
+    setPreviewIndex(-1);
+  };
+
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closePreview(); }
+      else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
+      else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, previewIndex, imageAnexos]);
+
   if (!tarefa) return null;
 
   const cfg = STATUS_CONFIG[tarefa.status];
@@ -169,37 +200,6 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     setPreview({ url, nome: anexo.nome, mime: anexo.mimeType });
     setPreviewIndex(idx);
   };
-
-  const navigatePreview = async (dir: 1 | -1) => {
-    if (previewIndex < 0 || imageAnexos.length === 0) return;
-    const next = (previewIndex + dir + imageAnexos.length) % imageAnexos.length;
-    const a = imageAnexos[next];
-    let url = signedUrls[a.id];
-    if (!url) {
-      url = (await getAnexoSignedUrl(a.url)) || '';
-      if (url) setSignedUrls(prev => ({ ...prev, [a.id]: url }));
-    }
-    if (!url) return;
-    setPreview({ url, nome: a.nome, mime: a.mimeType });
-    setPreviewIndex(next);
-  };
-
-  const closePreview = () => {
-    setPreview(null);
-    setPreviewIndex(-1);
-  };
-
-  useEffect(() => {
-    if (!preview) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closePreview(); }
-      else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
-      else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview, previewIndex, imageAnexos]);
 
   const handleOpenAnexo = async (anexo: MarketingAnexo) => {
     if (anexo.tipo === 'link') {
