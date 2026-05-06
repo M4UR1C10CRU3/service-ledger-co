@@ -138,6 +138,8 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     setPreviewIndex(-1);
   };
 
+  const previewRootRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (!preview) return;
     const onKey = (e: KeyboardEvent) => {
@@ -145,8 +147,25 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
       else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
     };
+    // Bloqueia que eventos dentro do portal cheguem aos listeners de "outside" do Radix Dialog pai.
+    const blockIfInsidePortal = (e: Event) => {
+      const root = previewRootRef.current;
+      if (root && e.target instanceof Node && root.contains(e.target)) {
+        e.stopPropagation();
+      }
+    };
     window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    document.addEventListener('pointerdown', blockIfInsidePortal, true);
+    document.addEventListener('mousedown', blockIfInsidePortal, true);
+    document.addEventListener('click', blockIfInsidePortal, true);
+    document.addEventListener('focusin', blockIfInsidePortal, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('pointerdown', blockIfInsidePortal, true);
+      document.removeEventListener('mousedown', blockIfInsidePortal, true);
+      document.removeEventListener('click', blockIfInsidePortal, true);
+      document.removeEventListener('focusin', blockIfInsidePortal, true);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview, previewIndex, imageAnexos]);
 
