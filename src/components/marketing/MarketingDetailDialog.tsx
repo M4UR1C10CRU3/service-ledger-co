@@ -620,7 +620,8 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 })}
               </div>
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </DialogContent>
     </Dialog>
