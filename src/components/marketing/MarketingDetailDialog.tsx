@@ -529,7 +529,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
             onPointerDownCapture={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
           >
-            <div className="w-full flex items-center justify-between text-white mb-3 px-2">
+            <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50">
               <span className="text-sm truncate">
                 {preview.nome}
                 {previewIndex >= 0 && imageAnexos.length > 1 && (
