@@ -556,7 +556,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               </div>
             </div>
             <div
-              className="relative flex-1 w-full flex items-center justify-center overflow-auto"
+              className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden p-4"
               onClick={e => e.stopPropagation()}
             >
               {previewIndex >= 0 && imageAnexos.length > 1 && (
