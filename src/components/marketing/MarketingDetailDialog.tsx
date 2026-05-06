@@ -181,6 +181,18 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     setPreviewIndex(-1);
   };
 
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closePreview(); }
+      else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
+      else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, previewIndex, imageAnexos]);
+
   const handleOpenAnexo = async (anexo: MarketingAnexo) => {
     if (anexo.tipo === 'link') {
       window.open(anexo.url, '_blank');
