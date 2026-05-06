@@ -543,10 +543,9 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
 
         {preview && createPortal(
           <div
+            ref={previewRootRef}
             className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
             onClick={closePreview}
-            onPointerDownCapture={e => e.stopPropagation()}
-            onPointerDown={e => e.stopPropagation()}
           >
             <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50">
               <span className="text-sm truncate">
