@@ -56,6 +56,16 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   const [showRequestChange, setShowRequestChange] = useState(false);
   const [changeNote, setChangeNote] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState<number>(-1);
+  const imageAnexos = useMemo(
+    () =>
+      anexos.filter(
+        (a) =>
+          a.tipo === 'upload' &&
+          ((a.mimeType?.startsWith('image/')) || /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(a.nome))
+      ),
+    [anexos]
+  );
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
