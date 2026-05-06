@@ -153,8 +153,6 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     }
   };
 
-  const imageAnexos = useMemo(() => anexos.filter(isImage), [anexos]);
-  const [previewIndex, setPreviewIndex] = useState<number>(-1);
 
   const openImagePreview = async (anexo: MarketingAnexo) => {
     const idx = imageAnexos.findIndex(a => a.id === anexo.id);
