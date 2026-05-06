@@ -61,6 +61,17 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     supabase.auth.getUser().then(({ data }) => setAuthUserId(data.user?.id || null));
   }, []);
 
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); closePreview(); }
+      else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
+      else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [preview, previewIndex, imageAnexos]);
+
   const currentUser = useMemo<LibertyUtilizador | null>(() => {
     if (!authUserId) return null;
     return utilizadores.find((x) => x.auth_user_id === authUserId) || null;
