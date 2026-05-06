@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -521,14 +522,14 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        {preview && (
+        {preview && createPortal(
           <div
-            className="fixed inset-0 z-[200] bg-black/90 flex flex-col p-4"
+            className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
             onClick={closePreview}
             onPointerDownCapture={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
           >
-            <div className="w-full flex items-center justify-between text-white mb-3 px-2">
+            <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50">
               <span className="text-sm truncate">
                 {preview.nome}
                 {previewIndex >= 0 && imageAnexos.length > 1 && (
@@ -574,16 +575,12 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   title={preview.nome}
                 />
               ) : (
-                <div
-                  className="bg-black/40 rounded shadow-2xl flex items-center justify-center overflow-hidden"
-                  style={{ width: 'min(90vw, 720px)', height: 'min(80vh, 800px)' }}
-                >
-                  <img
-                    src={preview.url}
-                    alt={preview.nome}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
+                <img
+                  src={preview.url}
+                  alt={preview.nome}
+                  className="w-screen h-screen object-contain"
+                  style={{ maxWidth: '100vw', maxHeight: '100vh' }}
+                />
               )}
               {previewIndex >= 0 && imageAnexos.length > 1 && (
                 <button
@@ -619,7 +616,8 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                 })}
               </div>
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </DialogContent>
     </Dialog>
