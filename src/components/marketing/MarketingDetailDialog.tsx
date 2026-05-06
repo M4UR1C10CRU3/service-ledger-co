@@ -522,9 +522,13 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </TabsContent>
         </Tabs>
 
-        {preview && (
+        {preview && createPortal(
           <div
-            className="fixed inset-0 z-[200] bg-black/90 flex flex-col p-4"
+            className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+            onClick={closePreview}
+            onPointerDownCapture={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
+          >
             onClick={closePreview}
             onPointerDownCapture={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
