@@ -150,7 +150,10 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   };
 
   const preventDialogCloseFromPreview = (event: Event) => {
-    if (preview && isEventInsidePreview(event)) event.preventDefault();
+    // Quando o preview está aberto, ele cobre toda a tela: qualquer interação
+    // "fora" do DialogContent é, na prática, dentro do preview. Sempre evitamos
+    // que o Radix feche o dialog pai nesse estado.
+    if (preview) event.preventDefault();
   };
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
