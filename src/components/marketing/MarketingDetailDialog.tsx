@@ -153,6 +153,11 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     if (preview && isEventInsidePreview(event)) event.preventDefault();
   };
 
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && preview) return;
+    onOpenChange(nextOpen);
+  };
+
   useEffect(() => {
     if (!preview) return;
     const onKey = (e: KeyboardEvent) => {
@@ -294,7 +299,7 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         className="max-w-3xl max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={preventDialogCloseFromPreview}
