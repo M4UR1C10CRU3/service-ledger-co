@@ -140,6 +140,19 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
 
   const previewRootRef = useRef<HTMLDivElement | null>(null);
 
+  const isEventInsidePreview = (event: Event) => {
+    const root = previewRootRef.current;
+    if (!root) return false;
+    const target = event.target instanceof Node ? event.target : null;
+    const originalEvent = (event as CustomEvent<{ originalEvent?: Event }>).detail?.originalEvent;
+    const originalTarget = originalEvent?.target instanceof Node ? originalEvent.target : null;
+    return (!!target && root.contains(target)) || (!!originalTarget && root.contains(originalTarget));
+  };
+
+  const preventDialogCloseFromPreview = (event: Event) => {
+    if (preview && isEventInsidePreview(event)) event.preventDefault();
+  };
+
   useEffect(() => {
     if (!preview) return;
     const onKey = (e: KeyboardEvent) => {
@@ -147,24 +160,9 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
       else if (e.key === 'ArrowRight' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(1); }
       else if (e.key === 'ArrowLeft' && previewIndex >= 0) { e.stopPropagation(); navigatePreview(-1); }
     };
-    // Bloqueia que eventos dentro do portal cheguem aos listeners de "outside" do Radix Dialog pai.
-    const blockIfInsidePortal = (e: Event) => {
-      const root = previewRootRef.current;
-      if (root && e.target instanceof Node && root.contains(e.target)) {
-        e.stopPropagation();
-      }
-    };
     window.addEventListener('keydown', onKey, true);
-    document.addEventListener('pointerdown', blockIfInsidePortal, true);
-    document.addEventListener('mousedown', blockIfInsidePortal, true);
-    document.addEventListener('click', blockIfInsidePortal, true);
-    document.addEventListener('focusin', blockIfInsidePortal, true);
     return () => {
       window.removeEventListener('keydown', onKey, true);
-      document.removeEventListener('pointerdown', blockIfInsidePortal, true);
-      document.removeEventListener('mousedown', blockIfInsidePortal, true);
-      document.removeEventListener('click', blockIfInsidePortal, true);
-      document.removeEventListener('focusin', blockIfInsidePortal, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview, previewIndex, imageAnexos]);
@@ -297,7 +295,12 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={preventDialogCloseFromPreview}
+        onInteractOutside={preventDialogCloseFromPreview}
+        onFocusOutside={preventDialogCloseFromPreview}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 flex-wrap">
             {tarefa.titulo}
@@ -545,9 +548,11 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           <div
             ref={previewRootRef}
             className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
-            onClick={closePreview}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) closePreview();
+            }}
           >
-            <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50">
+            <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50" onClick={e => e.stopPropagation()}>
               <span className="text-sm truncate">
                 {preview.nome}
                 {previewIndex >= 0 && imageAnexos.length > 1 && (
