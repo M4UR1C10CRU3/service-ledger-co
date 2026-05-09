@@ -71,7 +71,9 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
     horaCriacao: initial?.horaCriacao || '',
     horaRevisao: initial?.horaRevisao || '',
     horaAprovacao: initial?.horaAprovacao || '',
-  });
+    revisorNome: (initial as any)?.revisorNome || '',
+    agendadorNome: (initial as any)?.agendadorNome || '',
+  } as any);
 
   const [form, setForm] = useState<MarketingTarefaInput>(buildInitial);
 
@@ -335,6 +337,40 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Revisor</Label>
+                <Select
+                  value={(form as any).revisorNome || '__none__'}
+                  onValueChange={v => setForm({ ...form, revisorNome: v === '__none__' ? '' : v } as any)}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o revisor..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Nenhum —</SelectItem>
+                    {utilizadoresAtivos.map(u => (
+                      <SelectItem key={u.id} value={u.nome}>{u.nome}{u.cargo ? ` (${u.cargo})` : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Agendador (publicação)</Label>
+                <Select
+                  value={(form as any).agendadorNome || '__none__'}
+                  onValueChange={v => setForm({ ...form, agendadorNome: v === '__none__' ? '' : v } as any)}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione o agendador..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Nenhum —</SelectItem>
+                    {utilizadoresAtivos.map(u => (
+                      <SelectItem key={u.id} value={u.nome}>{u.nome}{u.cargo ? ` (${u.cargo})` : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>

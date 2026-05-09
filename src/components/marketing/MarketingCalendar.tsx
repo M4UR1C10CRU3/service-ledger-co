@@ -144,6 +144,8 @@ export function MarketingCalendar({ tarefas, onCardClick }: Props) {
                   const cfg = STATUS_CONFIG[t.status];
                   const prio = PRIORIDADE_CONFIG[t.prioridade];
                   const canal = t.canal ? CANAL_CONFIG[t.canal] : null;
+                  // Sync com Kanban: só mostra badge avançado para Agendado/Publicado/Arquivado
+                  const showStatusBadge = t.status === 'agendado' || t.status === 'publicado' || t.status === 'arquivado';
                   return (
                     <Card
                       key={t.id}
@@ -155,7 +157,15 @@ export function MarketingCalendar({ tarefas, onCardClick }: Props) {
                     >
                       <p className="text-[11px] font-medium leading-tight line-clamp-2">{t.titulo}</p>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
+                        {showStatusBadge ? (
+                          <span
+                            className="inline-block w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: cfg.color }}
+                            title={cfg.label}
+                          />
+                        ) : (
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/30" title="Em produção" />
+                        )}
                         {canal && <span className="text-[9px] text-muted-foreground">{canal.icon}</span>}
                         {t.horaPublicacao && (
                           <span className="text-[9px] text-muted-foreground ml-auto">{t.horaPublicacao.slice(0, 5)}</span>
