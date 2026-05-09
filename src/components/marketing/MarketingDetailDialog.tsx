@@ -663,13 +663,14 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               </div>
             </div>
             <div
-              className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden p-4"
+              className="relative z-[10000] flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden p-4 pointer-events-auto"
               onClick={e => e.stopPropagation()}
             >
               {previewIndex >= 0 && imageAnexos.length > 1 && (
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  className="absolute left-3 top-1/2 z-[10030] -translate-y-1/2 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full pointer-events-auto"
                   aria-label="Anterior"
                 >
                   <ChevronLeft className="h-7 w-7" />
@@ -678,20 +679,21 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
                 <iframe
                   src={preview.url}
-                  className="w-full h-full bg-white rounded"
+                  className="relative z-[10005] w-full h-full bg-white rounded"
                   title={preview.nome}
                 />
               ) : (
                 <img
                   src={preview.url}
                   alt={preview.nome}
-                  className="max-w-full max-h-full object-contain"
+                  className="relative z-[10005] max-w-full max-h-full object-contain"
                 />
               )}
               {previewIndex >= 0 && imageAnexos.length > 1 && (
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  className="absolute right-3 top-1/2 z-[10030] -translate-y-1/2 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full pointer-events-auto"
                   aria-label="Próxima"
                 >
                   <ChevronRight className="h-7 w-7" />
