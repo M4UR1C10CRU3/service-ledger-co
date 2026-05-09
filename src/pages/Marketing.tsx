@@ -164,7 +164,11 @@ export default function Marketing() {
           </div>
         </Card>
       ) : (
-        <Tabs value={view} onValueChange={v => setView(v as 'kanban' | 'calendario')}>
+        <Tabs value={view} onValueChange={v => {
+          const next = v as 'kanban' | 'calendario';
+          setView(next);
+          navigate(next === 'calendario' ? '/marketing/calendario' : '/marketing');
+        }}>
           <TabsList>
             <TabsTrigger value="kanban">
               <LayoutGrid className="h-4 w-4 mr-1" /> Kanban
