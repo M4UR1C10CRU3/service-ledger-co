@@ -40,7 +40,7 @@ export const STATUS_ORDER: MarketingStatus[] = [
 
 export const STATUS_CONFIG: Record<MarketingStatus, { label: string; color: string }> = {
   ideias:       { label: '💡 Ideias',       color: '#94A3B8' },
-  em_producao:  { label: '🛠 Em Produção',   color: '#3B82F6' },
+  em_producao:  { label: '🎨 Em Criação',    color: '#3B82F6' },
   em_revisao:   { label: '👀 Em Revisão',    color: '#EAB308' },
   em_aprovacao: { label: '✋ Em Aprovação',  color: '#A855F7' },
   agendado:     { label: '📅 Agendado',      color: '#6366F1' },
