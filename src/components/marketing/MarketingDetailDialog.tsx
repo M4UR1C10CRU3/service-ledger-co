@@ -429,6 +429,19 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           </div>
         )}
 
+        {/* ============= FLUXO AUTOMÁTICO ============= */}
+        <WorkflowActions
+          tarefa={tarefa}
+          actionBusy={actionBusy}
+          changeNote={changeNote}
+          setChangeNote={setChangeNote}
+          showRequestChange={showRequestChange}
+          setShowRequestChange={setShowRequestChange}
+          onConcluirCriacao={handleConcluirCriacao}
+          onAprovarRevisao={handleAprovarRevisao}
+          onDevolverRevisao={handleDevolverRevisao}
+          onConfirmarAgendamento={handleConfirmarAgendamento}
+        />
         <Tabs defaultValue="detalhes">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
