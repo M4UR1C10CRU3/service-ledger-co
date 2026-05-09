@@ -29,16 +29,20 @@ export default function Marketing() {
   const isTudoCasa = !!empresa?.slug && empresa.slug.toLowerCase().startsWith('tudocasa');
 
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isCalendarRoute = location.pathname.startsWith('/marketing/calendario');
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'kanban' | 'calendario'>(
-    searchParams.get('vista') === 'calendario' ? 'calendario' : 'kanban'
+    isCalendarRoute || searchParams.get('vista') === 'calendario' ? 'calendario' : 'kanban'
   );
 
   useEffect(() => {
+    if (isCalendarRoute) { setView('calendario'); return; }
     const v = searchParams.get('vista');
     if (v === 'calendario') setView('calendario');
-    else if (v === 'kanban') setView('kanban');
-  }, [searchParams]);
+    else setView('kanban');
+  }, [searchParams, isCalendarRoute]);
   
   const [formOpen, setFormOpen] = useState(false);
   const [editTarefa, setEditTarefa] = useState<MarketingTarefa | null>(null);
