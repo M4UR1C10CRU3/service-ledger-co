@@ -58,7 +58,13 @@ function mapTarefa(r: any): MarketingTarefa {
     horaCriacao: r.hora_criacao,
     horaRevisao: r.hora_revisao,
     horaAprovacao: r.hora_aprovacao,
-  };
+    revisorId: r.revisor_id,
+    revisorNome: r.revisor_nome,
+    agendadorId: r.agendador_id,
+    agendadorNome: r.agendador_nome,
+    agendamentoConfirmado: !!r.agendamento_confirmado,
+    agendamentoHorarios: r.agendamento_horarios || null,
+  } as any;
 }
 
 function mapAnexo(r: any): MarketingAnexo {
@@ -119,6 +125,12 @@ export interface MarketingTarefaInput {
   horaCriacao?: string | null;
   horaRevisao?: string | null;
   horaAprovacao?: string | null;
+  revisorId?: string | null;
+  revisorNome?: string | null;
+  agendadorId?: string | null;
+  agendadorNome?: string | null;
+  agendamentoConfirmado?: boolean;
+  agendamentoHorarios?: Record<string, string> | null;
 }
 
 export function useMarketing() {
