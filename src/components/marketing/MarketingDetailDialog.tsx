@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingWorkflowPanel } from './MarketingWorkflowPanel';
+import { WorkflowActions } from './MarketingWorkflowActions';
 
 const normalizeApproverName = (value?: string | null) =>
   (value || '')
