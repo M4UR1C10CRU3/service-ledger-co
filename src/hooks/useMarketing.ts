@@ -157,6 +157,20 @@ export function useMarketing() {
 
   useEffect(() => { fetchTarefas(); }, [fetchTarefas]);
 
+  // Realtime sync entre Kanban ↔ Calendário
+  useEffect(() => {
+    if (!empresa) return;
+    const channel = supabase
+      .channel(`marketing-tarefas-${empresa.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'marketing_tarefas', filter: `empresa_id=eq.${empresa.id}` },
+        () => { fetchTarefas(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [empresa, fetchTarefas]);
+
   const createTarefa = async (input: MarketingTarefaInput): Promise<string | null> => {
     if (!empresa) return null;
     const { data: userResp } = await supabase.auth.getUser();
