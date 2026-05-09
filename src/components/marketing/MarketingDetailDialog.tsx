@@ -628,12 +628,13 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
         {preview && createPortal(
           <div
             ref={previewRootRef}
-            className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+            className="fixed inset-0 z-[9999] bg-black/95 flex flex-col pointer-events-auto"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               if (e.target === e.currentTarget) closePreview();
             }}
           >
-            <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50" onClick={e => e.stopPropagation()}>
+            <div className="relative z-[10020] w-full flex items-center justify-between text-white py-3 px-4 bg-black/50 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <span className="text-sm truncate">
                 {preview.nome}
                 {previewIndex >= 0 && imageAnexos.length > 1 && (
@@ -645,14 +646,16 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   href={preview.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onPointerDown={e => e.stopPropagation()}
                   onClick={e => e.stopPropagation()}
-                  className="text-xs underline opacity-80 hover:opacity-100"
+                  className="relative z-[10030] min-h-11 px-3 inline-flex items-center text-xs underline opacity-80 hover:opacity-100 pointer-events-auto"
                 >
                   Abrir em nova aba
                 </a>
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); closePreview(); }}
-                  className="p-1 hover:bg-white/10 rounded"
+                  className="relative z-[10030] min-h-11 min-w-11 inline-flex items-center justify-center hover:bg-white/10 rounded pointer-events-auto"
                   aria-label="Fechar"
                 >
                   <XIcon className="h-6 w-6" />
@@ -660,13 +663,14 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               </div>
             </div>
             <div
-              className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden p-4"
+              className="relative z-[10000] flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden p-4 pointer-events-auto"
               onClick={e => e.stopPropagation()}
             >
               {previewIndex >= 0 && imageAnexos.length > 1 && (
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); navigatePreview(-1); }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  className="absolute left-3 top-1/2 z-[10030] -translate-y-1/2 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full pointer-events-auto"
                   aria-label="Anterior"
                 >
                   <ChevronLeft className="h-7 w-7" />
@@ -675,20 +679,21 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               {preview.mime === 'application/pdf' || /\.pdf$/i.test(preview.nome) ? (
                 <iframe
                   src={preview.url}
-                  className="w-full h-full bg-white rounded"
+                  className="relative z-[10005] w-full h-full bg-white rounded"
                   title={preview.nome}
                 />
               ) : (
                 <img
                   src={preview.url}
                   alt={preview.nome}
-                  className="max-w-full max-h-full object-contain"
+                  className="relative z-[10005] max-w-full max-h-full object-contain"
                 />
               )}
               {previewIndex >= 0 && imageAnexos.length > 1 && (
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); navigatePreview(1); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full"
+                  className="absolute right-3 top-1/2 z-[10030] -translate-y-1/2 min-h-11 min-w-11 inline-flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full pointer-events-auto"
                   aria-label="Próxima"
                 >
                   <ChevronRight className="h-7 w-7" />
@@ -696,18 +701,20 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               )}
             </div>
             {previewIndex >= 0 && imageAnexos.length > 1 && (
-              <div className="mt-3 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+              <div className="relative z-[10020] mt-3 flex gap-2 overflow-x-auto justify-center px-4 pb-4 pointer-events-auto" onClick={e => e.stopPropagation()}>
                 {imageAnexos.map((a, i) => {
                   const thumb = signedUrls[a.id];
                   return (
                     <button
                       key={a.id}
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={async (e) => {
                         e.stopPropagation();
                         if (i === previewIndex) return;
                         await openImagePreview(a);
                       }}
-                      className={`h-16 w-16 rounded overflow-hidden border-2 flex-shrink-0 ${i === previewIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                      className={`min-h-11 min-w-11 h-16 w-16 rounded overflow-hidden border-2 flex-shrink-0 pointer-events-auto ${i === previewIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                      aria-label={`Abrir ${a.nome}`}
                     >
                       {thumb ? (
                         <img src={thumb} alt={a.nome} className="h-full w-full object-cover" />
