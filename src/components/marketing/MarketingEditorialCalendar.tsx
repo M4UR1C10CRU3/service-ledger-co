@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { STATUS_CONFIG, type MarketingStatus } from '@/types/marketing';
 
 /**
  * Calendário Editorial — Marketing
@@ -921,18 +922,23 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
                           )}
                           {mergedLinks[day] && (() => {
                             const lk = mergedLinks[day];
-                            const isPub = lk.status === 'publicado' || lk.etapa === 'publicado';
-                            const isAprov = lk.etapa === 'aprovacao';
-                            const bg = isPub ? '#DCFCE7' : isAprov ? '#F3E8FF' : '#E0F2FE';
-                            const fg = isPub ? '#166534' : isAprov ? '#6B21A8' : '#075985';
-                            const label = isPub ? '✅ Publicado' : isAprov ? '✋ Aprovação' : '📋 No Kanban';
+                            // Mapear etapa workflow → status Kanban quando status base não é definitivo
+                            const statusKey = (lk.status as MarketingStatus) || 'em_producao';
+                            const cfg = STATUS_CONFIG[statusKey];
+                            if (!cfg) return null;
+                            // Cores dinâmicas a partir do status real
+                            const hex = cfg.color.replace('#', '');
+                            const r = parseInt(hex.substring(0, 2), 16);
+                            const g = parseInt(hex.substring(2, 4), 16);
+                            const b = parseInt(hex.substring(4, 6), 16);
+                            const bg = `rgba(${r}, ${g}, ${b}, 0.15)`;
                             return (
                               <div
                                 className="inline-flex items-center mt-1 px-1 py-0.5 rounded font-semibold"
-                                style={{ fontSize: '8px', backgroundColor: bg, color: fg }}
-                                title={`Tarefa Kanban — etapa: ${lk.etapa || lk.status}`}
+                                style={{ fontSize: '8px', backgroundColor: bg, color: cfg.color }}
+                                title={`Tarefa Kanban — ${cfg.label}${lk.etapa ? ` (etapa: ${lk.etapa})` : ''}`}
                               >
-                                {label}
+                                {cfg.label}
                               </div>
                             );
                           })()}
