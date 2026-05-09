@@ -226,6 +226,12 @@ export function useMarketing() {
     if (updates.horaCriacao !== undefined) dbUpdates.hora_criacao = updates.horaCriacao;
     if (updates.horaRevisao !== undefined) dbUpdates.hora_revisao = updates.horaRevisao;
     if (updates.horaAprovacao !== undefined) dbUpdates.hora_aprovacao = updates.horaAprovacao;
+    if ((updates as any).revisorId !== undefined) dbUpdates.revisor_id = (updates as any).revisorId;
+    if ((updates as any).revisorNome !== undefined) dbUpdates.revisor_nome = (updates as any).revisorNome;
+    if ((updates as any).agendadorId !== undefined) dbUpdates.agendador_id = (updates as any).agendadorId;
+    if ((updates as any).agendadorNome !== undefined) dbUpdates.agendador_nome = (updates as any).agendadorNome;
+    if ((updates as any).agendamentoConfirmado !== undefined) dbUpdates.agendamento_confirmado = (updates as any).agendamentoConfirmado;
+    if ((updates as any).agendamentoHorarios !== undefined) dbUpdates.agendamento_horarios = (updates as any).agendamentoHorarios;
 
     const { error } = await supabase.from('marketing_tarefas').update(dbUpdates).eq('id', id);
     if (error) { console.error('[marketing] update:', error); return false; }
