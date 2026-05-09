@@ -1874,6 +1874,10 @@ export type Database = {
       }
       marketing_tarefas: {
         Row: {
+          agendador_id: string | null
+          agendador_nome: string | null
+          agendamento_confirmado: boolean
+          agendamento_horarios: Json | null
           aprovador_id: string | null
           aprovador_nome: string | null
           arquivado: boolean
@@ -1907,6 +1911,8 @@ export type Database = {
           prioridade: string
           responsavel_id: string | null
           responsavel_nome: string | null
+          revisor_id: string | null
+          revisor_nome: string | null
           solicitante_id: string | null
           solicitante_nome: string | null
           status: string
@@ -1915,6 +1921,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agendador_id?: string | null
+          agendador_nome?: string | null
+          agendamento_confirmado?: boolean
+          agendamento_horarios?: Json | null
           aprovador_id?: string | null
           aprovador_nome?: string | null
           arquivado?: boolean
@@ -1948,6 +1958,8 @@ export type Database = {
           prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          revisor_id?: string | null
+          revisor_nome?: string | null
           solicitante_id?: string | null
           solicitante_nome?: string | null
           status?: string
@@ -1956,6 +1968,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agendador_id?: string | null
+          agendador_nome?: string | null
+          agendamento_confirmado?: boolean
+          agendamento_horarios?: Json | null
           aprovador_id?: string | null
           aprovador_nome?: string | null
           arquivado?: boolean
@@ -1989,6 +2005,8 @@ export type Database = {
           prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          revisor_id?: string | null
+          revisor_nome?: string | null
           solicitante_id?: string | null
           solicitante_nome?: string | null
           status?: string
