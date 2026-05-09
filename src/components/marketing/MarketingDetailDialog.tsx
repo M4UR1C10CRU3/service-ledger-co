@@ -291,12 +291,71 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await updateStatus(tarefa.id, 'em_producao');
     if (ok) {
       await updateTarefa(tarefa.id, { etapaAtual: 'criacao' });
-      toast({ title: 'Alteração solicitada', description: 'O job voltou para "Em Produção".' });
+      toast({ title: 'Alteração solicitada', description: 'O job voltou para "Em Criação".' });
       setChangeNote('');
       setShowRequestChange(false);
       await reload(tarefa.id);
     } else {
       toast({ title: 'Erro', variant: 'destructive' });
+    }
+    setActionBusy(false);
+  };
+
+  // ============= FLUXO AUTOMÁTICO DE PROGRESSÃO =============
+  const tref: any = tarefa as any;
+
+  const handleConcluirCriacao = async () => {
+    if (!tarefa) return;
+    setActionBusy(true);
+    await addComentario(tarefa.id, `🎨 Criação concluída por ${currentUserNome || 'executor'} — enviado para revisão${tref?.revisorNome ? ` (${tref.revisorNome})` : ''}.`);
+    const ok = await updateStatus(tarefa.id, 'em_revisao');
+    if (ok) {
+      await updateTarefa(tarefa.id, { etapaAtual: 'revisao' });
+      toast({ title: 'Criação concluída', description: 'Card movido para "Em Revisão".' });
+      await reload(tarefa.id);
+    }
+    setActionBusy(false);
+  };
+
+  const handleAprovarRevisao = async () => {
+    if (!tarefa) return;
+    setActionBusy(true);
+    await addComentario(tarefa.id, `👀 Revisão aprovada por ${currentUserNome || 'revisor'} — enviado para aprovação${tarefa.aprovadorNome ? ` (${tarefa.aprovadorNome})` : ''}.`);
+    const ok = await updateStatus(tarefa.id, 'em_aprovacao');
+    if (ok) {
+      await updateTarefa(tarefa.id, { etapaAtual: 'aprovacao' });
+      toast({ title: 'Revisão aprovada', description: 'Card movido para "Em Aprovação".' });
+      await reload(tarefa.id);
+    }
+    setActionBusy(false);
+  };
+
+  const handleDevolverRevisao = async () => {
+    if (!tarefa) return;
+    if (!changeNote.trim()) {
+      toast({ title: 'Comentário obrigatório', variant: 'destructive' });
+      return;
+    }
+    setActionBusy(true);
+    await addComentario(tarefa.id, `↩️ Devolvido para criação por ${currentUserNome || 'revisor'}: ${changeNote.trim()}`);
+    const ok = await updateStatus(tarefa.id, 'em_producao');
+    if (ok) {
+      await updateTarefa(tarefa.id, { etapaAtual: 'criacao' });
+      setChangeNote(''); setShowRequestChange(false);
+      toast({ title: 'Devolvido para criação' });
+      await reload(tarefa.id);
+    }
+    setActionBusy(false);
+  };
+
+  const handleConfirmarAgendamento = async (horarios: Record<string, string>) => {
+    if (!tarefa) return;
+    setActionBusy(true);
+    const ok = await updateTarefa(tarefa.id, { agendamentoHorarios: horarios, agendamentoConfirmado: true } as any);
+    if (ok) {
+      await addComentario(tarefa.id, `📅 Agendamento confirmado por ${currentUserNome || 'agendador'}. Horários: ${Object.entries(horarios).map(([k,v]) => `${k} ${v}`).join(', ')}.`);
+      toast({ title: 'Agendamento confirmado', description: 'O sistema irá publicar automaticamente nos horários definidos.' });
+      await reload(tarefa.id);
     }
     setActionBusy(false);
   };
