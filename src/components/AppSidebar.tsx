@@ -96,7 +96,7 @@ const sections: NavSection[] = [
     icon: Megaphone,
     items: [
       { title: 'Kanban', url: '/marketing', icon: Trello },
-      { title: 'Calendário Editorial', url: '/marketing?vista=calendario', icon: Clock },
+      { title: 'Calendário Editorial', url: '/marketing/calendario', icon: Clock },
     ],
   },
 ];
