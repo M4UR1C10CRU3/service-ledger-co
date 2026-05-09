@@ -628,12 +628,13 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
         {preview && createPortal(
           <div
             ref={previewRootRef}
-            className="fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+            className="fixed inset-0 z-[9999] bg-black/95 flex flex-col pointer-events-auto"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               if (e.target === e.currentTarget) closePreview();
             }}
           >
-            <div className="w-full flex items-center justify-between text-white py-3 px-4 bg-black/50" onClick={e => e.stopPropagation()}>
+            <div className="relative z-[10020] w-full flex items-center justify-between text-white py-3 px-4 bg-black/50 pointer-events-auto" onClick={e => e.stopPropagation()}>
               <span className="text-sm truncate">
                 {preview.nome}
                 {previewIndex >= 0 && imageAnexos.length > 1 && (
@@ -645,14 +646,16 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
                   href={preview.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onPointerDown={e => e.stopPropagation()}
                   onClick={e => e.stopPropagation()}
-                  className="text-xs underline opacity-80 hover:opacity-100"
+                  className="relative z-[10030] min-h-11 px-3 inline-flex items-center text-xs underline opacity-80 hover:opacity-100 pointer-events-auto"
                 >
                   Abrir em nova aba
                 </a>
                 <button
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => { e.stopPropagation(); closePreview(); }}
-                  className="p-1 hover:bg-white/10 rounded"
+                  className="relative z-[10030] min-h-11 min-w-11 inline-flex items-center justify-center hover:bg-white/10 rounded pointer-events-auto"
                   aria-label="Fechar"
                 >
                   <XIcon className="h-6 w-6" />
