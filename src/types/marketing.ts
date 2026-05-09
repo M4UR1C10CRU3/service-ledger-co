@@ -135,6 +135,13 @@ export interface MarketingTarefa {
   horaCriacao?: string | null;
   horaRevisao?: string | null;
   horaAprovacao?: string | null;
+  // Revisor / Agendador
+  revisorId?: string | null;
+  revisorNome?: string | null;
+  agendadorId?: string | null;
+  agendadorNome?: string | null;
+  agendamentoConfirmado?: boolean;
+  agendamentoHorarios?: Record<string, string> | null;
 }
 
 export interface MarketingAnexo {
