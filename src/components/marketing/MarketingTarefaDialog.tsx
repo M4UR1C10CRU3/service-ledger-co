@@ -71,7 +71,9 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
     horaCriacao: initial?.horaCriacao || '',
     horaRevisao: initial?.horaRevisao || '',
     horaAprovacao: initial?.horaAprovacao || '',
-  });
+    revisorNome: (initial as any)?.revisorNome || '',
+    agendadorNome: (initial as any)?.agendadorNome || '',
+  } as any);
 
   const [form, setForm] = useState<MarketingTarefaInput>(buildInitial);
 
