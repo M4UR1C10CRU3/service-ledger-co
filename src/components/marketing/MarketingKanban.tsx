@@ -27,10 +27,14 @@ interface Props {
   onAddInColumn: (status: MarketingStatus) => void;
 }
 
+import { usePermissions } from '@/hooks/usePermissions';
+
 export function MarketingKanban({ tarefas, onUpdateStatus, onView, onEdit, onDelete, onAddInColumn }: Props) {
   const [dragId, setDragId] = useState<string | null>(null);
+  const { isAdmin } = usePermissions();
 
   const handleDrop = async (status: MarketingStatus) => {
+    if (!isAdmin) return; // só admin pode mover manualmente
     if (!dragId) return;
     await onUpdateStatus(dragId, status);
     setDragId(null);
@@ -79,9 +83,9 @@ export function MarketingKanban({ tarefas, onUpdateStatus, onView, onEdit, onDel
                 return (
                   <Card
                     key={t.id}
-                    draggable
-                    onDragStart={() => setDragId(t.id)}
-                    className="p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow border-l-4"
+                    draggable={isAdmin}
+                    onDragStart={() => isAdmin && setDragId(t.id)}
+                    className={`p-3 ${isAdmin ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} hover:shadow-md transition-shadow border-l-4`}
                     style={{ borderLeftColor: prio.color }}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
