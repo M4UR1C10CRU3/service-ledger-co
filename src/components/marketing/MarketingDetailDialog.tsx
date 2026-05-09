@@ -701,18 +701,20 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
               )}
             </div>
             {previewIndex >= 0 && imageAnexos.length > 1 && (
-              <div className="mt-3 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+              <div className="relative z-[10020] mt-3 flex gap-2 overflow-x-auto justify-center px-4 pb-4 pointer-events-auto" onClick={e => e.stopPropagation()}>
                 {imageAnexos.map((a, i) => {
                   const thumb = signedUrls[a.id];
                   return (
                     <button
                       key={a.id}
+                      onPointerDown={(e) => e.stopPropagation()}
                       onClick={async (e) => {
                         e.stopPropagation();
                         if (i === previewIndex) return;
                         await openImagePreview(a);
                       }}
-                      className={`h-16 w-16 rounded overflow-hidden border-2 flex-shrink-0 ${i === previewIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                      className={`min-h-11 min-w-11 h-16 w-16 rounded overflow-hidden border-2 flex-shrink-0 pointer-events-auto ${i === previewIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                      aria-label={`Abrir ${a.nome}`}
                     >
                       {thumb ? (
                         <img src={thumb} alt={a.nome} className="h-full w-full object-cover" />
