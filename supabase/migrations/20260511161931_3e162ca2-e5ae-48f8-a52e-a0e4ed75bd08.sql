@@ -1,0 +1,13 @@
+WITH dup_ids AS (
+  SELECT unnest(ARRAY[
+    '6bf78883-ee52-4b68-bb37-a19b68a05f57','1143a699-a868-4186-91b9-6b673fd4cb11','e3acc447-e32c-43ee-83fb-65aa39948528',
+    '54ca1787-2274-4668-8d51-79384b69f33a','eafaf7d3-0feb-4f9b-a6c8-0619c15b95a7','73f7088b-9f3c-4b0f-8d1a-dc5813442afd',
+    '9997baeb-91e7-4196-9f9a-de6030378c07','cc5b5a78-5d2f-4eca-b91c-087148b91482','275d6d34-bc16-447e-a8bf-2105a764b98a',
+    'f243849e-df52-41ec-beff-070938977e98','780e50af-a496-49a8-88a8-b034c0a97e5b','0e79cf91-1974-4dc5-9488-b8b96d02da83'
+  ]::uuid[]) AS id
+)
+DELETE FROM public.stock_movimentos WHERE compra_id IN (SELECT id FROM dup_ids);
+
+DELETE FROM public.account_payments WHERE account_payable_id IN ('6bf78883-ee52-4b68-bb37-a19b68a05f57','1143a699-a868-4186-91b9-6b673fd4cb11','e3acc447-e32c-43ee-83fb-65aa39948528','54ca1787-2274-4668-8d51-79384b69f33a','eafaf7d3-0feb-4f9b-a6c8-0619c15b95a7','73f7088b-9f3c-4b0f-8d1a-dc5813442afd','9997baeb-91e7-4196-9f9a-de6030378c07','cc5b5a78-5d2f-4eca-b91c-087148b91482','275d6d34-bc16-447e-a8bf-2105a764b98a','f243849e-df52-41ec-beff-070938977e98','780e50af-a496-49a8-88a8-b034c0a97e5b','0e79cf91-1974-4dc5-9488-b8b96d02da83');
+
+DELETE FROM public.accounts_payable WHERE id IN ('6bf78883-ee52-4b68-bb37-a19b68a05f57','1143a699-a868-4186-91b9-6b673fd4cb11','e3acc447-e32c-43ee-83fb-65aa39948528','54ca1787-2274-4668-8d51-79384b69f33a','eafaf7d3-0feb-4f9b-a6c8-0619c15b95a7','73f7088b-9f3c-4b0f-8d1a-dc5813442afd','9997baeb-91e7-4196-9f9a-de6030378c07','cc5b5a78-5d2f-4eca-b91c-087148b91482','275d6d34-bc16-447e-a8bf-2105a764b98a','f243849e-df52-41ec-beff-070938977e98','780e50af-a496-49a8-88a8-b034c0a97e5b','0e79cf91-1974-4dc5-9488-b8b96d02da83');
