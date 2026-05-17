@@ -6,7 +6,7 @@ import {
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
-  UserCog, Megaphone, Trello, KeyRound,
+  UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -97,6 +97,13 @@ const sections: NavSection[] = [
     items: [
       { title: 'Kanban', url: '/marketing', icon: Trello },
       { title: 'Calendário Editorial', url: '/marketing/calendario', icon: Clock },
+    ],
+  },
+  {
+    label: 'Administrativo',
+    icon: Building,
+    items: [
+      { title: 'Planeamento Estratégico', url: '/administrativo/planeamento', icon: Lightbulb },
     ],
   },
 ];
