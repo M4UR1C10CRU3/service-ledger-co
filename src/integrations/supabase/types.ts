@@ -2016,6 +2016,279 @@ export type Database = {
         }
         Relationships: []
       }
+      planeamento_anexos: {
+        Row: {
+          card_id: string
+          consulta_id: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          mime_type: string | null
+          nome: string
+          storage_path: string | null
+          tamanho_bytes: number | null
+          uploaded_by: string | null
+          uploaded_by_nome: string | null
+          url: string
+        }
+        Insert: {
+          card_id: string
+          consulta_id?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          mime_type?: string | null
+          nome: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+          url: string
+        }
+        Update: {
+          card_id?: string
+          consulta_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          mime_type?: string | null
+          nome?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+          uploaded_by_nome?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
+      planeamento_cards: {
+        Row: {
+          area_negocio: string | null
+          areas_afetadas: string[] | null
+          coluna: string
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          criterios_validacao: Json | null
+          data_conclusao_prevista: string | null
+          data_conclusao_real: string | null
+          data_decisao: string | null
+          data_inicio_real: string | null
+          decisao_final: string | null
+          decisao_observacoes: string | null
+          descricao: string | null
+          empresa_id: string
+          id: string
+          impacto_esperado: string | null
+          info_internas: string | null
+          notas_pesquisa: string | null
+          objetivo: string | null
+          ordem: number
+          parecer: string | null
+          plano_implementacao: string | null
+          prazo_estimado: string | null
+          prioridade: string
+          problema_oportunidade: string | null
+          referencias_externas: string | null
+          responsaveis_extra: Json | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          tags: string[] | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          area_negocio?: string | null
+          areas_afetadas?: string[] | null
+          coluna?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          criterios_validacao?: Json | null
+          data_conclusao_prevista?: string | null
+          data_conclusao_real?: string | null
+          data_decisao?: string | null
+          data_inicio_real?: string | null
+          decisao_final?: string | null
+          decisao_observacoes?: string | null
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          impacto_esperado?: string | null
+          info_internas?: string | null
+          notas_pesquisa?: string | null
+          objetivo?: string | null
+          ordem?: number
+          parecer?: string | null
+          plano_implementacao?: string | null
+          prazo_estimado?: string | null
+          prioridade?: string
+          problema_oportunidade?: string | null
+          referencias_externas?: string | null
+          responsaveis_extra?: Json | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          tags?: string[] | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          area_negocio?: string | null
+          areas_afetadas?: string[] | null
+          coluna?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          criterios_validacao?: Json | null
+          data_conclusao_prevista?: string | null
+          data_conclusao_real?: string | null
+          data_decisao?: string | null
+          data_inicio_real?: string | null
+          decisao_final?: string | null
+          decisao_observacoes?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          impacto_esperado?: string | null
+          info_internas?: string | null
+          notas_pesquisa?: string | null
+          objetivo?: string | null
+          ordem?: number
+          parecer?: string | null
+          plano_implementacao?: string | null
+          prazo_estimado?: string | null
+          prioridade?: string
+          problema_oportunidade?: string | null
+          referencias_externas?: string | null
+          responsaveis_extra?: Json | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          tags?: string[] | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      planeamento_checklist: {
+        Row: {
+          card_id: string
+          concluido: boolean
+          concluido_em: string | null
+          concluido_por: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          ordem: number
+          prazo: string | null
+          responsavel_nome: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          card_id: string
+          concluido?: boolean
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          ordem?: number
+          prazo?: string | null
+          responsavel_nome?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          card_id?: string
+          concluido?: boolean
+          concluido_em?: string | null
+          concluido_por?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          ordem?: number
+          prazo?: string | null
+          responsavel_nome?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      planeamento_consultas: {
+        Row: {
+          card_id: string
+          created_at: string
+          created_by: string | null
+          created_by_nome: string | null
+          data_consulta: string | null
+          empresa_id: string
+          entidade: string
+          id: string
+          resumo: string | null
+          tipo: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data_consulta?: string | null
+          empresa_id: string
+          entidade: string
+          id?: string
+          resumo?: string | null
+          tipo?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_nome?: string | null
+          data_consulta?: string | null
+          empresa_id?: string
+          entidade?: string
+          id?: string
+          resumo?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
+      planeamento_historico: {
+        Row: {
+          card_id: string
+          created_at: string
+          descricao: string
+          empresa_id: string
+          id: string
+          metadata: Json | null
+          tipo: string
+          utilizador_id: string | null
+          utilizador_nome: string | null
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          descricao: string
+          empresa_id: string
+          id?: string
+          metadata?: Json | null
+          tipo: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          descricao?: string
+          empresa_id?: string
+          id?: string
+          metadata?: Json | null
+          tipo?: string
+          utilizador_id?: string | null
+          utilizador_nome?: string | null
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           categoria: string
