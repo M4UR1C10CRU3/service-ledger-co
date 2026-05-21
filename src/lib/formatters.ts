@@ -65,3 +65,32 @@ export const formatInputValue = (value: string): string => {
   
   return cleaned;
 };
+
+/**
+ * Converte data ISO (YYYY-MM-DD) para formato PT (DD/MM/YYYY)
+ */
+export const formatDatePT = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return '—';
+  if (dateStr.includes('/')) return dateStr;
+  const [y, m, d] = dateStr.split('-');
+  if (!y || !m || !d) return dateStr;
+  return `${d}/${m}/${y}`;
+};
+
+/**
+ * Converte data PT (DD/MM/YYYY) para ISO (YYYY-MM-DD)
+ */
+export const parseDatePT = (dateStr: string | null | undefined): string | null => {
+  if (!dateStr) return null;
+  if (!dateStr.includes('/')) return dateStr;
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return null;
+  const [d, m, y] = parts;
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+};
+
+/**
+ * Verifica se uma string é data válida em DD/MM/YYYY
+ */
+export const isValidDatePT = (dateStr: string): boolean =>
+  /^\d{2}\/\d{2}\/\d{4}$/.test(dateStr);
