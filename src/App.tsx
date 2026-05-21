@@ -43,6 +43,7 @@ const PlaneamentoEstrategico = lazy(() => import("./pages/PlaneamentoEstrategico
 const AlterarSenha = lazy(() => import("./pages/AlterarSenha"));
 const OrdensServico = lazy(() => import("./pages/OrdensServico"));
 const NotasEncomenda = lazy(() => import("./pages/NotasEncomenda"));
+const DashboardExecutivo = lazy(() => import("./pages/DashboardExecutivo"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +91,7 @@ const App = () => (
 
               {/* Protected routes with sidebar layout */}
               <Route path="/dashboard" element={<ProtectedWithLayout><DashboardGeral /></ProtectedWithLayout>} />
+              <Route path="/dashboard-executivo" element={<ProtectedWithLayout><DashboardExecutivo /></ProtectedWithLayout>} />
               <Route path="/vendas" element={<ProtectedWithLayout><Index /></ProtectedWithLayout>} />
               <Route path="/clientes" element={<ProtectedWithLayout><Clientes /></ProtectedWithLayout>} />
               <Route path="/fornecedores" element={<ProtectedWithLayout><Fornecedores /></ProtectedWithLayout>} />
