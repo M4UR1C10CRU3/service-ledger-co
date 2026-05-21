@@ -75,50 +75,51 @@ const DashboardGeral = () => {
 
       {/* KPIs - Gradient Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Total Faturado - Green */}
+        {/* Liquidado - verde: dinheiro já recebido */}
         <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 hover:shadow-xl transition-shadow duration-200">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2.5 bg-white/20 rounded-xl">
               <Euro className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-sm font-medium text-white/80 mb-1">Total em Débito</p>
-          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalEmDebito)}</p>
+          <p className="text-sm font-medium text-white/80 mb-1">Total Liquidado</p>
+          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalLiquidado)}</p>
         </div>
 
-        {/* Vendas / Serviços - Blue */}
+        {/* Total Faturado - azul: valor total emitido */}
         <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 hover:shadow-xl transition-shadow duration-200">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2.5 bg-white/20 rounded-xl">
-              <Users className="h-5 w-5" />
+              <TrendingUp className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-sm font-medium text-white/80 mb-1">Clientes</p>
-          <p className="text-3xl font-bold tracking-tight">{clientes.length}</p>
+          <p className="text-sm font-medium text-white/80 mb-1">Total Faturado</p>
+          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalFaturado)}</p>
         </div>
 
-        {/* Em Débito - Yellow/Orange */}
+        {/* Em Débito - âmbar: valor por receber */}
         <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-amber-400 to-amber-500 hover:shadow-xl transition-shadow duration-200">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2.5 bg-white/20 rounded-xl">
               <AlertTriangle className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-sm font-medium text-white/80 mb-1">Vencido</p>
-          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalFaturado - dashboardMetrics.totalLiquidado - dashboardMetrics.totalEmDebito > 0 ? dashboardMetrics.totalFaturado - dashboardMetrics.totalLiquidado - dashboardMetrics.totalEmDebito : 0)}</p>
+          <p className="text-sm font-medium text-white/80 mb-1">Em Débito</p>
+          <p className="text-3xl font-bold tracking-tight">{fmt(dashboardMetrics.totalEmDebito)}</p>
         </div>
 
-        {/* Alertas - Red/Orange */}
+        {/* Contas Vencidas - vermelho: urgente */}
         <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-br from-orange-500 to-red-500 hover:shadow-xl transition-shadow duration-200">
           <div className="flex items-center justify-between mb-3">
             <div className="p-2.5 bg-white/20 rounded-xl">
               <Receipt className="h-5 w-5" />
             </div>
           </div>
-          <p className="text-sm font-medium text-white/80 mb-1">Faturas Pendentes</p>
+          <p className="text-sm font-medium text-white/80 mb-1">Contas Vencidas</p>
           <p className="text-3xl font-bold tracking-tight">{contasVencidas.length + contasHoje.length}</p>
         </div>
       </div>
+
 
       {/* Alert banner */}
       {(contasVencidas.length > 0 || contasHoje.length > 0) && (
