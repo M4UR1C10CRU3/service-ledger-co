@@ -41,6 +41,7 @@ const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const PlaneamentoEstrategico = lazy(() => import("./pages/PlaneamentoEstrategico"));
 const AlterarSenha = lazy(() => import("./pages/AlterarSenha"));
+const OrdensServico = lazy(() => import("./pages/OrdensServico"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,7 +102,7 @@ const App = () => (
               <Route path="/follow-up" element={<ProtectedWithLayout><FollowUp /></ProtectedWithLayout>} />
               <Route path="/stocks" element={<ProtectedWithLayout><GestaoStocks /></ProtectedWithLayout>} />
               <Route path="/produtos" element={<ProtectedWithLayout><Produtos /></ProtectedWithLayout>} />
-              <Route path="/ordens-servico" element={<ProtectedWithLayout><PlaceholderPage title="Ordens de Serviço" /></ProtectedWithLayout>} />
+              <Route path="/ordens-servico" element={<ProtectedWithLayout><OrdensServico /></ProtectedWithLayout>} />
               <Route path="/receitas" element={<ProtectedWithLayout><Receitas /></ProtectedWithLayout>} />
               <Route path="/debitos" element={<ProtectedWithLayout><Debitos /></ProtectedWithLayout>} />
               <Route path="/historico-cobrancas" element={<ProtectedWithLayout><HistoricoCobrancas /></ProtectedWithLayout>} />
