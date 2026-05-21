@@ -2,150 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Micro SaaS Billing Management - Design System 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    /* Core Interface Colors */
+    /* Light theme (fallback) */
     --background: 220 20% 97%;
     --foreground: 220 30% 15%;
-
     --card: 0 0% 100%;
     --card-foreground: 220 30% 15%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 220 30% 15%;
-
-    /* Brand Colors - Default Obrajusta Blue */
-    --primary: 211 100% 40%;
+    --primary: 160 80% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 211 90% 52%;
-    --primary-lighter: 211 90% 94%;
-
-    /* Financial Status Colors */
+    --primary-light: 160 70% 52%;
+    --primary-lighter: 160 55% 92%;
     --success: 152 69% 40%;
     --success-foreground: 0 0% 100%;
     --success-light: 152 60% 52%;
     --success-lighter: 152 60% 93%;
-
-    /* Warning Colors */
     --warning: 38 92% 50%;
     --warning-foreground: 220 30% 15%;
     --warning-light: 38 92% 60%;
     --warning-lighter: 38 92% 93%;
-
-    /* Danger Colors */
     --danger: 0 72% 51%;
     --danger-foreground: 0 0% 100%;
     --danger-light: 0 72% 62%;
     --danger-lighter: 0 72% 93%;
-
-    /* Neutral Interface */
     --secondary: 220 14% 93%;
     --secondary-foreground: 220 30% 15%;
-
     --muted: 220 14% 95%;
     --muted-foreground: 220 10% 46%;
-
     --accent: 220 14% 93%;
     --accent-foreground: 220 30% 15%;
-
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 220 13% 90%;
     --input: 220 13% 90%;
-    --ring: 211 100% 40%;
-
+    --ring: 160 80% 42%;
     --radius: 0.625rem;
-
-    /* Dashboard Specific */
-    --dashboard-bg: 220 20% 97%;
-    --sidebar-bg: 0 0% 100%;
-    --header-bg: 0 0% 100%;
-    
-    /* Chart Colors */
-    --chart-invoiced: 211 100% 40%;
+    --chart-invoiced: 160 80% 42%;
     --chart-paid: 152 69% 40%;
     --chart-pending: 38 92% 50%;
     --chart-overdue: 0 72% 51%;
-
-    /* Sidebar - Dark professional */
     --sidebar-background: 220 30% 12%;
     --sidebar-foreground: 220 10% 85%;
-    --sidebar-primary: 211 90% 52%;
+    --sidebar-primary: 160 80% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 25% 18%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 25% 18%;
-    --sidebar-ring: 211 100% 40%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
-    --gradient-success: linear-gradient(135deg, hsl(var(--success)), hsl(var(--success-light)));
+    --sidebar-ring: 160 80% 42%;
   }
 
   .dark {
-    --background: 220 25% 7%;
-    --foreground: 0 0% 98%;
+    /* === LIBERTY DARK — Premium dark theme === */
 
-    --card: 220 25% 10%;
-    --card-foreground: 0 0% 98%;
+    /* Backgrounds — layered depth */
+    --background:         240 10% 4.5%;   /* near-black, zinc-tinted */
+    --foreground:         0   0% 96%;
+    --card:               240 8%  8%;     /* card surface */
+    --card-foreground:    0   0% 96%;
+    --popover:            240 8%  11%;    /* elevated surfaces */
+    --popover-foreground: 0   0% 96%;
 
-    --popover: 220 25% 10%;
-    --popover-foreground: 0 0% 98%;
+    /* Emerald — marca Liberty */
+    --primary:            160 80% 42%;
+    --primary-foreground: 0   0% 100%;
+    --primary-light:      160 70% 54%;
+    --primary-lighter:    160 45% 13%;
 
-    --primary: 211 100% 40%;
-    --primary-foreground: 0 0% 100%;
-    --primary-light: 211 90% 52%;
-    --primary-lighter: 211 90% 18%;
+    /* Semantic: Success */
+    --success:            160 70% 44%;
+    --success-foreground: 0   0% 100%;
+    --success-light:      160 65% 55%;
+    --success-lighter:    160 40% 12%;
 
-    --success: 152 69% 40%;
-    --success-foreground: 0 0% 100%;
-    --success-light: 152 60% 52%;
-    --success-lighter: 152 60% 14%;
+    /* Semantic: Warning — foreground claro sobre fundo escuro */
+    --warning:            38  92% 52%;
+    --warning-foreground: 38  85% 80%;
+    --warning-light:      38  92% 62%;
+    --warning-lighter:    38  60% 12%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 220 30% 15%;
-    --warning-light: 38 92% 60%;
-    --warning-lighter: 38 92% 14%;
+    /* Semantic: Danger */
+    --danger:             0   72% 57%;
+    --danger-foreground:  0   0%  100%;
+    --danger-light:       0   72% 67%;
+    --danger-lighter:     0   55% 12%;
 
-    --danger: 0 72% 51%;
-    --danger-foreground: 0 0% 100%;
-    --danger-light: 0 72% 62%;
-    --danger-lighter: 0 72% 14%;
+    /* Neutrals */
+    --secondary:          240 8%  13%;
+    --secondary-foreground: 0 0%  90%;
+    --muted:              240 8%  11%;
+    --muted-foreground:   240 5%  58%;
+    --accent:             240 8%  13%;
+    --accent-foreground:  0   0%  96%;
 
-    --secondary: 220 25% 16%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 220 25% 14%;
-    --muted-foreground: 220 10% 60%;
-
-    --accent: 220 25% 16%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 72% 51%;
+    --destructive:        0   72% 57%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 25% 18%;
-    --input: 220 25% 18%;
-    --ring: 211 100% 40%;
+    --border:             240 6%  15%;
+    --input:              240 6%  15%;
+    --ring:               160 80% 42%;
 
-    --chart-invoiced: 211 100% 40%;
-    --chart-paid: 152 69% 40%;
-    --chart-pending: 38 92% 50%;
-    --chart-overdue: 0 72% 51%;
+    /* Charts */
+    --chart-invoiced:     160 80% 42%;
+    --chart-paid:         160 70% 54%;
+    --chart-pending:      38  92% 52%;
+    --chart-overdue:      0   72% 57%;
 
-    --sidebar-background: 220 30% 8%;
-    --sidebar-foreground: 220 10% 80%;
-    --sidebar-primary: 211 90% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 14%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 25% 14%;
-    --sidebar-ring: 211 100% 40%;
+    /* Sidebar — camada mais profunda */
+    --sidebar-background:           240 12% 3.5%;
+    --sidebar-foreground:           240 5%  72%;
+    --sidebar-primary:              160 80% 42%;
+    --sidebar-primary-foreground:   0   0%  100%;
+    --sidebar-accent:               240 10% 8%;
+    --sidebar-accent-foreground:    240 5%  85%;
+    --sidebar-border:               240 8%  9%;
+    --sidebar-ring:                 160 80% 42%;
   }
 }
 
@@ -154,30 +126,110 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    scrollbar-color: hsl(240 6% 22%) hsl(240 10% 7%);
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar       { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
+  ::-webkit-scrollbar-thumb { background: hsl(240 6% 18%); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(240 5% 28%); }
+
+  ::selection {
+    background-color: hsl(160 80% 42% / 0.30);
+    color: hsl(0 0% 100%);
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .table-cell-currency {
-    @apply text-right font-mono;
-  }
-  
-  .status-paid {
-    @apply bg-success-lighter text-success border border-success-light;
-  }
-  
-  .status-pending {
-    @apply bg-warning-lighter text-warning border border-warning-light;
-  }
-  
-  .status-overdue {
-    @apply bg-danger-lighter text-danger border border-danger-light;
-  }
+  .table-cell-currency { @apply text-right font-mono; }
+  .status-paid    { @apply bg-success-lighter text-success border border-success-light; }
+  .status-pending { @apply bg-warning-lighter text-warning border border-warning-light; }
+  .status-overdue { @apply bg-danger-lighter text-danger border border-danger-light; }
 }
 
-/* Smooth transitions for theme changes */
+/* ============================================================
+   DARK MODE OVERRIDES
+   Hardcoded Tailwind light colors used in status badges and
+   icon backgrounds — must be remapped for dark theme.
+   ============================================================ */
 @layer utilities {
+
+  /* Gray */
+  .dark .bg-gray-100   { background-color: hsl(240 5% 13%) !important; }
+  .dark .text-gray-700 { color: hsl(240 5% 62%) !important; }
+  .dark .border-gray-300 { border-color: hsl(240 5% 22%) !important; }
+
+  /* Blue */
+  .dark .bg-blue-100   { background-color: hsl(220 45% 14%) !important; }
+  .dark .text-blue-700 { color: hsl(211 75% 66%) !important; }
+  .dark .text-blue-600 { color: hsl(211 75% 66%) !important; }
+  .dark .border-blue-300 { border-color: hsl(211 45% 25%) !important; }
+
+  /* Green */
+  .dark .bg-green-100   { background-color: hsl(150 40% 12%) !important; }
+  .dark .text-green-700 { color: hsl(152 55% 52%) !important; }
+  .dark .text-green-600 { color: hsl(152 55% 52%) !important; }
+  .dark .border-green-300 { border-color: hsl(152 40% 22%) !important; }
+
+  /* Emerald */
+  .dark .bg-emerald-100   { background-color: hsl(160 40% 12%) !important; }
+  .dark .text-emerald-700 { color: hsl(160 65% 55%) !important; }
+  .dark .text-emerald-600 { color: hsl(160 65% 55%) !important; }
+  .dark .border-emerald-300 { border-color: hsl(160 40% 22%) !important; }
+
+  /* Red */
+  .dark .bg-red-50    { background-color: hsl(0 30% 8%) !important; }
+  .dark .bg-red-100   { background-color: hsl(0 40% 13%) !important; }
+  .dark .text-red-700 { color: hsl(0 70% 65%) !important; }
+  .dark .text-red-600 { color: hsl(0 70% 65%) !important; }
+  .dark .border-red-200 { border-color: hsl(0 35% 17%) !important; }
+  .dark .border-red-300 { border-color: hsl(0 40% 22%) !important; }
+
+  /* Orange */
+  .dark .bg-orange-50    { background-color: hsl(25 30% 8%) !important; }
+  .dark .bg-orange-100   { background-color: hsl(25 40% 13%) !important; }
+  .dark .text-orange-700 { color: hsl(25 80% 65%) !important; }
+  .dark .text-orange-600 { color: hsl(25 80% 65%) !important; }
+  .dark .border-orange-200 { border-color: hsl(25 35% 17%) !important; }
+  .dark .border-orange-300 { border-color: hsl(25 40% 22%) !important; }
+
+  /* Amber */
+  .dark .bg-amber-50    { background-color: hsl(38 30% 8%) !important; }
+  .dark .bg-amber-100   { background-color: hsl(38 40% 13%) !important; }
+  .dark .text-amber-700 { color: hsl(38 80% 62%) !important; }
+  .dark .text-amber-600 { color: hsl(38 80% 62%) !important; }
+  .dark .border-amber-300 { border-color: hsl(38 40% 22%) !important; }
+
+  /* Yellow */
+  .dark .bg-yellow-100   { background-color: hsl(48 40% 12%) !important; }
+  .dark .text-yellow-700 { color: hsl(48 80% 62%) !important; }
+  .dark .text-yellow-600 { color: hsl(48 80% 62%) !important; }
+
+  /* Indigo */
+  .dark .bg-indigo-100   { background-color: hsl(235 40% 15%) !important; }
+  .dark .text-indigo-700 { color: hsl(235 65% 70%) !important; }
+  .dark .text-indigo-600 { color: hsl(235 65% 70%) !important; }
+  .dark .border-indigo-300 { border-color: hsl(235 40% 25%) !important; }
+
+  /* Purple */
+  .dark .bg-purple-100   { background-color: hsl(270 40% 15%) !important; }
+  .dark .text-purple-700 { color: hsl(270 55% 70%) !important; }
+  .dark .text-purple-600 { color: hsl(270 55% 70%) !important; }
+  .dark .border-purple-300 { border-color: hsl(270 40% 25%) !important; }
+
+  /* Sky */
+  .dark .bg-sky-100   { background-color: hsl(200 40% 13%) !important; }
+  .dark .text-sky-700 { color: hsl(200 65% 65%) !important; }
+  .dark .text-sky-600 { color: hsl(200 65% 65%) !important; }
+  .dark .border-sky-300 { border-color: hsl(200 40% 22%) !important; }
+
   .transition-theme {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
