@@ -2019,6 +2019,140 @@ export type Database = {
         }
         Relationships: []
       }
+      ordens_servico: {
+        Row: {
+          cliente_email: string | null
+          cliente_id: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          created_at: string
+          data_conclusao_real: string | null
+          data_criacao: string
+          data_inicio_real: string | null
+          data_prevista_conclusao: string | null
+          data_prevista_inicio: string | null
+          descricao: string | null
+          empresa_id: string
+          estado: string
+          id: string
+          notas_internas: string | null
+          numero: string
+          observacoes: string | null
+          prioridade: string
+          proposta_id: string | null
+          proposta_numero: string | null
+          service_id: string | null
+          titulo: string
+          updated_at: string
+          valor_estimado: number
+          valor_final: number
+        }
+        Insert: {
+          cliente_email?: string | null
+          cliente_id?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          created_at?: string
+          data_conclusao_real?: string | null
+          data_criacao?: string
+          data_inicio_real?: string | null
+          data_prevista_conclusao?: string | null
+          data_prevista_inicio?: string | null
+          descricao?: string | null
+          empresa_id: string
+          estado?: string
+          id?: string
+          notas_internas?: string | null
+          numero: string
+          observacoes?: string | null
+          prioridade?: string
+          proposta_id?: string | null
+          proposta_numero?: string | null
+          service_id?: string | null
+          titulo: string
+          updated_at?: string
+          valor_estimado?: number
+          valor_final?: number
+        }
+        Update: {
+          cliente_email?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          colaborador_id?: string | null
+          colaborador_nome?: string | null
+          created_at?: string
+          data_conclusao_real?: string | null
+          data_criacao?: string
+          data_inicio_real?: string | null
+          data_prevista_conclusao?: string | null
+          data_prevista_inicio?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          estado?: string
+          id?: string
+          notas_internas?: string | null
+          numero?: string
+          observacoes?: string | null
+          prioridade?: string
+          proposta_id?: string | null
+          proposta_numero?: string | null
+          service_id?: string | null
+          titulo?: string
+          updated_at?: string
+          valor_estimado?: number
+          valor_final?: number
+        }
+        Relationships: []
+      }
+      ordens_servico_checklist: {
+        Row: {
+          concluido: boolean
+          concluido_em: string | null
+          created_at: string
+          id: string
+          ordem: number
+          os_id: string
+          prazo: string | null
+          responsavel_nome: string | null
+          titulo: string
+        }
+        Insert: {
+          concluido?: boolean
+          concluido_em?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number
+          os_id: string
+          prazo?: string | null
+          responsavel_nome?: string | null
+          titulo: string
+        }
+        Update: {
+          concluido?: boolean
+          concluido_em?: string | null
+          created_at?: string
+          id?: string
+          ordem?: number
+          os_id?: string
+          prazo?: string | null
+          responsavel_nome?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_servico_checklist_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planeamento_anexos: {
         Row: {
           card_id: string
