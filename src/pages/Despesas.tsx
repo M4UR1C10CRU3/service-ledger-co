@@ -59,7 +59,7 @@ export default function Despesas() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { empresa, isLoading: empresaLoading } = useEmpresa();
-  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
+  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount, refreshAccounts } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   
