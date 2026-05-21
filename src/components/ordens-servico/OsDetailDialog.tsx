@@ -22,6 +22,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, AlertTriangle, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import OsExtrasTab from './OsExtrasTab';
 
 interface Props {
   os: OrdemServico | null;
@@ -187,9 +188,10 @@ export function OsDetailDialog({
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-2">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
             <TabsTrigger value="checklist">Checklist</TabsTrigger>
+            <TabsTrigger value="extras">Extras</TabsTrigger>
             <TabsTrigger value="acoes">Ações</TabsTrigger>
           </TabsList>
 
@@ -369,6 +371,11 @@ export function OsDetailDialog({
                 </div>
               </>
             )}
+          </TabsContent>
+
+          {/* EXTRAS */}
+          <TabsContent value="extras" className="mt-4">
+            <OsExtrasTab osId={os.id} empresaId={os.empresaId} osEstado={os.estado} />
           </TabsContent>
 
           {/* AÇÕES */}
