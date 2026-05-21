@@ -37,11 +37,42 @@ export function AdjudicacaoDialog({ open, onOpenChange, proposta, onComplete }: 
   const { createBatch } = usePlanoPagamentos(empresa?.id);
   const { updateEstado: updatePropostaEstado } = usePropostas();
   const { createOrdem } = useOrdensServico(empresa?.id);
+  const { modelos, saveModelo, deleteModelo } = usePlanoPagamentosModelos(empresa?.id);
 
   const [rows, setRows] = useState<PpFormRow[]>([]);
   const [criarOs, setCriarOs] = useState(true);
   const [osTitulo, setOsTitulo] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [nomeNovoModelo, setNomeNovoModelo] = useState('');
+  const [showSaveModelo, setShowSaveModelo] = useState(false);
+
+  const applyModelo = (linhas: PpModeloLinha[]) => {
+    const total = proposta?.totalComIva ?? 0;
+    setRows(linhas.map((l, i) => ({
+      tempId: `m${i}`,
+      descricao: l.descricao,
+      percentagem: String(l.percentagem),
+      valor: ((total * l.percentagem) / 100).toFixed(2),
+      fase: l.fase,
+      dataPrevista: '',
+    })));
+  };
+
+  const handleSaveModelo = async () => {
+    if (!nomeNovoModelo.trim()) return;
+    const ok = await saveModelo(
+      nomeNovoModelo.trim(),
+      rows.map(r => ({
+        descricao: r.descricao,
+        percentagem: parseFloat(r.percentagem) || 0,
+        fase: r.fase,
+      })),
+    );
+    if (ok) {
+      setNomeNovoModelo('');
+      setShowSaveModelo(false);
+    }
+  };
 
   useEffect(() => {
     if (open && proposta) {
