@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Proposta } from '@/types/proposta';
-import { PpFormRow, PP_FASES, defaultPpRows } from '@/types/planoPagamento';
+import { PpFormRow, PP_FASES, defaultPpRows, PP_MODELOS_SISTEMA, PpModeloLinha } from '@/types/planoPagamento';
+import { usePlanoPagamentosModelos } from '@/hooks/usePlanoPagamentosModelos';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { usePlanoPagamentos } from '@/hooks/usePlanoPagamentos';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useOrdensServico } from '@/hooks/useOrdensServico';
@@ -13,11 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Handshake, Plus, Trash2, AlertCircle, Loader2 } from 'lucide-react';
+import { Handshake, Plus, Trash2, AlertCircle, Loader2, BookmarkPlus, BookmarkCheck, ChevronDown, X } from 'lucide-react';
 import { formatEUR } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { emptyOsForm } from '@/types/ordemServico';
@@ -35,11 +37,42 @@ export function AdjudicacaoDialog({ open, onOpenChange, proposta, onComplete }: 
   const { createBatch } = usePlanoPagamentos(empresa?.id);
   const { updateEstado: updatePropostaEstado } = usePropostas();
   const { createOrdem } = useOrdensServico(empresa?.id);
+  const { modelos, saveModelo, deleteModelo } = usePlanoPagamentosModelos(empresa?.id);
 
   const [rows, setRows] = useState<PpFormRow[]>([]);
   const [criarOs, setCriarOs] = useState(true);
   const [osTitulo, setOsTitulo] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [nomeNovoModelo, setNomeNovoModelo] = useState('');
+  const [showSaveModelo, setShowSaveModelo] = useState(false);
+
+  const applyModelo = (linhas: PpModeloLinha[]) => {
+    const total = proposta?.totalComIva ?? 0;
+    setRows(linhas.map((l, i) => ({
+      tempId: `m${i}`,
+      descricao: l.descricao,
+      percentagem: String(l.percentagem),
+      valor: ((total * l.percentagem) / 100).toFixed(2),
+      fase: l.fase,
+      dataPrevista: '',
+    })));
+  };
+
+  const handleSaveModelo = async () => {
+    if (!nomeNovoModelo.trim()) return;
+    const ok = await saveModelo(
+      nomeNovoModelo.trim(),
+      rows.map(r => ({
+        descricao: r.descricao,
+        percentagem: parseFloat(r.percentagem) || 0,
+        fase: r.fase,
+      })),
+    );
+    if (ok) {
+      setNomeNovoModelo('');
+      setShowSaveModelo(false);
+    }
+  };
 
   useEffect(() => {
     if (open && proposta) {
@@ -162,6 +195,70 @@ export function AdjudicacaoDialog({ open, onOpenChange, proposta, onComplete }: 
             <div className="text-xs text-muted-foreground">Condições</div>
             <div className="font-medium">{(proposta as any).condicoesPagamento || '—'}</div>
           </div>
+        </div>
+
+        {/* Modelos de Plano de Pagamentos */}
+        <div className="rounded-md bg-muted/50 p-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap">Modelo:</Label>
+            <Select
+              onValueChange={(id) => {
+                const all = [...PP_MODELOS_SISTEMA, ...modelos];
+                const m = all.find((x: any) => x.id === id);
+                if (m) applyModelo(m.linhas);
+              }}
+            >
+              <SelectTrigger className="h-8 flex-1 max-w-md">
+                <SelectValue placeholder="Seleccionar modelo..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Modelos do Sistema</SelectLabel>
+                  {PP_MODELOS_SISTEMA.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                  ))}
+                </SelectGroup>
+                {modelos.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Modelos da Empresa</SelectLabel>
+                    {modelos.map(m => (
+                      <SelectItem key={m.id} value={m.id}>
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span>{m.nome}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteModelo(m.id); }}
+                            className="text-destructive hover:opacity-70"
+                            aria-label="Eliminar modelo"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <Popover open={showSaveModelo} onOpenChange={setShowSaveModelo}>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="sm">
+                <BookmarkPlus className="h-4 w-4 mr-1" /> Guardar modelo
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 space-y-2" align="end">
+              <Label className="text-xs">Nome do modelo</Label>
+              <Input
+                placeholder="Nome do modelo"
+                value={nomeNovoModelo}
+                onChange={(e) => setNomeNovoModelo(e.target.value)}
+              />
+              <Button type="button" size="sm" className="w-full" onClick={handleSaveModelo}>
+                <BookmarkCheck className="h-4 w-4 mr-1" /> Guardar
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Plano de Pagamentos */}
