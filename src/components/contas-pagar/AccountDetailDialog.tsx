@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { ArrowRightLeft } from 'lucide-react';
 import { AccountPayable, TIPO_LANCAMENTO_LABELS, CATEGORIAS_POR_TIPO, STATUS_LABELS, METODOS_PAGAMENTO } from '@/types/accountPayable';
+import { MoverContaDialog } from './MoverContaDialog';
 
 interface Props {
   account: AccountPayable | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMoved?: () => void;
 }
 
 function fmt(v: number) {
@@ -23,14 +28,27 @@ function getMetodoLabel(m: string | null) {
   return METODOS_PAGAMENTO.find(p => p.value === m)?.label || m;
 }
 
-export function AccountDetailDialog({ account, open, onOpenChange }: Props) {
+export function AccountDetailDialog({ account, open, onOpenChange, onMoved }: Props) {
+  const [moverOpen, setMoverOpen] = useState(false);
   if (!account) return null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Detalhes da Conta</DialogTitle>
+          <DialogTitle className="flex items-center justify-between gap-2">
+            <span>Detalhes da Conta</span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mr-6 h-8"
+              onClick={() => setMoverOpen(true)}
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+              Mover / Reclassificar
+            </Button>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
@@ -90,5 +108,12 @@ export function AccountDetailDialog({ account, open, onOpenChange }: Props) {
         </div>
       </DialogContent>
     </Dialog>
+    <MoverContaDialog
+      account={account}
+      open={moverOpen}
+      onOpenChange={setMoverOpen}
+      onMoved={() => { onMoved?.(); onOpenChange(false); }}
+    />
+    </>
   );
 }

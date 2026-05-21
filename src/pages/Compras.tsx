@@ -39,7 +39,7 @@ export default function Compras() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { empresa, isLoading: empresaLoading } = useEmpresa();
-  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
+  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount, refreshAccounts } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
@@ -428,7 +428,7 @@ export default function Compras() {
         mode="compra"
       />
 
-      <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
+      <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} onMoved={refreshAccounts} />
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>

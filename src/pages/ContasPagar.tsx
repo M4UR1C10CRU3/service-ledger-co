@@ -37,7 +37,7 @@ export default function ContasPagar() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
-  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount } = useAccountsPayable();
+  const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount, refreshAccounts } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
   const { articles, updateArticleStock } = useArticles();
@@ -467,6 +467,7 @@ export default function ContasPagar() {
         account={viewingAccount}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
+        onMoved={refreshAccounts}
       />
 
       {/* Delete Dialog */}
