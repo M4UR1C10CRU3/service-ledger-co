@@ -254,12 +254,33 @@ export const useServices = (empresaId?: string) => {
         const servicesFromDb = await loadServicesFromDatabase(currentEmpresaId);
         console.log('useServices: Loaded', servicesFromDb.length, 'services');
         setServices(servicesFromDb);
-        
-        // Load liquidacoes for each service
+
+        // Load liquidacoes for ALL services in a single batch query (avoids N+1)
+        const serviceIds = servicesFromDb.map(s => s.id);
         const allLiquidacoes: Record<string, Liquidacao[]> = {};
-        for (const service of servicesFromDb) {
-          const serviceLiquidacoes = await loadLiquidacoesFromDatabase(service.id);
-          allLiquidacoes[service.id] = serviceLiquidacoes;
+        if (serviceIds.length > 0) {
+          const { data: liqRows, error: liqError } = await supabase
+            .from('liquidacoes')
+            .select('*')
+            .in('service_id', serviceIds)
+            .order('created_at', { ascending: false });
+
+          if (liqError) {
+            console.error('Error batch loading liquidacoes:', liqError);
+          } else if (liqRows) {
+            for (const row of liqRows) {
+              const liq: Liquidacao = {
+                id: row.id,
+                serviceId: row.service_id,
+                valor: parseFloat(row.valor.toString()),
+                dataPagamento: row.data_pagamento,
+                formaPagamento: (row as any).forma_pagamento || undefined,
+                observacoes: row.observacoes || undefined,
+                createdAt: new Date(row.created_at),
+              };
+              (allLiquidacoes[row.service_id] ||= []).push(liq);
+            }
+          }
         }
         setLiquidacoes(allLiquidacoes);
       } catch (error) {
