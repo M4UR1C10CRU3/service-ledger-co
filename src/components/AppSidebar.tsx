@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Briefcase, Users, FileText, Target, Clock,
   ShoppingCart, Truck, Package, BoxSelect,
   Factory, Receipt, ClipboardList,
-  Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3,
+  Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3, PieChart,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb,
@@ -75,6 +75,8 @@ const sections: NavSection[] = [
     items: [
       { title: 'Receitas', url: '/receitas', icon: TrendingUp, permModulo: 'financeiro_receitas' },
       { title: 'Despesas', url: '/despesas', icon: CreditCard, permModulo: 'financeiro_despesas' },
+      { title: 'Contas a Pagar', url: '/contas-pagar', icon: Receipt, permModulo: 'financeiro_despesas' },
+      { title: 'Dashboard Financeiro', url: '/contas-pagar/dashboard', icon: PieChart, permModulo: 'financeiro_despesas' },
       { title: 'Débitos', url: '/debitos', icon: AlertTriangle, permModulo: 'financeiro_debitos' },
       { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History, permModulo: 'financeiro_debitos' },
       { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet, permModulo: 'financeiro_fluxo' },
