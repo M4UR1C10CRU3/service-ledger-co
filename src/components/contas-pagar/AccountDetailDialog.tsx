@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { ArrowRightLeft } from 'lucide-react';
 import { AccountPayable, TIPO_LANCAMENTO_LABELS, CATEGORIAS_POR_TIPO, STATUS_LABELS, METODOS_PAGAMENTO } from '@/types/accountPayable';
+import { MoverContaDialog } from './MoverContaDialog';
 
 interface Props {
   account: AccountPayable | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMoved?: () => void;
 }
 
 function fmt(v: number) {
