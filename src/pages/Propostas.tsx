@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { formatEUR } from '@/lib/formatters';
-import { FileText, Plus, Download, Eye, Pencil, Copy, FileDown, Trash2, Search, Filter } from 'lucide-react';
+import { FileText, Plus, Download, Eye, Pencil, Copy, FileDown, Trash2, Search, Filter, Handshake } from 'lucide-react';
+import { AdjudicacaoDialog } from '@/components/propostas/AdjudicacaoDialog';
 import { PropostaFormDialog } from '@/components/propostas/PropostaFormDialog';
 import { PropostaDetailDialog } from '@/components/propostas/PropostaDetailDialog';
 import { exportPropostaExcelList } from '@/components/propostas/propostaExcelExport';
