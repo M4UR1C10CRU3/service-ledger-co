@@ -19,6 +19,8 @@ const Index = lazy(() => import("./pages/Index"));
 const Clientes = lazy(() => import("./pages/Clientes"));
 const Fornecedores = lazy(() => import("./pages/Fornecedores"));
 const Despesas = lazy(() => import("./pages/Despesas"));
+const ContasPagar = lazy(() => import("./pages/ContasPagar"));
+const ContasPagarDashboard = lazy(() => import("./pages/ContasPagarDashboard"));
 const Compras = lazy(() => import("./pages/Compras"));
 const Debitos = lazy(() => import("./pages/Debitos"));
 const HistoricoCobrancas = lazy(() => import("./pages/HistoricoCobrancas"));
@@ -91,8 +93,8 @@ const App = () => (
               <Route path="/fornecedores" element={<ProtectedWithLayout><Fornecedores /></ProtectedWithLayout>} />
               <Route path="/despesas" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
               <Route path="/compras" element={<ProtectedWithLayout><Compras /></ProtectedWithLayout>} />
-              <Route path="/contas-pagar" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
-              <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><Despesas /></ProtectedWithLayout>} />
+              <Route path="/contas-pagar" element={<ProtectedWithLayout><ContasPagar /></ProtectedWithLayout>} />
+              <Route path="/contas-pagar/dashboard" element={<ProtectedWithLayout><ContasPagarDashboard /></ProtectedWithLayout>} />
 
               {/* Placeholder routes for future pages */}
               <Route path="/propostas" element={<ProtectedWithLayout><Propostas /></ProtectedWithLayout>} />
