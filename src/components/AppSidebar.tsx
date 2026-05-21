@@ -78,6 +78,7 @@ const sections: NavSection[] = [
       { title: 'Despesas', url: '/despesas', icon: CreditCard, permModulo: 'financeiro_despesas' },
       { title: 'Contas a Pagar', url: '/contas-pagar', icon: Receipt, permModulo: 'financeiro_despesas' },
       { title: 'Dashboard Financeiro', url: '/contas-pagar/dashboard', icon: PieChart, permModulo: 'financeiro_despesas' },
+      { title: 'Relatório Gerencial', url: '/relatorio-gerencial', icon: BarChart3, permModulo: 'financeiro_receitas' },
       { title: 'Débitos', url: '/debitos', icon: AlertTriangle, permModulo: 'financeiro_debitos' },
       { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History, permModulo: 'financeiro_debitos' },
       { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet, permModulo: 'financeiro_fluxo' },
