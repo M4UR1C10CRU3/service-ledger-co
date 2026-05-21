@@ -56,6 +56,7 @@ export default function Propostas() {
   const [detailProposta, setDetailProposta] = useState<Proposta | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [adjudicacaoProposta, setAdjudicacaoProposta] = useState<Proposta | null>(null);
 
   // Check expired proposals
   const today = new Date().toISOString().split('T')[0];
