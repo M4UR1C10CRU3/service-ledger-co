@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { formatEUR } from '@/lib/formatters';
-import { FileText, Plus, Download, Eye, Pencil, Copy, FileDown, Trash2, Search, Filter } from 'lucide-react';
+import { FileText, Plus, Download, Eye, Pencil, Copy, FileDown, Trash2, Search, Filter, Handshake } from 'lucide-react';
+import { AdjudicacaoDialog } from '@/components/propostas/AdjudicacaoDialog';
 import { PropostaFormDialog } from '@/components/propostas/PropostaFormDialog';
 import { PropostaDetailDialog } from '@/components/propostas/PropostaDetailDialog';
 import { exportPropostaExcelList } from '@/components/propostas/propostaExcelExport';
@@ -55,6 +56,7 @@ export default function Propostas() {
   const [detailProposta, setDetailProposta] = useState<Proposta | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [adjudicacaoProposta, setAdjudicacaoProposta] = useState<Proposta | null>(null);
 
   // Check expired proposals
   const today = new Date().toISOString().split('T')[0];
@@ -245,6 +247,16 @@ export default function Propostas() {
                         <Button size="icon" variant="ghost" onClick={() => handleView(p)} title="Ver"><Eye className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => handleEdit(p)} title="Editar"><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => handleDuplicate(p.id)} title="Duplicar"><Copy className="h-4 w-4" /></Button>
+                        {(getEstado(p) === 'enviada' || getEstado(p) === 'aceite') && (
+                          <Button
+                            size="icon" variant="ghost"
+                            title="Adjudicar"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={(e) => { e.stopPropagation(); setAdjudicacaoProposta(p); }}
+                          >
+                            <Handshake className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button size="icon" variant="ghost" onClick={() => setDeleteId(p.id)} title="Eliminar"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
@@ -284,6 +296,18 @@ export default function Propostas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AdjudicacaoDialog
+        open={!!adjudicacaoProposta}
+        onOpenChange={(v) => { if (!v) setAdjudicacaoProposta(null); }}
+        proposta={adjudicacaoProposta}
+        onComplete={(osId) => {
+          setAdjudicacaoProposta(null);
+          toast({
+            title: 'Adjudicação confirmada ✓',
+            description: osId ? `OS criada automaticamente` : 'Plano de pagamentos registado',
+          });
+        }}
+      />
     </div>
   );
 }
