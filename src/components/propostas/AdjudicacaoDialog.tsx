@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Handshake, Plus, Trash2, AlertCircle, Loader2 } from 'lucide-react';
+import { Handshake, Plus, Trash2, AlertCircle, Loader2, BookmarkPlus, BookmarkCheck, ChevronDown, X } from 'lucide-react';
 import { formatEUR } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { emptyOsForm } from '@/types/ordemServico';
