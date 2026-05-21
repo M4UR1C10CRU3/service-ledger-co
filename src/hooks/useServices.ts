@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Service, ServiceWithCalculations, DashboardMetrics, Liquidacao } from '@/types/service';
 import { parseInvoiceEntries, calcTotalFaturado } from '@/components/InvoiceHistoryInput';
 import { supabase } from '@/integrations/supabase/client';
+import { parseDatePT } from '@/lib/formatters';
 
 // Helper functions for database operations
 const saveServiceToDatabase = async (service: Service, empresaId: string) => {
@@ -19,6 +20,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
         .from('services')
         .update({
           data: service.data,
+          data_date: parseDatePT(service.data),
           servico: service.servico,
           cliente: service.cliente,
           resumo: service.resumo,
@@ -50,6 +52,7 @@ const saveServiceToDatabase = async (service: Service, empresaId: string) => {
         .insert({
           service_id: service.id,
           data: service.data,
+          data_date: parseDatePT(service.data),
           servico: service.servico,
           cliente: service.cliente,
           resumo: service.resumo,
@@ -135,7 +138,7 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
     let query = supabase
       .from('services')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('data_date', { ascending: false, nullsFirst: false });
     
     // Filtrar por empresa se especificado
     if (empresaId) {

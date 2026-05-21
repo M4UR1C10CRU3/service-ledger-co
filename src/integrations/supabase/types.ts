@@ -1485,6 +1485,7 @@ export type Database = {
         Row: {
           created_at: string
           data_pagamento: string
+          data_pagamento_date: string | null
           forma_pagamento: string | null
           id: string
           observacoes: string | null
@@ -1495,6 +1496,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data_pagamento: string
+          data_pagamento_date?: string | null
           forma_pagamento?: string | null
           id?: string
           observacoes?: string | null
@@ -1505,6 +1507,7 @@ export type Database = {
         Update: {
           created_at?: string
           data_pagamento?: string
+          data_pagamento_date?: string | null
           forma_pagamento?: string | null
           id?: string
           observacoes?: string | null
@@ -3025,6 +3028,7 @@ export type Database = {
           contrato_id: string | null
           created_at: string
           data: string
+          data_date: string | null
           desconto: number
           email: string | null
           empresa_id: string
@@ -3052,6 +3056,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           data: string
+          data_date?: string | null
           desconto?: number
           email?: string | null
           empresa_id: string
@@ -3079,6 +3084,7 @@ export type Database = {
           contrato_id?: string | null
           created_at?: string
           data?: string
+          data_date?: string | null
           desconto?: number
           email?: string | null
           empresa_id?: string
