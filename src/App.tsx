@@ -44,6 +44,7 @@ const AlterarSenha = lazy(() => import("./pages/AlterarSenha"));
 const OrdensServico = lazy(() => import("./pages/OrdensServico"));
 const NotasEncomenda = lazy(() => import("./pages/NotasEncomenda"));
 const DashboardExecutivo = lazy(() => import("./pages/DashboardExecutivo"));
+const Subempreiteiros = lazy(() => import("./pages/Subempreiteiros"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,7 +114,7 @@ const App = () => (
               <Route path="/fluxo-caixa" element={<ProtectedWithLayout><FluxoCaixa /></ProtectedWithLayout>} />
               <Route path="/colaboradores" element={<ProtectedWithLayout><Colaboradores /></ProtectedWithLayout>} />
               <Route path="/controle-ponto" element={<ProtectedWithLayout><ControlePonto /></ProtectedWithLayout>} />
-              <Route path="/subempreiteiros" element={<ProtectedWithLayout><PlaceholderPage title="Subempreiteiros" /></ProtectedWithLayout>} />
+              <Route path="/subempreiteiros" element={<ProtectedWithLayout><Subempreiteiros /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/avaliacoes" element={<ProtectedWithLayout><Avaliacoes /></ProtectedWithLayout>} />
               <Route path="/marketing" element={<ProtectedWithLayout><Marketing /></ProtectedWithLayout>} />
