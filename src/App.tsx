@@ -43,6 +43,7 @@ const PlaneamentoEstrategico = lazy(() => import("./pages/PlaneamentoEstrategico
 const AlterarSenha = lazy(() => import("./pages/AlterarSenha"));
 const OrdensServico = lazy(() => import("./pages/OrdensServico"));
 const NotasEncomenda = lazy(() => import("./pages/NotasEncomenda"));
+const DashboardExecutivo = lazy(() => import("./pages/DashboardExecutivo"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
