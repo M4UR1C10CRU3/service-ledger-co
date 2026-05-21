@@ -28,14 +28,27 @@ function getMetodoLabel(m: string | null) {
   return METODOS_PAGAMENTO.find(p => p.value === m)?.label || m;
 }
 
-export function AccountDetailDialog({ account, open, onOpenChange }: Props) {
+export function AccountDetailDialog({ account, open, onOpenChange, onMoved }: Props) {
+  const [moverOpen, setMoverOpen] = useState(false);
   if (!account) return null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Detalhes da Conta</DialogTitle>
+          <DialogTitle className="flex items-center justify-between gap-2">
+            <span>Detalhes da Conta</span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mr-6 h-8"
+              onClick={() => setMoverOpen(true)}
+            >
+              <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+              Mover / Reclassificar
+            </Button>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
