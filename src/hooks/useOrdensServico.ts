@@ -1,205 +1,150 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useEmpresa } from '@/contexts/EmpresaContext';
+import { OrdemServico, OsChecklistItem, OsFormData, OsEstado } from '@/types/ordemServico';
 import { useToast } from '@/hooks/use-toast';
-import { OrdemServico, OsChecklistItem, OsEstado, OsFormData } from '@/types/ordemServico';
 
-function mapRow(row: any): OrdemServico {
+function mapOs(row: any): OrdemServico {
   return {
-    id: row.id,
-    empresaId: row.empresa_id,
-    numero: row.numero,
-    titulo: row.titulo,
-    descricao: row.descricao ?? undefined,
-    estado: row.estado,
-    prioridade: row.prioridade,
-    clienteId: row.cliente_id ?? undefined,
-    clienteNome: row.cliente_nome,
-    clienteTelefone: row.cliente_telefone ?? undefined,
-    clienteEmail: row.cliente_email ?? undefined,
-    propostaId: row.proposta_id ?? undefined,
-    propostaNumero: row.proposta_numero ?? undefined,
-    colaboradorId: row.colaborador_id ?? undefined,
-    colaboradorNome: row.colaborador_nome ?? undefined,
-    valorEstimado: parseFloat(row.valor_estimado ?? 0),
-    valorFinal: parseFloat(row.valor_final ?? 0),
-    dataCriacao: row.data_criacao,
-    dataPrevistaInicio: row.data_prevista_inicio ?? undefined,
-    dataPrevistaConclusao: row.data_prevista_conclusao ?? undefined,
-    dataInicioReal: row.data_inicio_real ?? undefined,
-    dataConclusaoReal: row.data_conclusao_real ?? undefined,
-    serviceId: row.service_id ?? undefined,
-    observacoes: row.observacoes ?? undefined,
-    notasInternas: row.notas_internas ?? undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: row.id, empresaId: row.empresa_id, numero: row.numero,
+    clienteId: row.cliente_id, clienteNome: row.cliente_nome,
+    propostaId: row.proposta_id, responsavelId: row.responsavel_id,
+    responsavelNome: row.responsavel_nome, estado: row.estado,
+    prioridade: row.prioridade, titulo: row.titulo, descricao: row.descricao,
+    observacoes: row.observacoes, dataAbertura: row.data_abertura,
+    dataPrevista: row.data_prevista, dataInicio: row.data_inicio,
+    dataConclusao: row.data_conclusao, valorEstimado: row.valor_estimado,
+    valorFinal: row.valor_final, createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
 
-function mapChecklistRow(row: any): OsChecklistItem {
+function mapChecklist(row: any): OsChecklistItem {
   return {
-    id: row.id,
-    osId: row.os_id,
-    titulo: row.titulo,
-    responsavelNome: row.responsavel_nome ?? undefined,
-    prazo: row.prazo ?? undefined,
-    concluido: row.concluido,
-    concluidoEm: row.concluido_em ?? undefined,
-    ordem: row.ordem,
+    id: row.id, osId: row.os_id, descricao: row.descricao,
+    concluido: row.concluido, ordem: row.ordem, createdAt: row.created_at,
   };
 }
 
-export function useOrdensServico() {
-  const { empresa } = useEmpresa();
-  const { toast } = useToast();
+export function useOrdensServico(empresaId: string | undefined) {
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const { toast } = useToast();
 
   const fetchOrdens = useCallback(async () => {
-    if (!empresa?.id) return;
+    if (!empresaId) { setIsInitialized(true); return; }
     setIsLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('ordens_servico')
         .select('*')
-        .eq('empresa_id', empresa.id)
+        .eq('empresa_id', empresaId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setOrdens((data ?? []).map(mapRow));
-    } catch (e) {
-      console.error('useOrdensServico fetch error:', e);
+      setOrdens((data ?? []).map(mapOs));
+    } catch (e: any) {
+      toast({ title: 'Erro ao carregar OS', description: e.message, variant: 'destructive' });
     } finally {
       setIsLoading(false);
+      setIsInitialized(true);
     }
-  }, [empresa?.id]);
+  }, [empresaId]);
 
   useEffect(() => { fetchOrdens(); }, [fetchOrdens]);
 
   const createOrdem = async (form: OsFormData): Promise<OrdemServico | null> => {
-    if (!empresa?.id) return null;
+    if (!empresaId) return null;
     try {
-      const { data, error } = await (supabase as any)
-        .from('ordens_servico')
-        .insert({
-          empresa_id: empresa.id,
-          titulo: form.titulo,
-          descricao: form.descricao || null,
-          estado: form.estado,
-          prioridade: form.prioridade,
-          cliente_id: form.clienteId || null,
-          cliente_nome: form.clienteNome,
-          cliente_telefone: form.clienteTelefone || null,
-          cliente_email: form.clienteEmail || null,
-          proposta_id: form.propostaId || null,
-          proposta_numero: form.propostaNumero || null,
-          colaborador_id: form.colaboradorId || null,
-          colaborador_nome: form.colaboradorNome || null,
-          valor_estimado: parseFloat(form.valorEstimado) || 0,
-          data_prevista_inicio: form.dataPrevistaInicio || null,
-          data_prevista_conclusao: form.dataPrevistaConclusao || null,
-          observacoes: form.observacoes || null,
-          notas_internas: form.notasInternas || null,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.from('ordens_servico').insert({
+        empresa_id: empresaId,
+        cliente_id: form.clienteId || null,
+        cliente_nome: form.clienteNome,
+        proposta_id: form.propostaId || null,
+        responsavel_id: form.responsavelId || null,
+        responsavel_nome: form.responsavelNome || null,
+        estado: form.estado,
+        prioridade: form.prioridade,
+        titulo: form.titulo,
+        descricao: form.descricao || null,
+        observacoes: form.observacoes || null,
+        data_abertura: form.dataAbertura,
+        data_prevista: form.dataPrevista || null,
+        valor_estimado: form.valorEstimado ? parseFloat(form.valorEstimado) : null,
+      }).select().single();
       if (error) throw error;
-      toast({ title: `OS ${data.numero} criada com sucesso` });
-      fetchOrdens();
-      return mapRow(data);
-    } catch (e) {
-      console.error('createOrdem error:', e);
-      toast({ title: 'Erro ao criar Ordem de Serviço', variant: 'destructive' });
+      const os = mapOs(data);
+      setOrdens(prev => [os, ...prev]);
+      toast({ title: `OS criada: ${os.numero}` });
+      return os;
+    } catch (e: any) {
+      toast({ title: 'Erro ao criar OS', description: e.message, variant: 'destructive' });
       return null;
     }
   };
 
-  const updateOrdem = async (id: string, form: Partial<OsFormData>): Promise<void> => {
+  const updateOrdem = async (id: string, payload: Record<string, any>): Promise<boolean> => {
     try {
-      const updates: any = {};
-      if (form.titulo !== undefined) updates.titulo = form.titulo;
-      if (form.descricao !== undefined) updates.descricao = form.descricao || null;
-      if (form.prioridade !== undefined) updates.prioridade = form.prioridade;
-      if (form.colaboradorId !== undefined) updates.colaborador_id = form.colaboradorId || null;
-      if (form.colaboradorNome !== undefined) updates.colaborador_nome = form.colaboradorNome || null;
-      if (form.clienteTelefone !== undefined) updates.cliente_telefone = form.clienteTelefone || null;
-      if (form.clienteEmail !== undefined) updates.cliente_email = form.clienteEmail || null;
-      if (form.valorEstimado !== undefined) updates.valor_estimado = parseFloat(form.valorEstimado) || 0;
-      if (form.dataPrevistaInicio !== undefined) updates.data_prevista_inicio = form.dataPrevistaInicio || null;
-      if (form.dataPrevistaConclusao !== undefined) updates.data_prevista_conclusao = form.dataPrevistaConclusao || null;
-      if (form.observacoes !== undefined) updates.observacoes = form.observacoes || null;
-      if (form.notasInternas !== undefined) updates.notas_internas = form.notasInternas || null;
-      const { error } = await (supabase as any).from('ordens_servico').update(updates).eq('id', id);
+      const { data, error } = await supabase.from('ordens_servico')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', id).select().single();
       if (error) throw error;
-      fetchOrdens();
-    } catch (e) {
-      console.error('updateOrdem error:', e);
-      toast({ title: 'Erro ao atualizar OS', variant: 'destructive' });
+      setOrdens(prev => prev.map(o => o.id === id ? mapOs(data) : o));
+      return true;
+    } catch (e: any) {
+      toast({ title: 'Erro ao actualizar OS', description: e.message, variant: 'destructive' });
+      return false;
     }
   };
 
-  const updateEstado = async (id: string, estado: OsEstado): Promise<void> => {
-    try {
-      const updates: any = { estado };
-      if (estado === 'em_execucao') updates.data_inicio_real = new Date().toISOString().split('T')[0];
-      if (estado === 'concluida') updates.data_conclusao_real = new Date().toISOString().split('T')[0];
-      const { error } = await (supabase as any).from('ordens_servico').update(updates).eq('id', id);
-      if (error) throw error;
-      fetchOrdens();
-    } catch (e) {
-      console.error('updateEstado error:', e);
-      toast({ title: 'Erro ao atualizar estado', variant: 'destructive' });
-    }
+  const updateEstado = async (id: string, estado: OsEstado): Promise<boolean> => {
+    const extra: Record<string, any> = { estado };
+    if (estado === 'em_execucao') extra.data_inicio = new Date().toISOString().split('T')[0];
+    if (estado === 'concluida' || estado === 'faturada') extra.data_conclusao = new Date().toISOString().split('T')[0];
+    return updateOrdem(id, extra);
   };
 
-  const deleteOrdem = async (id: string): Promise<void> => {
+  const deleteOrdem = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await (supabase as any).from('ordens_servico').delete().eq('id', id);
+      const { error } = await supabase.from('ordens_servico').delete().eq('id', id);
       if (error) throw error;
-      toast({ title: 'OS eliminada', variant: 'destructive' });
-      fetchOrdens();
-    } catch (e) {
-      console.error('deleteOrdem error:', e);
-      toast({ title: 'Erro ao eliminar OS', variant: 'destructive' });
+      setOrdens(prev => prev.filter(o => o.id !== id));
+      toast({ title: 'OS eliminada' });
+      return true;
+    } catch (e: any) {
+      toast({ title: 'Erro ao eliminar OS', description: e.message, variant: 'destructive' });
+      return false;
     }
   };
 
   const fetchChecklist = async (osId: string): Promise<OsChecklistItem[]> => {
-    const { data, error } = await (supabase as any)
-      .from('ordens_servico_checklist')
-      .select('*')
-      .eq('os_id', osId)
-      .order('ordem');
-    if (error) return [];
-    return (data ?? []).map(mapChecklistRow);
+    const { data } = await supabase.from('ordens_servico_checklist')
+      .select('*').eq('os_id', osId).order('ordem');
+    return (data ?? []).map(mapChecklist);
   };
 
-  const addChecklistItem = async (osId: string, titulo: string, responsavelNome?: string, prazo?: string): Promise<void> => {
-    const { data: existing } = await (supabase as any)
-      .from('ordens_servico_checklist')
-      .select('ordem')
-      .eq('os_id', osId)
-      .order('ordem', { ascending: false })
-      .limit(1);
-    const nextOrdem = existing?.[0]?.ordem != null ? existing[0].ordem + 1 : 0;
-    await (supabase as any).from('ordens_servico_checklist').insert({
-      os_id: osId, titulo, responsavel_nome: responsavelNome || null,
-      prazo: prazo || null, ordem: nextOrdem,
-    });
+  const addChecklistItem = async (osId: string, descricao: string): Promise<OsChecklistItem | null> => {
+    const { data: existing } = await supabase.from('ordens_servico_checklist')
+      .select('ordem').eq('os_id', osId).order('ordem', { ascending: false }).limit(1);
+    const nextOrdem = existing?.length ? existing[0].ordem + 1 : 0;
+    const { data, error } = await supabase.from('ordens_servico_checklist')
+      .insert({ os_id: osId, descricao, ordem: nextOrdem }).select().single();
+    if (error) return null;
+    return mapChecklist(data);
   };
 
-  const toggleChecklistItem = async (itemId: string, concluido: boolean): Promise<void> => {
-    await (supabase as any).from('ordens_servico_checklist').update({
-      concluido,
-      concluido_em: concluido ? new Date().toISOString() : null,
-    }).eq('id', itemId);
+  const toggleChecklistItem = async (itemId: string, concluido: boolean): Promise<boolean> => {
+    const { error } = await supabase.from('ordens_servico_checklist')
+      .update({ concluido }).eq('id', itemId);
+    return !error;
   };
 
-  const deleteChecklistItem = async (itemId: string): Promise<void> => {
-    await (supabase as any).from('ordens_servico_checklist').delete().eq('id', itemId);
+  const deleteChecklistItem = async (itemId: string): Promise<boolean> => {
+    const { error } = await supabase.from('ordens_servico_checklist')
+      .delete().eq('id', itemId);
+    return !error;
   };
 
   return {
-    ordens, isLoading, fetchOrdens,
+    ordens, isLoading, isInitialized, fetchOrdens,
     createOrdem, updateOrdem, updateEstado, deleteOrdem,
     fetchChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem,
   };
