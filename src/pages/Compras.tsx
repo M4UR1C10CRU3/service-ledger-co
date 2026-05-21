@@ -428,7 +428,7 @@ export default function Compras() {
         mode="compra"
       />
 
-      <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
+      <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} onMoved={refreshAccounts} />
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
