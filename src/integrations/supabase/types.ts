@@ -3880,6 +3880,69 @@ export type Database = {
           },
         ]
       }
+      trabalhos_extra: {
+        Row: {
+          aprovado_por: string | null
+          created_at: string
+          data_aprovacao: string | null
+          descricao: string
+          empresa_id: string
+          estado: string
+          id: string
+          observacoes: string | null
+          os_id: string
+          preco_unit: number
+          quantidade: number
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          aprovado_por?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          descricao: string
+          empresa_id: string
+          estado?: string
+          id?: string
+          observacoes?: string | null
+          os_id: string
+          preco_unit?: number
+          quantidade?: number
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          aprovado_por?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          descricao?: string
+          empresa_id?: string
+          estado?: string
+          id?: string
+          observacoes?: string | null
+          os_id?: string
+          preco_unit?: number
+          quantidade?: number
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trabalhos_extra_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trabalhos_extra_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
