@@ -135,6 +135,16 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
 
   const getLogo = (): string => {
     if (!empresa) return logoObrajusta;
+    // Se logo_path for URL completa (Supabase Storage ou externa), usa diretamente
+    if (empresa.logoPath && empresa.logoPath.startsWith('http')) {
+      return empresa.logoPath;
+    }
+    // Se for caminho relativo no Supabase Storage, constrói URL pública
+    if (empresa.logoPath && empresa.logoPath.trim() !== '') {
+      const SUPABASE_URL = 'https://qeskzaodgfveidyeghbm.supabase.co';
+      return `${SUPABASE_URL}/storage/v1/object/public/logos/${empresa.logoPath}`;
+    }
+    // Fallback: logos locais para empresas existentes
     return logoMap[empresa.slug] || logoObrajusta;
   };
 
