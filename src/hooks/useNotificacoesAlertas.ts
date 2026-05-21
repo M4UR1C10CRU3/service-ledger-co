@@ -68,7 +68,7 @@ export function useNotificacoesAlertas() {
         alertas.push(() => {
           toast({
             title: `⚠️ ${vencidas.length} cobrança${vencidas.length > 1 ? 's' : ''} vencida${vencidas.length > 1 ? 's' : ''}`,
-            description: `Total em atraso: ${fmt(total)}. Aceda ao Dashboard Executivo.`,
+            description: `Total em atraso: ${fmt(total)}`,
             variant: 'destructive',
           });
           marcarVisto(eid, 'cobrancas_vencidas');
@@ -100,10 +100,10 @@ export function useNotificacoesAlertas() {
         });
       }
 
-      // 4 — Documentos de subempreiteiros a expirar (30 dias)
+      // 4 — Documentos a expirar (30 dias)
       const docsExpirar = sub.filter(s =>
-        (s.alvara_validade  && s.alvara_validade  >= today && s.alvara_validade  <= in30d) ||
-        (s.seguro_validade  && s.seguro_validade  >= today && s.seguro_validade  <= in30d)
+        (s.alvara_validade && s.alvara_validade >= today && s.alvara_validade <= in30d) ||
+        (s.seguro_validade && s.seguro_validade >= today && s.seguro_validade <= in30d)
       );
       if (docsExpirar.length > 0 && !jaVisto(eid, 'docs_expirar')) {
         alertas.push(() => {
@@ -115,10 +115,8 @@ export function useNotificacoesAlertas() {
         });
       }
 
-      // Mostrar alertas com intervalo de 800ms para não empilhar
-      alertas.forEach((fn, i) => {
-        setTimeout(fn, 1500 + i * 900);
-      });
+      // Mostrar imediatamente, separados por 300ms (sem delay inicial)
+      alertas.forEach((fn, i) => setTimeout(fn, i * 300));
     };
 
     verificar();
