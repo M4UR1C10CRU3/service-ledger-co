@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Proposta } from '@/types/proposta';
-import { PpFormRow, PP_FASES, defaultPpRows } from '@/types/planoPagamento';
+import { PpFormRow, PP_FASES, defaultPpRows, PP_MODELOS_SISTEMA, PpModeloLinha } from '@/types/planoPagamento';
+import { usePlanoPagamentosModelos } from '@/hooks/usePlanoPagamentosModelos';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { usePlanoPagamentos } from '@/hooks/usePlanoPagamentos';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useOrdensServico } from '@/hooks/useOrdensServico';
