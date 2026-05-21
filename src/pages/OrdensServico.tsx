@@ -281,8 +281,9 @@ function OrdensServico() {
           onUpdate={updateOrdem}
           onUpdateEstado={updateEstado}
           onDelete={async (id: string) => {
-            await deleteOrdem(id);
+            const ok = await deleteOrdem(id);
             setSelectedOs(null);
+            return ok;
           }}
           fetchChecklist={fetchChecklist}
           addChecklistItem={addChecklistItem}
