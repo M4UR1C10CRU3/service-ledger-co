@@ -467,6 +467,7 @@ export default function ContasPagar() {
         account={viewingAccount}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
+        onMoved={refreshAccounts}
       />
 
       {/* Delete Dialog */}
