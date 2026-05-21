@@ -108,5 +108,12 @@ export function AccountDetailDialog({ account, open, onOpenChange, onMoved }: Pr
         </div>
       </DialogContent>
     </Dialog>
+    <MoverContaDialog
+      account={account}
+      open={moverOpen}
+      onOpenChange={setMoverOpen}
+      onMoved={() => { onMoved?.(); onOpenChange(false); }}
+    />
+    </>
   );
 }
