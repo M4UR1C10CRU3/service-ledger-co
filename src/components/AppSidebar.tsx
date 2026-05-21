@@ -153,12 +153,22 @@ export function AppSidebar() {
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => navigate('/dashboard')}
         >
-          <div className="shrink-0 flex items-center justify-center" style={{ width: 65, height: 65 }}>
-            <img src={logo} alt={empresaNome} className="w-full h-full object-contain" />
+          <div className="shrink-0 h-11 w-11 rounded-xl overflow-hidden border border-sidebar-border/60 bg-sidebar-accent/40 flex items-center justify-center">
+            <img src={logo} alt={empresaNome} className="w-full h-full object-contain p-0.5" />
           </div>
-          <div className="overflow-hidden">
-            <p className="text-sm font-bold text-sidebar-foreground truncate group-hover:text-white transition-colors">{empresaNome}</p>
-            <p className="text-[11px] text-sidebar-foreground/50 truncate">{empresa?.nomeLegal}</p>
+          <div className="overflow-hidden flex-1 min-w-0">
+            <p className="text-sm font-bold text-sidebar-foreground/90 truncate leading-tight group-hover:text-white transition-colors">
+              {empresaNome}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+              </span>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/35 truncate">
+                Em linha
+              </p>
+            </div>
           </div>
         </div>
       </SidebarHeader>
