@@ -22,8 +22,23 @@ interface EmployeeFormDialogProps {
 }
 
 const DEPARTMENTS = [
-  'Administrativo', 'Comercial', 'Obras', 'Engenharia',
-  'Arquitetura', 'Produção', 'Financeiro', 'Recursos Humanos', 'Logística',
+  'Direção',
+  'Administrativo',
+  'Financeiro',
+  'Recursos Humanos',
+  'Comercial',
+  'Marketing',
+  'Compras',
+  'Logística',
+  'Produção',
+  'Obras',
+  'Engenharia',
+  'Arquitetura',
+  'Qualidade',
+  'Manutenção',
+  'TI / Informática',
+  'Jurídico',
+  'Segurança no Trabalho',
 ];
 
 const COUNTRIES = [
