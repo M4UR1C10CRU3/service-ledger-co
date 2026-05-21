@@ -2019,6 +2019,189 @@ export type Database = {
         }
         Relationships: []
       }
+      notas_encomenda: {
+        Row: {
+          created_at: string
+          data_criacao: string
+          data_envio: string | null
+          data_necessidade: string | null
+          data_recepcao: string | null
+          descricao: string | null
+          empresa_id: string
+          estado: string
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          id: string
+          numero: string
+          observacoes: string | null
+          os_id: string | null
+          prioridade: string
+          proposta_id: string | null
+          titulo: string
+          updated_at: string
+          valor_estimado: number | null
+          valor_final: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_criacao?: string
+          data_envio?: string | null
+          data_necessidade?: string | null
+          data_recepcao?: string | null
+          descricao?: string | null
+          empresa_id: string
+          estado?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero: string
+          observacoes?: string | null
+          os_id?: string | null
+          prioridade?: string
+          proposta_id?: string | null
+          titulo: string
+          updated_at?: string
+          valor_estimado?: number | null
+          valor_final?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_criacao?: string
+          data_envio?: string | null
+          data_necessidade?: string | null
+          data_recepcao?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          estado?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero?: string
+          observacoes?: string | null
+          os_id?: string | null
+          prioridade?: string
+          proposta_id?: string | null
+          titulo?: string
+          updated_at?: string
+          valor_estimado?: number | null
+          valor_final?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_encomenda_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_encomenda_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_encomenda_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_encomenda_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_encomenda_checklist: {
+        Row: {
+          concluido: boolean
+          created_at: string
+          descricao: string
+          id: string
+          ne_id: string
+          ordem: number
+        }
+        Insert: {
+          concluido?: boolean
+          created_at?: string
+          descricao: string
+          id?: string
+          ne_id: string
+          ordem?: number
+        }
+        Update: {
+          concluido?: boolean
+          created_at?: string
+          descricao?: string
+          id?: string
+          ne_id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_encomenda_checklist_ne_id_fkey"
+            columns: ["ne_id"]
+            isOneToOne: false
+            referencedRelation: "notas_encomenda"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_encomenda_items: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          ne_id: string
+          observacoes: string | null
+          ordem: number
+          preco_unit: number | null
+          quantidade: number
+          referencia: string | null
+          total: number | null
+          unidade: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          ne_id: string
+          observacoes?: string | null
+          ordem?: number
+          preco_unit?: number | null
+          quantidade?: number
+          referencia?: string | null
+          total?: number | null
+          unidade?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          ne_id?: string
+          observacoes?: string | null
+          ordem?: number
+          preco_unit?: number | null
+          quantidade?: number
+          referencia?: string | null
+          total?: number | null
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_encomenda_items_ne_id_fkey"
+            columns: ["ne_id"]
+            isOneToOne: false
+            referencedRelation: "notas_encomenda"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ordens_servico: {
         Row: {
           cliente_email: string | null
