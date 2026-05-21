@@ -247,6 +247,16 @@ export default function Propostas() {
                         <Button size="icon" variant="ghost" onClick={() => handleView(p)} title="Ver"><Eye className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => handleEdit(p)} title="Editar"><Pencil className="h-4 w-4" /></Button>
                         <Button size="icon" variant="ghost" onClick={() => handleDuplicate(p.id)} title="Duplicar"><Copy className="h-4 w-4" /></Button>
+                        {(getEstado(p) === 'enviada' || getEstado(p) === 'aceite') && (
+                          <Button
+                            size="icon" variant="ghost"
+                            title="Adjudicar"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={(e) => { e.stopPropagation(); setAdjudicacaoProposta(p); }}
+                          >
+                            <Handshake className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button size="icon" variant="ghost" onClick={() => setDeleteId(p.id)} title="Eliminar"><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
