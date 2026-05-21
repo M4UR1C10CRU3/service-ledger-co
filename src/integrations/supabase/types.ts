@@ -3698,6 +3698,170 @@ export type Database = {
           },
         ]
       }
+      subempreiteiros: {
+        Row: {
+          alvara_numero: string | null
+          alvara_validade: string | null
+          ativo: boolean | null
+          atualizado_em: string | null
+          cc_numero: string | null
+          cc_validade: string | null
+          certidao_permanente_codigo: string | null
+          codigo_postal: string | null
+          criado_em: string | null
+          data_nascimento: string | null
+          eliminado: boolean | null
+          email: string | null
+          empresa_id: string
+          especialidade: string | null
+          iban: string | null
+          id: string
+          localidade: string | null
+          morada: string | null
+          nif: string | null
+          nipc: string | null
+          nome: string
+          notas: string | null
+          representante_nif: string | null
+          representante_nome: string | null
+          seguro_numero: string | null
+          seguro_validade: string | null
+          swift: string | null
+          telefone: string | null
+          telemovel: string | null
+          tipo: string
+        }
+        Insert: {
+          alvara_numero?: string | null
+          alvara_validade?: string | null
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          cc_numero?: string | null
+          cc_validade?: string | null
+          certidao_permanente_codigo?: string | null
+          codigo_postal?: string | null
+          criado_em?: string | null
+          data_nascimento?: string | null
+          eliminado?: boolean | null
+          email?: string | null
+          empresa_id: string
+          especialidade?: string | null
+          iban?: string | null
+          id?: string
+          localidade?: string | null
+          morada?: string | null
+          nif?: string | null
+          nipc?: string | null
+          nome: string
+          notas?: string | null
+          representante_nif?: string | null
+          representante_nome?: string | null
+          seguro_numero?: string | null
+          seguro_validade?: string | null
+          swift?: string | null
+          telefone?: string | null
+          telemovel?: string | null
+          tipo?: string
+        }
+        Update: {
+          alvara_numero?: string | null
+          alvara_validade?: string | null
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          cc_numero?: string | null
+          cc_validade?: string | null
+          certidao_permanente_codigo?: string | null
+          codigo_postal?: string | null
+          criado_em?: string | null
+          data_nascimento?: string | null
+          eliminado?: boolean | null
+          email?: string | null
+          empresa_id?: string
+          especialidade?: string | null
+          iban?: string | null
+          id?: string
+          localidade?: string | null
+          morada?: string | null
+          nif?: string | null
+          nipc?: string | null
+          nome?: string
+          notas?: string | null
+          representante_nif?: string | null
+          representante_nome?: string | null
+          seguro_numero?: string | null
+          seguro_validade?: string | null
+          swift?: string | null
+          telefone?: string | null
+          telemovel?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subempreiteiros_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subempreiteiros_documentos: {
+        Row: {
+          criado_em: string | null
+          empresa_id: string
+          id: string
+          mime_type: string | null
+          nome_ficheiro: string
+          notas: string | null
+          storage_path: string
+          subempreiteiro_id: string
+          tamanho_bytes: number | null
+          tipo_documento: string
+          validade: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          empresa_id: string
+          id?: string
+          mime_type?: string | null
+          nome_ficheiro: string
+          notas?: string | null
+          storage_path: string
+          subempreiteiro_id: string
+          tamanho_bytes?: number | null
+          tipo_documento?: string
+          validade?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          empresa_id?: string
+          id?: string
+          mime_type?: string | null
+          nome_ficheiro?: string
+          notas?: string | null
+          storage_path?: string
+          subempreiteiro_id?: string
+          tamanho_bytes?: number | null
+          tipo_documento?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subempreiteiros_documentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subempreiteiros_documentos_subempreiteiro_id_fkey"
+            columns: ["subempreiteiro_id"]
+            isOneToOne: false
+            referencedRelation: "subempreiteiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           agencia: string | null
