@@ -49,3 +49,56 @@ export function defaultPpRows(totalComIva: number): PpFormRow[] {
     { tempId: '3', descricao: 'Entrega / Conclusão',  percentagem: '5',  valor: v(5),  fase: 'entrega',          dataPrevista: '' },
   ];
 }
+
+export interface PpModeloLinha {
+  descricao: string;
+  percentagem: number;
+  fase: PpFase;
+}
+
+export interface PpModelo {
+  id: string;
+  empresaId: string;
+  nome: string;
+  descricao: string | null;
+  isDefault: boolean;
+  linhas: PpModeloLinha[];
+  createdAt: string;
+}
+
+// Modelos de sistema — sempre disponíveis, não guardados na BD
+export const PP_MODELOS_SISTEMA: Array<{ id: string; nome: string; linhas: PpModeloLinha[] }> = [
+  {
+    id: 'sistema_60_35_5',
+    nome: 'Padrão (60% / 35% / 5%)',
+    linhas: [
+      { descricao: 'Adjudicação',          percentagem: 60, fase: 'adjudicacao' },
+      { descricao: 'Início dos trabalhos', percentagem: 35, fase: 'inicio_trabalhos' },
+      { descricao: 'Entrega / Conclusão',  percentagem: 5,  fase: 'entrega' },
+    ],
+  },
+  {
+    id: 'sistema_50_50',
+    nome: 'Duas Prestações (50% / 50%)',
+    linhas: [
+      { descricao: 'Adjudicação',   percentagem: 50, fase: 'adjudicacao' },
+      { descricao: 'Entrega Final', percentagem: 50, fase: 'entrega' },
+    ],
+  },
+  {
+    id: 'sistema_30_40_30',
+    nome: 'Três Prestações (30% / 40% / 30%)',
+    linhas: [
+      { descricao: 'Adjudicação',          percentagem: 30, fase: 'adjudicacao' },
+      { descricao: 'Início dos trabalhos', percentagem: 40, fase: 'inicio_trabalhos' },
+      { descricao: 'Entrega / Conclusão',  percentagem: 30, fase: 'entrega' },
+    ],
+  },
+  {
+    id: 'sistema_100',
+    nome: 'Pagamento Único (100%)',
+    linhas: [
+      { descricao: 'Pagamento Total', percentagem: 100, fase: 'adjudicacao' },
+    ],
+  },
+];
