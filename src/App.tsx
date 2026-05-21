@@ -91,6 +91,7 @@ const App = () => (
 
               {/* Protected routes with sidebar layout */}
               <Route path="/dashboard" element={<ProtectedWithLayout><DashboardGeral /></ProtectedWithLayout>} />
+              <Route path="/dashboard-executivo" element={<ProtectedWithLayout><DashboardExecutivo /></ProtectedWithLayout>} />
               <Route path="/vendas" element={<ProtectedWithLayout><Index /></ProtectedWithLayout>} />
               <Route path="/clientes" element={<ProtectedWithLayout><Clientes /></ProtectedWithLayout>} />
               <Route path="/fornecedores" element={<ProtectedWithLayout><Fornecedores /></ProtectedWithLayout>} />
