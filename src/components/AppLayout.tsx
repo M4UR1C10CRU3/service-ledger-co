@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { NotificationBell } from '@/components/NotificationBell';
 import { MarketingApprovalAlert } from '@/components/marketing/MarketingApprovalAlert';
+import { useNotificacoesAlertas } from '@/hooks/useNotificacoesAlertas';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const { empresa, getLogo } = useEmpresa();
+  useNotificacoesAlertas();
   const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
