@@ -2426,6 +2426,79 @@ export type Database = {
         }
         Relationships: []
       }
+      plano_pagamentos: {
+        Row: {
+          created_at: string
+          data_pagamento: string | null
+          data_prevista: string | null
+          descricao: string
+          empresa_id: string
+          estado: string
+          fase: string
+          id: string
+          notas: string | null
+          os_id: string | null
+          percentagem: number | null
+          proposta_id: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data_pagamento?: string | null
+          data_prevista?: string | null
+          descricao: string
+          empresa_id: string
+          estado?: string
+          fase?: string
+          id?: string
+          notas?: string | null
+          os_id?: string | null
+          percentagem?: number | null
+          proposta_id?: string | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          data_pagamento?: string | null
+          data_prevista?: string | null
+          descricao?: string
+          empresa_id?: string
+          estado?: string
+          fase?: string
+          id?: string
+          notas?: string | null
+          os_id?: string | null
+          percentagem?: number | null
+          proposta_id?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plano_pagamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_pagamentos_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plano_pagamentos_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           categoria: string
