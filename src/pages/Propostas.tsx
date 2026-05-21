@@ -296,6 +296,18 @@ export default function Propostas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AdjudicacaoDialog
+        open={!!adjudicacaoProposta}
+        onOpenChange={(v) => { if (!v) setAdjudicacaoProposta(null); }}
+        proposta={adjudicacaoProposta}
+        onComplete={(osId) => {
+          setAdjudicacaoProposta(null);
+          toast({
+            title: 'Adjudicação confirmada ✓',
+            description: osId ? `OS criada automaticamente` : 'Plano de pagamentos registado',
+          });
+        }}
+      />
     </div>
   );
 }
