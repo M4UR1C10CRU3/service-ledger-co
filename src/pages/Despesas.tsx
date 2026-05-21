@@ -689,7 +689,7 @@ export default function Despesas() {
         onAddSupplier={addSupplier}
         mode="despesa"
       />
-      <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
+      <AccountDetailDialog account={viewingAccount} open={isDetailOpen} onOpenChange={setIsDetailOpen} onMoved={refreshAccounts} />
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
