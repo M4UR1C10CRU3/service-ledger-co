@@ -16,8 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { STATUS_CONFIG, type MarketingStatus } from '@/types/marketing';
+import { STATUS_CONFIG, type MarketingStatus, type MarketingTarefa } from '@/types/marketing';
 import { MarketingFullMonthAIDialog } from './MarketingFullMonthAIDialog';
+import { MarketingTarefaDialog } from './MarketingTarefaDialog';
+import { MarketingDetailDialog } from './MarketingDetailDialog';
+import { useMarketing } from '@/hooks/useMarketing';
 
 /**
  * Calendário Editorial — Marketing
