@@ -631,8 +631,8 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   };
 
   // ───────── Modal ─────────
-  const [modalDay, setModalDay] = useState<number | null>(null);
-  const [modalTab, setModalTab] = useState<'briefing' | 'editar' | 'entregas'>('briefing');
+  // (PostDialog antigo removido — agora usamos MarketingDetailDialog do Kanban)
+
 
   // ───────── Vistas combinadas (Calendário ⊕ Kanban) ─────────
   // Tarefas Kanban publicadas têm prioridade sobre o estado local
