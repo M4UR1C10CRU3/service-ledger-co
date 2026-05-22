@@ -64,6 +64,8 @@ function mapTarefa(r: any): MarketingTarefa {
     agendadorNome: r.agendador_nome,
     agendamentoConfirmado: !!r.agendamento_confirmado,
     agendamentoHorarios: r.agendamento_horarios || null,
+    reviewChecklist: r.review_checklist || null,
+    reviewNotes: r.review_notes || null,
   } as any;
 }
 
@@ -131,6 +133,8 @@ export interface MarketingTarefaInput {
   agendadorNome?: string | null;
   agendamentoConfirmado?: boolean;
   agendamentoHorarios?: Record<string, string> | null;
+  reviewChecklist?: Record<string, boolean> | null;
+  reviewNotes?: string | null;
 }
 
 export function useMarketing() {
@@ -246,6 +250,8 @@ export function useMarketing() {
     if ((updates as any).agendadorNome !== undefined) dbUpdates.agendador_nome = (updates as any).agendadorNome;
     if ((updates as any).agendamentoConfirmado !== undefined) dbUpdates.agendamento_confirmado = (updates as any).agendamentoConfirmado;
     if ((updates as any).agendamentoHorarios !== undefined) dbUpdates.agendamento_horarios = (updates as any).agendamentoHorarios;
+    if ((updates as any).reviewChecklist !== undefined) dbUpdates.review_checklist = (updates as any).reviewChecklist;
+    if ((updates as any).reviewNotes !== undefined) dbUpdates.review_notes = (updates as any).reviewNotes;
 
     const { error } = await supabase.from('marketing_tarefas').update(dbUpdates).eq('id', id);
     if (error) { console.error('[marketing] update:', error); return false; }
