@@ -142,21 +142,49 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
     value: string,
     onChange: (v: string) => void,
     excludeIds: string[],
-  ) => (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>— Nenhum —</SelectItem>
-        {activeSuppliers
-          .filter(s => !excludeIds.includes(s.id) || s.id === value)
-          .map(s => (
-            <SelectItem key={s.id} value={s.id}>
-              {s.nomeFantasia || s.razaoSocial}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
-  );
+  ) => {
+    const available = activeSuppliers.filter(s => !excludeIds.includes(s.id) || s.id === value);
+    const selected = activeSuppliers.find(s => s.id === value);
+    const label = selected ? (selected.nomeFantasia || selected.razaoSocial) : '— Nenhum —';
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+            <span className={cn(!selected && 'text-muted-foreground')}>{label}</span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Pesquisar fornecedor..." />
+            <CommandList>
+              <CommandEmpty>
+                {loadingSuppliers ? 'A carregar...' : 'Nenhum fornecedor encontrado.'}
+              </CommandEmpty>
+              <CommandGroup>
+                <CommandItem value="__none" onSelect={() => onChange(NONE)}>
+                  <Check className={cn('mr-2 h-4 w-4', value === NONE ? 'opacity-100' : 'opacity-0')} />
+                  — Nenhum —
+                </CommandItem>
+                {available.map(s => {
+                  const name = s.nomeFantasia || s.razaoSocial;
+                  return (
+                    <CommandItem key={s.id} value={`${name} ${s.cnpjCpf || ''}`} onSelect={() => onChange(s.id)}>
+                      <Check className={cn('mr-2 h-4 w-4', value === s.id ? 'opacity-100' : 'opacity-0')} />
+                      <div className="flex flex-col">
+                        <span>{name}</span>
+                        {s.cnpjCpf && <span className="text-xs text-muted-foreground">NIF: {s.cnpjCpf}</span>}
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
