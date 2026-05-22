@@ -27,6 +27,7 @@ import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingWorkflowPanel } from './MarketingWorkflowPanel';
 import { WorkflowActions } from './MarketingWorkflowActions';
+import { MarketingReviewTab } from './MarketingReviewTab';
 
 const normalizeApproverName = (value?: string | null) =>
   (value || '')
@@ -325,7 +326,24 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await updateStatus(tarefa.id, 'em_aprovacao');
     if (ok) {
       await updateTarefa(tarefa.id, { etapaAtual: 'aprovacao' });
-      toast({ title: 'Revisão aprovada', description: 'Card movido para "Em Aprovação".' });
+      // Notificar admin/aprovador (in-app + email se Resend configurado)
+      try {
+        await supabase.functions.invoke('marketing-notify-approval', {
+          body: {
+            tarefaId: tarefa.id,
+            empresaId: tarefa.empresaId,
+            titulo: tarefa.titulo,
+            dataPublicacao: tarefa.dataPublicacao,
+            horaPublicacao: tarefa.horaPublicacao,
+            aprovadorNome: tarefa.aprovadorNome,
+            origem: 'em_aprovacao',
+            linkApp: typeof window !== 'undefined' ? `${window.location.origin}/marketing?tarefa=${tarefa.id}` : null,
+          },
+        });
+      } catch (e) {
+        console.warn('notify failed', e);
+      }
+      toast({ title: 'Revisão aprovada', description: 'Aprovador notificado. Card movido para "Em Aprovação".' });
       await reload(tarefa.id);
     }
     setActionBusy(false);
@@ -444,12 +462,22 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           onConfirmarAgendamento={handleConfirmarAgendamento}
         />
         <Tabs defaultValue="detalhes">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="revisao">
+              Revisão
+              {(tarefa.status === 'em_revisao' || tarefa.status === 'em_aprovacao') && (
+                <span className="ml-1 inline-block h-2 w-2 rounded-full bg-purple-500" />
+              )}
+            </TabsTrigger>
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
             <TabsTrigger value="entregas">Entregas ({anexos.length})</TabsTrigger>
             <TabsTrigger value="comentarios">Histórico ({comentarios.length})</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="revisao" className="mt-4">
+            <MarketingReviewTab tarefa={tarefa} />
+          </TabsContent>
 
           <TabsContent value="workflow" className="mt-4">
             <MarketingWorkflowPanel tarefa={tarefa} />

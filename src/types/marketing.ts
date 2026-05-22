@@ -142,7 +142,22 @@ export interface MarketingTarefa {
   agendadorNome?: string | null;
   agendamentoConfirmado?: boolean;
   agendamentoHorarios?: Record<string, string> | null;
+  reviewChecklist?: Record<string, boolean> | null;
+  reviewNotes?: string | null;
 }
+
+export interface ReviewChecklistItem { key: string; label: string }
+
+export const REVIEW_CHECKLIST: ReviewChecklistItem[] = [
+  { key: 'copy_ok',       label: 'Copy revisada e sem erros ortográficos' },
+  { key: 'hashtags_ok',   label: 'Hashtags adequadas (mín. 5, máx. 15)' },
+  { key: 'horarios_ok',   label: 'Horário de publicação definido (FB e IG)' },
+  { key: 'media_ok',      label: 'Imagem/vídeo preparado' },
+  { key: 'nota_ok',       label: 'Nota criativa preenchida' },
+  { key: 'plataforma_ok', label: 'Plataforma(s) correctamente seleccionada(s)' },
+  { key: 'cta_ok',        label: 'CTA (call-to-action) presente na copy' },
+  { key: 'tom_ok',        label: 'Tom adequado à marca (próximo, sem exagero)' },
+];
 
 export interface MarketingAnexo {
   id: string;
