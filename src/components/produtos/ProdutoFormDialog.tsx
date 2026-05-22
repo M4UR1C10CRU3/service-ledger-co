@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existingCategories }: Props) {
-  const { suppliers } = useSuppliers();
+  const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
 
   const [refInterna, setRefInterna] = useState('');
   const [refFornecedor, setRefFornecedor] = useState('');
