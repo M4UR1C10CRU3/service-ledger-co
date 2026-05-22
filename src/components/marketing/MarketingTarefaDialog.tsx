@@ -106,13 +106,14 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
       horaRevisao: form.horaRevisao || null,
       horaAprovacao: form.horaAprovacao || null,
     };
+    let createdId: string | undefined;
     const ok = initial
       ? await updateTarefa(initial.id, payload)
-      : !!(await createTarefa(payload));
+      : !!(createdId = (await createTarefa(payload)) || undefined);
     setSaving(false);
     if (ok) {
       toast({ title: initial ? 'Tarefa atualizada' : 'Tarefa criada' });
-      onSaved?.();
+      onSaved?.(initial?.id || createdId);
       onOpenChange(false);
     } else {
       toast({ title: 'Erro ao guardar', variant: 'destructive' });
