@@ -194,6 +194,45 @@ export default function ConfigAparencia() {
         </CardContent>
       </Card>
 
+      {/* Cor do Menu Lateral */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Cor do Menu Lateral</CardTitle>
+          <CardDescription>Escolha um tema para a barra lateral — pensado também para baixa luminosidade e leitura confortável</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {SIDEBAR_PRESETS.map(p => {
+              const selected = sidebarCor === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSidebarCor(p.id)}
+                  className={`group relative rounded-lg border-2 overflow-hidden transition-all text-left ${
+                    selected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-muted-foreground/40'
+                  }`}
+                >
+                  <div
+                    className="h-16 w-full flex items-end p-2"
+                    style={{ backgroundColor: `hsl(${p.bg})`, color: `hsl(${p.fg})` }}
+                  >
+                    <div className="flex gap-1">
+                      <span className="h-2 w-6 rounded" style={{ backgroundColor: `hsl(${p.accent})` }} />
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `hsl(${p.fg})` }} />
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-2 bg-card">
+                    <div className="text-xs font-medium text-foreground truncate">{p.label}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Sidebar */}
       <Card>
         <CardHeader>
