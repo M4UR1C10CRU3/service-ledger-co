@@ -1914,6 +1914,8 @@ export type Database = {
           prioridade: string
           responsavel_id: string | null
           responsavel_nome: string | null
+          review_checklist: Json | null
+          review_notes: string | null
           revisor_id: string | null
           revisor_nome: string | null
           solicitante_id: string | null
@@ -1961,6 +1963,8 @@ export type Database = {
           prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          review_checklist?: Json | null
+          review_notes?: string | null
           revisor_id?: string | null
           revisor_nome?: string | null
           solicitante_id?: string | null
@@ -2008,6 +2012,8 @@ export type Database = {
           prioridade?: string
           responsavel_id?: string | null
           responsavel_nome?: string | null
+          review_checklist?: Json | null
+          review_notes?: string | null
           revisor_id?: string | null
           revisor_nome?: string | null
           solicitante_id?: string | null
