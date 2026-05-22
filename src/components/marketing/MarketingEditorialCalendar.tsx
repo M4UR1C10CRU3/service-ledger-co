@@ -726,16 +726,13 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         return;
       }
     }
-    // Procura na lista local; se não existir, fetch directo
+    // Procura na lista local; se não existir, fetch directo e mapeia
     let t = kanbanTarefas.find(x => x.id === tarefaId) || null;
     if (!t) {
       const { data } = await supabase.from('marketing_tarefas').select('*').eq('id', tarefaId).maybeSingle();
       if (data) {
-        await refetchKanban();
-        t = (await new Promise<MarketingTarefa | null>(res => {
-          // micro-delay para useMarketing refrescar
-          setTimeout(() => res(null), 50);
-        })) || ({
+        refetchKanban();
+        t = {
           id: data.id, empresaId: data.empresa_id, titulo: data.titulo, descricao: data.descricao,
           tipoConteudo: data.tipo_conteudo, canal: data.canal, status: data.status,
           prioridade: data.prioridade, responsavelNome: data.responsavel_nome,
@@ -743,7 +740,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
           hashtags: data.hashtags, copyLegenda: data.copy_legenda, briefing: data.briefing,
           observacoes: data.observacoes, etapaAtual: data.etapa_atual,
           createdAt: data.created_at, updatedAt: data.updated_at,
-        } as any);
+        } as any;
       }
     }
     if (t) {
