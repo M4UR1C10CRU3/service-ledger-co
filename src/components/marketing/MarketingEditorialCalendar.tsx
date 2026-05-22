@@ -16,8 +16,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { STATUS_CONFIG, type MarketingStatus } from '@/types/marketing';
+import { STATUS_CONFIG, type MarketingStatus, type MarketingTarefa } from '@/types/marketing';
 import { MarketingFullMonthAIDialog } from './MarketingFullMonthAIDialog';
+import { MarketingTarefaDialog } from './MarketingTarefaDialog';
+import { MarketingDetailDialog } from './MarketingDetailDialog';
+import { useMarketing } from '@/hooks/useMarketing';
 
 /**
  * Calendário Editorial — Marketing
@@ -628,8 +631,8 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   };
 
   // ───────── Modal ─────────
-  const [modalDay, setModalDay] = useState<number | null>(null);
-  const [modalTab, setModalTab] = useState<'briefing' | 'editar' | 'entregas'>('briefing');
+  // (PostDialog antigo removido — agora usamos MarketingDetailDialog do Kanban)
+
 
   // ───────── Vistas combinadas (Calendário ⊕ Kanban) ─────────
   // Tarefas Kanban publicadas têm prioridade sobre o estado local
@@ -659,14 +662,105 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   }, [linkedTarefas, kanbanLinks]);
 
 
-  const openView = (day: number) => {
-    setModalDay(day);
-    setModalTab(mergedState[day] ? 'briefing' : 'editar');
+  // ───────── Dialogs Kanban (substituem PostDialog) ─────────
+  const { tarefas: kanbanTarefas, fetchTarefas: refetchKanban } = useMarketing();
+  const [detailTarefa, setDetailTarefa] = useState<MarketingTarefa | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [tarefaFormOpen, setTarefaFormOpen] = useState(false);
+  const [addDate, setAddDate] = useState<string | undefined>(undefined);
+
+  const promoverParaIdeias = useCallback(async (day: number): Promise<string | null> => {
+    if (!empresa?.id) return null;
+    const post = state[day];
+    if (!post) return null;
+    const dataPub = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const wkInfo = WEEKDAY_INFO[weekdayOf(day)];
+    const horaPub = post.hfb || wkInfo.fb;
+    const tipoConteudo =
+      post.type === 'carrossel' ? 'post' :
+      post.type === 'bastidores' ? 'reels' :
+      post.type === 'eng' ? 'story' : 'post';
+    const canal =
+      post.plat.includes('IG') && !post.plat.includes('FB') ? 'instagram' :
+      post.plat.includes('FB') && !post.plat.includes('IG') ? 'facebook' : 'instagram';
+    const { data: userResp } = await supabase.auth.getUser();
+    const briefingTxt = [
+      `Publicação editorial — Dia ${day} (${wkInfo.name})`,
+      `Tipo: ${TYPE_CONFIG[post.type].label}`,
+      `Plataformas: ${post.plat}`,
+      post.holiday ? `Data especial: ${post.holiday}` : '',
+      '', 'Nota criativa:', post.tip || '—',
+    ].filter(Boolean).join('\n');
+    const { data: row } = await supabase.from('marketing_tarefas').insert({
+      empresa_id: empresa.id,
+      titulo: post.title,
+      descricao: `Importado do Calendário Editorial — Dia ${day}/${month}/${year}`,
+      tipo_conteudo: tipoConteudo,
+      canal,
+      status: 'ideias',
+      prioridade: 'media',
+      data_publicacao: dataPub,
+      hora_publicacao: horaPub,
+      hashtags: post.tags || null,
+      copy_legenda: post.copy || null,
+      briefing: briefingTxt,
+      etapa_atual: 'briefing',
+      solicitante_nome: userResp?.user?.email || null,
+      solicitante_id: userResp?.user?.id || null,
+      created_by: userResp?.user?.id || null,
+    }).select('id').single();
+    if (!row) return null;
+    await persistLink(day, row.id);
+    await refetchKanban();
+    await fetchKanbanSync();
+    return row.id;
+  }, [empresa?.id, state, year, month, persistLink, refetchKanban, fetchKanbanSync]);
+
+  const openView = async (day: number) => {
+    if (!mergedState[day]) { openAdd(day); return; }
+    let tarefaId = mergedLinks[day]?.id;
+    if (!tarefaId) {
+      tarefaId = (await promoverParaIdeias(day)) || undefined;
+      if (!tarefaId) {
+        toast({ title: 'Não foi possível abrir o post', variant: 'destructive' });
+        return;
+      }
+    }
+    // Procura na lista local; se não existir, fetch directo e mapeia
+    let t = kanbanTarefas.find(x => x.id === tarefaId) || null;
+    if (!t) {
+      const { data } = await supabase.from('marketing_tarefas').select('*').eq('id', tarefaId).maybeSingle();
+      if (data) {
+        refetchKanban();
+        t = {
+          id: data.id, empresaId: data.empresa_id, titulo: data.titulo, descricao: data.descricao,
+          tipoConteudo: data.tipo_conteudo, canal: data.canal, status: data.status,
+          prioridade: data.prioridade, responsavelNome: data.responsavel_nome,
+          dataPublicacao: data.data_publicacao, horaPublicacao: data.hora_publicacao,
+          hashtags: data.hashtags, copyLegenda: data.copy_legenda, briefing: data.briefing,
+          observacoes: data.observacoes, etapaAtual: data.etapa_atual,
+          createdAt: data.created_at, updatedAt: data.updated_at,
+        } as any;
+      }
+    }
+    if (t) {
+      setDetailTarefa(t);
+      setDetailOpen(true);
+    }
   };
+
   const openAdd = (day: number) => {
-    setModalDay(day);
-    setModalTab('editar');
+    const dataPub = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setAddDate(dataPub);
+    setTarefaFormOpen(true);
   };
+
+  // Mantém o detail dialog sincronizado quando a lista da useMarketing actualiza
+  useEffect(() => {
+    if (!detailTarefa) return;
+    const fresh = kanbanTarefas.find(t => t.id === detailTarefa.id);
+    if (fresh && fresh !== detailTarefa) setDetailTarefa(fresh);
+  }, [kanbanTarefas, detailTarefa]);
 
   // ───────── Acções topo ─────────
   const handleResetOriginal = () => {
@@ -954,33 +1048,28 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         ))}
       </div>
 
-      {/* Modal */}
-      <PostDialog
-        day={modalDay}
-        post={modalDay !== null ? mergedState[modalDay] : undefined}
-        tab={modalTab}
-        onTabChange={setModalTab}
-        entregas={modalDay !== null ? (mergedEntregas[modalDay] || []) : []}
-        linkedTarefa={modalDay !== null ? mergedLinks[modalDay] : undefined}
-        onPromover={() => modalDay !== null && promoverParaKanban(modalDay)}
-        onDesligar={() => modalDay !== null && desligarDoKanban(modalDay)}
-        onRefreshLinked={fetchLinked}
-        onUpload={(file) => modalDay !== null && uploadEntrega(modalDay, file)}
-        onDecidir={decidirEntrega}
-        onRemoverEntrega={removerEntrega}
-        onDownloadEntrega={downloadEntrega}
-        onClose={() => setModalDay(null)}
-        onSave={(p) => {
-          if (modalDay === null) return;
-          persistDay(modalDay, p);
-          setModalDay(null);
-          toast({ title: 'Publicação guardada' });
+      {/* Modal de detalhe — partilhado com Kanban */}
+      <MarketingDetailDialog
+        tarefa={detailTarefa}
+        open={detailOpen}
+        onOpenChange={(o) => {
+          setDetailOpen(o);
+          if (!o) {
+            setDetailTarefa(null);
+            fetchKanbanSync();
+          }
         }}
-        onDelete={() => {
-          if (modalDay === null) return;
-          persistDay(modalDay, null);
-          setModalDay(null);
-          toast({ title: 'Publicação eliminada' });
+      />
+
+      {/* Formulário de criação rápida no Kanban (status = Ideias) */}
+      <MarketingTarefaDialog
+        open={tarefaFormOpen}
+        onOpenChange={setTarefaFormOpen}
+        defaultStatus="ideias"
+        defaultDate={addDate}
+        onSaved={async () => {
+          await refetchKanban();
+          await fetchKanbanSync();
         }}
       />
 

@@ -34,10 +34,11 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   initial?: MarketingTarefa | null;
   defaultStatus?: MarketingStatus;
-  onSaved?: () => void;
+  defaultDate?: string;
+  onSaved?: (id?: string) => void;
 }
 
-export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStatus, onSaved }: Props) {
+export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStatus, defaultDate, onSaved }: Props) {
   const { createTarefa, updateTarefa } = useMarketing();
   const { utilizadores } = useUtilizadores();
   const utilizadoresAtivos = utilizadores.filter(u => u.ativo);
@@ -54,7 +55,7 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
     responsavelNome: initial?.responsavelNome || '',
     delegadoPorNome: initial?.delegadoPorNome || '',
     dataPrevista: initial?.dataPrevista || '',
-    dataPublicacao: initial?.dataPublicacao || '',
+    dataPublicacao: initial?.dataPublicacao || defaultDate || '',
     horaPublicacao: initial?.horaPublicacao || '',
     hashtags: initial?.hashtags || '',
     copyLegenda: initial?.copyLegenda || '',
@@ -105,13 +106,14 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
       horaRevisao: form.horaRevisao || null,
       horaAprovacao: form.horaAprovacao || null,
     };
+    let createdId: string | undefined;
     const ok = initial
       ? await updateTarefa(initial.id, payload)
-      : !!(await createTarefa(payload));
+      : !!(createdId = (await createTarefa(payload)) || undefined);
     setSaving(false);
     if (ok) {
       toast({ title: initial ? 'Tarefa atualizada' : 'Tarefa criada' });
-      onSaved?.();
+      onSaved?.(initial?.id || createdId);
       onOpenChange(false);
     } else {
       toast({ title: 'Erro ao guardar', variant: 'destructive' });
