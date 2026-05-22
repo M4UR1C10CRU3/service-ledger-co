@@ -6,8 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const MODEL = "google/gemini-2.5-flash";
 
 const TUDOCASA_CONTEXT = `Loja Tudo Casa, em Mirandela, Trás-os-Montes, Portugal. Vende materiais de construção, casa de banho, cozinha, caixilharia, climatização, jardim, eletrodomésticos, mobiliário, iluminação e pavimentos. Facebook: tudocasa.pt | Instagram: @loja.tudocasa | Site: lojatudocasa.com. Tom próximo e autêntico, linguagem de Trás-os-Montes sem forçar dialecto. Português de Portugal (sempre).`;
 
@@ -33,29 +33,17 @@ function buildPrompt(b: ReqBody): { system: string; user: string; json: boolean 
 
   switch (b.field) {
     case "copy":
-      return {
-        system,
-        json: false,
-        user: `${meta}\n\nGera uma copy alternativa para este post. Máximo 3 parágrafos curtos. Tom próximo de Trás-os-Montes, sem forçar dialecto. Português de Portugal. Devolve APENAS o texto da copy, sem aspas, sem markdown, sem hashtags.`,
-      };
+      return { system, json: false,
+        user: `${meta}\n\nGera uma copy alternativa para este post. Máximo 3 parágrafos curtos. Tom próximo de Trás-os-Montes, sem forçar dialecto. Português de Portugal. Devolve APENAS o texto da copy, sem aspas, sem markdown, sem hashtags.` };
     case "hashtags":
-      return {
-        system,
-        json: false,
-        user: `${meta}\n\nSugere 8-10 hashtags em português relevantes para este post da Tudo Casa em Mirandela. Mistura hashtags de alcance alto (#Casa, #Remodelação, #Decoração) com hashtags locais (#Mirandela #TrásOsMontes #TudoCasa). Devolve APENAS as hashtags numa única linha, separadas por espaços, sem texto extra.`,
-      };
+      return { system, json: false,
+        user: `${meta}\n\nSugere 8-10 hashtags em português relevantes para este post da Tudo Casa em Mirandela. Mistura hashtags de alcance alto (#Casa, #Remodelação, #Decoração) com hashtags locais (#Mirandela #TrásOsMontes #TudoCasa). Devolve APENAS as hashtags numa única linha, separadas por espaços, sem texto extra.` };
     case "briefing":
-      return {
-        system,
-        json: false,
-        user: `${meta}\n\nSugere uma nota criativa / briefing visual para este post: tipo de imagem ou vídeo, composição, cores predominantes, e, se for carrossel, número de slides recomendado e sugestão para cada slide. Máximo 6 linhas. Devolve APENAS o texto, sem markdown.`,
-      };
+      return { system, json: false,
+        user: `${meta}\n\nSugere uma nota criativa / briefing visual para este post: tipo de imagem ou vídeo, composição, cores predominantes, e, se for carrossel, número de slides recomendado e sugestão para cada slide. Máximo 6 linhas. Devolve APENAS o texto, sem markdown.` };
     case "titulo":
-      return {
-        system,
-        json: true,
-        user: `${meta}\n\nSugere 3 alternativas de título curtas (máximo 10 palavras cada) para este post. Devolve APENAS JSON válido com a forma: {"alternativas": ["...", "...", "..."]}`,
-      };
+      return { system, json: true,
+        user: `${meta}\n\nSugere 3 alternativas de título curtas (máximo 10 palavras cada) para este post.` };
   }
 }
 
@@ -63,9 +51,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = (await req.json()) as ReqBody;
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY não configurada" }), {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -76,45 +64,62 @@ serve(async (req) => {
     }
     const { system, user, json } = buildPrompt(body);
 
-    const resp = await fetch(ANTHROPIC_URL, {
+    const payload: any = {
+      model: MODEL,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      max_tokens: 600,
+    };
+
+    if (json) {
+      payload.tools = [{
+        type: "function",
+        function: {
+          name: "sugerir_titulos",
+          description: "Devolve 3 alternativas de título",
+          parameters: {
+            type: "object",
+            properties: { alternativas: { type: "array", items: { type: "string" } } },
+            required: ["alternativas"],
+            additionalProperties: false,
+          },
+        },
+      }];
+      payload.tool_choice = { type: "function", function: { name: "sugerir_titulos" } };
+    }
+
+    const resp = await fetch(GATEWAY_URL, {
       method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 500,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     if (!resp.ok) {
       const txt = await resp.text();
-      const status = resp.status === 401 ? 401 : resp.status === 429 ? 429 : 500;
-      const msg = resp.status === 401
-        ? "Chave Anthropic inválida."
-        : resp.status === 429
-        ? "Limite de pedidos atingido. Tente novamente em alguns instantes."
-        : "Erro IA: " + txt.slice(0, 200);
-      return new Response(JSON.stringify({ error: msg }), {
-        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      console.error("Gateway error:", resp.status, txt);
+      if (resp.status === 429) {
+        return new Response(JSON.stringify({ error: "Limite de pedidos atingido. Tente novamente em alguns instantes." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (resp.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos esgotados. Adiciona fundos em Settings > Workspace > Usage." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Erro IA: " + txt.slice(0, 200) }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await resp.json();
-    const text: string = (data?.content?.[0]?.text || "").trim();
 
     if (json) {
-      let s = text;
-      const fenced = s.match(/```(?:json)?\s*([\s\S]+?)```/);
-      if (fenced) s = fenced[1].trim();
-      const f = s.indexOf("{"); const l = s.lastIndexOf("}");
-      if (f >= 0 && l > f) s = s.slice(f, l + 1);
+      const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
       let parsed: any = {};
-      try { parsed = JSON.parse(s); } catch { parsed = {}; }
+      try { parsed = JSON.parse(toolCall?.function?.arguments || "{}"); } catch { parsed = {}; }
       const alternativas = Array.isArray(parsed.alternativas)
         ? parsed.alternativas.map((x: any) => String(x).trim()).filter(Boolean).slice(0, 3)
         : [];
@@ -123,6 +128,7 @@ serve(async (req) => {
       });
     }
 
+    const text: string = (data?.choices?.[0]?.message?.content || "").trim();
     return new Response(JSON.stringify({ text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
