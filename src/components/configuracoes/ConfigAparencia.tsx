@@ -31,6 +31,7 @@ export default function ConfigAparencia() {
     if (local.densidade) setDensidade(local.densidade);
     if (typeof local.tamanhoFonte === 'number') setTamanhoFonte(local.tamanhoFonte);
     if (typeof local.sidebarExpandida === 'boolean') setSidebarExpandida(local.sidebarExpandida);
+    if (local.sidebarCor) setSidebarCor(local.sidebarCor);
   }, []);
 
   useEffect(() => {
