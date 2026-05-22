@@ -86,6 +86,7 @@ export function applyAppearance(prefs: AppearancePrefs) {
   if (prefs.tema) applyTema(prefs.tema);
   if (prefs.densidade) applyDensidade(prefs.densidade);
   if (typeof prefs.tamanhoFonte === 'number') applyFonte(prefs.tamanhoFonte);
+  if (prefs.sidebarCor) applySidebarCor(prefs.sidebarCor);
   saveAppearance(prefs);
 }
 
@@ -110,6 +111,7 @@ export function bootstrapAppearance() {
   applyTema(prefs.tema || 'escuro');
   applyDensidade(prefs.densidade || 'normal');
   applyFonte(typeof prefs.tamanhoFonte === 'number' ? prefs.tamanhoFonte : 14);
+  if (prefs.sidebarCor) applySidebarCor(prefs.sidebarCor);
 
   // Reagir a mudanças do tema do sistema
   if (prefs.tema === 'sistema') {
