@@ -6,29 +6,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-5-20250929";
+const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const MODEL = "google/gemini-2.5-pro";
 
 interface ReqBody {
-  briefing: string;          // descrição da campanha/contexto
+  briefing: string;
   empresa_nome?: string;
-  data_inicio?: string;      // YYYY-MM-DD
-  data_fim?: string;         // YYYY-MM-DD
-  canais?: string[];         // instagram, facebook, ...
-  qtd_publicacoes?: number;  // sugestão de quantas tarefas gerar
-  tom?: string;              // ex: "profissional", "descontraído"
-}
-
-interface TarefaSugerida {
-  titulo: string;
-  tipo_conteudo: string;     // post|story|reels|anuncio|video|blog|email|outro
-  canal: string;             // instagram|facebook|linkedin|tiktok|site|email|outro
-  prioridade: string;        // baixa|media|alta|urgente
-  data_publicacao: string;   // YYYY-MM-DD
-  hora_publicacao?: string;  // HH:MM
-  briefing: string;          // objectivo + contexto
-  copy_legenda: string;      // texto pronto a publicar
-  hashtags?: string;
+  data_inicio?: string;
+  data_fim?: string;
+  canais?: string[];
+  qtd_publicacoes?: number;
+  tom?: string;
 }
 
 serve(async (req) => {
@@ -36,34 +24,26 @@ serve(async (req) => {
 
   try {
     const body = (await req.json()) as ReqBody;
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY não configurada" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!body.briefing || body.briefing.trim().length < 10) {
       return new Response(JSON.stringify({ error: "Briefing demasiado curto (mínimo 10 caracteres)" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const qtd = Math.min(Math.max(body.qtd_publicacoes ?? 8, 1), 30);
-    const canaisStr = (body.canais && body.canais.length > 0)
-      ? body.canais.join(", ")
-      : "instagram, facebook";
+    const canaisStr = body.canais?.length ? body.canais.join(", ") : "instagram, facebook";
     const periodoStr = body.data_inicio && body.data_fim
       ? `entre ${body.data_inicio} e ${body.data_fim}`
       : "nas próximas 4 semanas a partir de hoje";
 
-    const systemPrompt = `Você é um especialista em marketing digital para PMEs portuguesas.
-Devolve SEMPRE e APENAS JSON válido (sem markdown, sem comentários, sem texto antes ou depois).
-Toda a comunicação (títulos, briefings, copy, hashtags) é em PORTUGUÊS DE PORTUGAL.
-Os valores dos campos categóricos têm de pertencer aos enums definidos.`;
-
+    const systemPrompt = `És um especialista em marketing digital para PMEs portuguesas. Comunicas sempre em português de Portugal.`;
     const userPrompt = `Gera um plano editorial para a empresa "${body.empresa_nome || 'Cliente'}".
 
 Contexto / Briefing:
@@ -73,77 +53,80 @@ Requisitos:
 - ${qtd} publicações distribuídas ${periodoStr}
 - Canais permitidos: ${canaisStr}
 - Tom: ${body.tom || "profissional e próximo"}
-- Datas distribuídas de forma equilibrada (evita concentrar tudo no mesmo dia)
-- Cada publicação deve ter título curto, briefing (objectivo) e copy_legenda pronto a publicar
-- Inclui hashtags relevantes em português
-- Horário sugerido entre 09:00 e 20:00
+- Datas equilibradas, horários entre 09:00 e 20:00
+- Inclui hashtags relevantes em português`;
 
-Devolve EXACTAMENTE este JSON (sem texto extra):
-{
-  "tarefas": [
-    {
-      "titulo": "string curto",
-      "tipo_conteudo": "post|story|reels|anuncio|video|blog|email|outro",
-      "canal": "instagram|facebook|linkedin|tiktok|site|email|outro",
-      "prioridade": "baixa|media|alta|urgente",
-      "data_publicacao": "YYYY-MM-DD",
-      "hora_publicacao": "HH:MM",
-      "briefing": "objectivo e contexto da publicação",
-      "copy_legenda": "texto pronto a publicar com chamada à acção",
-      "hashtags": "#exemplo #marca"
-    }
-  ]
-}`;
-
-    const resp = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+    const tools = [{
+      type: "function",
+      function: {
+        name: "gerar_plano",
+        description: "Devolve as tarefas do plano editorial",
+        parameters: {
+          type: "object",
+          properties: {
+            tarefas: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  titulo: { type: "string" },
+                  tipo_conteudo: { type: "string", enum: ["post","story","reels","anuncio","video","blog","email","outro"] },
+                  canal: { type: "string", enum: ["instagram","facebook","linkedin","tiktok","site","email","outro"] },
+                  prioridade: { type: "string", enum: ["baixa","media","alta","urgente"] },
+                  data_publicacao: { type: "string" },
+                  hora_publicacao: { type: "string" },
+                  briefing: { type: "string" },
+                  copy_legenda: { type: "string" },
+                  hashtags: { type: "string" },
+                },
+                required: ["titulo","tipo_conteudo","canal","prioridade","data_publicacao","briefing","copy_legenda"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["tarefas"],
+          additionalProperties: false,
+        },
       },
+    }];
+
+    const resp = await fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools,
+        tool_choice: { type: "function", function: { name: "gerar_plano" } },
       }),
     });
 
     if (!resp.ok) {
       const txt = await resp.text();
-      console.error("Anthropic error:", resp.status, txt);
-      if (resp.status === 401) {
-        return new Response(JSON.stringify({ error: "Chave Anthropic inválida ou expirada." }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      console.error("Gateway error:", resp.status, txt);
       if (resp.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de pedidos atingido. Tente novamente em alguns minutos." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "Erro no Claude: " + txt.slice(0, 200) }), {
+      if (resp.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos esgotados. Adiciona fundos em Settings > Workspace > Usage." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Erro IA: " + txt.slice(0, 200) }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await resp.json();
-    const text: string = data?.content?.[0]?.text || "";
-
-    // Extract JSON (Claude pode às vezes embrulhar)
-    let jsonStr = text.trim();
-    const fenced = jsonStr.match(/```(?:json)?\s*([\s\S]+?)```/);
-    if (fenced) jsonStr = fenced[1].trim();
-    const firstBrace = jsonStr.indexOf("{");
-    const lastBrace = jsonStr.lastIndexOf("}");
-    if (firstBrace > 0) jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
-
-    let parsed: { tarefas?: TarefaSugerida[] };
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch (e) {
-      console.error("JSON parse error. Raw:", text);
+    const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
+    let parsed: any = {};
+    try { parsed = JSON.parse(toolCall?.function?.arguments || "{}"); } catch (e) {
+      console.error("Tool args parse error");
       return new Response(JSON.stringify({ error: "Resposta da IA inválida. Tente reformular o briefing." }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
