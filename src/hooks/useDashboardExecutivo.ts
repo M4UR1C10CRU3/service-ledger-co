@@ -120,7 +120,7 @@ export function useDashboardExecutivo() {
         .order('data_prevista').limit(10),
 
       supabase.from('ordens_servico')
-        .select('id, numero_os, cliente_nome, estado, prioridade, created_at')
+        .select('id, numero, cliente_nome, estado, prioridade, created_at')
         .eq('empresa_id', eid).neq('estado', 'cancelada')
         .order('created_at', { ascending: false }).limit(8),
     ]);
@@ -148,7 +148,7 @@ export function useDashboardExecutivo() {
       })),
       osRecentes: (osList.data || []).map(r => ({
         id: r.id,
-        numeroOs: r.numero_os,
+        numeroOs: r.numero,
         clienteNome: r.cliente_nome || '—',
         estado: r.estado,
         prioridade: r.prioridade || 'normal',
