@@ -237,6 +237,44 @@ export default function ConfigAparencia() {
         </CardContent>
       </Card>
 
+      {/* Cor do Texto da Sidebar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Cor do Texto do Menu Lateral</CardTitle>
+          <CardDescription>Reforce o contraste do texto para melhor legibilidade — útil em baixa luz ou para utilizadores com dificuldades visuais</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {SIDEBAR_TEXTO_PRESETS.map(p => {
+              const selected = sidebarTexto === p.id;
+              const currentBg = (SIDEBAR_PRESETS.find(s => s.id === sidebarCor) || SIDEBAR_PRESETS[0]);
+              const previewFg = p.fg || currentBg.fg;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSidebarTexto(p.id)}
+                  className={`group relative rounded-lg border-2 overflow-hidden transition-all text-left ${
+                    selected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-muted-foreground/40'
+                  }`}
+                >
+                  <div
+                    className="h-14 w-full flex items-center justify-center px-2"
+                    style={{ backgroundColor: `hsl(${currentBg.bg})`, color: `hsl(${previewFg})` }}
+                  >
+                    <span className="text-sm font-semibold truncate">Aa Menu</span>
+                  </div>
+                  <div className="px-2 py-1.5 bg-card">
+                    <div className="text-xs font-medium text-foreground truncate">{p.label}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Sidebar */}
       <Card>
         <CardHeader>
