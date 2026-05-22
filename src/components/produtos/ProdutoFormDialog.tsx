@@ -145,7 +145,7 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
   ) => {
     const available = activeSuppliers.filter(s => !excludeIds.includes(s.id) || s.id === value);
     const selected = activeSuppliers.find(s => s.id === value);
-    const label = selected ? (selected.nomeFantasia || selected.razaoSocial) : '— Nenhum —';
+    const label = selected ? (selected.razaoSocial || selected.nomeFantasia) : '— Nenhum —';
     return (
       <Popover>
         <PopoverTrigger asChild>
@@ -167,7 +167,7 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
                   — Nenhum —
                 </CommandItem>
                 {available.map(s => {
-                  const name = s.nomeFantasia || s.razaoSocial;
+                  const name = s.razaoSocial || s.nomeFantasia;
                   return (
                     <CommandItem key={s.id} value={`${name} ${s.cnpjCpf || ''}`} onSelect={() => onChange(s.id)}>
                       <Check className={cn('mr-2 h-4 w-4', value === s.id ? 'opacity-100' : 'opacity-0')} />
