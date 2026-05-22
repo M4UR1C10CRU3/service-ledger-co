@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.marketing-ai-tudocasa-month]
 verify_jwt = true
+
+[functions.marketing-ai-field]
+verify_jwt = true

@@ -27,7 +27,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown, Sparkles, Undo2, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   open: boolean;
@@ -44,6 +45,98 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
   const utilizadoresAtivos = utilizadores.filter(u => u.ativo);
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [aiBusy, setAiBusy] = useState<null | 'copy' | 'hashtags' | 'briefing' | 'titulo'>(null);
+  const [prev, setPrev] = useState<{ copy?: string; hashtags?: string; briefing?: string; titulo?: string }>({});
+  const [tituloAlts, setTituloAlts] = useState<string[]>([]);
+
+  const callAi = async (
+    field: 'copy' | 'hashtags' | 'briefing' | 'titulo',
+  ) => {
+    setAiBusy(field);
+    try {
+      const tipos = parseTipos((form as any).tipoConteudo).map(t => TIPO_CONTEUDO_CONFIG[t]?.label || t).join(', ');
+      const canais = parseCanais((form as any).canal).map(c => CANAL_CONFIG[c as MarketingCanal]?.label || c).join(', ');
+      const payload = {
+        field,
+        titulo: form.titulo,
+        tipoConteudo: tipos,
+        canal: canais,
+        copy: form.copyLegenda,
+      };
+      const { data, error } = await supabase.functions.invoke('marketing-ai-field', { body: payload });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      if (field === 'titulo') {
+        const alts = (data as any)?.alternativas as string[] | undefined;
+        if (alts && alts.length) {
+          setTituloAlts(alts);
+        } else {
+          toast({ title: 'Sem alternativas', variant: 'destructive' });
+        }
+      } else {
+        const text = String((data as any)?.text || '').trim();
+        if (!text) { toast({ title: 'Resposta vazia', variant: 'destructive' }); return; }
+        if (field === 'copy') {
+          setPrev(p => ({ ...p, copy: form.copyLegenda || '' }));
+          setForm(f => ({ ...f, copyLegenda: text }));
+          if (initial?.id) await updateTarefa(initial.id, { copyLegenda: text } as any);
+        } else if (field === 'hashtags') {
+          setPrev(p => ({ ...p, hashtags: form.hashtags || '' }));
+          setForm(f => ({ ...f, hashtags: text }));
+          if (initial?.id) await updateTarefa(initial.id, { hashtags: text } as any);
+        } else if (field === 'briefing') {
+          setPrev(p => ({ ...p, briefing: form.briefing || '' }));
+          setForm(f => ({ ...f, briefing: text }));
+          if (initial?.id) await updateTarefa(initial.id, { briefing: text } as any);
+        }
+        toast({ title: '✨ Sugestão aplicada', description: initial?.id ? 'Guardado. Use "Restaurar anterior" para desfazer.' : 'Use "Restaurar anterior" para desfazer.' });
+
+      }
+    } catch (e: any) {
+      toast({ title: 'Erro IA', description: e?.message || 'Falha ao gerar', variant: 'destructive' });
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
+  const escolherTitulo = (t: string) => {
+    setPrev(p => ({ ...p, titulo: form.titulo }));
+    setForm(f => ({ ...f, titulo: t }));
+    setTituloAlts([]);
+  };
+
+  const restaurar = (k: 'copy' | 'hashtags' | 'briefing' | 'titulo') => {
+    setForm(f => {
+      if (k === 'copy') return { ...f, copyLegenda: prev.copy || '' };
+      if (k === 'hashtags') return { ...f, hashtags: prev.hashtags || '' };
+      if (k === 'briefing') return { ...f, briefing: prev.briefing || '' };
+      return { ...f, titulo: prev.titulo || '' };
+    });
+    setPrev(p => ({ ...p, [k]: undefined }));
+  };
+
+  const AiBtn = ({ field, label }: { field: 'copy' | 'hashtags' | 'briefing' | 'titulo'; label: string }) => (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      className="h-6 px-2 text-xs gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+      onClick={() => callAi(field)}
+      disabled={aiBusy !== null}
+    >
+      {aiBusy === field ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+      {label}
+    </Button>
+  );
+
+  const RestoreBtn = ({ field }: { field: 'copy' | 'hashtags' | 'briefing' | 'titulo' }) =>
+    prev[field] !== undefined ? (
+      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => restaurar(field)}>
+        <Undo2 className="h-3 w-3" /> Restaurar anterior
+      </Button>
+    ) : null;
+
 
   const buildInitial = (): MarketingTarefaInput => ({
     titulo: initial?.titulo || '',
@@ -129,13 +222,32 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
 
         <div className="grid gap-4 py-2">
           <div>
-            <Label>Título *</Label>
+            <div className="flex items-center justify-between">
+              <Label>Título *</Label>
+              <div className="flex items-center gap-1">
+                <RestoreBtn field="titulo" />
+                <AiBtn field="titulo" label="Alternativas" />
+              </div>
+            </div>
             <Input
               value={form.titulo}
               onChange={e => setForm({ ...form, titulo: e.target.value })}
               placeholder="Ex.: Campanha Black Friday — Post Instagram"
             />
+            {tituloAlts.length > 0 && (
+              <div className="mt-2 border rounded-md p-2 space-y-1 bg-purple-50/50">
+                <div className="text-[11px] font-semibold text-purple-700 mb-1">Escolha uma alternativa:</div>
+                {tituloAlts.map((alt, i) => (
+                  <label key={i} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-white rounded p-1">
+                    <input type="radio" name="titulo-alt" className="mt-1" onChange={() => escolherTitulo(alt)} />
+                    <span>{alt}</span>
+                  </label>
+                ))}
+                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setTituloAlts([])}>Descartar sugestões</Button>
+              </div>
+            )}
           </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -421,17 +533,29 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
           </div>
 
           <div>
-            <Label>Briefing / Descrição</Label>
+            <div className="flex items-center justify-between">
+              <Label>Briefing / Nota Criativa</Label>
+              <div className="flex items-center gap-1">
+                <RestoreBtn field="briefing" />
+                <AiBtn field="briefing" label="Sugerir formato visual" />
+              </div>
+            </div>
             <Textarea
               rows={3}
               value={form.briefing || ''}
               onChange={e => setForm({ ...form, briefing: e.target.value })}
-              placeholder="Objectivo, contexto, mensagem-chave..."
+              placeholder="Objectivo, contexto, mensagem-chave, tipo de imagem/vídeo, slides..."
             />
           </div>
 
           <div>
-            <Label>Copy / Legenda</Label>
+            <div className="flex items-center justify-between">
+              <Label>Copy / Legenda</Label>
+              <div className="flex items-center gap-1">
+                <RestoreBtn field="copy" />
+                <AiBtn field="copy" label="Regenerar copy" />
+              </div>
+            </div>
             <Textarea
               rows={3}
               value={form.copyLegenda || ''}
@@ -442,13 +566,20 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Hashtags</Label>
+              <div className="flex items-center justify-between">
+                <Label>Hashtags</Label>
+                <div className="flex items-center gap-1">
+                  <RestoreBtn field="hashtags" />
+                  <AiBtn field="hashtags" label="Sugerir hashtags" />
+                </div>
+              </div>
               <Input
                 value={form.hashtags || ''}
                 onChange={e => setForm({ ...form, hashtags: e.target.value })}
                 placeholder="#exemplo #marca"
               />
             </div>
+
             <div>
               <Label>Link Externo</Label>
               <Input
