@@ -88,8 +88,11 @@ export default function ConfigAparencia() {
           .insert(configData);
       }
 
-      // Apply font size
-      document.documentElement.style.fontSize = `${tamanhoFonte}px`;
+      // Aplicar e persistir localmente
+      applyTema(tema);
+      applyDensidade(densidade);
+      applyFonte(tamanhoFonte);
+      saveAppearance({ tema, densidade, tamanhoFonte, sidebarExpandida });
 
       logActivity({
         modulo: 'Configurações',
