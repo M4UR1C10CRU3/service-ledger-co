@@ -984,6 +984,19 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         }}
       />
 
+      <MarketingFullMonthAIDialog
+        open={aiMonthOpen}
+        onOpenChange={setAiMonthOpen}
+        defaultYear={year}
+        defaultMonth={month}
+        onComplete={(y, m) => {
+          setYear(y);
+          setMonth(m);
+          fetchPosts();
+          fetchKanbanSync();
+        }}
+      />
+
       {/* Print */}
       <style>{`
         @media print {
