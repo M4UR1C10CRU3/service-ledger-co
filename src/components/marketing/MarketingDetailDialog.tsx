@@ -326,7 +326,24 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
     const ok = await updateStatus(tarefa.id, 'em_aprovacao');
     if (ok) {
       await updateTarefa(tarefa.id, { etapaAtual: 'aprovacao' });
-      toast({ title: 'Revisão aprovada', description: 'Card movido para "Em Aprovação".' });
+      // Notificar admin/aprovador (in-app + email se Resend configurado)
+      try {
+        await supabase.functions.invoke('marketing-notify-approval', {
+          body: {
+            tarefaId: tarefa.id,
+            empresaId: tarefa.empresaId,
+            titulo: tarefa.titulo,
+            dataPublicacao: tarefa.dataPublicacao,
+            horaPublicacao: tarefa.horaPublicacao,
+            aprovadorNome: tarefa.aprovadorNome,
+            origem: 'em_aprovacao',
+            linkApp: typeof window !== 'undefined' ? `${window.location.origin}/marketing?tarefa=${tarefa.id}` : null,
+          },
+        });
+      } catch (e) {
+        console.warn('notify failed', e);
+      }
+      toast({ title: 'Revisão aprovada', description: 'Aprovador notificado. Card movido para "Em Aprovação".' });
       await reload(tarefa.id);
     }
     setActionBusy(false);
