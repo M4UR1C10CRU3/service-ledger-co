@@ -128,6 +128,7 @@ export function applyAppearance(prefs: AppearancePrefs) {
   if (prefs.densidade) applyDensidade(prefs.densidade);
   if (typeof prefs.tamanhoFonte === 'number') applyFonte(prefs.tamanhoFonte);
   if (prefs.sidebarCor) applySidebarCor(prefs.sidebarCor);
+  if (prefs.sidebarTexto) applySidebarTexto(prefs.sidebarTexto);
   saveAppearance(prefs);
 }
 
