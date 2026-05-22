@@ -62,6 +62,26 @@ export function applySidebarCor(id?: string) {
   root.style.setProperty('--sidebar-accent', preset.accent);
   root.style.setProperty('--sidebar-accent-foreground', preset.accentFg);
   root.style.setProperty('--sidebar-border', preset.border);
+  // Re-apply text override if any
+  const stored = loadAppearance();
+  if (stored.sidebarTexto && stored.sidebarTexto !== 'padrao') {
+    applySidebarTexto(stored.sidebarTexto);
+  }
+}
+
+export function applySidebarTexto(id?: string) {
+  const root = document.documentElement;
+  const preset = SIDEBAR_TEXTO_PRESETS.find(p => p.id === id);
+  if (!preset || preset.id === 'padrao' || !preset.fg) {
+    // Revert to current sidebar preset's fg
+    const stored = loadAppearance();
+    const sb = SIDEBAR_PRESETS.find(p => p.id === stored.sidebarCor) || SIDEBAR_PRESETS[0];
+    root.style.setProperty('--sidebar-foreground', sb.fg);
+    root.style.setProperty('--sidebar-accent-foreground', sb.accentFg);
+    return;
+  }
+  root.style.setProperty('--sidebar-foreground', preset.fg);
+  root.style.setProperty('--sidebar-accent-foreground', preset.fg);
 }
 
 const STORAGE_KEY = 'liberty_appearance';
