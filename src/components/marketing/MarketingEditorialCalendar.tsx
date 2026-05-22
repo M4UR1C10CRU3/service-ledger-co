@@ -17,6 +17,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { STATUS_CONFIG, type MarketingStatus } from '@/types/marketing';
+import { MarketingFullMonthAIDialog } from './MarketingFullMonthAIDialog';
 
 /**
  * Calendário Editorial — Marketing
@@ -709,9 +710,8 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     toast({ title: 'JSON exportado' });
   };
 
-  const handleAI = () => {
-    toast({ title: 'Em breve', description: 'Geração com IA será disponibilizada em breve.' });
-  };
+  const [aiMonthOpen, setAiMonthOpen] = useState(false);
+  const handleAI = () => setAiMonthOpen(true);
 
   // ───────── Render helpers ─────────
 
@@ -981,6 +981,19 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
           persistDay(modalDay, null);
           setModalDay(null);
           toast({ title: 'Publicação eliminada' });
+        }}
+      />
+
+      <MarketingFullMonthAIDialog
+        open={aiMonthOpen}
+        onOpenChange={setAiMonthOpen}
+        defaultYear={year}
+        defaultMonth={month}
+        onComplete={(y, m) => {
+          setYear(y);
+          setMonth(m);
+          fetchPosts();
+          fetchKanbanSync();
         }}
       />
 
