@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useSuppliers } from '@/hooks/useSuppliers';
 import type { Produto, ProdutoInput } from '@/hooks/useProdutos';
 
 const UNIDADES = ['un', 'm²', 'm', 'ml', 'lt', 'kg', 'cx', 'par', 'rolo'];
@@ -16,6 +17,10 @@ const CATEGORIAS = [
   '014 SALA', '015 ESCRITÓRIO', '016 MATERIAL HOSPITALAR',
 ];
 
+const IVA_OPTIONS = [0, 6, 13, 23];
+
+const NONE = '__none';
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -25,6 +30,8 @@ interface Props {
 }
 
 export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existingCategories }: Props) {
+  const { suppliers } = useSuppliers();
+
   const [refInterna, setRefInterna] = useState('');
   const [refFornecedor, setRefFornecedor] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -34,12 +41,20 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
   const [customCategoria, setCustomCategoria] = useState('');
   const [showCustomCategoria, setShowCustomCategoria] = useState(false);
   const [showCustomUnidade, setShowCustomUnidade] = useState(false);
+  const [fornecedor1, setFornecedor1] = useState<string>(NONE);
+  const [fornecedor2, setFornecedor2] = useState<string>(NONE);
+  const [fornecedor3, setFornecedor3] = useState<string>(NONE);
+  const [precoCusto, setPrecoCusto] = useState<string>('0');
+  const [ivaCusto, setIvaCusto] = useState<string>('23');
+  const [margem, setMargem] = useState<string>('30');
   const [saving, setSaving] = useState(false);
 
   const isEditing = !!produto;
-
-  // Merge default categories with existing DB categories
   const allCategories = Array.from(new Set([...CATEGORIAS, ...existingCategories])).sort();
+  const activeSuppliers = useMemo(
+    () => suppliers.filter(s => s.status === 'ativo' && !s.deletedAt),
+    [suppliers]
+  );
 
   useEffect(() => {
     if (open) {
@@ -60,6 +75,12 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
         }
         setShowCustomCategoria(false);
         setCustomCategoria('');
+        setFornecedor1(produto.fornecedor1Id || NONE);
+        setFornecedor2(produto.fornecedor2Id || NONE);
+        setFornecedor3(produto.fornecedor3Id || NONE);
+        setPrecoCusto(String(produto.precoCusto ?? 0));
+        setIvaCusto(String(produto.ivaCusto ?? 23));
+        setMargem(String(produto.margem ?? 30));
       } else {
         setRefInterna('');
         setRefFornecedor('');
@@ -70,9 +91,24 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
         setCustomCategoria('');
         setShowCustomCategoria(false);
         setShowCustomUnidade(false);
+        setFornecedor1(NONE);
+        setFornecedor2(NONE);
+        setFornecedor3(NONE);
+        setPrecoCusto('0');
+        setIvaCusto('23');
+        setMargem('30');
       }
     }
   }, [open, produto]);
+
+  const custoNum = parseFloat(precoCusto.replace(',', '.')) || 0;
+  const ivaNum = parseFloat(ivaCusto.replace(',', '.')) || 0;
+  const margemNum = parseFloat(margem.replace(',', '.')) || 0;
+  const custoComIva = custoNum * (1 + ivaNum / 100);
+  const precoVenda = custoComIva * (1 + margemNum / 100);
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(n);
 
   const handleSave = async () => {
     if (!refInterna.trim() || !descricao.trim()) return;
@@ -87,14 +123,40 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
       descricao: descricao.trim(),
       categoria: finalCategoria,
       unidade: finalUnidade || null,
+      fornecedor1Id: fornecedor1 === NONE ? null : fornecedor1,
+      fornecedor2Id: fornecedor2 === NONE ? null : fornecedor2,
+      fornecedor3Id: fornecedor3 === NONE ? null : fornecedor3,
+      precoCusto: custoNum,
+      ivaCusto: ivaNum,
+      margem: margemNum,
     });
     setSaving(false);
     if (ok) onOpenChange(false);
   };
 
+  const renderFornecedorSelect = (
+    value: string,
+    onChange: (v: string) => void,
+    excludeIds: string[],
+  ) => (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>— Nenhum —</SelectItem>
+        {activeSuppliers
+          .filter(s => !excludeIds.includes(s.id) || s.id === value)
+          .map(s => (
+            <SelectItem key={s.id} value={s.id}>
+              {s.nomeFantasia || s.razaoSocial}
+            </SelectItem>
+          ))}
+      </SelectContent>
+    </Select>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
         </DialogHeader>
@@ -113,41 +175,109 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
             <Label>Descrição *</Label>
             <Input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição do produto" />
           </div>
-          <div className="space-y-2">
-            <Label>Categoria *</Label>
-            {showCustomCategoria ? (
-              <div className="flex gap-2">
-                <Input value={customCategoria} onChange={e => setCustomCategoria(e.target.value)} placeholder="Nova categoria" className="flex-1" />
-                <Button variant="ghost" size="sm" onClick={() => setShowCustomCategoria(false)}>Cancelar</Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Categoria *</Label>
+              {showCustomCategoria ? (
+                <div className="flex gap-2">
+                  <Input value={customCategoria} onChange={e => setCustomCategoria(e.target.value)} placeholder="Nova categoria" className="flex-1" />
+                  <Button variant="ghost" size="sm" onClick={() => setShowCustomCategoria(false)}>Cancelar</Button>
+                </div>
+              ) : (
                 <Select value={categoria} onValueChange={v => { if (v === '__new') { setShowCustomCategoria(true); } else { setCategoria(v); } }}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
                   <SelectContent>
                     {allCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     <SelectItem value="__new">+ Nova Categoria</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            )}
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Unidade</Label>
+              {showCustomUnidade ? (
+                <div className="flex gap-2">
+                  <Input value={customUnidade} onChange={e => setCustomUnidade(e.target.value)} placeholder="Ex: saco" className="flex-1" />
+                  <Button variant="ghost" size="sm" onClick={() => { setShowCustomUnidade(false); setUnidade(''); }}>Cancelar</Button>
+                </div>
+              ) : (
+                <Select value={unidade} onValueChange={v => { if (v === '__custom') { setShowCustomUnidade(true); } else { setUnidade(v); } }}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar unidade" /></SelectTrigger>
+                  <SelectContent>
+                    {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    <SelectItem value="__custom">Outra...</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Unidade</Label>
-            {showCustomUnidade ? (
-              <div className="flex gap-2">
-                <Input value={customUnidade} onChange={e => setCustomUnidade(e.target.value)} placeholder="Ex: saco" className="flex-1" />
-                <Button variant="ghost" size="sm" onClick={() => { setShowCustomUnidade(false); setUnidade(''); }}>Cancelar</Button>
+
+          <div className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Fornecedores prováveis (até 3)</h3>
+            <p className="text-xs text-muted-foreground">Usado para gerar mapa comparativo entre fornecedores.</p>
+            <div className="space-y-2">
+              <Label>Fornecedor 1</Label>
+              {renderFornecedorSelect(fornecedor1, setFornecedor1, [fornecedor2, fornecedor3])}
+            </div>
+            <div className="space-y-2">
+              <Label>Fornecedor 2</Label>
+              {renderFornecedorSelect(fornecedor2, setFornecedor2, [fornecedor1, fornecedor3])}
+            </div>
+            <div className="space-y-2">
+              <Label>Fornecedor 3</Label>
+              {renderFornecedorSelect(fornecedor3, setFornecedor3, [fornecedor1, fornecedor2])}
+            </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Custo e formação de preço</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Preço de custo (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={precoCusto}
+                  onChange={e => setPrecoCusto(e.target.value)}
+                />
               </div>
-            ) : (
-              <Select value={unidade} onValueChange={v => { if (v === '__custom') { setShowCustomUnidade(true); } else { setUnidade(v); } }}>
-                <SelectTrigger><SelectValue placeholder="Selecionar unidade" /></SelectTrigger>
-                <SelectContent>
-                  {UNIDADES.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                  <SelectItem value="__custom">Outra...</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+              <div className="space-y-2">
+                <Label>IVA sobre custo (%)</Label>
+                <Select value={ivaCusto} onValueChange={setIvaCusto}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {IVA_OPTIONS.map(i => (
+                      <SelectItem key={i} value={String(i)}>{i}%</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Margem (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={margem}
+                  onChange={e => setMargem(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="rounded-md bg-muted/40 p-3 grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Custo s/ IVA</p>
+                <p className="font-medium">{fmt(custoNum)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Custo c/ IVA</p>
+                <p className="font-medium">{fmt(custoComIva)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Preço de venda</p>
+                <p className="font-semibold text-primary">{fmt(precoVenda)}</p>
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
