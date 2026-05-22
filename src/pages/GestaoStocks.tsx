@@ -55,6 +55,8 @@ export default function GestaoStocks() {
 
   // Resolved references: maps movement IDs to human-readable references
   const [resolvedRefs, setResolvedRefs] = useState<Record<string, string>>({});
+  // Resolved origem: maps movement IDs to enriched origem (supplier name for compras, service code for saidas)
+  const [resolvedOrigem, setResolvedOrigem] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -73,41 +75,47 @@ export default function GestaoStocks() {
 
     const resolve = async () => {
       const refs: Record<string, string> = {};
+      const origens: Record<string, string> = {};
 
-      // Resolve service names for venda movements
+      // Resolve service code + name for venda/saida movements
       if (vendaIds.length > 0) {
         const { data: services } = await supabase
           .from('services')
-          .select('id, servico')
+          .select('id, service_id, servico')
           .in('id', vendaIds);
         if (services) {
-          const serviceMap = new Map(services.map(s => [s.id, s.servico]));
+          const serviceMap = new Map(services.map((s: any) => [s.id, s]));
           for (const m of movimentos) {
             if (m.vendaId && serviceMap.has(m.vendaId)) {
-              refs[m.id] = serviceMap.get(m.vendaId)!;
+              const s: any = serviceMap.get(m.vendaId);
+              refs[m.id] = s.servico;
+              if (s.service_id) origens[m.id] = s.service_id;
             }
           }
         }
       }
 
-      // Resolve document numbers for compra movements
+      // Resolve document numbers + supplier name for compra movements
       if (compraIds.length > 0) {
         const { data: accounts } = await supabase
           .from('accounts_payable')
-          .select('id, numero_documento')
+          .select('id, numero_documento, supplier_id, suppliers:supplier_id(razao_social, nome_fantasia)')
           .in('id', compraIds);
         if (accounts) {
-          const accMap = new Map(accounts.map(a => [a.id, a.numero_documento]));
+          const accMap = new Map(accounts.map((a: any) => [a.id, a]));
           for (const m of movimentos) {
             if (m.compraId && m.origem === 'compra' && accMap.has(m.compraId)) {
-              const docNum = accMap.get(m.compraId);
-              if (docNum) refs[m.id] = docNum;
+              const a: any = accMap.get(m.compraId);
+              if (a.numero_documento) refs[m.id] = a.numero_documento;
+              const supName = a.suppliers?.razao_social || a.suppliers?.nome_fantasia;
+              if (supName) origens[m.id] = supName;
             }
           }
         }
       }
 
       setResolvedRefs(refs);
+      setResolvedOrigem(origens);
     };
 
     resolve();
@@ -481,7 +489,14 @@ export default function GestaoStocks() {
                             <TableCell><TipoBadge tipo={m.tipo} /></TableCell>
                             <TableCell className="text-right font-semibold">{m.quantidade}</TableCell>
                             <TableCell className="text-right">{m.custoUnitario != null ? formatCurrency(m.custoUnitario) : '—'}</TableCell>
-                            <TableCell>{m.origem || '—'}</TableCell>
+                            <TableCell>
+                              {resolvedOrigem[m.id] ? (
+                                <span>
+                                  <span className="font-medium">{resolvedOrigem[m.id]}</span>
+                                  {m.origem && <span className="text-xs text-muted-foreground ml-1">({m.origem})</span>}
+                                </span>
+                              ) : (m.origem || '—')}
+                            </TableCell>
                             <TableCell>{resolvedRefs[m.id] || m.referenciaDoc || '—'}</TableCell>
                           </TableRow>
                         ))}
