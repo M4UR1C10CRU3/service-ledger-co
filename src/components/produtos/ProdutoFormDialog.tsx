@@ -246,7 +246,11 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
 
           <div className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Fornecedores prováveis (até 3)</h3>
-            <p className="text-xs text-muted-foreground">Usado para gerar mapa comparativo entre fornecedores.</p>
+            <p className="text-xs text-muted-foreground">
+              {loadingSuppliers
+                ? 'A carregar fornecedores...'
+                : `${activeSuppliers.length} fornecedor(es) ativo(s) disponível(eis) — usado para mapa comparativo.`}
+            </p>
             <div className="space-y-2">
               <Label>Fornecedor 1</Label>
               {renderFornecedorSelect(fornecedor1, setFornecedor1, [fornecedor2, fornecedor3])}
