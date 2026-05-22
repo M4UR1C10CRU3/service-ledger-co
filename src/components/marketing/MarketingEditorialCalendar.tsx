@@ -1051,33 +1051,28 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
         ))}
       </div>
 
-      {/* Modal */}
-      <PostDialog
-        day={modalDay}
-        post={modalDay !== null ? mergedState[modalDay] : undefined}
-        tab={modalTab}
-        onTabChange={setModalTab}
-        entregas={modalDay !== null ? (mergedEntregas[modalDay] || []) : []}
-        linkedTarefa={modalDay !== null ? mergedLinks[modalDay] : undefined}
-        onPromover={() => modalDay !== null && promoverParaKanban(modalDay)}
-        onDesligar={() => modalDay !== null && desligarDoKanban(modalDay)}
-        onRefreshLinked={fetchLinked}
-        onUpload={(file) => modalDay !== null && uploadEntrega(modalDay, file)}
-        onDecidir={decidirEntrega}
-        onRemoverEntrega={removerEntrega}
-        onDownloadEntrega={downloadEntrega}
-        onClose={() => setModalDay(null)}
-        onSave={(p) => {
-          if (modalDay === null) return;
-          persistDay(modalDay, p);
-          setModalDay(null);
-          toast({ title: 'Publicação guardada' });
+      {/* Modal de detalhe — partilhado com Kanban */}
+      <MarketingDetailDialog
+        tarefa={detailTarefa}
+        open={detailOpen}
+        onOpenChange={(o) => {
+          setDetailOpen(o);
+          if (!o) {
+            setDetailTarefa(null);
+            fetchKanbanSync();
+          }
         }}
-        onDelete={() => {
-          if (modalDay === null) return;
-          persistDay(modalDay, null);
-          setModalDay(null);
-          toast({ title: 'Publicação eliminada' });
+      />
+
+      {/* Formulário de criação rápida no Kanban (status = Ideias) */}
+      <MarketingTarefaDialog
+        open={tarefaFormOpen}
+        onOpenChange={setTarefaFormOpen}
+        defaultStatus="ideias"
+        defaultDate={addDate}
+        onSaved={async () => {
+          await refetchKanban();
+          await fetchKanbanSync();
         }}
       />
 
