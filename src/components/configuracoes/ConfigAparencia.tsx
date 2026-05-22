@@ -10,7 +10,7 @@ import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissionsContext } from '@/contexts/PermissionsContext';
 import { Save, Sun, Moon, Monitor } from 'lucide-react';
-import { applyTema, applyDensidade, applyFonte, applySidebarCor, SIDEBAR_PRESETS, saveAppearance, loadAppearance } from '@/lib/applyAppearance';
+import { applyTema, applyDensidade, applyFonte, applySidebarCor, applySidebarTexto, SIDEBAR_PRESETS, SIDEBAR_TEXTO_PRESETS, saveAppearance, loadAppearance } from '@/lib/applyAppearance';
 
 export default function ConfigAparencia() {
   const { toast } = useToast();
@@ -23,6 +23,7 @@ export default function ConfigAparencia() {
   const [tamanhoFonte, setTamanhoFonte] = useState(14);
   const [sidebarExpandida, setSidebarExpandida] = useState(true);
   const [sidebarCor, setSidebarCor] = useState<string>('padrao');
+  const [sidebarTexto, setSidebarTexto] = useState<string>('padrao');
 
   // Carregar preferências (localStorage primeiro para resposta imediata, depois DB)
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function ConfigAparencia() {
     if (typeof local.tamanhoFonte === 'number') setTamanhoFonte(local.tamanhoFonte);
     if (typeof local.sidebarExpandida === 'boolean') setSidebarExpandida(local.sidebarExpandida);
     if (local.sidebarCor) setSidebarCor(local.sidebarCor);
+    if (local.sidebarTexto) setSidebarTexto(local.sidebarTexto);
   }, []);
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export default function ConfigAparencia() {
   useEffect(() => { applyDensidade(densidade); }, [densidade]);
   useEffect(() => { applyFonte(tamanhoFonte); }, [tamanhoFonte]);
   useEffect(() => { applySidebarCor(sidebarCor); }, [sidebarCor]);
+  useEffect(() => { applySidebarTexto(sidebarTexto); }, [sidebarTexto]);
 
   const handleSave = async () => {
     if (!utilizador) return;
@@ -96,7 +99,8 @@ export default function ConfigAparencia() {
       applyDensidade(densidade);
       applyFonte(tamanhoFonte);
       applySidebarCor(sidebarCor);
-      saveAppearance({ tema, densidade, tamanhoFonte, sidebarExpandida, sidebarCor });
+      applySidebarTexto(sidebarTexto);
+      saveAppearance({ tema, densidade, tamanhoFonte, sidebarExpandida, sidebarCor, sidebarTexto });
 
       logActivity({
         modulo: 'Configurações',
@@ -223,6 +227,44 @@ export default function ConfigAparencia() {
                     </div>
                   </div>
                   <div className="px-2.5 py-2 bg-card">
+                    <div className="text-xs font-medium text-foreground truncate">{p.label}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cor do Texto da Sidebar */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Cor do Texto do Menu Lateral</CardTitle>
+          <CardDescription>Reforce o contraste do texto para melhor legibilidade — útil em baixa luz ou para utilizadores com dificuldades visuais</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {SIDEBAR_TEXTO_PRESETS.map(p => {
+              const selected = sidebarTexto === p.id;
+              const currentBg = (SIDEBAR_PRESETS.find(s => s.id === sidebarCor) || SIDEBAR_PRESETS[0]);
+              const previewFg = p.fg || currentBg.fg;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSidebarTexto(p.id)}
+                  className={`group relative rounded-lg border-2 overflow-hidden transition-all text-left ${
+                    selected ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-muted-foreground/40'
+                  }`}
+                >
+                  <div
+                    className="h-14 w-full flex items-center justify-center px-2"
+                    style={{ backgroundColor: `hsl(${currentBg.bg})`, color: `hsl(${previewFg})` }}
+                  >
+                    <span className="text-sm font-semibold truncate">Aa Menu</span>
+                  </div>
+                  <div className="px-2 py-1.5 bg-card">
                     <div className="text-xs font-medium text-foreground truncate">{p.label}</div>
                     <div className="text-[10px] text-muted-foreground truncate">{p.description}</div>
                   </div>

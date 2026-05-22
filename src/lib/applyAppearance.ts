@@ -9,7 +9,28 @@ export interface AppearancePrefs {
   tamanhoFonte?: number;
   sidebarExpandida?: boolean;
   sidebarCor?: string; // preset id or custom hex
+  sidebarTexto?: string; // text color preset id
 }
+
+export interface SidebarTextoPreset {
+  id: string;
+  label: string;
+  description: string;
+  fg: string; // HSL "H S% L%"
+}
+
+export const SIDEBAR_TEXTO_PRESETS: SidebarTextoPreset[] = [
+  { id: 'padrao', label: 'Padrão', description: 'Cor original do preset', fg: '' },
+  { id: 'branco-puro', label: 'Branco Puro', description: 'Máxima legibilidade', fg: '0 0% 100%' },
+  { id: 'branco-quente', label: 'Branco Quente', description: 'Suave aos olhos', fg: '40 30% 96%' },
+  { id: 'amarelo-suave', label: 'Amarelo Suave', description: 'Contraste alto em fundo escuro', fg: '50 95% 85%' },
+  { id: 'amarelo-forte', label: 'Amarelo Forte', description: 'WCAG AAA em fundo escuro', fg: '52 100% 70%' },
+  { id: 'ciano-claro', label: 'Ciano Claro', description: 'Frio e nítido', fg: '190 90% 80%' },
+  { id: 'verde-lima', label: 'Verde Lima', description: 'Vibrante e legível', fg: '85 80% 75%' },
+  { id: 'laranja-claro', label: 'Laranja Claro', description: 'Quente e marcante', fg: '30 100% 78%' },
+  { id: 'preto-puro', label: 'Preto Puro', description: 'Para fundos claros', fg: '0 0% 5%' },
+  { id: 'azul-profundo', label: 'Azul Profundo', description: 'Para fundos claros', fg: '220 80% 20%' },
+];
 
 export interface SidebarPreset {
   id: string;
@@ -41,6 +62,26 @@ export function applySidebarCor(id?: string) {
   root.style.setProperty('--sidebar-accent', preset.accent);
   root.style.setProperty('--sidebar-accent-foreground', preset.accentFg);
   root.style.setProperty('--sidebar-border', preset.border);
+  // Re-apply text override if any
+  const stored = loadAppearance();
+  if (stored.sidebarTexto && stored.sidebarTexto !== 'padrao') {
+    applySidebarTexto(stored.sidebarTexto);
+  }
+}
+
+export function applySidebarTexto(id?: string) {
+  const root = document.documentElement;
+  const preset = SIDEBAR_TEXTO_PRESETS.find(p => p.id === id);
+  if (!preset || preset.id === 'padrao' || !preset.fg) {
+    // Revert to current sidebar preset's fg
+    const stored = loadAppearance();
+    const sb = SIDEBAR_PRESETS.find(p => p.id === stored.sidebarCor) || SIDEBAR_PRESETS[0];
+    root.style.setProperty('--sidebar-foreground', sb.fg);
+    root.style.setProperty('--sidebar-accent-foreground', sb.accentFg);
+    return;
+  }
+  root.style.setProperty('--sidebar-foreground', preset.fg);
+  root.style.setProperty('--sidebar-accent-foreground', preset.fg);
 }
 
 const STORAGE_KEY = 'liberty_appearance';
@@ -87,6 +128,7 @@ export function applyAppearance(prefs: AppearancePrefs) {
   if (prefs.densidade) applyDensidade(prefs.densidade);
   if (typeof prefs.tamanhoFonte === 'number') applyFonte(prefs.tamanhoFonte);
   if (prefs.sidebarCor) applySidebarCor(prefs.sidebarCor);
+  if (prefs.sidebarTexto) applySidebarTexto(prefs.sidebarTexto);
   saveAppearance(prefs);
 }
 
@@ -112,6 +154,7 @@ export function bootstrapAppearance() {
   applyDensidade(prefs.densidade || 'normal');
   applyFonte(typeof prefs.tamanhoFonte === 'number' ? prefs.tamanhoFonte : 14);
   if (prefs.sidebarCor) applySidebarCor(prefs.sidebarCor);
+  if (prefs.sidebarTexto) applySidebarTexto(prefs.sidebarTexto);
 
   // Reagir a mudanças do tema do sistema
   if (prefs.tema === 'sistema') {
