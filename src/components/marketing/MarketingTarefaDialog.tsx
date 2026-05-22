@@ -218,13 +218,32 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
 
         <div className="grid gap-4 py-2">
           <div>
-            <Label>Título *</Label>
+            <div className="flex items-center justify-between">
+              <Label>Título *</Label>
+              <div className="flex items-center gap-1">
+                <RestoreBtn field="titulo" />
+                <AiBtn field="titulo" label="Alternativas" />
+              </div>
+            </div>
             <Input
               value={form.titulo}
               onChange={e => setForm({ ...form, titulo: e.target.value })}
               placeholder="Ex.: Campanha Black Friday — Post Instagram"
             />
+            {tituloAlts.length > 0 && (
+              <div className="mt-2 border rounded-md p-2 space-y-1 bg-purple-50/50">
+                <div className="text-[11px] font-semibold text-purple-700 mb-1">Escolha uma alternativa:</div>
+                {tituloAlts.map((alt, i) => (
+                  <label key={i} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-white rounded p-1">
+                    <input type="radio" name="titulo-alt" className="mt-1" onChange={() => escolherTitulo(alt)} />
+                    <span>{alt}</span>
+                  </label>
+                ))}
+                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setTituloAlts([])}>Descartar sugestões</Button>
+              </div>
+            )}
           </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div>
