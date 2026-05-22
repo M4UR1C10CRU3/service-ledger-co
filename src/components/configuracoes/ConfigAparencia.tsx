@@ -99,7 +99,8 @@ export default function ConfigAparencia() {
       applyDensidade(densidade);
       applyFonte(tamanhoFonte);
       applySidebarCor(sidebarCor);
-      saveAppearance({ tema, densidade, tamanhoFonte, sidebarExpandida, sidebarCor });
+      applySidebarTexto(sidebarTexto);
+      saveAppearance({ tema, densidade, tamanhoFonte, sidebarExpandida, sidebarCor, sidebarTexto });
 
       logActivity({
         modulo: 'Configurações',
