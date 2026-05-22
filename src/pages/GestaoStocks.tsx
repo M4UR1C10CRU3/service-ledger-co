@@ -489,7 +489,14 @@ export default function GestaoStocks() {
                             <TableCell><TipoBadge tipo={m.tipo} /></TableCell>
                             <TableCell className="text-right font-semibold">{m.quantidade}</TableCell>
                             <TableCell className="text-right">{m.custoUnitario != null ? formatCurrency(m.custoUnitario) : '—'}</TableCell>
-                            <TableCell>{m.origem || '—'}</TableCell>
+                            <TableCell>
+                              {resolvedOrigem[m.id] ? (
+                                <span>
+                                  <span className="font-medium">{resolvedOrigem[m.id]}</span>
+                                  {m.origem && <span className="text-xs text-muted-foreground ml-1">({m.origem})</span>}
+                                </span>
+                              ) : (m.origem || '—')}
+                            </TableCell>
                             <TableCell>{resolvedRefs[m.id] || m.referenciaDoc || '—'}</TableCell>
                           </TableRow>
                         ))}
