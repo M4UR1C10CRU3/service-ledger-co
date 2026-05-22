@@ -80,14 +80,18 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
         if (field === 'copy') {
           setPrev(p => ({ ...p, copy: form.copyLegenda || '' }));
           setForm(f => ({ ...f, copyLegenda: text }));
+          if (initial?.id) await updateTarefa(initial.id, { copyLegenda: text } as any);
         } else if (field === 'hashtags') {
           setPrev(p => ({ ...p, hashtags: form.hashtags || '' }));
           setForm(f => ({ ...f, hashtags: text }));
+          if (initial?.id) await updateTarefa(initial.id, { hashtags: text } as any);
         } else if (field === 'briefing') {
           setPrev(p => ({ ...p, briefing: form.briefing || '' }));
           setForm(f => ({ ...f, briefing: text }));
+          if (initial?.id) await updateTarefa(initial.id, { briefing: text } as any);
         }
-        toast({ title: '✨ Sugestão aplicada', description: 'Use "Restaurar anterior" para desfazer.' });
+        toast({ title: '✨ Sugestão aplicada', description: initial?.id ? 'Guardado. Use "Restaurar anterior" para desfazer.' : 'Use "Restaurar anterior" para desfazer.' });
+
       }
     } catch (e: any) {
       toast({ title: 'Erro IA', description: e?.message || 'Falha ao gerar', variant: 'destructive' });
