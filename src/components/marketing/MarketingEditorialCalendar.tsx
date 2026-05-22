@@ -17,6 +17,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { STATUS_CONFIG, type MarketingStatus } from '@/types/marketing';
+import { MarketingFullMonthAIDialog } from './MarketingFullMonthAIDialog';
 
 /**
  * Calendário Editorial — Marketing
