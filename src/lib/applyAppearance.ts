@@ -154,6 +154,7 @@ export function bootstrapAppearance() {
   applyDensidade(prefs.densidade || 'normal');
   applyFonte(typeof prefs.tamanhoFonte === 'number' ? prefs.tamanhoFonte : 14);
   if (prefs.sidebarCor) applySidebarCor(prefs.sidebarCor);
+  if (prefs.sidebarTexto) applySidebarTexto(prefs.sidebarTexto);
 
   // Reagir a mudanças do tema do sistema
   if (prefs.tema === 'sistema') {
