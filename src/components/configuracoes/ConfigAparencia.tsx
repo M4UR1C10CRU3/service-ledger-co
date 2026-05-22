@@ -10,7 +10,7 @@ import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissionsContext } from '@/contexts/PermissionsContext';
 import { Save, Sun, Moon, Monitor } from 'lucide-react';
-import { applyTema, applyDensidade, applyFonte, saveAppearance, loadAppearance } from '@/lib/applyAppearance';
+import { applyTema, applyDensidade, applyFonte, applySidebarCor, SIDEBAR_PRESETS, saveAppearance, loadAppearance } from '@/lib/applyAppearance';
 
 export default function ConfigAparencia() {
   const { toast } = useToast();
