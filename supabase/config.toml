@@ -50,3 +50,7 @@ verify_jwt = true
 
 [functions.marketing-ai-field]
 verify_jwt = true
+
+[functions.marketing-notify-approval]
+verify_jwt = false
+
