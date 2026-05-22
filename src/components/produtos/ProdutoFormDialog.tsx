@@ -310,8 +310,11 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
                 <p className="font-medium">{fmt(custoComIva)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Preço de venda</p>
-                <p className="font-semibold text-primary">{fmt(precoVenda)}</p>
+                <p className="text-xs text-muted-foreground">PVP (Preço de Venda)</p>
+                <p className="font-semibold text-primary text-base">{fmt(precoVenda)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  = Custo × (1 + IVA%) × (1 + Margem%)
+                </p>
               </div>
             </div>
           </div>
