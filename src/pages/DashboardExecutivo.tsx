@@ -8,6 +8,7 @@ import {
   ClipboardList, ShoppingCart, Wrench, FileText,
   CheckCircle2, Clock, XCircle, AlertCircle,
 } from 'lucide-react';
+import { MarketingEditorialSection } from '@/components/dashboard/MarketingEditorialSection';
 
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(v);
