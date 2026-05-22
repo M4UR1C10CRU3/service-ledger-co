@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.marketing-publish-scheduled]
 verify_jwt = false
+
+[functions.marketing-ai-tudocasa-month]
+verify_jwt = true
