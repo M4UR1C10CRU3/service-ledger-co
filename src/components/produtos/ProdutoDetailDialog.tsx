@@ -22,7 +22,7 @@ export function ProdutoDetailDialog({ open, onOpenChange, produto, onEdit }: Pro
   const supplierName = (id: string | null) => {
     if (!id) return '—';
     const s = suppliers.find(x => x.id === id);
-    return s ? (s.nomeFantasia || s.razaoSocial) : '—';
+    return s ? (s.razaoSocial || s.nomeFantasia) : '—';
   };
 
   const custoComIva = produto.precoCusto * (1 + produto.ivaCusto / 100);
