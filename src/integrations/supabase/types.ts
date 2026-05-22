@@ -2694,8 +2694,14 @@ export type Database = {
           created_at: string
           descricao: string
           empresa_id: string
+          fornecedor_1_id: string | null
+          fornecedor_2_id: string | null
+          fornecedor_3_id: string | null
           id: string
+          iva_custo: number
+          margem: number
           origem: string | null
+          preco_custo: number
           ref_fornecedor: string | null
           ref_interna: string
           unidade: string | null
@@ -2706,8 +2712,14 @@ export type Database = {
           created_at?: string
           descricao: string
           empresa_id: string
+          fornecedor_1_id?: string | null
+          fornecedor_2_id?: string | null
+          fornecedor_3_id?: string | null
           id?: string
+          iva_custo?: number
+          margem?: number
           origem?: string | null
+          preco_custo?: number
           ref_fornecedor?: string | null
           ref_interna: string
           unidade?: string | null
@@ -2718,8 +2730,14 @@ export type Database = {
           created_at?: string
           descricao?: string
           empresa_id?: string
+          fornecedor_1_id?: string | null
+          fornecedor_2_id?: string | null
+          fornecedor_3_id?: string | null
           id?: string
+          iva_custo?: number
+          margem?: number
           origem?: string | null
+          preco_custo?: number
           ref_fornecedor?: string | null
           ref_interna?: string
           unidade?: string | null
@@ -2731,6 +2749,27 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fornecedor_1_id_fkey"
+            columns: ["fornecedor_1_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fornecedor_2_id_fkey"
+            columns: ["fornecedor_2_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fornecedor_3_id_fkey"
+            columns: ["fornecedor_3_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
