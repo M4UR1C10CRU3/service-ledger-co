@@ -9,7 +9,28 @@ export interface AppearancePrefs {
   tamanhoFonte?: number;
   sidebarExpandida?: boolean;
   sidebarCor?: string; // preset id or custom hex
+  sidebarTexto?: string; // text color preset id
 }
+
+export interface SidebarTextoPreset {
+  id: string;
+  label: string;
+  description: string;
+  fg: string; // HSL "H S% L%"
+}
+
+export const SIDEBAR_TEXTO_PRESETS: SidebarTextoPreset[] = [
+  { id: 'padrao', label: 'Padrão', description: 'Cor original do preset', fg: '' },
+  { id: 'branco-puro', label: 'Branco Puro', description: 'Máxima legibilidade', fg: '0 0% 100%' },
+  { id: 'branco-quente', label: 'Branco Quente', description: 'Suave aos olhos', fg: '40 30% 96%' },
+  { id: 'amarelo-suave', label: 'Amarelo Suave', description: 'Contraste alto em fundo escuro', fg: '50 95% 85%' },
+  { id: 'amarelo-forte', label: 'Amarelo Forte', description: 'WCAG AAA em fundo escuro', fg: '52 100% 70%' },
+  { id: 'ciano-claro', label: 'Ciano Claro', description: 'Frio e nítido', fg: '190 90% 80%' },
+  { id: 'verde-lima', label: 'Verde Lima', description: 'Vibrante e legível', fg: '85 80% 75%' },
+  { id: 'laranja-claro', label: 'Laranja Claro', description: 'Quente e marcante', fg: '30 100% 78%' },
+  { id: 'preto-puro', label: 'Preto Puro', description: 'Para fundos claros', fg: '0 0% 5%' },
+  { id: 'azul-profundo', label: 'Azul Profundo', description: 'Para fundos claros', fg: '220 80% 20%' },
+];
 
 export interface SidebarPreset {
   id: string;
