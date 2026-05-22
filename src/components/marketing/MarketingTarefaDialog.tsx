@@ -529,17 +529,29 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
           </div>
 
           <div>
-            <Label>Briefing / Descrição</Label>
+            <div className="flex items-center justify-between">
+              <Label>Briefing / Nota Criativa</Label>
+              <div className="flex items-center gap-1">
+                <RestoreBtn field="briefing" />
+                <AiBtn field="briefing" label="Sugerir formato visual" />
+              </div>
+            </div>
             <Textarea
               rows={3}
               value={form.briefing || ''}
               onChange={e => setForm({ ...form, briefing: e.target.value })}
-              placeholder="Objectivo, contexto, mensagem-chave..."
+              placeholder="Objectivo, contexto, mensagem-chave, tipo de imagem/vídeo, slides..."
             />
           </div>
 
           <div>
-            <Label>Copy / Legenda</Label>
+            <div className="flex items-center justify-between">
+              <Label>Copy / Legenda</Label>
+              <div className="flex items-center gap-1">
+                <RestoreBtn field="copy" />
+                <AiBtn field="copy" label="Regenerar copy" />
+              </div>
+            </div>
             <Textarea
               rows={3}
               value={form.copyLegenda || ''}
@@ -550,13 +562,20 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Hashtags</Label>
+              <div className="flex items-center justify-between">
+                <Label>Hashtags</Label>
+                <div className="flex items-center gap-1">
+                  <RestoreBtn field="hashtags" />
+                  <AiBtn field="hashtags" label="Sugerir hashtags" />
+                </div>
+              </div>
               <Input
                 value={form.hashtags || ''}
                 onChange={e => setForm({ ...form, hashtags: e.target.value })}
                 placeholder="#exemplo #marca"
               />
             </div>
+
             <div>
               <Label>Link Externo</Label>
               <Input
