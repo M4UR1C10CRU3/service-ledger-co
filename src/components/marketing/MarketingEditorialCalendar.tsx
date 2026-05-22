@@ -662,14 +662,108 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
   }, [linkedTarefas, kanbanLinks]);
 
 
-  const openView = (day: number) => {
-    setModalDay(day);
-    setModalTab(mergedState[day] ? 'briefing' : 'editar');
+  // ───────── Dialogs Kanban (substituem PostDialog) ─────────
+  const { tarefas: kanbanTarefas, fetchTarefas: refetchKanban } = useMarketing();
+  const [detailTarefa, setDetailTarefa] = useState<MarketingTarefa | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [tarefaFormOpen, setTarefaFormOpen] = useState(false);
+  const [addDate, setAddDate] = useState<string | undefined>(undefined);
+
+  const promoverParaIdeias = useCallback(async (day: number): Promise<string | null> => {
+    if (!empresa?.id) return null;
+    const post = state[day];
+    if (!post) return null;
+    const dataPub = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const wkInfo = WEEKDAY_INFO[weekdayOf(day)];
+    const horaPub = post.hfb || wkInfo.fb;
+    const tipoConteudo =
+      post.type === 'carrossel' ? 'post' :
+      post.type === 'bastidores' ? 'reels' :
+      post.type === 'eng' ? 'story' : 'post';
+    const canal =
+      post.plat.includes('IG') && !post.plat.includes('FB') ? 'instagram' :
+      post.plat.includes('FB') && !post.plat.includes('IG') ? 'facebook' : 'instagram';
+    const { data: userResp } = await supabase.auth.getUser();
+    const briefingTxt = [
+      `Publicação editorial — Dia ${day} (${wkInfo.name})`,
+      `Tipo: ${TYPE_CONFIG[post.type].label}`,
+      `Plataformas: ${post.plat}`,
+      post.holiday ? `Data especial: ${post.holiday}` : '',
+      '', 'Nota criativa:', post.tip || '—',
+    ].filter(Boolean).join('\n');
+    const { data: row } = await supabase.from('marketing_tarefas').insert({
+      empresa_id: empresa.id,
+      titulo: post.title,
+      descricao: `Importado do Calendário Editorial — Dia ${day}/${month}/${year}`,
+      tipo_conteudo: tipoConteudo,
+      canal,
+      status: 'ideias',
+      prioridade: 'media',
+      data_publicacao: dataPub,
+      hora_publicacao: horaPub,
+      hashtags: post.tags || null,
+      copy_legenda: post.copy || null,
+      briefing: briefingTxt,
+      etapa_atual: 'briefing',
+      solicitante_nome: userResp?.user?.email || null,
+      solicitante_id: userResp?.user?.id || null,
+      created_by: userResp?.user?.id || null,
+    }).select('id').single();
+    if (!row) return null;
+    await persistLink(day, row.id);
+    await refetchKanban();
+    await fetchKanbanSync();
+    return row.id;
+  }, [empresa?.id, state, year, month, persistLink, refetchKanban, fetchKanbanSync]);
+
+  const openView = async (day: number) => {
+    if (!mergedState[day]) { openAdd(day); return; }
+    let tarefaId = mergedLinks[day]?.id;
+    if (!tarefaId) {
+      tarefaId = (await promoverParaIdeias(day)) || undefined;
+      if (!tarefaId) {
+        toast({ title: 'Não foi possível abrir o post', variant: 'destructive' });
+        return;
+      }
+    }
+    // Procura na lista local; se não existir, fetch directo
+    let t = kanbanTarefas.find(x => x.id === tarefaId) || null;
+    if (!t) {
+      const { data } = await supabase.from('marketing_tarefas').select('*').eq('id', tarefaId).maybeSingle();
+      if (data) {
+        await refetchKanban();
+        t = (await new Promise<MarketingTarefa | null>(res => {
+          // micro-delay para useMarketing refrescar
+          setTimeout(() => res(null), 50);
+        })) || ({
+          id: data.id, empresaId: data.empresa_id, titulo: data.titulo, descricao: data.descricao,
+          tipoConteudo: data.tipo_conteudo, canal: data.canal, status: data.status,
+          prioridade: data.prioridade, responsavelNome: data.responsavel_nome,
+          dataPublicacao: data.data_publicacao, horaPublicacao: data.hora_publicacao,
+          hashtags: data.hashtags, copyLegenda: data.copy_legenda, briefing: data.briefing,
+          observacoes: data.observacoes, etapaAtual: data.etapa_atual,
+          createdAt: data.created_at, updatedAt: data.updated_at,
+        } as any);
+      }
+    }
+    if (t) {
+      setDetailTarefa(t);
+      setDetailOpen(true);
+    }
   };
+
   const openAdd = (day: number) => {
-    setModalDay(day);
-    setModalTab('editar');
+    const dataPub = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setAddDate(dataPub);
+    setTarefaFormOpen(true);
   };
+
+  // Mantém o detail dialog sincronizado quando a lista da useMarketing actualiza
+  useEffect(() => {
+    if (!detailTarefa) return;
+    const fresh = kanbanTarefas.find(t => t.id === detailTarefa.id);
+    if (fresh && fresh !== detailTarefa) setDetailTarefa(fresh);
+  }, [kanbanTarefas, detailTarefa]);
 
   // ───────── Acções topo ─────────
   const handleResetOriginal = () => {
