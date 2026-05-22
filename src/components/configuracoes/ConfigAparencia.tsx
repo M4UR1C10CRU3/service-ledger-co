@@ -18,10 +18,19 @@ export default function ConfigAparencia() {
   const { utilizador } = usePermissionsContext();
   const [loading, setLoading] = useState(false);
 
-  const [tema, setTema] = useState('claro');
+  const [tema, setTema] = useState<string>('escuro');
   const [densidade, setDensidade] = useState('normal');
   const [tamanhoFonte, setTamanhoFonte] = useState(14);
   const [sidebarExpandida, setSidebarExpandida] = useState(true);
+
+  // Carregar preferências (localStorage primeiro para resposta imediata, depois DB)
+  useEffect(() => {
+    const local = loadAppearance();
+    if (local.tema) setTema(local.tema);
+    if (local.densidade) setDensidade(local.densidade);
+    if (typeof local.tamanhoFonte === 'number') setTamanhoFonte(local.tamanhoFonte);
+    if (typeof local.sidebarExpandida === 'boolean') setSidebarExpandida(local.sidebarExpandida);
+  }, []);
 
   useEffect(() => {
     if (!utilizador) return;
@@ -31,14 +40,26 @@ export default function ConfigAparencia() {
         .eq('utilizador_id', utilizador.id)
         .maybeSingle();
       if (data) {
-        setTema(data.tema || 'claro');
-        setDensidade(data.densidade || 'normal');
-        setTamanhoFonte(data.tamanho_fonte || 14);
+        const t = data.tema || 'escuro';
+        const d = data.densidade || 'normal';
+        const f = data.tamanho_fonte || 14;
+        setTema(t);
+        setDensidade(d);
+        setTamanhoFonte(f);
         setSidebarExpandida(data.sidebar_expandida ?? true);
+        applyTema(t);
+        applyDensidade(d);
+        applyFonte(f);
+        saveAppearance({ tema: t, densidade: d, tamanhoFonte: f, sidebarExpandida: data.sidebar_expandida ?? true });
       }
     };
     load();
   }, [utilizador]);
+
+  // Aplicar imediatamente ao mudar (preview ao vivo)
+  useEffect(() => { applyTema(tema); }, [tema]);
+  useEffect(() => { applyDensidade(densidade); }, [densidade]);
+  useEffect(() => { applyFonte(tamanhoFonte); }, [tamanhoFonte]);
 
   const handleSave = async () => {
     if (!utilizador) return;
