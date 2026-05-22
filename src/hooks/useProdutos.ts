@@ -11,6 +11,12 @@ export interface Produto {
   categoria: string;
   unidade: string | null;
   origem: string;
+  fornecedor1Id: string | null;
+  fornecedor2Id: string | null;
+  fornecedor3Id: string | null;
+  precoCusto: number;
+  ivaCusto: number;
+  margem: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +28,12 @@ export interface ProdutoInput {
   categoria: string;
   unidade?: string | null;
   origem?: string;
+  fornecedor1Id?: string | null;
+  fornecedor2Id?: string | null;
+  fornecedor3Id?: string | null;
+  precoCusto?: number;
+  ivaCusto?: number;
+  margem?: number;
 }
 
 function mapRow(r: any): Produto {
@@ -34,6 +46,12 @@ function mapRow(r: any): Produto {
     categoria: r.categoria,
     unidade: r.unidade,
     origem: r.origem || 'manual',
+    fornecedor1Id: r.fornecedor_1_id ?? null,
+    fornecedor2Id: r.fornecedor_2_id ?? null,
+    fornecedor3Id: r.fornecedor_3_id ?? null,
+    precoCusto: Number(r.preco_custo ?? 0),
+    ivaCusto: Number(r.iva_custo ?? 23),
+    margem: Number(r.margem ?? 30),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -79,15 +97,25 @@ export function useProdutos() {
     fetchProdutos();
   }, [fetchProdutos]);
 
+  const buildPayload = (input: ProdutoInput) => ({
+    ref_interna: input.refInterna.trim(),
+    ref_fornecedor: input.refFornecedor?.trim() || null,
+    descricao: input.descricao.trim(),
+    categoria: input.categoria.trim(),
+    unidade: input.unidade?.trim() || null,
+    fornecedor_1_id: input.fornecedor1Id || null,
+    fornecedor_2_id: input.fornecedor2Id || null,
+    fornecedor_3_id: input.fornecedor3Id || null,
+    preco_custo: input.precoCusto ?? 0,
+    iva_custo: input.ivaCusto ?? 23,
+    margem: input.margem ?? 30,
+  });
+
   const addProduto = async (input: ProdutoInput): Promise<boolean> => {
     if (!empresa) return false;
     const { error } = await supabase.from('produtos').insert({
       empresa_id: empresa.id,
-      ref_interna: input.refInterna.trim(),
-      ref_fornecedor: input.refFornecedor?.trim() || null,
-      descricao: input.descricao.trim(),
-      categoria: input.categoria.trim(),
-      unidade: input.unidade?.trim() || null,
+      ...buildPayload(input),
       origem: input.origem || 'manual',
     });
     if (error) {
@@ -105,6 +133,12 @@ export function useProdutos() {
     if (input.descricao !== undefined) updateData.descricao = input.descricao.trim();
     if (input.categoria !== undefined) updateData.categoria = input.categoria.trim();
     if (input.unidade !== undefined) updateData.unidade = input.unidade?.trim() || null;
+    if (input.fornecedor1Id !== undefined) updateData.fornecedor_1_id = input.fornecedor1Id || null;
+    if (input.fornecedor2Id !== undefined) updateData.fornecedor_2_id = input.fornecedor2Id || null;
+    if (input.fornecedor3Id !== undefined) updateData.fornecedor_3_id = input.fornecedor3Id || null;
+    if (input.precoCusto !== undefined) updateData.preco_custo = input.precoCusto;
+    if (input.ivaCusto !== undefined) updateData.iva_custo = input.ivaCusto;
+    if (input.margem !== undefined) updateData.margem = input.margem;
 
     const { error } = await supabase.from('produtos').update(updateData).eq('id', id);
     if (error) {
@@ -129,7 +163,6 @@ export function useProdutos() {
     if (!empresa) return { added: 0, updated: 0, errors: 0 };
     let added = 0, updated = 0, errors = 0;
 
-    // Separate items into new vs updates
     const existingMap = new Map(produtos.map(p => [p.refInterna, p]));
     const toInsert: any[] = [];
     const toUpdate: { id: string; data: any }[] = [];
@@ -160,7 +193,6 @@ export function useProdutos() {
       }
     }
 
-    // Batch insert in chunks of 500 (ignore duplicates for idempotent re-imports)
     const CHUNK_SIZE = 500;
     for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
       const chunk = toInsert.slice(i, i + CHUNK_SIZE);
@@ -177,7 +209,6 @@ export function useProdutos() {
       }
     }
 
-    // Updates still need to be individual
     for (const item of toUpdate) {
       const { error } = await supabase.from('produtos').update(item.data).eq('id', item.id);
       if (error) { errors++; } else { updated++; }
