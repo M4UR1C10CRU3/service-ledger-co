@@ -65,6 +65,7 @@ export default function ConfigAparencia() {
   useEffect(() => { applyDensidade(densidade); }, [densidade]);
   useEffect(() => { applyFonte(tamanhoFonte); }, [tamanhoFonte]);
   useEffect(() => { applySidebarCor(sidebarCor); }, [sidebarCor]);
+  useEffect(() => { applySidebarTexto(sidebarTexto); }, [sidebarTexto]);
 
   const handleSave = async () => {
     if (!utilizador) return;
