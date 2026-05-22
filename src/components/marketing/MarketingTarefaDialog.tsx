@@ -45,6 +45,94 @@ export function MarketingTarefaDialog({ open, onOpenChange, initial, defaultStat
   const utilizadoresAtivos = utilizadores.filter(u => u.ativo);
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [aiBusy, setAiBusy] = useState<null | 'copy' | 'hashtags' | 'briefing' | 'titulo'>(null);
+  const [prev, setPrev] = useState<{ copy?: string; hashtags?: string; briefing?: string; titulo?: string }>({});
+  const [tituloAlts, setTituloAlts] = useState<string[]>([]);
+
+  const callAi = async (
+    field: 'copy' | 'hashtags' | 'briefing' | 'titulo',
+  ) => {
+    setAiBusy(field);
+    try {
+      const tipos = parseTipos((form as any).tipoConteudo).map(t => TIPO_CONTEUDO_CONFIG[t]?.label || t).join(', ');
+      const canais = parseCanais((form as any).canal).map(c => CANAL_CONFIG[c as MarketingCanal]?.label || c).join(', ');
+      const payload = {
+        field,
+        titulo: form.titulo,
+        tipoConteudo: tipos,
+        canal: canais,
+        copy: form.copyLegenda,
+      };
+      const { data, error } = await supabase.functions.invoke('marketing-ai-field', { body: payload });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      if (field === 'titulo') {
+        const alts = (data as any)?.alternativas as string[] | undefined;
+        if (alts && alts.length) {
+          setTituloAlts(alts);
+        } else {
+          toast({ title: 'Sem alternativas', variant: 'destructive' });
+        }
+      } else {
+        const text = String((data as any)?.text || '').trim();
+        if (!text) { toast({ title: 'Resposta vazia', variant: 'destructive' }); return; }
+        if (field === 'copy') {
+          setPrev(p => ({ ...p, copy: form.copyLegenda || '' }));
+          setForm(f => ({ ...f, copyLegenda: text }));
+        } else if (field === 'hashtags') {
+          setPrev(p => ({ ...p, hashtags: form.hashtags || '' }));
+          setForm(f => ({ ...f, hashtags: text }));
+        } else if (field === 'briefing') {
+          setPrev(p => ({ ...p, briefing: form.briefing || '' }));
+          setForm(f => ({ ...f, briefing: text }));
+        }
+        toast({ title: '✨ Sugestão aplicada', description: 'Use "Restaurar anterior" para desfazer.' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Erro IA', description: e?.message || 'Falha ao gerar', variant: 'destructive' });
+    } finally {
+      setAiBusy(null);
+    }
+  };
+
+  const escolherTitulo = (t: string) => {
+    setPrev(p => ({ ...p, titulo: form.titulo }));
+    setForm(f => ({ ...f, titulo: t }));
+    setTituloAlts([]);
+  };
+
+  const restaurar = (k: 'copy' | 'hashtags' | 'briefing' | 'titulo') => {
+    setForm(f => {
+      if (k === 'copy') return { ...f, copyLegenda: prev.copy || '' };
+      if (k === 'hashtags') return { ...f, hashtags: prev.hashtags || '' };
+      if (k === 'briefing') return { ...f, briefing: prev.briefing || '' };
+      return { ...f, titulo: prev.titulo || '' };
+    });
+    setPrev(p => ({ ...p, [k]: undefined }));
+  };
+
+  const AiBtn = ({ field, label }: { field: 'copy' | 'hashtags' | 'briefing' | 'titulo'; label: string }) => (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      className="h-6 px-2 text-xs gap-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+      onClick={() => callAi(field)}
+      disabled={aiBusy !== null}
+    >
+      {aiBusy === field ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+      {label}
+    </Button>
+  );
+
+  const RestoreBtn = ({ field }: { field: 'copy' | 'hashtags' | 'briefing' | 'titulo' }) =>
+    prev[field] !== undefined ? (
+      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => restaurar(field)}>
+        <Undo2 className="h-3 w-3" /> Restaurar anterior
+      </Button>
+    ) : null;
+
 
   const buildInitial = (): MarketingTarefaInput => ({
     titulo: initial?.titulo || '',
