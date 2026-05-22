@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import type { Produto, ProdutoInput } from '@/hooks/useProdutos';
 
@@ -30,7 +34,7 @@ interface Props {
 }
 
 export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existingCategories }: Props) {
-  const { suppliers } = useSuppliers();
+  const { suppliers, isLoading: loadingSuppliers } = useSuppliers();
 
   const [refInterna, setRefInterna] = useState('');
   const [refFornecedor, setRefFornecedor] = useState('');
@@ -138,21 +142,49 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
     value: string,
     onChange: (v: string) => void,
     excludeIds: string[],
-  ) => (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger><SelectValue placeholder="Selecionar fornecedor" /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>— Nenhum —</SelectItem>
-        {activeSuppliers
-          .filter(s => !excludeIds.includes(s.id) || s.id === value)
-          .map(s => (
-            <SelectItem key={s.id} value={s.id}>
-              {s.nomeFantasia || s.razaoSocial}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
-  );
+  ) => {
+    const available = activeSuppliers.filter(s => !excludeIds.includes(s.id) || s.id === value);
+    const selected = activeSuppliers.find(s => s.id === value);
+    const label = selected ? (selected.nomeFantasia || selected.razaoSocial) : '— Nenhum —';
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+            <span className={cn(!selected && 'text-muted-foreground')}>{label}</span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Pesquisar fornecedor..." />
+            <CommandList>
+              <CommandEmpty>
+                {loadingSuppliers ? 'A carregar...' : 'Nenhum fornecedor encontrado.'}
+              </CommandEmpty>
+              <CommandGroup>
+                <CommandItem value="__none" onSelect={() => onChange(NONE)}>
+                  <Check className={cn('mr-2 h-4 w-4', value === NONE ? 'opacity-100' : 'opacity-0')} />
+                  — Nenhum —
+                </CommandItem>
+                {available.map(s => {
+                  const name = s.nomeFantasia || s.razaoSocial;
+                  return (
+                    <CommandItem key={s.id} value={`${name} ${s.cnpjCpf || ''}`} onSelect={() => onChange(s.id)}>
+                      <Check className={cn('mr-2 h-4 w-4', value === s.id ? 'opacity-100' : 'opacity-0')} />
+                      <div className="flex flex-col">
+                        <span>{name}</span>
+                        {s.cnpjCpf && <span className="text-xs text-muted-foreground">NIF: {s.cnpjCpf}</span>}
+                      </div>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,7 +246,11 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
 
           <div className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Fornecedores prováveis (até 3)</h3>
-            <p className="text-xs text-muted-foreground">Usado para gerar mapa comparativo entre fornecedores.</p>
+            <p className="text-xs text-muted-foreground">
+              {loadingSuppliers
+                ? 'A carregar fornecedores...'
+                : `${activeSuppliers.length} fornecedor(es) ativo(s) disponível(eis) — usado para mapa comparativo.`}
+            </p>
             <div className="space-y-2">
               <Label>Fornecedor 1</Label>
               {renderFornecedorSelect(fornecedor1, setFornecedor1, [fornecedor2, fornecedor3])}
@@ -274,8 +310,11 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onSave, existin
                 <p className="font-medium">{fmt(custoComIva)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Preço de venda</p>
-                <p className="font-semibold text-primary">{fmt(precoVenda)}</p>
+                <p className="text-xs text-muted-foreground">PVP (Preço de Venda)</p>
+                <p className="font-semibold text-primary text-base">{fmt(precoVenda)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  = Custo × (1 + IVA%) × (1 + Margem%)
+                </p>
               </div>
             </div>
           </div>
