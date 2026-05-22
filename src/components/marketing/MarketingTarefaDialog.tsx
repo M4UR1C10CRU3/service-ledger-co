@@ -29,12 +29,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { ChevronsUpDown, Sparkles, Undo2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  parseCanais as _pc,
-  parseTipos as _pt,
-  CANAL_CONFIG as _CANAL,
-  TIPO_CONTEUDO_CONFIG as _TIPO,
-} from '@/types/marketing';
 
 interface Props {
   open: boolean;
