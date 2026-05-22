@@ -23,6 +23,7 @@ export default function ConfigAparencia() {
   const [tamanhoFonte, setTamanhoFonte] = useState(14);
   const [sidebarExpandida, setSidebarExpandida] = useState(true);
   const [sidebarCor, setSidebarCor] = useState<string>('padrao');
+  const [sidebarTexto, setSidebarTexto] = useState<string>('padrao');
 
   // Carregar preferências (localStorage primeiro para resposta imediata, depois DB)
   useEffect(() => {
