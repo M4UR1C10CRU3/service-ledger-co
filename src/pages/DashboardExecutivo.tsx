@@ -315,6 +315,9 @@ export default function DashboardExecutivo() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Marketing Editorial */}
+      <MarketingEditorialSection />
     </div>
   );
 }
