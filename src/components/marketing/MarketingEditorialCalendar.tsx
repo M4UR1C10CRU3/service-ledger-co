@@ -710,9 +710,8 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
     toast({ title: 'JSON exportado' });
   };
 
-  const handleAI = () => {
-    toast({ title: 'Em breve', description: 'Geração com IA será disponibilizada em breve.' });
-  };
+  const [aiMonthOpen, setAiMonthOpen] = useState(false);
+  const handleAI = () => setAiMonthOpen(true);
 
   // ───────── Render helpers ─────────
 
