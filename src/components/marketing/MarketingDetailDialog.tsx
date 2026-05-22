@@ -27,6 +27,7 @@ import { pt } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { MarketingWorkflowPanel } from './MarketingWorkflowPanel';
 import { WorkflowActions } from './MarketingWorkflowActions';
+import { MarketingReviewTab } from './MarketingReviewTab';
 
 const normalizeApproverName = (value?: string | null) =>
   (value || '')
@@ -444,12 +445,22 @@ export function MarketingDetailDialog({ tarefa, open, onOpenChange }: Props) {
           onConfirmarAgendamento={handleConfirmarAgendamento}
         />
         <Tabs defaultValue="detalhes">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="revisao">
+              Revisão
+              {(tarefa.status === 'em_revisao' || tarefa.status === 'em_aprovacao') && (
+                <span className="ml-1 inline-block h-2 w-2 rounded-full bg-purple-500" />
+              )}
+            </TabsTrigger>
             <TabsTrigger value="workflow">Workflow</TabsTrigger>
             <TabsTrigger value="entregas">Entregas ({anexos.length})</TabsTrigger>
             <TabsTrigger value="comentarios">Histórico ({comentarios.length})</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="revisao" className="mt-4">
+            <MarketingReviewTab tarefa={tarefa} />
+          </TabsContent>
 
           <TabsContent value="workflow" className="mt-4">
             <MarketingWorkflowPanel tarefa={tarefa} />
