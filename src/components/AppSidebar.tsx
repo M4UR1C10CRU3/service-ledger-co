@@ -104,6 +104,13 @@ const sections: NavSection[] = [
     ],
   },
   {
+    label: 'E-commerce',
+    icon: ShoppingBag,
+    items: [
+      { title: 'Inteligência Competitiva', url: '/ecommerce/inteligencia', icon: ShoppingBag },
+    ],
+  },
+  {
     label: 'Administrativo',
     icon: Building,
     items: [
