@@ -46,6 +46,7 @@ const NotasEncomenda = lazy(() => import("./pages/NotasEncomenda"));
 const DashboardExecutivo = lazy(() => import("./pages/DashboardExecutivo"));
 const Subempreiteiros = lazy(() => import("./pages/Subempreiteiros"));
 const RelatorioGerencial = lazy(() => import("./pages/RelatorioGerencial"));
+const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
