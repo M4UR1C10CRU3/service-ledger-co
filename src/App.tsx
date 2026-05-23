@@ -46,6 +46,7 @@ const NotasEncomenda = lazy(() => import("./pages/NotasEncomenda"));
 const DashboardExecutivo = lazy(() => import("./pages/DashboardExecutivo"));
 const Subempreiteiros = lazy(() => import("./pages/Subempreiteiros"));
 const RelatorioGerencial = lazy(() => import("./pages/RelatorioGerencial"));
+const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +138,7 @@ const App = () => (
               {/* Redirects */}
               <Route path="/" element={<Navigate to="/empresa" replace />} />
               <Route path="/relatorio-gerencial" element={<ProtectedWithLayout><RelatorioGerencial /></ProtectedWithLayout>} />
+              <Route path="/ecommerce/inteligencia" element={<ProtectedWithLayout><EcommerceInteligencia /></ProtectedWithLayout>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

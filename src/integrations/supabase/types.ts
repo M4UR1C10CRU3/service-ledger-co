@@ -547,6 +547,143 @@ export type Database = {
           },
         ]
       }
+      ecommerce_ajustes_preco: {
+        Row: {
+          ajustado_por: string | null
+          created_at: string
+          data_ajuste: string
+          empresa_id: string
+          id: string
+          justificacao: string | null
+          preco_anterior: number
+          preco_novo: number
+          produto_id: string | null
+          produto_nome: string
+          referencia_interna: string | null
+          variacao_eur: number | null
+          variacao_pct: number | null
+        }
+        Insert: {
+          ajustado_por?: string | null
+          created_at?: string
+          data_ajuste?: string
+          empresa_id: string
+          id?: string
+          justificacao?: string | null
+          preco_anterior: number
+          preco_novo: number
+          produto_id?: string | null
+          produto_nome: string
+          referencia_interna?: string | null
+          variacao_eur?: number | null
+          variacao_pct?: number | null
+        }
+        Update: {
+          ajustado_por?: string | null
+          created_at?: string
+          data_ajuste?: string
+          empresa_id?: string
+          id?: string
+          justificacao?: string | null
+          preco_anterior?: number
+          preco_novo?: number
+          produto_id?: string | null
+          produto_nome?: string
+          referencia_interna?: string | null
+          variacao_eur?: number | null
+          variacao_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_ajustes_preco_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_produtos_monitorizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ecommerce_produtos_monitorizados: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          notas: string | null
+          preco_atual: number | null
+          precos_concorrentes: Json
+          proxima_revisao: string | null
+          referencia_interna: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          notas?: string | null
+          preco_atual?: number | null
+          precos_concorrentes?: Json
+          proxima_revisao?: string | null
+          referencia_interna?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          notas?: string | null
+          preco_atual?: number | null
+          precos_concorrentes?: Json
+          proxima_revisao?: string | null
+          referencia_interna?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ecommerce_relatorios: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_analise: string
+          empresa_id: string
+          id: string
+          relatorio: Json
+          resumo: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_analise?: string
+          empresa_id: string
+          id?: string
+          relatorio?: Json
+          resumo?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_analise?: string
+          empresa_id?: string
+          id?: string
+          relatorio?: Json
+          resumo?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_history: {
         Row: {
           cliente_email: string
