@@ -215,7 +215,18 @@ export function NeFormDialog({ open, onOpenChange, onSubmit }: Props) {
                         <Input value={it.descricao} onChange={(e) => updateItem(it.tempId, 'descricao', e.target.value)} placeholder="Material" />
                       </td>
                       <td className="p-1.5">
-                        <Input value={it.referencia} onChange={(e) => updateItem(it.tempId, 'referencia', e.target.value)} />
+                        <Input
+                          value={it.referencia}
+                          onChange={(e) => updateItem(it.tempId, 'referencia', e.target.value)}
+                          onBlur={(e) => lookupByReferencia(it.tempId, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              lookupByReferencia(it.tempId, (e.target as HTMLInputElement).value);
+                            }
+                          }}
+                          placeholder="Ref."
+                        />
                       </td>
                       <td className="p-1.5">
                         <Input type="number" step="0.01" min="0" value={it.quantidade} onChange={(e) => updateItem(it.tempId, 'quantidade', e.target.value)} />
