@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NeFormData, NeItemForm, NE_PRIORIDADES, emptyNeForm } from '@/types/notaEncomenda';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useProdutos } from '@/hooks/useProdutos';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ const emptyItem = (id: string): NeItemForm => ({
 
 export function NeFormDialog({ open, onOpenChange, onSubmit }: Props) {
   const { suppliers } = useSuppliers();
+  const { produtos } = useProdutos();
   const { toast } = useToast();
   const [form, setForm] = useState<NeFormData>(emptyNeForm);
   const [items, setItems] = useState<NeItemForm[]>([emptyItem('1')]);
@@ -42,6 +44,23 @@ export function NeFormDialog({ open, onOpenChange, onSubmit }: Props) {
 
   const updateItem = (id: string, k: keyof NeItemForm, v: string) =>
     setItems(prev => prev.map(it => it.tempId === id ? { ...it, [k]: v } : it));
+
+  const lookupByReferencia = (id: string, ref: string) => {
+    const r = ref.trim();
+    if (!r) return;
+    const p = produtos.find(
+      x => x.refInterna?.toLowerCase() === r.toLowerCase() ||
+           x.refFornecedor?.toLowerCase() === r.toLowerCase()
+    );
+    if (!p) return;
+    setItems(prev => prev.map(it => it.tempId === id ? {
+      ...it,
+      referencia: p.refInterna,
+      descricao: it.descricao?.trim() ? it.descricao : p.descricao,
+      unidade: p.unidade || it.unidade,
+      precoUnit: it.precoUnit?.trim() ? it.precoUnit : (p.precoCusto ? String(p.precoCusto) : it.precoUnit),
+    } : it));
+  };
 
   const addItem = () => setItems(prev => [...prev, emptyItem(Date.now().toString())]);
   const removeItem = (id: string) => setItems(prev => prev.filter(it => it.tempId !== id));
@@ -196,7 +215,18 @@ export function NeFormDialog({ open, onOpenChange, onSubmit }: Props) {
                         <Input value={it.descricao} onChange={(e) => updateItem(it.tempId, 'descricao', e.target.value)} placeholder="Material" />
                       </td>
                       <td className="p-1.5">
-                        <Input value={it.referencia} onChange={(e) => updateItem(it.tempId, 'referencia', e.target.value)} />
+                        <Input
+                          value={it.referencia}
+                          onChange={(e) => updateItem(it.tempId, 'referencia', e.target.value)}
+                          onBlur={(e) => lookupByReferencia(it.tempId, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              lookupByReferencia(it.tempId, (e.target as HTMLInputElement).value);
+                            }
+                          }}
+                          placeholder="Ref."
+                        />
                       </td>
                       <td className="p-1.5">
                         <Input type="number" step="0.01" min="0" value={it.quantidade} onChange={(e) => updateItem(it.tempId, 'quantidade', e.target.value)} />
