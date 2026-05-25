@@ -43,17 +43,15 @@ export function useSubempreiteiros() {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
-    if (!empresa) return;
     setIsLoading(true);
     const { data } = await supabase
       .from('subempreiteiros')
       .select('*')
-      .eq('empresa_id', empresa.id)
       .eq('eliminado', false)
       .order('nome');
     if (data) setSubempreiteiros(data.map(mapSub));
     setIsLoading(false);
-  }, [empresa]);
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
