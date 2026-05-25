@@ -210,7 +210,7 @@ export default function Subempreiteiros() {
                         : <><Building2 className="h-3 w-3" /> Coletiva</>}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">
+                  <TableCell className="font-mono text-sm">
                     {s.tipo === 'individual' ? (s.nif || '—') : (s.nipc || '—')}
                   </TableCell>
                   <TableCell>{s.especialidade || '—'}</TableCell>
