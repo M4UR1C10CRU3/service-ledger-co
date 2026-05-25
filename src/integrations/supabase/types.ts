@@ -650,36 +650,72 @@ export type Database = {
       }
       ecommerce_relatorios: {
         Row: {
+          ajustes_aplicados: number
+          ajustes_recomendados: number
           created_at: string
           criado_por: string | null
           data_analise: string
+          data_execucao: string
           empresa_id: string
+          gamas_analisadas: string[]
           id: string
+          notas: string | null
+          periodo_label: string
+          produtos_alto: number
+          produtos_baixo: number
+          produtos_ok: number
           relatorio: Json
+          relatorio_json: Json | null
           resumo: string | null
-          titulo: string
+          tipo_execucao: string
+          titulo: string | null
+          total_produtos: number
           updated_at: string
         }
         Insert: {
+          ajustes_aplicados?: number
+          ajustes_recomendados?: number
           created_at?: string
           criado_por?: string | null
           data_analise?: string
+          data_execucao?: string
           empresa_id: string
+          gamas_analisadas?: string[]
           id?: string
+          notas?: string | null
+          periodo_label?: string
+          produtos_alto?: number
+          produtos_baixo?: number
+          produtos_ok?: number
           relatorio?: Json
+          relatorio_json?: Json | null
           resumo?: string | null
-          titulo: string
+          tipo_execucao?: string
+          titulo?: string | null
+          total_produtos?: number
           updated_at?: string
         }
         Update: {
+          ajustes_aplicados?: number
+          ajustes_recomendados?: number
           created_at?: string
           criado_por?: string | null
           data_analise?: string
+          data_execucao?: string
           empresa_id?: string
+          gamas_analisadas?: string[]
           id?: string
+          notas?: string | null
+          periodo_label?: string
+          produtos_alto?: number
+          produtos_baixo?: number
+          produtos_ok?: number
           relatorio?: Json
+          relatorio_json?: Json | null
           resumo?: string | null
-          titulo?: string
+          tipo_execucao?: string
+          titulo?: string | null
+          total_produtos?: number
           updated_at?: string
         }
         Relationships: []
