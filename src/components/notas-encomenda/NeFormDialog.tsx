@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NeFormData, NeItemForm, NE_PRIORIDADES, emptyNeForm } from '@/types/notaEncomenda';
 import { useSuppliers } from '@/hooks/useSuppliers';
+import { useProdutos } from '@/hooks/useProdutos';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
