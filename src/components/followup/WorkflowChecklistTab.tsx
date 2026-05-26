@@ -23,8 +23,7 @@ interface Props {
 
 export function WorkflowChecklistTab({ oportunidadeId }: Props) {
   const { empresa } = useEmpresa();
-  const { employeesQuery } = useEmployees() as any;
-  const employees = employeesQuery?.data ?? [];
+  const { employees } = useEmployees();
   const { fetchChecklist, addChecklistItem, updateChecklistItem, toggleChecklistItem, deleteChecklistItem } = useFollowup();
 
   const [items, setItems] = useState<ChecklistItem[]>([]);
