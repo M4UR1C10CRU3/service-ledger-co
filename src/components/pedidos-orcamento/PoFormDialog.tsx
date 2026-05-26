@@ -313,8 +313,8 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
                 <select className="w-full h-10 px-3 border rounded-md bg-background text-sm"
                   value={vendedorNome} onChange={e => setVendedorNome(e.target.value)}>
                   <option value="">—</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.nome}>{emp.nome}</option>
+                  {employees.map((emp: any) => (
+                    <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
                   ))}
                 </select>
               </div>
