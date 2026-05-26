@@ -146,6 +146,39 @@ export function usePedidosOrcamento() {
       }).select('id').single();
       if (error || !row) { console.error(error); return null; }
       poId = row.id;
+
+      // Auto-create Workflow Comercial opportunity
+      try {
+        const { data: oppRow } = await (supabase as any).from('followup_oportunidades').insert({
+          empresa_id: empresa.id,
+          cliente_id: formData.clienteId || null,
+          cliente_nome: formData.clienteNome || null,
+          titulo: formData.titulo || `PO ${formatted}`,
+          fase: 'po_recebido',
+          responsavel_nome: formData.vendedorNome || null,
+          probabilidade: 25,
+          po_id: poId,
+          numero_po: formatted,
+        }).select('id').single();
+        if (oppRow?.id) {
+          await (supabase as any).from('followup_historico_fases').insert({
+            oportunidade_id: oppRow.id, empresa_id: empresa.id,
+            fase_nova: 'po_recebido', notas: 'Criada automaticamente a partir do PO',
+          });
+          const defaults = [
+            'Registar e analisar o PO recebido',
+            'Confirmar contacto com o cliente',
+            'Avaliar viabilidade do pedido',
+            'Atribuir responsável pela orçamentação',
+          ];
+          await (supabase as any).from('workflow_checklist_items').insert(
+            defaults.map((texto, i) => ({
+              oportunidade_id: oppRow.id, empresa_id: empresa.id,
+              ordem: i, texto, fase_associada: 'po_recebido',
+            }))
+          );
+        }
+      } catch (e) { console.error('Auto-create oportunidade falhou', e); }
     }
 
     if (poId && formData.linhas.length > 0) {
