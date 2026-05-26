@@ -47,7 +47,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     emails: 'contacto@obrajusta.pt | comercial@obrajusta.pt',
     telefones: 'Telefone/ Whatsapp 278 248 163 | Telemóvel 937 500 554',
     prefixoProposta: 'OJMIIEC',
-    prefixoPo: 'OJMIECPO',
+    prefixoPo: 'OJMIIECPO',
     emailsRodape: 'contacto@obrajusta.pt  |  comercial@obrajusta.pt',
   },
   'obrajusta-gestao': {
