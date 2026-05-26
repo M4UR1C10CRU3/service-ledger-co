@@ -107,7 +107,8 @@ const App = () => (
 
               {/* Placeholder routes for future pages */}
               <Route path="/propostas" element={<ProtectedWithLayout><Propostas /></ProtectedWithLayout>} />
-              <Route path="/follow-up" element={<ProtectedWithLayout><FollowUp /></ProtectedWithLayout>} />
+              <Route path="/follow-up" element={<Navigate to="/workflow-comercial" replace />} />
+              <Route path="/workflow-comercial" element={<ProtectedWithLayout><FollowUp /></ProtectedWithLayout>} />
               <Route path="/stocks" element={<ProtectedWithLayout><GestaoStocks /></ProtectedWithLayout>} />
               <Route path="/produtos" element={<ProtectedWithLayout><Produtos /></ProtectedWithLayout>} />
               <Route path="/ordens-servico" element={<ProtectedWithLayout><OrdensServico /></ProtectedWithLayout>} />

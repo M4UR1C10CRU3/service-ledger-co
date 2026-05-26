@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Target, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Inbox, FileText, CheckCircle, TrendingUp } from 'lucide-react';
 import type { Oportunidade } from '@/types/followup';
 
 interface Props {
@@ -7,23 +7,22 @@ interface Props {
 }
 
 export function FollowupCards({ oportunidades }: Props) {
-  const ativas = oportunidades.filter(o => !['adjudicado', 'arquivado'].includes(o.fase));
-  const ganhas = oportunidades.filter(o => o.fase === 'adjudicado');
-  const fechadas = oportunidades.filter(o => ['adjudicado', 'arquivado'].includes(o.fase));
-  const taxaConversao = fechadas.length > 0 ? Math.round((ganhas.length / fechadas.length) * 100) : 0;
-  const valorPipeline = ativas.reduce((s, o) => s + (o.totalComIva ?? o.valorEstimado ?? 0), 0);
-
   const now = new Date();
-  const alertasHoje = oportunidades.filter(o => {
-    if (!o.proximoFollowupData || ['adjudicado', 'arquivado'].includes(o.fase)) return false;
-    return new Date(o.proximoFollowupData) <= now;
-  }).length;
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const posAbertos = oportunidades.filter(o => ['po_recebido', 'em_analise'].includes(o.fase)).length;
+  const propostasActivas = oportunidades.filter(o => ['proposta_elaboracao', 'proposta_enviada', 'em_negociacao'].includes(o.fase)).length;
+  const adjudicadosMes = oportunidades.filter(o =>
+    o.fase === 'adjudicado' && o.dataAdjudicacaoReal && new Date(o.dataAdjudicacaoReal) >= startMonth
+  ).length;
+  const entradasMes = oportunidades.filter(o => new Date(o.createdAt) >= startMonth).length;
+  const taxaConversao = entradasMes > 0 ? Math.round((adjudicadosMes / entradasMes) * 100) : 0;
 
   const cards = [
-    { label: 'Em Acompanhamento', value: ativas.length, icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Valor em Pipeline', value: `€${valorPipeline.toLocaleString('pt-PT', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Taxa de Conversão', value: `${taxaConversao}%`, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Alertas Hoje', value: alertasHoje, icon: AlertTriangle, color: alertasHoje > 0 ? 'text-red-600' : 'text-gray-400', bg: alertasHoje > 0 ? 'bg-red-50' : 'bg-gray-50' },
+    { label: 'POs em Aberto', value: posAbertos, icon: Inbox, color: 'text-gray-600', bg: 'bg-gray-50' },
+    { label: 'Propostas Activas', value: propostasActivas, icon: FileText, color: 'text-orange-600', bg: 'bg-orange-50' },
+    { label: 'Adjudicados (mês)', value: adjudicadosMes, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Taxa de Conversão (mês)', value: `${taxaConversao}%`, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
   ];
 
   return (

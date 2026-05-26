@@ -7,11 +7,12 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { FASES_CONFIG, TIPOS_CONTACTO, SENTIMENTOS, MOTIVOS_ARQUIVO, type FaseFollowup } from '@/types/followup';
+import { FASES_CONFIG, TIPOS_CONTACTO, SENTIMENTOS, type FaseFollowup } from '@/types/followup';
 import type { Oportunidade, Contacto, HistoricoFase } from '@/types/followup';
 import { format, differenceInDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Phone } from 'lucide-react';
+import { WorkflowChecklistTab } from './WorkflowChecklistTab';
 
 interface Props {
   open: boolean;
@@ -68,12 +69,17 @@ export function FollowupDetailDialog({
         </DialogHeader>
 
         <Tabs defaultValue="resumo">
-          <TabsList className="grid grid-cols-4 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="resumo">Resumo</TabsTrigger>
+            <TabsTrigger value="checklist">Checklist</TabsTrigger>
             <TabsTrigger value="timeline">Linha do Tempo</TabsTrigger>
             <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
             <TabsTrigger value="notas">Documentos</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="checklist" className="mt-4">
+            <WorkflowChecklistTab oportunidadeId={o.id} />
+          </TabsContent>
 
           {/* RESUMO */}
           <TabsContent value="resumo" className="space-y-4 mt-4">

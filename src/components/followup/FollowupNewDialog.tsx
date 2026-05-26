@@ -28,7 +28,7 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
   const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [propostaId, setPropostaId] = useState<string | null>(null);
-  const [fase, setFase] = useState<FaseFollowup>('contacto_inicial');
+  const [fase, setFase] = useState<FaseFollowup>('po_recebido');
   const [responsavelNome, setResponsavelNome] = useState('');
   const [probabilidade, setProbabilidade] = useState(25);
   const [valorEstimado, setValorEstimado] = useState('');
@@ -68,7 +68,7 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
 
   const resetForm = () => {
     setClienteId(null); setClienteNome(''); setTitulo(''); setPropostaId(null);
-    setFase('contacto_inicial'); setResponsavelNome(''); setProbabilidade(25);
+    setFase('po_recebido'); setResponsavelNome(''); setProbabilidade(25);
     setValorEstimado(''); setDataAdj(''); setProxData(''); setProxNotas('');
   };
 
@@ -142,7 +142,7 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
               <Select value={fase} onValueChange={v => setFase(v as FaseFollowup)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {FASES_ORDER.filter(f => f !== 'adjudicado' && f !== 'arquivado').map(f => (
+                  {FASES_ORDER.filter(f => f !== 'adjudicado' && f !== 'perdido').map(f => (
                     <SelectItem key={f} value={f}>{FASES_CONFIG[f].label}</SelectItem>
                   ))}
                 </SelectContent>

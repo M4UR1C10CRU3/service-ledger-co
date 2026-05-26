@@ -1149,6 +1149,8 @@ export type Database = {
           id: string
           motivo_arquivo: string | null
           notas_internas: string | null
+          numero_po: string | null
+          po_id: string | null
           probabilidade: number | null
           proposta_id: string | null
           proximo_followup_data: string | null
@@ -1173,6 +1175,8 @@ export type Database = {
           id?: string
           motivo_arquivo?: string | null
           notas_internas?: string | null
+          numero_po?: string | null
+          po_id?: string | null
           probabilidade?: number | null
           proposta_id?: string | null
           proximo_followup_data?: string | null
@@ -1197,6 +1201,8 @@ export type Database = {
           id?: string
           motivo_arquivo?: string | null
           notas_internas?: string | null
+          numero_po?: string | null
+          po_id?: string | null
           probabilidade?: number | null
           proposta_id?: string | null
           proximo_followup_data?: string | null
@@ -1222,6 +1228,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_oportunidades_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_orcamento"
             referencedColumns: ["id"]
           },
           {
@@ -4488,6 +4501,75 @@ export type Database = {
             columns: ["os_id"]
             isOneToOne: false
             referencedRelation: "ordens_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_checklist_items: {
+        Row: {
+          concluido: boolean
+          concluido_em: string | null
+          concluido_por_nome: string | null
+          created_at: string
+          empresa_id: string
+          fase_associada: string | null
+          id: string
+          oportunidade_id: string
+          ordem: number
+          prazo: string | null
+          prazo_hora: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          concluido?: boolean
+          concluido_em?: string | null
+          concluido_por_nome?: string | null
+          created_at?: string
+          empresa_id: string
+          fase_associada?: string | null
+          id?: string
+          oportunidade_id: string
+          ordem?: number
+          prazo?: string | null
+          prazo_hora?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          concluido?: boolean
+          concluido_em?: string | null
+          concluido_por_nome?: string | null
+          created_at?: string
+          empresa_id?: string
+          fase_associada?: string | null
+          id?: string
+          oportunidade_id?: string
+          ordem?: number
+          prazo?: string | null
+          prazo_hora?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_checklist_items_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_checklist_items_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "followup_oportunidades"
             referencedColumns: ["id"]
           },
         ]
