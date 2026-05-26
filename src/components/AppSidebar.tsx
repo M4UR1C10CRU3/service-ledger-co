@@ -47,6 +47,7 @@ const sections: NavSection[] = [
     icon: Briefcase,
     items: [
       { title: 'Clientes', url: '/clientes', icon: Users, permModulo: 'clientes' },
+      { title: 'Pedidos de Orçamento', url: '/pedidos-orcamento', icon: ClipboardList, permModulo: 'pedidos_orcamento' },
       { title: 'Propostas', url: '/propostas', icon: FileText, permModulo: 'propostas' },
       { title: 'Follow-up', url: '/follow-up', icon: Target, permModulo: 'followup' },
     ],

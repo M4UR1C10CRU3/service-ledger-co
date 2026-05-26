@@ -31,6 +31,8 @@ export interface Proposta {
   observacoes: string | null;
   createdAt: string;
   updatedAt: string;
+  poId?: string | null;
+  numeroPo?: string | null;
 }
 
 export interface PropostaLinha {
