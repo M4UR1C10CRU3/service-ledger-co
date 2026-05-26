@@ -2515,6 +2515,113 @@ export type Database = {
           },
         ]
       }
+      pedidos_orcamento: {
+        Row: {
+          ano: number
+          cliente_email: string | null
+          cliente_id: string | null
+          cliente_morada: string | null
+          cliente_nif: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          condicoes_gerais: string | null
+          condicoes_pagamento: string | null
+          created_at: string | null
+          data_emissao: string
+          descricao_necessidade: string | null
+          duracao_obra: string | null
+          empresa_id: string
+          estado: string
+          hora_emissao: string | null
+          id: string
+          local_execucao: string | null
+          numero_po: string
+          numero_proposta: string | null
+          numero_sequencial: number
+          obra: string | null
+          observacoes: string | null
+          proposta_id: string | null
+          titulo: string | null
+          updated_at: string | null
+          validade_dias: number | null
+          validade_texto: string | null
+          vendedor_id: string | null
+          vendedor_nome: string | null
+        }
+        Insert: {
+          ano: number
+          cliente_email?: string | null
+          cliente_id?: string | null
+          cliente_morada?: string | null
+          cliente_nif?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          condicoes_gerais?: string | null
+          condicoes_pagamento?: string | null
+          created_at?: string | null
+          data_emissao?: string
+          descricao_necessidade?: string | null
+          duracao_obra?: string | null
+          empresa_id: string
+          estado?: string
+          hora_emissao?: string | null
+          id?: string
+          local_execucao?: string | null
+          numero_po: string
+          numero_proposta?: string | null
+          numero_sequencial: number
+          obra?: string | null
+          observacoes?: string | null
+          proposta_id?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+          validade_texto?: string | null
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+        }
+        Update: {
+          ano?: number
+          cliente_email?: string | null
+          cliente_id?: string | null
+          cliente_morada?: string | null
+          cliente_nif?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          condicoes_gerais?: string | null
+          condicoes_pagamento?: string | null
+          created_at?: string | null
+          data_emissao?: string
+          descricao_necessidade?: string | null
+          duracao_obra?: string | null
+          empresa_id?: string
+          estado?: string
+          hora_emissao?: string | null
+          id?: string
+          local_execucao?: string | null
+          numero_po?: string
+          numero_proposta?: string | null
+          numero_sequencial?: number
+          obra?: string | null
+          observacoes?: string | null
+          proposta_id?: string | null
+          titulo?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+          validade_texto?: string | null
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_orcamento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planeamento_anexos: {
         Row: {
           card_id: string
@@ -2861,6 +2968,53 @@ export type Database = {
           },
         ]
       }
+      po_linhas: {
+        Row: {
+          designacao: string | null
+          empresa_id: string
+          id: string
+          observacao_linha: string | null
+          ordem: number
+          po_id: string
+          quantidade: number | null
+          referencia: string | null
+          tipo_linha: string
+          unidade: string | null
+        }
+        Insert: {
+          designacao?: string | null
+          empresa_id: string
+          id?: string
+          observacao_linha?: string | null
+          ordem?: number
+          po_id: string
+          quantidade?: number | null
+          referencia?: string | null
+          tipo_linha?: string
+          unidade?: string | null
+        }
+        Update: {
+          designacao?: string | null
+          empresa_id?: string
+          id?: string
+          observacao_linha?: string | null
+          ordem?: number
+          po_id?: string
+          quantidade?: number | null
+          referencia?: string | null
+          tipo_linha?: string
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_linhas_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_orcamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           categoria: string
@@ -2997,9 +3151,11 @@ export type Database = {
           estado: string
           hora_emissao: string
           id: string
+          numero_po: string | null
           numero_proposta: string
           numero_sequencial: number
           observacoes: string | null
+          po_id: string | null
           taxa_iva: number | null
           titulo: string | null
           total_com_iva: number | null
@@ -3028,9 +3184,11 @@ export type Database = {
           estado?: string
           hora_emissao?: string
           id?: string
+          numero_po?: string | null
           numero_proposta: string
           numero_sequencial: number
           observacoes?: string | null
+          po_id?: string | null
           taxa_iva?: number | null
           titulo?: string | null
           total_com_iva?: number | null
@@ -3059,9 +3217,11 @@ export type Database = {
           estado?: string
           hora_emissao?: string
           id?: string
+          numero_po?: string | null
           numero_proposta?: string
           numero_sequencial?: number
           observacoes?: string | null
+          po_id?: string | null
           taxa_iva?: number | null
           titulo?: string | null
           total_com_iva?: number | null
@@ -3086,6 +3246,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_orcamento"
             referencedColumns: ["id"]
           },
         ]
