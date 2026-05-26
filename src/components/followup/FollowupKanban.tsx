@@ -74,10 +74,42 @@ export function FollowupKanban({ oportunidades, onUpdateFase, onViewDetail, onRe
                     onDragStart={() => setDragId(o.id)}
                     className="p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
                   >
-                    <p className="text-xs text-muted-foreground">{o.clienteNome || '—'}</p>
+                    <p className="text-xs font-semibold text-foreground">{o.clienteNome || '—'}</p>
                     <p className="text-sm font-medium truncate">{o.titulo}</p>
-                    {o.numeroProposta && (
-                      <p className="text-xs text-muted-foreground mt-1">📄 {o.numeroProposta}</p>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {o.numeroPo && (
+                        <a
+                          href="/pedidos-orcamento"
+                          onClick={e => e.stopPropagation()}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        >PO: {o.numeroPo}</a>
+                      )}
+                      {o.numeroProposta && (
+                        <a
+                          href="/propostas"
+                          onClick={e => e.stopPropagation()}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 hover:bg-orange-200"
+                        >📄 {o.numeroProposta}</a>
+                      )}
+                    </div>
+                    {(o.checklistTotal ?? 0) > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full"
+                            style={{ width: `${Math.round(((o.checklistDone ?? 0) / (o.checklistTotal ?? 1)) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{o.checklistDone ?? 0}/{o.checklistTotal} ✓</span>
+                      </div>
+                    )}
+                    {o.responsavelNome && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="h-5 w-5 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-semibold">
+                          {o.responsavelNome.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground truncate">{o.responsavelNome}</span>
+                      </div>
                     )}
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm font-bold">
