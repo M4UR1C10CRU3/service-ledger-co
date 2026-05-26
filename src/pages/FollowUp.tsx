@@ -85,8 +85,8 @@ const FollowUp = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Follow-up Comercial</h1>
-          <p className="text-sm text-muted-foreground">Acompanhamento de oportunidades e pipeline de vendas</p>
+          <h1 className="text-2xl font-bold">Workflow Comercial</h1>
+          <p className="text-sm text-muted-foreground">Pipeline de oportunidades desde o PO até à adjudicação</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExport}><Download className="h-4 w-4 mr-1" /> Exportar</Button>
