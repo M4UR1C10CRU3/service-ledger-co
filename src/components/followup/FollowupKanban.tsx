@@ -31,7 +31,7 @@ export function FollowupKanban({ oportunidades, onUpdateFase, onViewDetail, onRe
     const opp = oportunidades.find(o => o.id === dragId);
     if (!opp || opp.fase === fase) { setDragId(null); return; }
 
-    if (fase === 'arquivado') {
+    if (fase === 'perdido') {
       setArchiveDialog({ id: dragId });
       return;
     }
@@ -41,7 +41,7 @@ export function FollowupKanban({ oportunidades, onUpdateFase, onViewDetail, onRe
 
   const confirmArchive = async () => {
     if (!archiveDialog) return;
-    await onUpdateFase(archiveDialog.id, 'arquivado', archiveMotivo);
+    await onUpdateFase(archiveDialog.id, 'perdido', archiveMotivo);
     setArchiveDialog(null);
     setDragId(null);
   };
