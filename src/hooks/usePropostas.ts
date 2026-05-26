@@ -35,6 +35,8 @@ function mapProposta(r: any): Proposta {
     observacoes: r.observacoes,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    poId: r.po_id ?? null,
+    numeroPo: r.numero_po ?? null,
   };
 }
 

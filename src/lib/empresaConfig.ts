@@ -9,6 +9,7 @@ export interface EmpresaDocConfig {
   emails: string;
   telefones: string;
   prefixoProposta: string;     // Prefixo para numeração de propostas
+  prefixoPo: string;           // Prefixo para numeração de Pedidos de Orçamento
   emailsRodape: string;        // Emails no rodapé do PDF
 }
 
@@ -22,6 +23,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     emails: 'contacto@lojatudocasa.com | comercial@lojatudocasa.com',
     telefones: 'Telefone/ Whatsapp 278 105 314 | Telemóvel 933 260 068',
     prefixoProposta: 'MCTCEC',
+    prefixoPo: 'MCTCPO',
     emailsRodape: 'contacto@lojatudocasa.com  |  comercial@lojatudocasa.com',
   },
   tudocasa: {
@@ -33,6 +35,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     emails: 'contacto@lojatudocasa.com | comercial@lojatudocasa.com',
     telefones: 'Telefone/ Whatsapp 278 105 314 | Telemóvel 933 260 068',
     prefixoProposta: 'WMTCEC',
+    prefixoPo: 'WMTCPO',
     emailsRodape: 'contacto@lojatudocasa.com  |  comercial@lojatudocasa.com',
   },
   obrajusta: {
@@ -44,6 +47,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     emails: 'contacto@obrajusta.pt | comercial@obrajusta.pt',
     telefones: 'Telefone/ Whatsapp 278 248 163 | Telemóvel 937 500 554',
     prefixoProposta: 'OJMIIEC',
+    prefixoPo: 'OJMIECPO',
     emailsRodape: 'contacto@obrajusta.pt  |  comercial@obrajusta.pt',
   },
   'obrajusta-gestao': {
@@ -55,6 +59,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     emails: 'contacto@obrajusta.pt | comercial@obrajusta.pt',
     telefones: 'Telefone/ Whatsapp 278 248 163 | Telemóvel 937 500 554',
     prefixoProposta: 'OJGEC',
+    prefixoPo: 'OJGPO',
     emailsRodape: 'contacto@obrajusta.pt  |  comercial@obrajusta.pt',
   },
   resiserv: {
@@ -66,6 +71,7 @@ const configs: Record<string, EmpresaDocConfig> = {
     emails: 'resiserv@gmail.com',
     telefones: 'Telemóvel 937 500 553',
     prefixoProposta: 'RSEC',
+    prefixoPo: 'RSPO',
     emailsRodape: 'resiserv@gmail.com',
   },
 };
@@ -80,6 +86,7 @@ const defaultConfig: EmpresaDocConfig = {
   emails: '',
   telefones: '',
   prefixoProposta: 'BO',
+  prefixoPo: 'PO',
   emailsRodape: '',
 };
 
@@ -95,4 +102,9 @@ export function formatPropostaNumber(slug: string | undefined, ano: number, seq:
     return `${prefix} ${ano}/${seq}`;
   }
   return `${ano}${prefix}${seq}/${seq}`;
+}
+
+export function formatPoNumber(slug: string | undefined, ano: number, seq: number): string {
+  const cfg = getEmpresaDocConfig(slug);
+  return `${cfg.prefixoPo} ${ano}/${seq}`;
 }
