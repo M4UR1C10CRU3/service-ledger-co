@@ -214,6 +214,24 @@ export function usePedidosOrcamento() {
       .update({ proposta_id: propostaId, numero_proposta: numeroProposta, estado: 'proposta_elaborada' })
       .eq('id', poId);
     if (error) { console.error(error); return false; }
+
+    // Progress the linked Workflow Comercial opportunity
+    try {
+      const { data: opp } = await (supabase as any)
+        .from('followup_oportunidades').select('id, fase, empresa_id')
+        .eq('po_id', poId).maybeSingle();
+      if (opp?.id) {
+        await (supabase as any).from('followup_oportunidades').update({
+          fase: 'proposta_elaboracao', proposta_id: propostaId,
+        }).eq('id', opp.id);
+        await (supabase as any).from('followup_historico_fases').insert({
+          oportunidade_id: opp.id, empresa_id: opp.empresa_id,
+          fase_anterior: opp.fase, fase_nova: 'proposta_elaboracao',
+          notas: `Proposta ${numeroProposta} criada a partir do PO`,
+        });
+      }
+    } catch (e) { console.error('Workflow progression falhou', e); }
+
     await fetchPedidos();
     return true;
   };
