@@ -2414,7 +2414,9 @@ export type Database = {
           id: string
           notas_internas: string | null
           numero: string
+          numero_po: string | null
           observacoes: string | null
+          po_id: string | null
           prioridade: string
           proposta_id: string | null
           proposta_numero: string | null
@@ -2443,7 +2445,9 @@ export type Database = {
           id?: string
           notas_internas?: string | null
           numero: string
+          numero_po?: string | null
           observacoes?: string | null
+          po_id?: string | null
           prioridade?: string
           proposta_id?: string | null
           proposta_numero?: string | null
@@ -2472,7 +2476,9 @@ export type Database = {
           id?: string
           notas_internas?: string | null
           numero?: string
+          numero_po?: string | null
           observacoes?: string | null
+          po_id?: string | null
           prioridade?: string
           proposta_id?: string | null
           proposta_numero?: string | null
@@ -2482,7 +2488,15 @@ export type Database = {
           valor_estimado?: number
           valor_final?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ordens_servico_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_orcamento"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ordens_servico_checklist: {
         Row: {
@@ -2548,12 +2562,15 @@ export type Database = {
           hora_emissao: string | null
           id: string
           local_execucao: string | null
+          numero_os: string | null
           numero_po: string
           numero_proposta: string | null
           numero_sequencial: number
           obra: string | null
           observacoes: string | null
+          os_id: string | null
           proposta_id: string | null
+          tipo_pedido: string
           titulo: string | null
           updated_at: string | null
           validade_dias: number | null
@@ -2580,12 +2597,15 @@ export type Database = {
           hora_emissao?: string | null
           id?: string
           local_execucao?: string | null
+          numero_os?: string | null
           numero_po: string
           numero_proposta?: string | null
           numero_sequencial: number
           obra?: string | null
           observacoes?: string | null
+          os_id?: string | null
           proposta_id?: string | null
+          tipo_pedido?: string
           titulo?: string | null
           updated_at?: string | null
           validade_dias?: number | null
@@ -2612,12 +2632,15 @@ export type Database = {
           hora_emissao?: string | null
           id?: string
           local_execucao?: string | null
+          numero_os?: string | null
           numero_po?: string
           numero_proposta?: string | null
           numero_sequencial?: number
           obra?: string | null
           observacoes?: string | null
+          os_id?: string | null
           proposta_id?: string | null
+          tipo_pedido?: string
           titulo?: string | null
           updated_at?: string | null
           validade_dias?: number | null
@@ -2631,6 +2654,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_orcamento_os_id_fkey"
+            columns: ["os_id"]
+            isOneToOne: false
+            referencedRelation: "ordens_servico"
             referencedColumns: ["id"]
           },
         ]
