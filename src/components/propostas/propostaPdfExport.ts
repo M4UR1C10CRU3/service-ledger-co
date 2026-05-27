@@ -35,8 +35,53 @@ function getSubtotal(linhas: PropostaLinhaForm[], idx: number): number {
   return sum;
 }
 
+const LOCALIDADE_CODIGOS: Record<string, string> = {
+  'mirandela': 'MDL',
+  'bragança': 'BGC', 'braganca': 'BGC',
+  'macedo de cavaleiros': 'MCD', 'macedo': 'MCD',
+  'vila real': 'VRL',
+  'porto': 'PRT',
+  'lisboa': 'LSB',
+  'vinhais': 'VNH',
+  'chaves': 'CHV',
+  'mogadouro': 'MGD',
+  'vimioso': 'VMS',
+  'miranda do douro': 'MDR',
+  'alfândega da fé': 'ALF', 'alfandega da fe': 'ALF',
+  'carrazeda de ansiães': 'CRZ', 'carrazeda': 'CRZ',
+  'torre de moncorvo': 'TMC',
+  'freixo de espada à cinta': 'FEC', 'freixo': 'FEC',
+  'valpaços': 'VLP', 'valpacos': 'VLP',
+  'murça': 'MRC', 'murca': 'MRC',
+};
+
+function getLocalidadeCodigo(input?: string): string {
+  if (!input) return 'XXX';
+  const lower = input.toLowerCase().trim();
+  for (const [nome, code] of Object.entries(LOCALIDADE_CODIGOS)) {
+    if (lower.includes(nome)) return code;
+  }
+  const consoantes = input.toUpperCase().replace(/[^A-ZÇ]/g, '').replace(/[AEIOU]/g, '');
+  if (consoantes.length >= 3) return consoantes.slice(0, 3);
+  return input.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
+}
+
+function toSentenceCase(s: string): string {
+  const lower = s.toLocaleLowerCase('pt-PT');
+  return lower.charAt(0).toLocaleUpperCase('pt-PT') + lower.slice(1);
+}
+
+function buildPropostaFilename(data: { numeroProposta: string; clienteNome: string; titulo: string; clienteMorada?: string }): string {
+  const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  const numero = (data.numeroProposta || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
+  const cliente = sanitize(data.clienteNome) || 'Cliente';
+  const tituloRaw = sanitize(data.titulo) || 'Serviço';
+  const titulo = toSentenceCase(tituloRaw);
+  const localCode = getLocalidadeCodigo(data.clienteMorada || '');
+  return `WMTCPP ${numero}_${cliente}_${titulo}_${localCode}`;
+}
+
 export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
-  // Dynamic company branding
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
 
@@ -67,10 +112,13 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
     }
   });
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pre-Proposta ${data.numeroProposta}</title>
+  const filename = buildPropostaFilename(data);
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
 <style>
   @page { size: A4; margin: 15mm; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1A1A1A; margin: 0; padding: 20px; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1A1A1A; margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
   .logo img { max-height: 70px; }
   .proposta-num { text-align: right; font-size: 13px; }
@@ -87,10 +135,13 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
   .totais table { width: 100%; }
   .totais td { padding: 3px 6px; }
   .totais .total-final { background: ${primaryColor}; color: white; font-weight: bold; font-size: 13px; }
-  .assinaturas { margin-top: 30px; font-size: 10px; display: flex; justify-content: space-between; }
-  .assinaturas div { border-top: 1px solid #333; padding-top: 5px; width: 30%; text-align: center; }
-  .emails { text-align: center; font-size: 9px; color: #666; margin-top: 20px; }
-  @media print { body { padding: 0; } }
+  .assinaturas { margin-top: 30px; display: flex; justify-content: space-between; gap: 20px; }
+  .assinaturas div { border-top: 1px solid #333; padding-top: 8px; flex: 1; text-align: center; font-size: 10px; line-height: 1.8; }
+  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9.5px; color: #1A1A1A; line-height: 1.7; padding: 10px 15mm; background: #FFF3E8; border-top: 3px solid ${primaryColor}; }
+  .page-footer .legal { font-style: italic; margin-bottom: 6px; color: ${primaryColor}; font-weight: 600; font-size: 10px; }
+  .page-footer .contact-line { color: #1A1A1A; }
+  .page-footer .accent { color: ${primaryColor}; font-weight: 600; }
+  @media print { body { padding: 0; padding-bottom: 95px; } .page-footer { position: fixed; bottom: 0; } }
 </style></head><body>
   <div class="header">
     <div class="logo">${logoDataUrl ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" />` : `<strong style="font-size:16px;color:${primaryColor}">${cfg.nomeDocumento}</strong>`}</div>
@@ -154,21 +205,35 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
   </div>
 
   <div class="assinaturas">
-    <div>Cliente:</div>
-    <div>Assinatura e carimbo.</div>
-    <div>Assinatura se aceite.</div>
+    <div>Cliente:<br/>&nbsp;<br/>Assinatura se aceite.</div>
+    <div>${cfg.nomeDocumento}<br/>&nbsp;<br/>Assinatura e carimbo.</div>
   </div>
 
-  <div class="emails">
-    ${cfg.emailsRodape.split('|').map(e => e.trim()).join(' &nbsp;|&nbsp; ')}
+  <div class="page-footer">
+    <div class="legal">Este documento é uma Pré-Proposta e não serve de fatura.</div>
+    <div class="contact-line"><span class="accent">${cfg.emailsRodape.split('|').map(e => e.trim()).filter(Boolean).join('</span>&nbsp;|&nbsp;<span class="accent">')}</span></div>
+    <div class="contact-line">${cfg.telefones.replace(/(\d[\d\s]+)/g, '<span class="accent">$1</span>')}</div>
+    <div class="contact-line"><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}</div>
   </div>
 
-  <script>window.onload=function(){window.print();}</script>
+  <script>
+    document.title = ${JSON.stringify(filename)};
+    window.addEventListener('load', function(){
+      document.title = ${JSON.stringify(filename)};
+      setTimeout(function(){
+        document.title = ${JSON.stringify(filename)};
+        window.print();
+      }, 300);
+    });
+    window.addEventListener('afterprint', function(){ document.title = ${JSON.stringify(filename)}; });
+  </script>
 </body></html>`;
 
   const w = window.open('', '_blank');
   if (w) {
+    w.document.open();
     w.document.write(html);
     w.document.close();
+    try { w.document.title = filename; } catch (e) {}
   }
 }
