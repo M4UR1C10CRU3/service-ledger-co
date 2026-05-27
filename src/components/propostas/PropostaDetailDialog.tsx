@@ -268,8 +268,14 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
               </Button>
             </>
           )}
-          <Button variant="outline" size="sm" onClick={handlePdf}>
-            <FileDown className="h-4 w-4 mr-1" /> PDF
+          <Button variant="outline" size="sm" onClick={() => handlePdf('unitarios')}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Unitários
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePdf('subtotais')}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Subtotais
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePdf('global')}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Global
           </Button>
           <Button variant="outline" size="sm" onClick={handleExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
