@@ -67,6 +67,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
     if (!open) return;
     if (pedido) {
       setNumeroPo(pedido.numeroPo);
+      setTipoPedido(pedido.tipoPedido || 'orcamentacao');
       setClienteId(pedido.clienteId);
       setClienteNome(pedido.clienteNome);
       setClienteMorada(pedido.clienteMorada || '');
