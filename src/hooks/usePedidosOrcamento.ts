@@ -107,6 +107,7 @@ export function usePedidosOrcamento() {
     const dataEmissao = formData.dataEmissao || new Date().toISOString().split('T')[0];
 
     const payload: any = {
+      tipo_pedido: formData.tipoPedido || 'orcamentacao',
       cliente_id: formData.clienteId,
       cliente_nome: formData.clienteNome,
       cliente_morada: formData.clienteMorada || null,
