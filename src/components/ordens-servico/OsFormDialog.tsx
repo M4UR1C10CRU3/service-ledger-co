@@ -96,6 +96,31 @@ export function OsFormDialog({ open, onOpenChange, onSubmit }: OsFormDialogProps
 
         <div className="space-y-4">
           <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <ListChecks className="h-4 w-4" /> Template de Checklist
+            </Label>
+            <Select
+              value={form.templateId || '__none__'}
+              onValueChange={(v) => update('templateId', v === '__none__' ? undefined : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sem template" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sem template</SelectItem>
+                {templates.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.templateId && (
+              <p className="text-xs text-muted-foreground">
+                Os itens da checklist serão criados automaticamente com responsáveis e prazos.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="os-titulo">
               Título <span className="text-destructive">*</span>
             </Label>
