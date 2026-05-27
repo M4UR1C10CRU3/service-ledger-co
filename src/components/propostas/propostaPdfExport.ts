@@ -85,7 +85,7 @@ function buildPropostaFilename(data: { numeroProposta: string }, mode: PropostaP
   return `Proposta WMTCEC ${numero}_${MODE_SUFFIX[mode]}`;
 }
 
-export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
+export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string, mode: PropostaPdfMode = 'unitarios') {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
 
@@ -93,11 +93,15 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
     ? new Date(data.dataEmissao).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')
     : '';
 
+  const hideLineValues = mode === 'subtotais' || mode === 'global';
+  const hideSubtotals = mode === 'global';
+
   let linhasHtml = '';
   data.linhas.forEach((l, i) => {
     if (l.tipoLinha === 'seccao') {
       linhasHtml += `<tr style="background:#F2F2F2"><td colspan="7" style="padding:6px 8px;font-weight:bold;color:${primaryColor};font-size:11px">${l.designacao || ''}</td></tr>`;
     } else if (l.tipoLinha === 'subtotal') {
+      if (hideSubtotals) return;
       const sub = getSubtotal(data.linhas, i);
       linhasHtml += `<tr style="background:#E0E0E0"><td colspan="6" style="padding:6px 8px;text-align:right;font-weight:bold;font-size:11px">Subtotal</td><td style="padding:6px 8px;text-align:right;font-weight:bold;font-size:11px">${fmtEur(sub)}</td></tr>`;
     } else if (l.tipoLinha === 'texto') {
@@ -109,14 +113,14 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
         <td style="padding:4px 8px;font-size:11px">${l.designacao || ''}</td>
         <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtQty(l.quantidade)}</td>
         <td style="padding:4px 8px;font-size:11px">${l.unidade}</td>
-        <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtEur(l.precoUnitario)}</td>
-        <td style="padding:4px 8px;text-align:right;font-size:11px">${l.descontoPct > 0 ? l.descontoPct + '%' : ''}</td>
-        <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtEur(l.totalLinha)}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${hideLineValues ? '' : fmtEur(l.precoUnitario)}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${hideLineValues ? '' : (l.descontoPct > 0 ? l.descontoPct + '%' : '')}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${hideLineValues ? '' : fmtEur(l.totalLinha)}</td>
       </tr>`;
     }
   });
 
-  const filename = buildPropostaFilename(data);
+  const filename = buildPropostaFilename(data, mode);
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
 <style>
