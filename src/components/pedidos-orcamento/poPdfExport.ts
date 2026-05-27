@@ -94,9 +94,11 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   .assinaturas { margin-top: 30px; display: flex; justify-content: space-between; gap: 20px; }
   .assinaturas div { border-top: 1px solid #333; padding-top: 8px; flex: 1; text-align: center; font-size: 10px; line-height: 1.8; }
   .nota-legal { text-align: center; font-size: 9px; font-style: italic; color: ${primaryColor}; margin-top: 15px; }
-  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9px; color: ${primaryColor}; line-height: 1.6; padding: 8px 15mm; background: white; }
-  .page-footer .legal { font-style: italic; margin-bottom: 4px; color: ${primaryColor}; }
-  @media print { body { padding: 0; padding-bottom: 80px; } .page-footer { position: fixed; bottom: 0; } }
+  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9.5px; color: #1A1A1A; line-height: 1.7; padding: 10px 15mm; background: #FFF3E8; border-top: 3px solid ${primaryColor}; }
+  .page-footer .legal { font-style: italic; margin-bottom: 6px; color: ${primaryColor}; font-weight: 600; font-size: 10px; }
+  .page-footer .contact-line { color: #1A1A1A; }
+  .page-footer .accent { color: ${primaryColor}; font-weight: 600; }
+  @media print { body { padding: 0; padding-bottom: 95px; } .page-footer { position: fixed; bottom: 0; } }
 </style></head><body>
   <div class="header">
     <div class="header-left">
