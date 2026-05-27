@@ -240,6 +240,34 @@ export function usePedidosOrcamento() {
     return true;
   };
 
+  const linkOs = async (poId: string, osId: string, numeroOs: string): Promise<boolean> => {
+    const { error } = await (supabase as any)
+      .from('pedidos_orcamento')
+      .update({ os_id: osId, numero_os: numeroOs, estado: 'os_criada' })
+      .eq('id', poId);
+    if (error) { console.error(error); return false; }
+
+    // Progress the linked Workflow Comercial opportunity directly to "adjudicado"
+    try {
+      const { data: opp } = await (supabase as any)
+        .from('followup_oportunidades').select('id, fase, empresa_id')
+        .eq('po_id', poId).maybeSingle();
+      if (opp?.id) {
+        await (supabase as any).from('followup_oportunidades').update({
+          fase: 'adjudicado',
+        }).eq('id', opp.id);
+        await (supabase as any).from('followup_historico_fases').insert({
+          oportunidade_id: opp.id, empresa_id: opp.empresa_id,
+          fase_anterior: opp.fase, fase_nova: 'adjudicado',
+          notas: `OS ${numeroOs} criada diretamente (intervenção imediata)`,
+        });
+      }
+    } catch (e) { console.error('Workflow progression falhou', e); }
+
+    await fetchPedidos();
+    return true;
+  };
+
   const deletePedido = async (poId: string): Promise<boolean> => {
     const po = pedidos.find(p => p.id === poId);
     if (po && !['recebido', 'em_analise'].includes(po.estado)) return false;
@@ -251,6 +279,6 @@ export function usePedidosOrcamento() {
 
   return {
     pedidos, isLoading, fetchPedidos, getNextNumber,
-    fetchLinhasPo, savePedido, updateEstado, linkProposta, deletePedido,
+    fetchLinhasPo, savePedido, updateEstado, linkProposta, linkOs, deletePedido,
   };
 }
