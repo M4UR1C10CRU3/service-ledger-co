@@ -233,6 +233,45 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Tipo de pedido */}
+          <section>
+            <h3 className="text-sm font-semibold mb-3 text-primary">Tipo de Pedido</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setTipoPedido('orcamentacao')}
+                className={`flex items-start gap-3 p-3 border-2 rounded-lg text-left transition-colors ${
+                  tipoPedido === 'orcamentacao'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <ClipboardList className={`h-5 w-5 mt-0.5 ${tipoPedido === 'orcamentacao' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <div className="font-medium text-sm">Orçamentação</div>
+                  <div className="text-xs text-muted-foreground">Pedido vai gerar Proposta para aprovação</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipoPedido('intervencao_imediata')}
+                className={`flex items-start gap-3 p-3 border-2 rounded-lg text-left transition-colors ${
+                  tipoPedido === 'intervencao_imediata'
+                    ? 'border-orange-500 bg-orange-500/5'
+                    : 'border-border hover:border-orange-500/50'
+                }`}
+              >
+                <Zap className={`h-5 w-5 mt-0.5 ${tipoPedido === 'intervencao_imediata' ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                <div>
+                  <div className="font-medium text-sm">Intervenção Imediata</div>
+                  <div className="text-xs text-muted-foreground">Gera OS direta, sem passar por proposta</div>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          <Separator />
+
           {/* Cliente */}
           <section>
             <h3 className="text-sm font-semibold mb-3 text-primary">Cliente</h3>
