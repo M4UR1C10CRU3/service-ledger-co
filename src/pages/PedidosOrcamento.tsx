@@ -130,14 +130,25 @@ export default function PedidosOrcamento() {
       .join('\n');
     const descricaoFinal = [po.descricaoNecessidade, descricaoLinhas].filter(Boolean).join('\n\n');
 
+    // Procurar template "Intervenção Imediata Urgente" para aplicar automaticamente
+    const { supabase } = await import('@/integrations/supabase/client');
+    let templateId: string | undefined;
+    try {
+      const { data: tpl } = await (supabase as any)
+        .from('os_checklist_templates').select('id')
+        .ilike('nome', '%Intervenção Imediata%').limit(1).maybeSingle();
+      templateId = tpl?.id;
+    } catch { /* ignore */ }
+
     const os = await createOrdem({
+      templateId,
       clienteId: po.clienteId || '',
       clienteNome: po.clienteNome,
       propostaId: '',
       responsavelId: '',
       responsavelNome: po.vendedorNome || '',
       estado: 'nova',
-      prioridade: 'alta',
+      prioridade: 'urgente',
       titulo: po.titulo || `Intervenção — PO ${po.numeroPo}`,
       descricao: descricaoFinal,
       observacoes: po.observacoes || '',
@@ -149,7 +160,6 @@ export default function PedidosOrcamento() {
     if (!os) { toast({ title: 'Erro ao criar OS', variant: 'destructive' }); return; }
 
     // Link PO and OS bidirectionally
-    const { supabase } = await import('@/integrations/supabase/client');
     await (supabase as any).from('ordens_servico').update({ po_id: po.id, numero_po: po.numeroPo }).eq('id', os.id);
     await linkOs(po.id, os.id, os.numero);
 

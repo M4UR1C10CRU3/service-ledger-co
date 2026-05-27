@@ -2421,6 +2421,7 @@ export type Database = {
           proposta_id: string | null
           proposta_numero: string | null
           service_id: string | null
+          template_id: string | null
           titulo: string
           updated_at: string
           valor_estimado: number
@@ -2452,6 +2453,7 @@ export type Database = {
           proposta_id?: string | null
           proposta_numero?: string | null
           service_id?: string | null
+          template_id?: string | null
           titulo: string
           updated_at?: string
           valor_estimado?: number
@@ -2483,6 +2485,7 @@ export type Database = {
           proposta_id?: string | null
           proposta_numero?: string | null
           service_id?: string | null
+          template_id?: string | null
           titulo?: string
           updated_at?: string
           valor_estimado?: number
@@ -2494,6 +2497,13 @@ export type Database = {
             columns: ["po_id"]
             isOneToOne: false
             referencedRelation: "pedidos_orcamento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "os_checklist_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -2541,6 +2551,77 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      os_checklist_template_itens: {
+        Row: {
+          created_at: string
+          dias_offset: number | null
+          id: string
+          ordem: number
+          responsavel_padrao: string | null
+          template_id: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          dias_offset?: number | null
+          id?: string
+          ordem?: number
+          responsavel_padrao?: string | null
+          template_id: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          dias_offset?: number | null
+          id?: string
+          ordem?: number
+          responsavel_padrao?: string | null
+          template_id?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_checklist_template_itens_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "os_checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      os_checklist_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          empresa_id: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       pedidos_orcamento: {
         Row: {

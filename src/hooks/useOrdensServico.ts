@@ -19,8 +19,11 @@ function mapOs(row: any): OrdemServico {
 
 function mapChecklist(row: any): OsChecklistItem {
   return {
-    id: row.id, osId: row.os_id, descricao: row.descricao,
-    concluido: row.concluido, ordem: row.ordem, createdAt: row.created_at,
+    id: row.id, osId: row.os_id, titulo: row.titulo,
+    responsavelNome: row.responsavel_nome ?? null,
+    prazo: row.prazo ?? null,
+    concluido: row.concluido, concluidoEm: row.concluido_em ?? null,
+    ordem: row.ordem, createdAt: row.created_at,
   };
 }
 
@@ -51,6 +54,28 @@ export function useOrdensServico(empresaId: string | undefined) {
 
   useEffect(() => { fetchOrdens(); }, [fetchOrdens]);
 
+  const applyTemplate = async (osId: string, templateId: string, dataAbertura: string) => {
+    const { data: items } = await (supabase as any)
+      .from('os_checklist_template_itens').select('*').eq('template_id', templateId).order('ordem');
+    if (!items || items.length === 0) return;
+    const base = new Date(dataAbertura + 'T00:00:00');
+    const rows = items.map((it: any) => {
+      let prazo: string | null = null;
+      if (it.dias_offset != null) {
+        const d = new Date(base); d.setDate(d.getDate() + it.dias_offset);
+        prazo = d.toISOString().split('T')[0];
+      }
+      return {
+        os_id: osId,
+        titulo: it.titulo,
+        responsavel_nome: it.responsavel_padrao,
+        prazo,
+        ordem: it.ordem,
+      };
+    });
+    await (supabase as any).from('ordens_servico_checklist').insert(rows);
+  };
+
   const createOrdem = async (form: OsFormData): Promise<OrdemServico | null> => {
     if (!empresaId) return null;
     try {
@@ -69,9 +94,13 @@ export function useOrdensServico(empresaId: string | undefined) {
         data_abertura: form.dataAbertura,
         data_prevista: form.dataPrevista || null,
         valor_estimado: form.valorEstimado ? parseFloat(form.valorEstimado) : null,
+        ...(form.templateId ? { template_id: form.templateId } : {}),
       }).select().single();
       if (error) throw error;
       const os = mapOs(data);
+      if (form.templateId) {
+        try { await applyTemplate(os.id, form.templateId, form.dataAbertura); } catch (e) { console.error(e); }
+      }
       setOrdens(prev => [os, ...prev]);
       toast({ title: `OS criada: ${os.numero}` });
       return os;
@@ -121,19 +150,36 @@ export function useOrdensServico(empresaId: string | undefined) {
     return (data ?? []).map(mapChecklist);
   };
 
-  const addChecklistItem = async (osId: string, descricao: string): Promise<OsChecklistItem | null> => {
+  const addChecklistItem = async (
+    osId: string,
+    titulo: string,
+    extra?: { responsavelNome?: string | null; prazo?: string | null }
+  ): Promise<OsChecklistItem | null> => {
     const { data: existing } = await supabase.from('ordens_servico_checklist')
       .select('ordem').eq('os_id', osId).order('ordem', { ascending: false }).limit(1);
-    const nextOrdem = existing?.length ? existing[0].ordem + 1 : 0;
-    const { data, error } = await supabase.from('ordens_servico_checklist')
-      .insert({ os_id: osId, descricao, ordem: nextOrdem }).select().single();
+    const nextOrdem = existing?.length ? (existing[0] as any).ordem + 1 : 0;
+    const { data, error } = await (supabase as any).from('ordens_servico_checklist')
+      .insert({
+        os_id: osId, titulo, ordem: nextOrdem,
+        responsavel_nome: extra?.responsavelNome ?? null,
+        prazo: extra?.prazo ?? null,
+      }).select().single();
     if (error) return null;
     return mapChecklist(data);
   };
 
+  const updateChecklistItem = async (itemId: string, patch: { responsavelNome?: string | null; prazo?: string | null; titulo?: string }): Promise<boolean> => {
+    const payload: any = {};
+    if (patch.responsavelNome !== undefined) payload.responsavel_nome = patch.responsavelNome;
+    if (patch.prazo !== undefined) payload.prazo = patch.prazo;
+    if (patch.titulo !== undefined) payload.titulo = patch.titulo;
+    const { error } = await (supabase as any).from('ordens_servico_checklist').update(payload).eq('id', itemId);
+    return !error;
+  };
+
   const toggleChecklistItem = async (itemId: string, concluido: boolean): Promise<boolean> => {
-    const { error } = await supabase.from('ordens_servico_checklist')
-      .update({ concluido }).eq('id', itemId);
+    const { error } = await (supabase as any).from('ordens_servico_checklist')
+      .update({ concluido, concluido_em: concluido ? new Date().toISOString() : null }).eq('id', itemId);
     return !error;
   };
 
@@ -145,7 +191,7 @@ export function useOrdensServico(empresaId: string | undefined) {
 
   return {
     ordens, isLoading, isInitialized, fetchOrdens,
-    createOrdem, updateOrdem, updateEstado, deleteOrdem,
-    fetchChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem,
+    createOrdem, updateOrdem, updateEstado, deleteOrdem, applyTemplate,
+    fetchChecklist, addChecklistItem, updateChecklistItem, toggleChecklistItem, deleteChecklistItem,
   };
 }

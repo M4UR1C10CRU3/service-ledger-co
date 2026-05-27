@@ -151,7 +151,8 @@ export function usePedidosOrcamento() {
       if (error || !row) { console.error(error); return null; }
       poId = row.id;
 
-      // Auto-create Workflow Comercial opportunity
+      // Auto-create Workflow Comercial opportunity SOMENTE para orçamentação (não para intervenção imediata)
+      if ((formData.tipoPedido || 'orcamentacao') !== 'intervencao_imediata') {
       try {
         const { data: oppRow } = await (supabase as any).from('followup_oportunidades').insert({
           empresa_id: empresa.id,
@@ -183,6 +184,7 @@ export function usePedidosOrcamento() {
           );
         }
       } catch (e) { console.error('Auto-create oportunidade falhou', e); }
+      }
     }
 
     if (poId && formData.linhas.length > 0) {
