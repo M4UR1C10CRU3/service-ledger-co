@@ -12,18 +12,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { usePedidosOrcamento } from '@/hooks/usePedidosOrcamento';
 import { usePropostas } from '@/hooks/usePropostas';
+import { useOrdensServico } from '@/hooks/useOrdensServico';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
 import { PoFormDialog } from '@/components/pedidos-orcamento/PoFormDialog';
 import { exportPoPdf } from '@/components/pedidos-orcamento/poPdfExport';
 import type { PedidoOrcamento, POEstado } from '@/types/pedidoOrcamento';
-import { Plus, Search, FileDown, Edit, Trash2, FileText, ClipboardList } from 'lucide-react';
+import { Plus, Search, FileDown, Edit, Trash2, FileText, ClipboardList, Zap, Wrench } from 'lucide-react';
 
 const estadoLabels: Record<POEstado, string> = {
   recebido: 'Recebido',
   em_analise: 'Em análise',
   proposta_elaborada: 'Proposta elaborada',
   adjudicado: 'Adjudicado',
+  os_criada: 'OS criada',
   cancelado: 'Cancelado',
 };
 
@@ -32,6 +34,7 @@ const estadoColors: Record<POEstado, string> = {
   em_analise: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   proposta_elaborada: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
   adjudicado: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  os_criada: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
   cancelado: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
