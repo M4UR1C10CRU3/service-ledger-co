@@ -25,6 +25,49 @@ interface PdfData {
 
 const fmtQty = (v: number) => v.toFixed(3).replace('.', ',');
 
+// Mapa de códigos de localidade (3 letras maiúsculas) por concelho
+const LOCALIDADE_CODIGOS: Record<string, string> = {
+  'mirandela': 'MDL',
+  'bragança': 'BGC', 'braganca': 'BGC',
+  'macedo de cavaleiros': 'MCD', 'macedo': 'MCD',
+  'vila real': 'VRL',
+  'porto': 'PRT',
+  'lisboa': 'LSB',
+  'vinhais': 'VNH',
+  'chaves': 'CHV',
+  'mogadouro': 'MGD',
+  'vimioso': 'VMS',
+  'miranda do douro': 'MDR',
+  'alfândega da fé': 'ALF', 'alfandega da fe': 'ALF',
+  'carrazeda de ansiães': 'CRZ', 'carrazeda': 'CRZ',
+  'torre de moncorvo': 'TMC',
+  'freixo de espada à cinta': 'FEC', 'freixo': 'FEC',
+  'valpaços': 'VLP', 'valpacos': 'VLP',
+  'murça': 'MRC', 'murca': 'MRC',
+};
+
+function getLocalidadeCodigo(input?: string): string {
+  if (!input) return 'XXX';
+  const lower = input.toLowerCase().trim();
+  for (const [nome, code] of Object.entries(LOCALIDADE_CODIGOS)) {
+    if (lower.includes(nome)) return code;
+  }
+  // Fallback: primeiras 3 consoantes maiúsculas
+  const consoantes = input.toUpperCase().replace(/[^A-ZÇ]/g, '').replace(/[AEIOU]/g, '');
+  if (consoantes.length >= 3) return consoantes.slice(0, 3);
+  // Fallback final: primeiras 3 letras
+  return input.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
+}
+
+function buildPoFilename(data: { numeroPo: string; clienteNome: string; titulo: string; localExecucao?: string; clienteMorada?: string }): string {
+  const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  const cliente = sanitize(data.clienteNome) || 'Cliente';
+  const titulo = sanitize(data.titulo) || 'Serviço';
+  const localFonte = data.localExecucao || data.clienteMorada || '';
+  const localCode = getLocalidadeCodigo(localFonte);
+  return `${data.numeroPo}_${cliente}_${titulo}_${localCode}`;
+}
+
 export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
@@ -58,7 +101,8 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   const showObra = !!(data.obra && data.obra.trim());
   const showContacto = !!(data.clienteTelefone || data.clienteEmail);
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido de Orçamento ${data.numeroPo}</title>
+  const filename = buildPoFilename(data);
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
 <style>
   @page { size: A4; margin: 15mm; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
@@ -179,7 +223,7 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     <div class="contact-line"><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}</div>
   </div>
 
-  <script>window.onload=function(){window.print();}</script>
+  <script>window.onload=function(){document.title=${JSON.stringify(filename)};window.print();}</script>
 </body></html>`;
 
   const w = window.open('', '_blank');
