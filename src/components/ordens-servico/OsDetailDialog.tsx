@@ -326,26 +326,47 @@ export function OsDetailDialog({
                 </div>
 
                 <div className="space-y-2">
-                  {checklist.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-2 p-2 rounded-md border bg-card"
-                    >
-                      <Checkbox
-                        checked={item.concluido}
-                        onCheckedChange={() => handleToggleItem(item)}
-                      />
-                      <span className={cn('flex-1 text-sm', item.concluido && 'line-through text-muted-foreground')}>
-                        {item.descricao}
-                      </span>
-                      <Button
-                        variant="ghost" size="icon"
-                        onClick={() => handleDeleteItem(item.id)}
+                  {checklist.map((item) => {
+                    const hoje = new Date(); hoje.setHours(0,0,0,0);
+                    const dPrazo = item.prazo ? new Date(item.prazo + 'T00:00:00') : null;
+                    const diff = dPrazo ? (dPrazo.getTime() - hoje.getTime()) / 86400000 : null;
+                    const prazoCls = diff == null ? '' : diff < 0 ? 'bg-red-50 text-red-700 border-red-200' : diff <= 1 ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-green-50 text-green-700 border-green-200';
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-2 p-2 rounded-md border bg-card"
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
+                        <Checkbox
+                          className="mt-1"
+                          checked={item.concluido}
+                          onCheckedChange={() => handleToggleItem(item)}
+                        />
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <p className={cn('text-sm', item.concluido && 'line-through text-muted-foreground')}>
+                            {item.titulo}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            {item.responsavelNome && (
+                              <span className="px-1.5 py-0.5 rounded border bg-muted text-muted-foreground">
+                                👤 {item.responsavelNome}
+                              </span>
+                            )}
+                            {item.prazo && (
+                              <span className={cn('px-1.5 py-0.5 rounded border', prazoCls)}>
+                                📅 {fmtDate(item.prazo)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost" size="icon"
+                          onClick={() => handleDeleteItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                   {checklist.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       Sem itens na checklist
