@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { formatEUR } from '@/lib/formatters';
-import { exportPropostaPdf } from '@/components/propostas/propostaPdfExport';
+import { exportPropostaPdf, type PropostaPdfMode } from '@/components/propostas/propostaPdfExport';
 import { exportPropostaExcel } from '@/components/propostas/propostaExcelExport';
 import type { Proposta, PropostaLinha, PropostaEstado } from '@/types/proposta';
 import { Pencil, FileDown, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
@@ -47,7 +47,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
     onOpenChange(false);
   };
 
-  const handlePdf = () => {
+  const handlePdf = (mode: PropostaPdfMode = 'unitarios') => {
     const logoSrc = getLogo();
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -58,13 +58,13 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
       const dataUrl = canvas.toDataURL('image/png');
-      doExportPdf(dataUrl);
+      doExportPdf(dataUrl, mode);
     };
-    img.onerror = () => doExportPdf();
+    img.onerror = () => doExportPdf(undefined, mode);
     img.src = logoSrc;
   };
 
-  const doExportPdf = (logoDataUrl?: string) => {
+  const doExportPdf = (logoDataUrl?: string, mode: PropostaPdfMode = 'unitarios') => {
     exportPropostaPdf({
       numeroProposta: proposta.numeroProposta,
       clienteNome: proposta.clienteNome || '',
@@ -96,7 +96,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
       duracao: proposta.duracao || '',
       condicoesPagamento: proposta.condicoesPagamento || '',
       observacoes: proposta.observacoes || '',
-    }, empresa, logoDataUrl);
+    }, empresa, logoDataUrl, mode);
   };
 
   const handleExcel = () => {
@@ -268,8 +268,14 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
               </Button>
             </>
           )}
-          <Button variant="outline" size="sm" onClick={handlePdf}>
-            <FileDown className="h-4 w-4 mr-1" /> PDF
+          <Button variant="outline" size="sm" onClick={() => handlePdf('unitarios')}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Unitários
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePdf('subtotais')}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Subtotais
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handlePdf('global')}>
+            <FileDown className="h-4 w-4 mr-1" /> PDF Global
           </Button>
           <Button variant="outline" size="sm" onClick={handleExcel}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
