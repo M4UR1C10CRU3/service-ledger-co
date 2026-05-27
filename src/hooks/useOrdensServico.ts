@@ -19,8 +19,11 @@ function mapOs(row: any): OrdemServico {
 
 function mapChecklist(row: any): OsChecklistItem {
   return {
-    id: row.id, osId: row.os_id, descricao: row.descricao,
-    concluido: row.concluido, ordem: row.ordem, createdAt: row.created_at,
+    id: row.id, osId: row.os_id, titulo: row.titulo,
+    responsavelNome: row.responsavel_nome ?? null,
+    prazo: row.prazo ?? null,
+    concluido: row.concluido, concluidoEm: row.concluido_em ?? null,
+    ordem: row.ordem, createdAt: row.created_at,
   };
 }
 
