@@ -3,7 +3,10 @@ export type POEstado =
   | 'em_analise'
   | 'proposta_elaborada'
   | 'adjudicado'
+  | 'os_criada'
   | 'cancelado';
+
+export type TipoPedido = 'orcamentacao' | 'intervencao_imediata';
 
 export interface PedidoOrcamento {
   id: string;
