@@ -59,11 +59,17 @@ function getLocalidadeCodigo(input?: string): string {
   return input.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
 }
 
+function toSentenceCase(s: string): string {
+  const lower = s.toLocaleLowerCase('pt-PT');
+  return lower.charAt(0).toLocaleUpperCase('pt-PT') + lower.slice(1);
+}
+
 function buildPoFilename(data: { numeroPo: string; clienteNome: string; titulo: string; localExecucao?: string; clienteMorada?: string }): string {
   const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
   const numero = (data.numeroPo || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
   const cliente = sanitize(data.clienteNome) || 'Cliente';
-  const titulo = sanitize(data.titulo) || 'Serviço';
+  const tituloRaw = sanitize(data.titulo) || 'Serviço';
+  const titulo = toSentenceCase(tituloRaw);
   const localFonte = data.localExecucao || data.clienteMorada || '';
   const localCode = getLocalidadeCodigo(localFonte);
   return `${numero}_${cliente}_${titulo}_${localCode}`;
