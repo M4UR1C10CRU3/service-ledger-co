@@ -47,7 +47,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
     onOpenChange(false);
   };
 
-  const handlePdf = () => {
+  const handlePdf = (mode: PropostaPdfMode = 'unitarios') => {
     const logoSrc = getLogo();
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -58,13 +58,13 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(img, 0, 0);
       const dataUrl = canvas.toDataURL('image/png');
-      doExportPdf(dataUrl);
+      doExportPdf(dataUrl, mode);
     };
-    img.onerror = () => doExportPdf();
+    img.onerror = () => doExportPdf(undefined, mode);
     img.src = logoSrc;
   };
 
-  const doExportPdf = (logoDataUrl?: string) => {
+  const doExportPdf = (logoDataUrl?: string, mode: PropostaPdfMode = 'unitarios') => {
     exportPropostaPdf({
       numeroProposta: proposta.numeroProposta,
       clienteNome: proposta.clienteNome || '',
