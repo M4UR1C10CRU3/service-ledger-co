@@ -96,6 +96,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
       });
     } else {
       // reset
+      setTipoPedido('orcamentacao');
       setClienteId(null); setClienteNome(''); setClienteMorada(''); setClienteNif('');
       setClienteTelefone(''); setClienteEmail(''); setVendedorNome('');
       setDataEmissao(new Date().toISOString().split('T')[0]);
