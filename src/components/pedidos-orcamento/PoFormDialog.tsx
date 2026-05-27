@@ -209,11 +209,13 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
     if (!id || !onConverter) return;
     const fresh: PedidoOrcamento = pedido || {
       id, empresaId: empresa?.id || '', numeroPo, numeroSequencial: 0, ano: new Date().getFullYear(),
+      tipoPedido,
       clienteId, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
       vendedorId: null, vendedorNome,
       titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
       estado: 'recebido', validadeDias, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
       propostaId: null, numeroProposta: null,
+      osId: null, numeroOs: null,
       dataEmissao, horaEmissao: new Date().toLocaleTimeString('pt-PT'),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
