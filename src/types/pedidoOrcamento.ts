@@ -69,6 +69,7 @@ export interface POLinhaForm {
 }
 
 export interface POFormData {
+  tipoPedido: TipoPedido;
   clienteId: string | null;
   clienteNome: string;
   clienteMorada: string;
