@@ -191,7 +191,7 @@ export function useOrdensServico(empresaId: string | undefined) {
 
   return {
     ordens, isLoading, isInitialized, fetchOrdens,
-    createOrdem, updateOrdem, updateEstado, deleteOrdem,
-    fetchChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem,
+    createOrdem, updateOrdem, updateEstado, deleteOrdem, applyTemplate,
+    fetchChecklist, addChecklistItem, updateChecklistItem, toggleChecklistItem, deleteChecklistItem,
   };
 }
