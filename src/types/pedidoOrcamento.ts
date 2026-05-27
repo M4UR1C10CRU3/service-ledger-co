@@ -3,7 +3,10 @@ export type POEstado =
   | 'em_analise'
   | 'proposta_elaborada'
   | 'adjudicado'
+  | 'os_criada'
   | 'cancelado';
+
+export type TipoPedido = 'orcamentacao' | 'intervencao_imediata';
 
 export interface PedidoOrcamento {
   id: string;
@@ -11,6 +14,7 @@ export interface PedidoOrcamento {
   numeroPo: string;
   numeroSequencial: number;
   ano: number;
+  tipoPedido: TipoPedido;
   clienteId: string | null;
   clienteNome: string;
   clienteMorada: string | null;
@@ -32,6 +36,8 @@ export interface PedidoOrcamento {
   observacoes: string | null;
   propostaId: string | null;
   numeroProposta: string | null;
+  osId: string | null;
+  numeroOs: string | null;
   dataEmissao: string;
   horaEmissao: string;
   createdAt: string;
@@ -63,6 +69,7 @@ export interface POLinhaForm {
 }
 
 export interface POFormData {
+  tipoPedido: TipoPedido;
   clienteId: string | null;
   clienteNome: string;
   clienteMorada: string;

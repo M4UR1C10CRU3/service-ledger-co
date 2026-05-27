@@ -12,18 +12,20 @@ import {
 } from '@/components/ui/alert-dialog';
 import { usePedidosOrcamento } from '@/hooks/usePedidosOrcamento';
 import { usePropostas } from '@/hooks/usePropostas';
+import { useOrdensServico } from '@/hooks/useOrdensServico';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
 import { PoFormDialog } from '@/components/pedidos-orcamento/PoFormDialog';
 import { exportPoPdf } from '@/components/pedidos-orcamento/poPdfExport';
 import type { PedidoOrcamento, POEstado } from '@/types/pedidoOrcamento';
-import { Plus, Search, FileDown, Edit, Trash2, FileText, ClipboardList } from 'lucide-react';
+import { Plus, Search, FileDown, Edit, Trash2, FileText, ClipboardList, Zap, Wrench } from 'lucide-react';
 
 const estadoLabels: Record<POEstado, string> = {
   recebido: 'Recebido',
   em_analise: 'Em análise',
   proposta_elaborada: 'Proposta elaborada',
   adjudicado: 'Adjudicado',
+  os_criada: 'OS criada',
   cancelado: 'Cancelado',
 };
 
@@ -32,13 +34,15 @@ const estadoColors: Record<POEstado, string> = {
   em_analise: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
   proposta_elaborada: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
   adjudicado: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  os_criada: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
   cancelado: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
 export default function PedidosOrcamento() {
-  const { pedidos, isLoading, fetchLinhasPo, linkProposta, deletePedido } = usePedidosOrcamento();
-  const { saveProposta } = usePropostas();
   const { empresa, getLogo } = useEmpresa();
+  const { pedidos, isLoading, fetchLinhasPo, linkProposta, linkOs, deletePedido } = usePedidosOrcamento();
+  const { saveProposta } = usePropostas();
+  const { createOrdem } = useOrdensServico(empresa?.id);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -118,7 +122,45 @@ export default function PedidosOrcamento() {
     img.src = getLogo();
   };
 
+  const handleCriarOs = async (po: PedidoOrcamento) => {
+    const linhas = await fetchLinhasPo(po.id);
+    const descricaoLinhas = linhas
+      .filter(l => l.tipoLinha === 'artigo' || l.tipoLinha === 'texto')
+      .map(l => `• ${l.quantidade} ${l.unidade} — ${l.designacao || l.referencia || ''}${l.observacaoLinha ? ` (${l.observacaoLinha})` : ''}`)
+      .join('\n');
+    const descricaoFinal = [po.descricaoNecessidade, descricaoLinhas].filter(Boolean).join('\n\n');
+
+    const os = await createOrdem({
+      clienteId: po.clienteId || '',
+      clienteNome: po.clienteNome,
+      propostaId: '',
+      responsavelId: '',
+      responsavelNome: po.vendedorNome || '',
+      estado: 'nova',
+      prioridade: 'alta',
+      titulo: po.titulo || `Intervenção — PO ${po.numeroPo}`,
+      descricao: descricaoFinal,
+      observacoes: po.observacoes || '',
+      dataAbertura: new Date().toISOString().split('T')[0],
+      dataPrevista: '',
+      valorEstimado: '',
+    });
+
+    if (!os) { toast({ title: 'Erro ao criar OS', variant: 'destructive' }); return; }
+
+    // Link PO and OS bidirectionally
+    const { supabase } = await import('@/integrations/supabase/client');
+    await (supabase as any).from('ordens_servico').update({ po_id: po.id, numero_po: po.numeroPo }).eq('id', os.id);
+    await linkOs(po.id, os.id, os.numero);
+
+    toast({ title: 'OS criada', description: `${os.numero} criada a partir do PO ${po.numeroPo}` });
+    navigate('/ordens-servico');
+  };
+
   const handleConverter = async (po: PedidoOrcamento) => {
+    if (po.tipoPedido === 'intervencao_imediata') {
+      return handleCriarOs(po);
+    }
     const linhas = await fetchLinhasPo(po.id);
     const propostaLinhas = linhas.map((l, i) => ({
       ordem: i,
@@ -156,7 +198,6 @@ export default function PedidosOrcamento() {
       return;
     }
 
-    // Link proposta and update po with numero_po reference on proposta
     const { supabase } = await import('@/integrations/supabase/client');
     const { data: prop } = await (supabase as any).from('propostas').select('numero_proposta').eq('id', propostaId).single();
     await (supabase as any).from('propostas').update({ po_id: po.id, numero_po: po.numeroPo }).eq('id', propostaId);
@@ -236,22 +277,34 @@ export default function PedidosOrcamento() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nº PO</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Título / Obra</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Proposta</TableHead>
+                <TableHead>Destino</TableHead>
                 <TableHead className="text-right">Acções</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
               ) : filtered.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-mono text-sm">{p.numeroPo}</TableCell>
+                  <TableCell>
+                    {p.tipoPedido === 'intervencao_imediata' ? (
+                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 gap-1">
+                        <Zap className="h-3 w-3" /> Imediata
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1">
+                        <ClipboardList className="h-3 w-3" /> Orçamento
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">{p.dataEmissao && new Date(p.dataEmissao).toLocaleDateString('pt-PT')}</TableCell>
                   <TableCell>{p.clienteNome}</TableCell>
                   <TableCell className="text-sm">
@@ -261,7 +314,12 @@ export default function PedidosOrcamento() {
                     <Badge className={estadoColors[p.estado]}>{estadoLabels[p.estado]}</Badge>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {p.numeroProposta ? (
+                    {p.numeroOs ? (
+                      <button onClick={() => navigate('/ordens-servico')}
+                        className="text-amber-700 hover:underline font-mono text-xs">
+                        {p.numeroOs}
+                      </button>
+                    ) : p.numeroProposta ? (
                       <button onClick={() => navigate('/propostas')}
                         className="text-primary hover:underline font-mono text-xs">
                         {p.numeroProposta}
@@ -276,9 +334,15 @@ export default function PedidosOrcamento() {
                       <FileDown className="h-4 w-4" />
                     </Button>
                     {(p.estado === 'recebido' || p.estado === 'em_analise') && (
-                      <Button size="icon" variant="ghost" onClick={() => handleConverter(p)} title="Converter em Proposta">
-                        <FileText className="h-4 w-4 text-primary" />
-                      </Button>
+                      p.tipoPedido === 'intervencao_imediata' ? (
+                        <Button size="icon" variant="ghost" onClick={() => handleConverter(p)} title="Criar OS Direta">
+                          <Wrench className="h-4 w-4 text-orange-500" />
+                        </Button>
+                      ) : (
+                        <Button size="icon" variant="ghost" onClick={() => handleConverter(p)} title="Converter em Proposta">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </Button>
+                      )
                     )}
                     {(p.estado === 'recebido' || p.estado === 'em_analise') && (
                       <Button size="icon" variant="ghost" onClick={() => setDeleteId(p.id)} title="Eliminar">

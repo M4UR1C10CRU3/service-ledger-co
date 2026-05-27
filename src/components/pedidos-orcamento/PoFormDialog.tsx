@@ -11,8 +11,8 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
 import { exportPoPdf } from './poPdfExport';
-import type { PedidoOrcamento, POLinhaForm, POFormData } from '@/types/pedidoOrcamento';
-import { Save, FileDown, Plus, Trash2, Search, Layers, Type, FileText as FileTextIcon } from 'lucide-react';
+import type { PedidoOrcamento, POLinhaForm, POFormData, TipoPedido } from '@/types/pedidoOrcamento';
+import { Save, FileDown, Plus, Trash2, Search, Layers, Type, FileText as FileTextIcon, ClipboardList, Zap } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -39,6 +39,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   const { toast } = useToast();
 
   const [numeroPo, setNumeroPo] = useState('');
+  const [tipoPedido, setTipoPedido] = useState<TipoPedido>('orcamentacao');
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteMorada, setClienteMorada] = useState('');
@@ -66,6 +67,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
     if (!open) return;
     if (pedido) {
       setNumeroPo(pedido.numeroPo);
+      setTipoPedido(pedido.tipoPedido || 'orcamentacao');
       setClienteId(pedido.clienteId);
       setClienteNome(pedido.clienteNome);
       setClienteMorada(pedido.clienteMorada || '');
@@ -94,6 +96,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
       });
     } else {
       // reset
+      setTipoPedido('orcamentacao');
       setClienteId(null); setClienteNome(''); setClienteMorada(''); setClienteNif('');
       setClienteTelefone(''); setClienteEmail(''); setVendedorNome('');
       setDataEmissao(new Date().toISOString().split('T')[0]);
@@ -144,6 +147,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   };
 
   const buildFormData = (): POFormData => ({
+    tipoPedido,
     clienteId, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
     vendedorNome, dataEmissao, titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
     validadeDias, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
@@ -205,11 +209,13 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
     if (!id || !onConverter) return;
     const fresh: PedidoOrcamento = pedido || {
       id, empresaId: empresa?.id || '', numeroPo, numeroSequencial: 0, ano: new Date().getFullYear(),
+      tipoPedido,
       clienteId, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
       vendedorId: null, vendedorNome,
       titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
       estado: 'recebido', validadeDias, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
       propostaId: null, numeroProposta: null,
+      osId: null, numeroOs: null,
       dataEmissao, horaEmissao: new Date().toLocaleTimeString('pt-PT'),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
@@ -227,6 +233,45 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Tipo de pedido */}
+          <section>
+            <h3 className="text-sm font-semibold mb-3 text-primary">Tipo de Pedido</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setTipoPedido('orcamentacao')}
+                className={`flex items-start gap-3 p-3 border-2 rounded-lg text-left transition-colors ${
+                  tipoPedido === 'orcamentacao'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <ClipboardList className={`h-5 w-5 mt-0.5 ${tipoPedido === 'orcamentacao' ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div>
+                  <div className="font-medium text-sm">Orçamentação</div>
+                  <div className="text-xs text-muted-foreground">Pedido vai gerar Proposta para aprovação</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipoPedido('intervencao_imediata')}
+                className={`flex items-start gap-3 p-3 border-2 rounded-lg text-left transition-colors ${
+                  tipoPedido === 'intervencao_imediata'
+                    ? 'border-orange-500 bg-orange-500/5'
+                    : 'border-border hover:border-orange-500/50'
+                }`}
+              >
+                <Zap className={`h-5 w-5 mt-0.5 ${tipoPedido === 'intervencao_imediata' ? 'text-orange-500' : 'text-muted-foreground'}`} />
+                <div>
+                  <div className="font-medium text-sm">Intervenção Imediata</div>
+                  <div className="text-xs text-muted-foreground">Gera OS direta, sem passar por proposta</div>
+                </div>
+              </button>
+            </div>
+          </section>
+
+          <Separator />
+
           {/* Cliente */}
           <section>
             <h3 className="text-sm font-semibold mb-3 text-primary">Cliente</h3>
