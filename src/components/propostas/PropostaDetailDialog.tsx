@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { formatEUR } from '@/lib/formatters';
-import { exportPropostaPdf } from '@/components/propostas/propostaPdfExport';
+import { exportPropostaPdf, type PropostaPdfMode } from '@/components/propostas/propostaPdfExport';
 import { exportPropostaExcel } from '@/components/propostas/propostaExcelExport';
 import type { Proposta, PropostaLinha, PropostaEstado } from '@/types/proposta';
 import { Pencil, FileDown, FileSpreadsheet, CheckCircle, XCircle } from 'lucide-react';
