@@ -96,7 +96,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
       duracao: proposta.duracao || '',
       condicoesPagamento: proposta.condicoesPagamento || '',
       observacoes: proposta.observacoes || '',
-    }, empresa, logoDataUrl);
+    }, empresa, logoDataUrl, mode);
   };
 
   const handleExcel = () => {
