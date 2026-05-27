@@ -61,11 +61,12 @@ function getLocalidadeCodigo(input?: string): string {
 
 function buildPoFilename(data: { numeroPo: string; clienteNome: string; titulo: string; localExecucao?: string; clienteMorada?: string }): string {
   const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  const numero = (data.numeroPo || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
   const cliente = sanitize(data.clienteNome) || 'Cliente';
   const titulo = sanitize(data.titulo) || 'Serviço';
   const localFonte = data.localExecucao || data.clienteMorada || '';
   const localCode = getLocalidadeCodigo(localFonte);
-  return `${data.numeroPo}_${cliente}_${titulo}_${localCode}`;
+  return `${numero}_${cliente}_${titulo}_${localCode}`;
 }
 
 export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
@@ -223,12 +224,24 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     <div class="contact-line"><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}</div>
   </div>
 
-  <script>window.onload=function(){document.title=${JSON.stringify(filename)};window.print();}</script>
+  <script>
+    document.title = ${JSON.stringify(filename)};
+    window.addEventListener('load', function(){
+      document.title = ${JSON.stringify(filename)};
+      setTimeout(function(){
+        document.title = ${JSON.stringify(filename)};
+        window.print();
+      }, 300);
+    });
+    window.addEventListener('afterprint', function(){ document.title = ${JSON.stringify(filename)}; });
+  </script>
 </body></html>`;
 
   const w = window.open('', '_blank');
   if (w) {
+    w.document.open();
     w.document.write(html);
     w.document.close();
+    try { w.document.title = filename; } catch (e) {}
   }
 }
