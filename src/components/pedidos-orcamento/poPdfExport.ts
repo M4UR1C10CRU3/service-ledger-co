@@ -101,7 +101,8 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   const showObra = !!(data.obra && data.obra.trim());
   const showContacto = !!(data.clienteTelefone || data.clienteEmail);
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido de Orçamento ${data.numeroPo}</title>
+  const filename = buildPoFilename(data);
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
 <style>
   @page { size: A4; margin: 15mm; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
