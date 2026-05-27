@@ -54,6 +54,28 @@ export function useOrdensServico(empresaId: string | undefined) {
 
   useEffect(() => { fetchOrdens(); }, [fetchOrdens]);
 
+  const applyTemplate = async (osId: string, templateId: string, dataAbertura: string) => {
+    const { data: items } = await (supabase as any)
+      .from('os_checklist_template_itens').select('*').eq('template_id', templateId).order('ordem');
+    if (!items || items.length === 0) return;
+    const base = new Date(dataAbertura + 'T00:00:00');
+    const rows = items.map((it: any) => {
+      let prazo: string | null = null;
+      if (it.dias_offset != null) {
+        const d = new Date(base); d.setDate(d.getDate() + it.dias_offset);
+        prazo = d.toISOString().split('T')[0];
+      }
+      return {
+        os_id: osId,
+        titulo: it.titulo,
+        responsavel_nome: it.responsavel_padrao,
+        prazo,
+        ordem: it.ordem,
+      };
+    });
+    await (supabase as any).from('ordens_servico_checklist').insert(rows);
+  };
+
   const createOrdem = async (form: OsFormData): Promise<OrdemServico | null> => {
     if (!empresaId) return null;
     try {
@@ -72,9 +94,13 @@ export function useOrdensServico(empresaId: string | undefined) {
         data_abertura: form.dataAbertura,
         data_prevista: form.dataPrevista || null,
         valor_estimado: form.valorEstimado ? parseFloat(form.valorEstimado) : null,
+        ...(form.templateId ? { template_id: form.templateId } : {}),
       }).select().single();
       if (error) throw error;
       const os = mapOs(data);
+      if (form.templateId) {
+        try { await applyTemplate(os.id, form.templateId, form.dataAbertura); } catch (e) { console.error(e); }
+      }
       setOrdens(prev => [os, ...prev]);
       toast({ title: `OS criada: ${os.numero}` });
       return os;
