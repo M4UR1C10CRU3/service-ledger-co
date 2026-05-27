@@ -71,14 +71,9 @@ function toSentenceCase(s: string): string {
   return lower.charAt(0).toLocaleUpperCase('pt-PT') + lower.slice(1);
 }
 
-function buildPropostaFilename(data: { numeroProposta: string; clienteNome: string; titulo: string; clienteMorada?: string }): string {
-  const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+function buildPropostaFilename(data: { numeroProposta: string }): string {
   const numero = (data.numeroProposta || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
-  const cliente = sanitize(data.clienteNome) || 'Cliente';
-  const tituloRaw = sanitize(data.titulo) || 'Serviço';
-  const titulo = toSentenceCase(tituloRaw);
-  const localCode = getLocalidadeCodigo(data.clienteMorada || '');
-  return `WMTCPP ${numero}_${cliente}_${titulo}_${localCode}`;
+  return `Proposta WMTCEC ${numero}_Preços Unitários`;
 }
 
 export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
