@@ -61,11 +61,12 @@ function getLocalidadeCodigo(input?: string): string {
 
 function buildPoFilename(data: { numeroPo: string; clienteNome: string; titulo: string; localExecucao?: string; clienteMorada?: string }): string {
   const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  const numero = (data.numeroPo || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
   const cliente = sanitize(data.clienteNome) || 'Cliente';
   const titulo = sanitize(data.titulo) || 'Serviço';
   const localFonte = data.localExecucao || data.clienteMorada || '';
   const localCode = getLocalidadeCodigo(localFonte);
-  return `${data.numeroPo}_${cliente}_${titulo}_${localCode}`;
+  return `${numero}_${cliente}_${titulo}_${localCode}`;
 }
 
 export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
