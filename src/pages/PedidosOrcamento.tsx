@@ -160,7 +160,6 @@ export default function PedidosOrcamento() {
     if (!os) { toast({ title: 'Erro ao criar OS', variant: 'destructive' }); return; }
 
     // Link PO and OS bidirectionally
-    const { supabase } = await import('@/integrations/supabase/client');
     await (supabase as any).from('ordens_servico').update({ po_id: po.id, numero_po: po.numeroPo }).eq('id', os.id);
     await linkOs(po.id, os.id, os.numero);
 
