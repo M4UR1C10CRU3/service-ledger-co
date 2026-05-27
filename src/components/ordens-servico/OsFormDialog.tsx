@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ListChecks } from 'lucide-react';
 import {
   OsFormData,
   OS_PRIORIDADES,
@@ -7,6 +7,7 @@ import {
   emptyOsForm,
 } from '@/types/ordemServico';
 import { useClientes } from '@/hooks/useClientes';
+import { useOsChecklistTemplates } from '@/hooks/useOsChecklistTemplates';
 import {
   Dialog,
   DialogContent,
