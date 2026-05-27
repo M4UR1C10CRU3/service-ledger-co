@@ -166,8 +166,7 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
 
   <div class="assinaturas">
     <div>Cliente:<br/>&nbsp;<br/>Assinatura se aceite.</div>
-    <div>Assinatura e carimbo.<br/>&nbsp;<br/>&nbsp;</div>
-    <div>${cfg.nomeDocumento}<br/>&nbsp;<br/>&nbsp;</div>
+    <div>${cfg.nomeDocumento}<br/>&nbsp;<br/>Assinatura e carimbo.</div>
   </div>
 
   <p class="nota-legal">Este documento é um Pedido de Orçamento e não serve de fatura.</p>
