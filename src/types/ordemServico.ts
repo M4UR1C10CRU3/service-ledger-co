@@ -29,13 +29,17 @@ export interface OrdemServico {
 export interface OsChecklistItem {
   id: string;
   osId: string;
-  descricao: string;
+  titulo: string;
+  responsavelNome: string | null;
+  prazo: string | null;
   concluido: boolean;
+  concluidoEm: string | null;
   ordem: number;
   createdAt: string;
 }
 
 export interface OsFormData {
+  templateId?: string;
   clienteId: string;
   clienteNome: string;
   propostaId: string;
