@@ -147,6 +147,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   };
 
   const buildFormData = (): POFormData => ({
+    tipoPedido,
     clienteId, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
     vendedorNome, dataEmissao, titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
     validadeDias, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
