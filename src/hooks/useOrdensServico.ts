@@ -150,19 +150,36 @@ export function useOrdensServico(empresaId: string | undefined) {
     return (data ?? []).map(mapChecklist);
   };
 
-  const addChecklistItem = async (osId: string, descricao: string): Promise<OsChecklistItem | null> => {
+  const addChecklistItem = async (
+    osId: string,
+    titulo: string,
+    extra?: { responsavelNome?: string | null; prazo?: string | null }
+  ): Promise<OsChecklistItem | null> => {
     const { data: existing } = await supabase.from('ordens_servico_checklist')
       .select('ordem').eq('os_id', osId).order('ordem', { ascending: false }).limit(1);
-    const nextOrdem = existing?.length ? existing[0].ordem + 1 : 0;
-    const { data, error } = await supabase.from('ordens_servico_checklist')
-      .insert({ os_id: osId, descricao, ordem: nextOrdem }).select().single();
+    const nextOrdem = existing?.length ? (existing[0] as any).ordem + 1 : 0;
+    const { data, error } = await (supabase as any).from('ordens_servico_checklist')
+      .insert({
+        os_id: osId, titulo, ordem: nextOrdem,
+        responsavel_nome: extra?.responsavelNome ?? null,
+        prazo: extra?.prazo ?? null,
+      }).select().single();
     if (error) return null;
     return mapChecklist(data);
   };
 
+  const updateChecklistItem = async (itemId: string, patch: { responsavelNome?: string | null; prazo?: string | null; titulo?: string }): Promise<boolean> => {
+    const payload: any = {};
+    if (patch.responsavelNome !== undefined) payload.responsavel_nome = patch.responsavelNome;
+    if (patch.prazo !== undefined) payload.prazo = patch.prazo;
+    if (patch.titulo !== undefined) payload.titulo = patch.titulo;
+    const { error } = await (supabase as any).from('ordens_servico_checklist').update(payload).eq('id', itemId);
+    return !error;
+  };
+
   const toggleChecklistItem = async (itemId: string, concluido: boolean): Promise<boolean> => {
-    const { error } = await supabase.from('ordens_servico_checklist')
-      .update({ concluido }).eq('id', itemId);
+    const { error } = await (supabase as any).from('ordens_servico_checklist')
+      .update({ concluido, concluido_em: concluido ? new Date().toISOString() : null }).eq('id', itemId);
     return !error;
   };
 
