@@ -72,7 +72,9 @@ function toSentenceCase(s: string): string {
 }
 
 function buildPropostaFilename(data: { numeroProposta: string }): string {
-  const numero = (data.numeroProposta || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
+  const raw = (data.numeroProposta || '').replace(/[\\:*?"<>|]/g, '').trim();
+  // Remove prefixo WMTCEC se já vier no número, para evitar duplicação
+  const numero = raw.replace(/^WMTCEC\s*/i, '').trim();
   return `Proposta WMTCEC ${numero}_Preços Unitários`;
 }
 
