@@ -39,6 +39,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   const { toast } = useToast();
 
   const [numeroPo, setNumeroPo] = useState('');
+  const [tipoPedido, setTipoPedido] = useState<TipoPedido>('orcamentacao');
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteMorada, setClienteMorada] = useState('');
