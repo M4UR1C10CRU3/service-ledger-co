@@ -170,9 +170,8 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     <div>${cfg.nomeDocumento}<br/>&nbsp;<br/>Assinatura e carimbo.</div>
   </div>
 
-  <p class="nota-legal">Este documento é um Pedido de Orçamento e não serve de fatura.</p>
-
-  <div class="rodape-final">
+  <div class="page-footer">
+    <div class="legal">Este documento é um Pedido de Orçamento e não serve de fatura.</div>
     ${cfg.emailsRodape.split('|').map(e => e.trim()).filter(Boolean).join(' &nbsp;|&nbsp; ')}<br/>
     ${cfg.telefones}<br/>
     Sede: ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}
