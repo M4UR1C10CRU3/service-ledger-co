@@ -223,7 +223,7 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     <div class="contact-line"><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}</div>
   </div>
 
-  <script>window.onload=function(){window.print();}</script>
+  <script>window.onload=function(){document.title=${JSON.stringify(filename)};window.print();}</script>
 </body></html>`;
 
   const w = window.open('', '_blank');
