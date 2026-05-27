@@ -277,22 +277,34 @@ export default function PedidosOrcamento() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nº PO</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Título / Obra</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Proposta</TableHead>
+                <TableHead>Destino</TableHead>
                 <TableHead className="text-right">Acções</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum pedido encontrado.</TableCell></TableRow>
               ) : filtered.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="font-mono text-sm">{p.numeroPo}</TableCell>
+                  <TableCell>
+                    {p.tipoPedido === 'intervencao_imediata' ? (
+                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 gap-1">
+                        <Zap className="h-3 w-3" /> Imediata
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1">
+                        <ClipboardList className="h-3 w-3" /> Orçamento
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">{p.dataEmissao && new Date(p.dataEmissao).toLocaleDateString('pt-PT')}</TableCell>
                   <TableCell>{p.clienteNome}</TableCell>
                   <TableCell className="text-sm">
@@ -302,7 +314,12 @@ export default function PedidosOrcamento() {
                     <Badge className={estadoColors[p.estado]}>{estadoLabels[p.estado]}</Badge>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {p.numeroProposta ? (
+                    {p.numeroOs ? (
+                      <button onClick={() => navigate('/ordens-servico')}
+                        className="text-amber-700 hover:underline font-mono text-xs">
+                        {p.numeroOs}
+                      </button>
+                    ) : p.numeroProposta ? (
                       <button onClick={() => navigate('/propostas')}
                         className="text-primary hover:underline font-mono text-xs">
                         {p.numeroProposta}
@@ -317,9 +334,15 @@ export default function PedidosOrcamento() {
                       <FileDown className="h-4 w-4" />
                     </Button>
                     {(p.estado === 'recebido' || p.estado === 'em_analise') && (
-                      <Button size="icon" variant="ghost" onClick={() => handleConverter(p)} title="Converter em Proposta">
-                        <FileText className="h-4 w-4 text-primary" />
-                      </Button>
+                      p.tipoPedido === 'intervencao_imediata' ? (
+                        <Button size="icon" variant="ghost" onClick={() => handleConverter(p)} title="Criar OS Direta">
+                          <Wrench className="h-4 w-4 text-orange-500" />
+                        </Button>
+                      ) : (
+                        <Button size="icon" variant="ghost" onClick={() => handleConverter(p)} title="Converter em Proposta">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </Button>
+                      )
                     )}
                     {(p.estado === 'recebido' || p.estado === 'em_analise') && (
                       <Button size="icon" variant="ghost" onClick={() => setDeleteId(p.id)} title="Eliminar">
