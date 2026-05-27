@@ -205,8 +205,8 @@ export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: str
     </div>
     <div class="totais">
       <table>
-        <tr><td>TOTAL sem IVA:</td><td style="text-align:right;font-weight:bold">${fmtEur(data.totalSemIva)}</td></tr>
-        <tr><td>Valor do IVA (${data.taxaIva}%):</td><td style="text-align:right">${fmtEur(data.valorIva)}</td></tr>
+        ${mode === 'global' ? '' : `<tr><td>TOTAL sem IVA:</td><td style="text-align:right;font-weight:bold">${fmtEur(data.totalSemIva)}</td></tr>
+        <tr><td>Valor do IVA (${data.taxaIva}%):</td><td style="text-align:right">${fmtEur(data.valorIva)}</td></tr>`}
         <tr class="total-final"><td style="padding:6px">Total com IVA:</td><td style="text-align:right;padding:6px">${fmtEur(data.totalComIva)}</td></tr>
       </table>
     </div>
