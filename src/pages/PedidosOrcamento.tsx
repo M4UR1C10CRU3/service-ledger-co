@@ -39,8 +39,9 @@ const estadoColors: Record<POEstado, string> = {
 };
 
 export default function PedidosOrcamento() {
-  const { pedidos, isLoading, fetchLinhasPo, linkProposta, deletePedido } = usePedidosOrcamento();
+  const { pedidos, isLoading, fetchLinhasPo, linkProposta, linkOs, deletePedido } = usePedidosOrcamento();
   const { saveProposta } = usePropostas();
+  const { createOrdem } = useOrdensServico(empresa?.id);
   const { empresa, getLogo } = useEmpresa();
   const { toast } = useToast();
   const navigate = useNavigate();
