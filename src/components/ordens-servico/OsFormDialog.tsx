@@ -48,6 +48,7 @@ const PRIORIDADES_KEYS: Array<keyof typeof OS_PRIORIDADES> = [
 
 export function OsFormDialog({ open, onOpenChange, onSubmit }: OsFormDialogProps) {
   const { clientes } = useClientes();
+  const { templates } = useOsChecklistTemplates();
   const [form, setForm] = useState<OsFormData>(emptyOsForm);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<{ titulo?: string }>({});
