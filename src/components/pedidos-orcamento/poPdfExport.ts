@@ -93,9 +93,10 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   .rodape-dir { flex: 1; border: 1px solid #CCCCCC; min-height: 80px; }
   .assinaturas { margin-top: 30px; display: flex; justify-content: space-between; gap: 20px; }
   .assinaturas div { border-top: 1px solid #333; padding-top: 8px; flex: 1; text-align: center; font-size: 10px; line-height: 1.8; }
-  .nota-legal { text-align: center; font-size: 9px; font-style: italic; color: #888; margin-top: 15px; }
-  .rodape-final { text-align: center; font-size: 9px; color: #666; margin-top: 12px; line-height: 1.8; }
-  @media print { body { padding: 0; } }
+  .nota-legal { text-align: center; font-size: 9px; font-style: italic; color: ${primaryColor}; margin-top: 15px; }
+  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9px; color: ${primaryColor}; line-height: 1.6; padding: 8px 15mm; background: white; }
+  .page-footer .legal { font-style: italic; margin-bottom: 4px; color: ${primaryColor}; }
+  @media print { body { padding: 0; padding-bottom: 80px; } .page-footer { position: fixed; bottom: 0; } }
 </style></head><body>
   <div class="header">
     <div class="header-left">
@@ -169,9 +170,8 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     <div>${cfg.nomeDocumento}<br/>&nbsp;<br/>Assinatura e carimbo.</div>
   </div>
 
-  <p class="nota-legal">Este documento é um Pedido de Orçamento e não serve de fatura.</p>
-
-  <div class="rodape-final">
+  <div class="page-footer">
+    <div class="legal">Este documento é um Pedido de Orçamento e não serve de fatura.</div>
     ${cfg.emailsRodape.split('|').map(e => e.trim()).filter(Boolean).join(' &nbsp;|&nbsp; ')}<br/>
     ${cfg.telefones}<br/>
     Sede: ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}
