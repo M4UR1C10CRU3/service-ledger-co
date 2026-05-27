@@ -71,11 +71,18 @@ function toSentenceCase(s: string): string {
   return lower.charAt(0).toLocaleUpperCase('pt-PT') + lower.slice(1);
 }
 
-function buildPropostaFilename(data: { numeroProposta: string }): string {
+export type PropostaPdfMode = 'unitarios' | 'subtotais' | 'global';
+
+const MODE_SUFFIX: Record<PropostaPdfMode, string> = {
+  unitarios: 'Preços Unitários',
+  subtotais: 'Subtotais',
+  global: 'Valor Global',
+};
+
+function buildPropostaFilename(data: { numeroProposta: string }, mode: PropostaPdfMode = 'unitarios'): string {
   const raw = (data.numeroProposta || '').replace(/[\\:*?"<>|]/g, '').trim();
-  // Remove prefixo WMTCEC se já vier no número, para evitar duplicação
   const numero = raw.replace(/^WMTCEC\s*/i, '').trim();
-  return `Proposta WMTCEC ${numero}_Preços Unitários`;
+  return `Proposta WMTCEC ${numero}_${MODE_SUFFIX[mode]}`;
 }
 
 export function exportPropostaPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
