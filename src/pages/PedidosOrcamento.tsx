@@ -122,7 +122,45 @@ export default function PedidosOrcamento() {
     img.src = getLogo();
   };
 
+  const handleCriarOs = async (po: PedidoOrcamento) => {
+    const linhas = await fetchLinhasPo(po.id);
+    const descricaoLinhas = linhas
+      .filter(l => l.tipoLinha === 'artigo' || l.tipoLinha === 'texto')
+      .map(l => `• ${l.quantidade} ${l.unidade} — ${l.designacao || l.referencia || ''}${l.observacaoLinha ? ` (${l.observacaoLinha})` : ''}`)
+      .join('\n');
+    const descricaoFinal = [po.descricaoNecessidade, descricaoLinhas].filter(Boolean).join('\n\n');
+
+    const os = await createOrdem({
+      clienteId: po.clienteId || '',
+      clienteNome: po.clienteNome,
+      propostaId: '',
+      responsavelId: '',
+      responsavelNome: po.vendedorNome || '',
+      estado: 'nova',
+      prioridade: 'alta',
+      titulo: po.titulo || `Intervenção — PO ${po.numeroPo}`,
+      descricao: descricaoFinal,
+      observacoes: po.observacoes || '',
+      dataAbertura: new Date().toISOString().split('T')[0],
+      dataPrevista: '',
+      valorEstimado: '',
+    });
+
+    if (!os) { toast({ title: 'Erro ao criar OS', variant: 'destructive' }); return; }
+
+    // Link PO and OS bidirectionally
+    const { supabase } = await import('@/integrations/supabase/client');
+    await (supabase as any).from('ordens_servico').update({ po_id: po.id, numero_po: po.numeroPo }).eq('id', os.id);
+    await linkOs(po.id, os.id, os.numero);
+
+    toast({ title: 'OS criada', description: `${os.numero} criada a partir do PO ${po.numeroPo}` });
+    navigate('/ordens-servico');
+  };
+
   const handleConverter = async (po: PedidoOrcamento) => {
+    if (po.tipoPedido === 'intervencao_imediata') {
+      return handleCriarOs(po);
+    }
     const linhas = await fetchLinhasPo(po.id);
     const propostaLinhas = linhas.map((l, i) => ({
       ordem: i,
@@ -160,7 +198,6 @@ export default function PedidosOrcamento() {
       return;
     }
 
-    // Link proposta and update po with numero_po reference on proposta
     const { supabase } = await import('@/integrations/supabase/client');
     const { data: prop } = await (supabase as any).from('propostas').select('numero_proposta').eq('id', propostaId).single();
     await (supabase as any).from('propostas').update({ po_id: po.id, numero_po: po.numeroPo }).eq('id', propostaId);
