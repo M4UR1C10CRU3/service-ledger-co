@@ -14,6 +14,7 @@ export interface PedidoOrcamento {
   numeroPo: string;
   numeroSequencial: number;
   ano: number;
+  tipoPedido: TipoPedido;
   clienteId: string | null;
   clienteNome: string;
   clienteMorada: string | null;
@@ -35,6 +36,8 @@ export interface PedidoOrcamento {
   observacoes: string | null;
   propostaId: string | null;
   numeroProposta: string | null;
+  osId: string | null;
+  numeroOs: string | null;
   dataEmissao: string;
   horaEmissao: string;
   createdAt: string;
