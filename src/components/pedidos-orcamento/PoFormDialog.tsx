@@ -11,8 +11,8 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
 import { exportPoPdf } from './poPdfExport';
-import type { PedidoOrcamento, POLinhaForm, POFormData } from '@/types/pedidoOrcamento';
-import { Save, FileDown, Plus, Trash2, Search, Layers, Type, FileText as FileTextIcon } from 'lucide-react';
+import type { PedidoOrcamento, POLinhaForm, POFormData, TipoPedido } from '@/types/pedidoOrcamento';
+import { Save, FileDown, Plus, Trash2, Search, Layers, Type, FileText as FileTextIcon, ClipboardList, Zap } from 'lucide-react';
 
 interface Props {
   open: boolean;
