@@ -174,9 +174,9 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
 
   <div class="page-footer">
     <div class="legal">Este documento é um Pedido de Orçamento e não serve de fatura.</div>
-    ${cfg.emailsRodape.split('|').map(e => e.trim()).filter(Boolean).join(' &nbsp;|&nbsp; ')}<br/>
-    ${cfg.telefones}<br/>
-    Sede: ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}
+    <div class="contact-line"><span class="accent">${cfg.emailsRodape.split('|').map(e => e.trim()).filter(Boolean).join('</span>&nbsp;|&nbsp;<span class="accent">')}</span></div>
+    <div class="contact-line">${cfg.telefones.replace(/(\d[\d\s]+)/g, '<span class="accent">$1</span>')}</div>
+    <div class="contact-line"><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}</div>
   </div>
 
   <script>window.onload=function(){window.print();}</script>
