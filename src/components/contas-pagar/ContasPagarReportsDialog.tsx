@@ -148,11 +148,23 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
             </Select>
           </div>
 
+          <span className="text-xs font-medium text-muted-foreground self-center">Status:</span>
+          <div className="space-y-1">
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="em_debito">Em Débito</SelectItem>
+                <SelectItem value="liquidados">Liquidados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <span className="text-sm text-muted-foreground">{filteredAccounts.length} lançamento(s)</span>
         </div>
 
-        <Tabs defaultValue="fluxo" className="mt-2">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+          <TabsList className="grid w-full grid-cols-3 print:hidden">
             <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
             <TabsTrigger value="fornecedor">Por Fornecedor</TabsTrigger>
             <TabsTrigger value="categoria">Por Categoria</TabsTrigger>
