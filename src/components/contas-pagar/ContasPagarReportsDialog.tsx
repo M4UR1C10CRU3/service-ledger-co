@@ -97,12 +97,15 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-w-none print:max-h-none print:shadow-none print:border-0"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between gap-2">
           <DialogTitle>Relatórios — Contas a Pagar</DialogTitle>
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden mr-6">
+            <Printer className="w-4 h-4 mr-2" /> Imprimir
+          </Button>
         </DialogHeader>
 
         {/* Filters */}
