@@ -56,6 +56,8 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
   const [emissaoMonth, setEmissaoMonth] = useState('all');
   const [vencimentoYear, setVencimentoYear] = useState('all');
   const [vencimentoMonth, setVencimentoMonth] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'em_debito' | 'liquidados'>('all');
+  const [activeTab, setActiveTab] = useState('fluxo');
 
   const yearOptionsWithAll = useMemo(() => ['all', ...getYearOptions()], []);
 
