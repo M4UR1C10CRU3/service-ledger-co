@@ -83,9 +83,12 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
         const dv = a.dataVencimento || '';
         if (parseInt(dv.substring(5, 7)) !== parseInt(vencimentoMonth)) return false;
       }
+      // Filtro por Status
+      if (statusFilter === 'liquidados' && a.status !== 'liquidado') return false;
+      if (statusFilter === 'em_debito' && a.status === 'liquidado') return false;
       return true;
     });
-  }, [accounts, emissaoYear, emissaoMonth, vencimentoYear, vencimentoMonth]);
+  }, [accounts, emissaoYear, emissaoMonth, vencimentoYear, vencimentoMonth, statusFilter]);
 
   // Derive year/month for sub-reports (prefer emissão, fallback vencimento)
   const reportYear = emissaoYear !== 'all' ? emissaoYear : vencimentoYear !== 'all' ? vencimentoYear : String(new Date().getFullYear());
