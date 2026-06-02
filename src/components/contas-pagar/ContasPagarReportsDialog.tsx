@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Printer } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -56,6 +56,8 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
   const [emissaoMonth, setEmissaoMonth] = useState('all');
   const [vencimentoYear, setVencimentoYear] = useState('all');
   const [vencimentoMonth, setVencimentoMonth] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'em_debito' | 'liquidados'>('all');
+  const [activeTab, setActiveTab] = useState('fluxo');
 
   const yearOptionsWithAll = useMemo(() => ['all', ...getYearOptions()], []);
 
@@ -81,9 +83,12 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
         const dv = a.dataVencimento || '';
         if (parseInt(dv.substring(5, 7)) !== parseInt(vencimentoMonth)) return false;
       }
+      // Filtro por Status
+      if (statusFilter === 'liquidados' && a.status !== 'liquidado') return false;
+      if (statusFilter === 'em_debito' && a.status === 'liquidado') return false;
       return true;
     });
-  }, [accounts, emissaoYear, emissaoMonth, vencimentoYear, vencimentoMonth]);
+  }, [accounts, emissaoYear, emissaoMonth, vencimentoYear, vencimentoMonth, statusFilter]);
 
   // Derive year/month for sub-reports (prefer emissão, fallback vencimento)
   const reportYear = emissaoYear !== 'all' ? emissaoYear : vencimentoYear !== 'all' ? vencimentoYear : String(new Date().getFullYear());
@@ -92,12 +97,15 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-w-none print:max-h-none print:shadow-none print:border-0"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between gap-2">
           <DialogTitle>Relatórios — Contas a Pagar</DialogTitle>
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden mr-6">
+            <Printer className="w-4 h-4 mr-2" /> Imprimir
+          </Button>
         </DialogHeader>
 
         {/* Filters */}
@@ -140,11 +148,23 @@ export function ContasPagarReportsDialog({ open, onOpenChange, accounts }: Props
             </Select>
           </div>
 
+          <span className="text-xs font-medium text-muted-foreground self-center">Status:</span>
+          <div className="space-y-1">
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="em_debito">Em Débito</SelectItem>
+                <SelectItem value="liquidados">Liquidados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <span className="text-sm text-muted-foreground">{filteredAccounts.length} lançamento(s)</span>
         </div>
 
-        <Tabs defaultValue="fluxo" className="mt-2">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+          <TabsList className="grid w-full grid-cols-3 print:hidden">
             <TabsTrigger value="fluxo">Fluxo de Caixa</TabsTrigger>
             <TabsTrigger value="fornecedor">Por Fornecedor</TabsTrigger>
             <TabsTrigger value="categoria">Por Categoria</TabsTrigger>
