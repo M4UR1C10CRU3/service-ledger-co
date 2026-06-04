@@ -1,0 +1,1 @@
+CREATE POLICY "Authenticated can view satisfaction responses" ON public.pesquisa_satisfacao_respostas FOR SELECT TO authenticated USING (true);
