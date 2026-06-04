@@ -2746,6 +2746,84 @@ export type Database = {
           },
         ]
       }
+      pesquisa_satisfacao_respostas: {
+        Row: {
+          atend_tel: number | null
+          atend_wp: number | null
+          criado_em: string
+          ecommerce: number | null
+          email: string | null
+          entrega: number | null
+          fonte: string | null
+          gostou: string | null
+          id: string
+          ip_origem: string | null
+          melhorar: string | null
+          nav: number | null
+          nome: string | null
+          nps: number | null
+          pagamento: number | null
+          prazo: number | null
+          precos: number | null
+          sugestao: string | null
+          tempo: number | null
+          tipo_cliente: string | null
+          variedade: number | null
+          vel: number | null
+          wc_order_id: string | null
+        }
+        Insert: {
+          atend_tel?: number | null
+          atend_wp?: number | null
+          criado_em?: string
+          ecommerce?: number | null
+          email?: string | null
+          entrega?: number | null
+          fonte?: string | null
+          gostou?: string | null
+          id?: string
+          ip_origem?: string | null
+          melhorar?: string | null
+          nav?: number | null
+          nome?: string | null
+          nps?: number | null
+          pagamento?: number | null
+          prazo?: number | null
+          precos?: number | null
+          sugestao?: string | null
+          tempo?: number | null
+          tipo_cliente?: string | null
+          variedade?: number | null
+          vel?: number | null
+          wc_order_id?: string | null
+        }
+        Update: {
+          atend_tel?: number | null
+          atend_wp?: number | null
+          criado_em?: string
+          ecommerce?: number | null
+          email?: string | null
+          entrega?: number | null
+          fonte?: string | null
+          gostou?: string | null
+          id?: string
+          ip_origem?: string | null
+          melhorar?: string | null
+          nav?: number | null
+          nome?: string | null
+          nps?: number | null
+          pagamento?: number | null
+          prazo?: number | null
+          precos?: number | null
+          sugestao?: string | null
+          tempo?: number | null
+          tipo_cliente?: string | null
+          variedade?: number | null
+          vel?: number | null
+          wc_order_id?: string | null
+        }
+        Relationships: []
+      }
       planeamento_anexos: {
         Row: {
           card_id: string
