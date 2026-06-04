@@ -6,7 +6,7 @@ import {
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3, PieChart,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
-  UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag,
+  UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -109,6 +109,7 @@ const sections: NavSection[] = [
     icon: ShoppingBag,
     items: [
       { title: 'Inteligência Competitiva', url: '/ecommerce/inteligencia', icon: ShoppingBag },
+      { title: 'Pesquisa de Satisfação', url: '/ecommerce/satisfacao', icon: Star },
     ],
   },
   {
