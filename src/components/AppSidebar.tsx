@@ -109,6 +109,7 @@ const sections: NavSection[] = [
     icon: ShoppingBag,
     items: [
       { title: 'Inteligência Competitiva', url: '/ecommerce/inteligencia', icon: ShoppingBag },
+      { title: 'Pesquisa de Satisfação', url: '/ecommerce/satisfacao', icon: Star },
     ],
   },
   {

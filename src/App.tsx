@@ -47,6 +47,7 @@ const DashboardExecutivo = lazy(() => import("./pages/DashboardExecutivo"));
 const Subempreiteiros = lazy(() => import("./pages/Subempreiteiros"));
 const RelatorioGerencial = lazy(() => import("./pages/RelatorioGerencial"));
 const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia"));
+const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
 
 const queryClient = new QueryClient({
@@ -141,6 +142,8 @@ const App = () => (
               <Route path="/" element={<Navigate to="/empresa" replace />} />
               <Route path="/relatorio-gerencial" element={<ProtectedWithLayout><RelatorioGerencial /></ProtectedWithLayout>} />
               <Route path="/ecommerce/inteligencia" element={<ProtectedWithLayout><EcommerceInteligencia /></ProtectedWithLayout>} />
+              <Route path="/ecommerce/satisfacao" element={<ProtectedWithLayout><PesquisaSatisfacao /></ProtectedWithLayout>} />
+
               <Route path="/pedidos-orcamento" element={<ProtectedWithLayout><PedidosOrcamento /></ProtectedWithLayout>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
