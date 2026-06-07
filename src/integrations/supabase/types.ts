@@ -931,6 +931,7 @@ export type Database = {
       }
       empresas: {
         Row: {
+          assinatura_diretor_path: string | null
           cor_accent: string | null
           cor_primaria: string
           cor_secundaria: string | null
@@ -938,11 +939,14 @@ export type Database = {
           id: string
           logo_path: string | null
           nome: string
+          nome_diretor: string | null
           nome_legal: string | null
           slug: string
+          template_cert_path: string | null
           updated_at: string
         }
         Insert: {
+          assinatura_diretor_path?: string | null
           cor_accent?: string | null
           cor_primaria?: string
           cor_secundaria?: string | null
@@ -950,11 +954,14 @@ export type Database = {
           id?: string
           logo_path?: string | null
           nome: string
+          nome_diretor?: string | null
           nome_legal?: string | null
           slug: string
+          template_cert_path?: string | null
           updated_at?: string
         }
         Update: {
+          assinatura_diretor_path?: string | null
           cor_accent?: string | null
           cor_primaria?: string
           cor_secundaria?: string | null
@@ -962,8 +969,10 @@ export type Database = {
           id?: string
           logo_path?: string | null
           nome?: string
+          nome_diretor?: string | null
           nome_legal?: string | null
           slug?: string
+          template_cert_path?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2750,6 +2759,7 @@ export type Database = {
         Row: {
           atend_tel: number | null
           atend_wp: number | null
+          canal_aquisicao: string | null
           criado_em: string
           ecommerce: number | null
           email: string | null
@@ -2767,7 +2777,6 @@ export type Database = {
           precos: number | null
           sugestao: string | null
           tempo: number | null
-          tipo_cliente: string | null
           variedade: number | null
           vel: number | null
           wc_order_id: string | null
@@ -2775,6 +2784,7 @@ export type Database = {
         Insert: {
           atend_tel?: number | null
           atend_wp?: number | null
+          canal_aquisicao?: string | null
           criado_em?: string
           ecommerce?: number | null
           email?: string | null
@@ -2792,7 +2802,6 @@ export type Database = {
           precos?: number | null
           sugestao?: string | null
           tempo?: number | null
-          tipo_cliente?: string | null
           variedade?: number | null
           vel?: number | null
           wc_order_id?: string | null
@@ -2800,6 +2809,7 @@ export type Database = {
         Update: {
           atend_tel?: number | null
           atend_wp?: number | null
+          canal_aquisicao?: string | null
           criado_em?: string
           ecommerce?: number | null
           email?: string | null
@@ -2817,7 +2827,6 @@ export type Database = {
           precos?: number | null
           sugestao?: string | null
           tempo?: number | null
-          tipo_cliente?: string | null
           variedade?: number | null
           vel?: number | null
           wc_order_id?: string | null
@@ -3996,6 +4005,689 @@ export type Database = {
           },
         ]
       }
+      school_alunos: {
+        Row: {
+          ativo: boolean
+          auth_user_id: string | null
+          cpf: string | null
+          created_at: string
+          data_nascimento: string | null
+          email: string | null
+          empresa_id: string
+          endereco: string | null
+          foto_path: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id: string
+          endereco?: string | null
+          foto_path?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_nascimento?: string | null
+          email?: string | null
+          empresa_id?: string
+          endereco?: string | null
+          foto_path?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_alunos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_avaliacoes: {
+        Row: {
+          created_at: string
+          data_avaliacao: string | null
+          descricao: string | null
+          empresa_id: string
+          id: string
+          matricula_id: string
+          nota: number | null
+          nota_maxima: number
+          observacao: string | null
+          tipo: string
+          turma_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_avaliacao?: string | null
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          matricula_id: string
+          nota?: number | null
+          nota_maxima?: number
+          observacao?: string | null
+          tipo?: string
+          turma_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_avaliacao?: string | null
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          matricula_id?: string
+          nota?: number | null
+          nota_maxima?: number
+          observacao?: string | null
+          tipo?: string
+          turma_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_avaliacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_avaliacoes_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "school_matriculas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_avaliacoes_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "school_turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_certificados: {
+        Row: {
+          aluno_id: string
+          caminho_pdf: string | null
+          codigo: string
+          created_at: string
+          emitido_em: string
+          empresa_id: string
+          id: string
+          matricula_id: string | null
+          modelo: string
+          turma_id: string
+          url_pdf: string | null
+          validade: string | null
+          validade_em: string | null
+        }
+        Insert: {
+          aluno_id: string
+          caminho_pdf?: string | null
+          codigo: string
+          created_at?: string
+          emitido_em?: string
+          empresa_id: string
+          id?: string
+          matricula_id?: string | null
+          modelo?: string
+          turma_id: string
+          url_pdf?: string | null
+          validade?: string | null
+          validade_em?: string | null
+        }
+        Update: {
+          aluno_id?: string
+          caminho_pdf?: string | null
+          codigo?: string
+          created_at?: string
+          emitido_em?: string
+          empresa_id?: string
+          id?: string
+          matricula_id?: string | null
+          modelo?: string
+          turma_id?: string
+          url_pdf?: string | null
+          validade?: string | null
+          validade_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_certificados_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "school_alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_certificados_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_certificados_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "school_matriculas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_certificados_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "school_turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_clientes_corp: {
+        Row: {
+          ativo: boolean
+          auth_user_id: string | null
+          contato_nome: string | null
+          created_at: string
+          email: string | null
+          empresa_id: string
+          id: string
+          morada: string | null
+          nif_cnpj: string | null
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id: string
+          id?: string
+          morada?: string | null
+          nif_cnpj?: string | null
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auth_user_id?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id?: string
+          id?: string
+          morada?: string | null
+          nif_cnpj?: string | null
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_clientes_corp_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_contratos_corp: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descricao: string | null
+          empresa_id: string
+          fim: string | null
+          id: string
+          inicio: string | null
+          observacao: string | null
+          status: string
+          updated_at: string
+          valor_total: number | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descricao?: string | null
+          empresa_id: string
+          fim?: string | null
+          id?: string
+          inicio?: string | null
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string
+          fim?: string | null
+          id?: string
+          inicio?: string | null
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_contratos_corp_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "school_clientes_corp"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_contratos_corp_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_cursos: {
+        Row: {
+          aprovacao_minima: number
+          ativo: boolean
+          carga_horaria: number | null
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          metodologia: string | null
+          modalidade: string
+          modulos_json: Json | null
+          nome: string
+          objetivo_curso: string | null
+          template_cert_path: string | null
+          updated_at: string
+          validade_anos: number
+          valor_padrao: number | null
+        }
+        Insert: {
+          aprovacao_minima?: number
+          ativo?: boolean
+          carga_horaria?: number | null
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          metodologia?: string | null
+          modalidade?: string
+          modulos_json?: Json | null
+          nome: string
+          objetivo_curso?: string | null
+          template_cert_path?: string | null
+          updated_at?: string
+          validade_anos?: number
+          valor_padrao?: number | null
+        }
+        Update: {
+          aprovacao_minima?: number
+          ativo?: boolean
+          carga_horaria?: number | null
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          metodologia?: string | null
+          modalidade?: string
+          modulos_json?: Json | null
+          nome?: string
+          objetivo_curso?: string | null
+          template_cert_path?: string | null
+          updated_at?: string
+          validade_anos?: number
+          valor_padrao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_cursos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_docentes: {
+        Row: {
+          area_especializacao: string | null
+          assinatura_path: string | null
+          ativo: boolean
+          auth_user_id: string | null
+          created_at: string
+          email: string | null
+          empresa_id: string
+          formacao: string | null
+          foto_path: string | null
+          id: string
+          nome: string
+          resumo: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          area_especializacao?: string | null
+          assinatura_path?: string | null
+          ativo?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id: string
+          formacao?: string | null
+          foto_path?: string | null
+          id?: string
+          nome: string
+          resumo?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          area_especializacao?: string | null
+          assinatura_path?: string | null
+          ativo?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id?: string
+          formacao?: string | null
+          foto_path?: string | null
+          id?: string
+          nome?: string
+          resumo?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_docentes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_frequencia: {
+        Row: {
+          created_at: string
+          data_aula: string
+          empresa_id: string
+          id: string
+          matricula_id: string
+          observacao: string | null
+          presente: boolean
+          registado_por: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_aula: string
+          empresa_id: string
+          id?: string
+          matricula_id: string
+          observacao?: string | null
+          presente?: boolean
+          registado_por?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_aula?: string
+          empresa_id?: string
+          id?: string
+          matricula_id?: string
+          observacao?: string | null
+          presente?: boolean
+          registado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_frequencia_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_frequencia_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "school_matriculas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_materiais: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          docente_id: string | null
+          empresa_id: string
+          id: string
+          tipo: string | null
+          titulo: string
+          turma_id: string | null
+          url: string | null
+          visivel_aluno: boolean
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          docente_id?: string | null
+          empresa_id: string
+          id?: string
+          tipo?: string | null
+          titulo: string
+          turma_id?: string | null
+          url?: string | null
+          visivel_aluno?: boolean
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          docente_id?: string | null
+          empresa_id?: string
+          id?: string
+          tipo?: string | null
+          titulo?: string
+          turma_id?: string | null
+          url?: string | null
+          visivel_aluno?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_materiais_docente_id_fkey"
+            columns: ["docente_id"]
+            isOneToOne: false
+            referencedRelation: "school_docentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_materiais_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_materiais_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "school_turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_matriculas: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          data_matricula: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          status: string
+          turma_id: string
+          updated_at: string
+          valor_total: number | null
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          data_matricula?: string
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          status?: string
+          turma_id: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          data_matricula?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          status?: string
+          turma_id?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_matriculas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "school_alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_matriculas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_matriculas_turma_id_fkey"
+            columns: ["turma_id"]
+            isOneToOne: false
+            referencedRelation: "school_turmas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_turmas: {
+        Row: {
+          created_at: string
+          curso_id: string
+          descricao: string | null
+          docente_id: string | null
+          empresa_aplicacao: string | null
+          empresa_id: string
+          fim: string | null
+          id: string
+          inicio: string | null
+          local: string | null
+          modalidade: string
+          status: string
+          titulo: string
+          updated_at: string
+          vagas: number | null
+        }
+        Insert: {
+          created_at?: string
+          curso_id: string
+          descricao?: string | null
+          docente_id?: string | null
+          empresa_aplicacao?: string | null
+          empresa_id: string
+          fim?: string | null
+          id?: string
+          inicio?: string | null
+          local?: string | null
+          modalidade?: string
+          status?: string
+          titulo: string
+          updated_at?: string
+          vagas?: number | null
+        }
+        Update: {
+          created_at?: string
+          curso_id?: string
+          descricao?: string | null
+          docente_id?: string | null
+          empresa_aplicacao?: string | null
+          empresa_id?: string
+          fim?: string | null
+          id?: string
+          inicio?: string | null
+          local?: string | null
+          modalidade?: string
+          status?: string
+          titulo?: string
+          updated_at?: string
+          vagas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_turmas_curso_id_fkey"
+            columns: ["curso_id"]
+            isOneToOne: false
+            referencedRelation: "school_cursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_turmas_docente_id_fkey"
+            columns: ["docente_id"]
+            isOneToOne: false
+            referencedRelation: "school_docentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_turmas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           a_realizar: boolean
@@ -4783,6 +5475,18 @@ export type Database = {
       soft_delete_supplier: {
         Args: { p_supplier_id: string }
         Returns: boolean
+      }
+      verificar_certificado: {
+        Args: { p_codigo: string }
+        Returns: {
+          aluno_nome: string
+          codigo: string
+          curso_nome: string
+          emitido_em: string
+          empresa_nome: string
+          turma_titulo: string
+          validade: string
+        }[]
       }
     }
     Enums: {
