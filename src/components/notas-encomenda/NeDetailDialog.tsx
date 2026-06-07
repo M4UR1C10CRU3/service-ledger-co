@@ -10,7 +10,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Package, CheckSquare, Zap, Trash2, Plus } from 'lucide-react';
+import { Package, CheckSquare, Zap, Trash2, Plus, FileDown, Loader2 } from 'lucide-react';
+import { exportNePdf } from './nePdfExport';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 interface Props {
   ne: NotaEncomenda | null;
@@ -53,6 +55,8 @@ export function NeDetailDialog({
   const [checklist, setChecklist] = useState<NeChecklistItem[]>([]);
   const [newChkDesc, setNewChkDesc] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const { empresa } = useEmpresa();
 
   useEffect(() => {
     if (ne) { setTab('detalhes'); setConfirmDelete(false); }
@@ -95,6 +99,36 @@ export function NeDetailDialog({
   const handleDelete = async () => {
     await onDelete(ne.id);
     onClose();
+  };
+
+  const handleExportPdf = async () => {
+    if (!ne) return;
+    setPdfLoading(true);
+    try {
+      // Fetch items if not already loaded (materiais tab not visited yet)
+      let pdfItems = items;
+      if (pdfItems.length === 0) {
+        pdfItems = await fetchItems(ne.id);
+        setItems(pdfItems); // cache for later
+      }
+      exportNePdf(
+        {
+          numeroNe:      ne.numero,
+          titulo:        ne.titulo,
+          descricao:     ne.descricao ?? undefined,
+          observacoes:   ne.observacoes ?? undefined,
+          prioridade:    ne.prioridade,
+          fornecedorNome: ne.fornecedorNome ?? '—',
+          dataCriacao:   ne.dataCriacao,
+          dataNecessidade: ne.dataNecessidade ?? undefined,
+          items:         pdfItems,
+          valorEstimado: ne.valorEstimado,
+        },
+        empresa,
+      );
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   return (
@@ -221,6 +255,28 @@ export function NeDetailDialog({
 
           {/* Ações */}
           <TabsContent value="acoes" className="space-y-6 mt-4">
+
+            {/* PDF Export */}
+            <div>
+              <h3 className="font-semibold mb-3">Documento PDF</h3>
+              <Button
+                variant="outline"
+                onClick={handleExportPdf}
+                disabled={pdfLoading}
+                className="gap-2"
+              >
+                {pdfLoading
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : <FileDown className="h-4 w-4" />}
+                Exportar Nota de Encomenda (PDF)
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Gera o documento A4 pronto para imprimir ou enviar ao fornecedor.
+              </p>
+            </div>
+
+            <Separator />
+
             <div>
               <h3 className="font-semibold mb-3">Transição de Estado</h3>
               {transitions.length === 0 ? (

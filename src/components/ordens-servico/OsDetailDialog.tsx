@@ -396,7 +396,13 @@ export function OsDetailDialog({
 
           {/* EXTRAS */}
           <TabsContent value="extras" className="mt-4">
-            <OsExtrasTab osId={os.id} empresaId={os.empresaId} osEstado={os.estado} />
+            <OsExtrasTab
+              osId={os.id}
+              empresaId={os.empresaId}
+              osEstado={os.estado}
+              osNumero={os.numero}
+              clienteNome={os.clienteNome}
+            />
           </TabsContent>
 
           {/* AÇÕES */}

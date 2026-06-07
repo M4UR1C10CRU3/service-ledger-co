@@ -8,24 +8,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, CheckCircle, XCircle, Receipt, Trash2, AlertCircle, Euro } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Receipt, Trash2, AlertCircle, Euro, FileDown } from 'lucide-react';
+import { exportTePropostaPdf } from './tePropostaPdfExport';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 interface Props {
   osId: string;
   empresaId: string | undefined;
   osEstado: string;
+  osNumero?: string;
+  clienteNome?: string;
 }
 
 const fmtEUR = (v: number) =>
   new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(v || 0);
 
-function OsExtrasTab({ osId, empresaId, osEstado }: Props) {
+function OsExtrasTab({ osId, empresaId, osEstado, osNumero, clienteNome }: Props) {
   const { items, fetchByOs, addExtra, updateEstado, deleteExtra, totalAprovado, totalPendente } =
     useTrabalhoExtra(empresaId);
   const [form, setForm] = useState<TeFormData>(emptyTeForm);
   const [saving, setSaving] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approverName, setApproverName] = useState('');
+  const { empresa } = useEmpresa();
 
   useEffect(() => {
     if (osId) fetchByOs(osId);
@@ -47,6 +52,18 @@ function OsExtrasTab({ osId, empresaId, osEstado }: Props) {
     }
   };
 
+  const handleExportPdf = () => {
+    exportTePropostaPdf(
+      {
+        osNumero:    osNumero || osId,
+        clienteNome: clienteNome || '—',
+        dataEmissao: new Date().toISOString().split('T')[0],
+        items,
+      },
+      empresa,
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Resumo */}
@@ -63,6 +80,20 @@ function OsExtrasTab({ osId, empresaId, osEstado }: Props) {
           </div>
           <div className="text-xl font-semibold text-amber-600">{fmtEUR(totalPendente)}</div>
         </div>
+      </div>
+
+      {/* PDF export */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportPdf}
+          disabled={items.length === 0}
+          className="gap-2 text-xs"
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          Exportar Proposta TE (PDF)
+        </Button>
       </div>
 
       <Separator />
