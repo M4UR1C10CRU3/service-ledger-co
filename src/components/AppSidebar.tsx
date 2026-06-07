@@ -7,6 +7,7 @@ import {
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
+  GraduationCap, BookOpen, CalendarDays, Award,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -39,17 +40,20 @@ interface NavSection {
   label: string;
   icon: React.ElementType;
   items: NavItem[];
+  /** Se definido, a secção só aparece para estas empresas (por slug) */
+  apenasEmpresas?: string[];
 }
 
-const sections: NavSection[] = [
+// ── Secções para empresas de negócio (Obrajusta, Tudo Casa, Resiserv…) ────────
+const sectionsGeral: NavSection[] = [
   {
     label: 'Comercial',
     icon: Briefcase,
     items: [
-      { title: 'Clientes', url: '/clientes', icon: Users, permModulo: 'clientes' },
-      { title: 'Pedidos de Orçamento', url: '/pedidos-orcamento', icon: ClipboardList, permModulo: 'pedidos_orcamento' },
-      { title: 'Propostas', url: '/propostas', icon: FileText, permModulo: 'propostas' },
-      { title: 'Workflow Comercial', url: '/workflow-comercial', icon: Target, permModulo: 'followup' },
+      { title: 'Clientes',            url: '/clientes',           icon: Users,         permModulo: 'clientes' },
+      { title: 'Pedidos de Orçamento',url: '/pedidos-orcamento',  icon: ClipboardList, permModulo: 'pedidos_orcamento' },
+      { title: 'Propostas',           url: '/propostas',          icon: FileText,      permModulo: 'propostas' },
+      { title: 'Workflow Comercial',  url: '/workflow-comercial', icon: Target,        permModulo: 'followup' },
     ],
   },
   {
@@ -57,59 +61,61 @@ const sections: NavSection[] = [
     icon: ShoppingCart,
     items: [
       { title: 'Notas de Encomenda', url: '/notas-encomenda', icon: ClipboardList, permModulo: 'compras' },
-      { title: 'Compras', url: '/compras', icon: ShoppingCart, permModulo: 'compras' },
-      { title: 'Fornecedores', url: '/fornecedores', icon: Truck, permModulo: 'fornecedores' },
-      { title: 'Gestão de Stocks', url: '/stocks', icon: Package, permModulo: 'stocks' },
-      { title: 'Produtos', url: '/produtos', icon: BoxSelect, permModulo: 'produtos' },
+      { title: 'Compras',            url: '/compras',         icon: ShoppingCart,  permModulo: 'compras' },
+      { title: 'Fornecedores',       url: '/fornecedores',    icon: Truck,         permModulo: 'fornecedores' },
+      { title: 'Gestão de Stocks',   url: '/stocks',          icon: Package,       permModulo: 'stocks' },
+      { title: 'Produtos',           url: '/produtos',        icon: BoxSelect,     permModulo: 'produtos' },
     ],
   },
   {
     label: 'Produção',
     icon: Factory,
     items: [
-      { title: 'Vendas / Serviços', url: '/vendas', icon: Receipt, permModulo: 'vendas' },
-      { title: 'Ordens de Serviço', url: '/ordens-servico', icon: ClipboardList, permModulo: 'ordens_servico' },
+      { title: 'Vendas / Serviços',  url: '/vendas',         icon: Receipt,      permModulo: 'vendas' },
+      { title: 'Ordens de Serviço',  url: '/ordens-servico', icon: ClipboardList,permModulo: 'ordens_servico' },
     ],
   },
   {
     label: 'Financeiro',
     icon: Wallet,
     items: [
-      { title: 'Receitas', url: '/receitas', icon: TrendingUp, permModulo: 'financeiro_receitas' },
-      { title: 'Despesas', url: '/despesas', icon: CreditCard, permModulo: 'financeiro_despesas' },
-      { title: 'Contas a Pagar', url: '/contas-pagar', icon: Receipt, permModulo: 'financeiro_despesas' },
-      { title: 'Dashboard Financeiro', url: '/contas-pagar/dashboard', icon: PieChart, permModulo: 'financeiro_despesas' },
-      { title: 'Relatório Gerencial', url: '/relatorio-gerencial', icon: BarChart3, permModulo: 'financeiro_receitas' },
-      { title: 'Débitos', url: '/debitos', icon: AlertTriangle, permModulo: 'financeiro_debitos' },
-      { title: 'Histórico Cobranças', url: '/historico-cobrancas', icon: History, permModulo: 'financeiro_debitos' },
-      { title: 'Fluxo de Caixa', url: '/fluxo-caixa', icon: Wallet, permModulo: 'financeiro_fluxo' },
+      { title: 'Receitas',            url: '/receitas',               icon: TrendingUp,  permModulo: 'financeiro_receitas' },
+      { title: 'Despesas',            url: '/despesas',               icon: CreditCard,  permModulo: 'financeiro_despesas' },
+      { title: 'Contas a Pagar',      url: '/contas-pagar',           icon: Receipt,     permModulo: 'financeiro_despesas' },
+      { title: 'Dashboard Financeiro',url: '/contas-pagar/dashboard', icon: PieChart,    permModulo: 'financeiro_despesas' },
+      { title: 'Relatório Gerencial', url: '/relatorio-gerencial',    icon: BarChart3,   permModulo: 'financeiro_receitas' },
+      { title: 'Débitos',             url: '/debitos',                icon: AlertTriangle,permModulo: 'financeiro_debitos' },
+      { title: 'Histórico Cobranças', url: '/historico-cobrancas',    icon: History,     permModulo: 'financeiro_debitos' },
+      { title: 'Fluxo de Caixa',      url: '/fluxo-caixa',           icon: Wallet,      permModulo: 'financeiro_fluxo' },
     ],
   },
   {
     label: 'Recursos Humanos',
     icon: UsersRound,
     items: [
-      { title: 'Colaboradores', url: '/colaboradores', icon: HardHat, permModulo: 'rh_colaboradores' },
-      { title: 'Controlo de Ponto', url: '/controle-ponto', icon: Clock, permModulo: 'rh_ponto' },
-      { title: 'Recrutamento', url: '/recursos-humanos/recrutamento', icon: UserSearch, permModulo: 'rh_recrutamento' },
-      { title: 'Avaliações', url: '/recursos-humanos/avaliacoes', icon: ClipboardCheck, permModulo: 'rh_avaliacoes' },
-      { title: 'Subempreiteiros', url: '/subempreiteiros', icon: Handshake, permModulo: 'rh_subempreiteiros' },
+      { title: 'Colaboradores',  url: '/colaboradores',                    icon: HardHat,       permModulo: 'rh_colaboradores' },
+      { title: 'Controlo de Ponto', url: '/controle-ponto',               icon: Clock,         permModulo: 'rh_ponto' },
+      { title: 'Recrutamento',   url: '/recursos-humanos/recrutamento',    icon: UserSearch,    permModulo: 'rh_recrutamento' },
+      { title: 'Avaliações',     url: '/recursos-humanos/avaliacoes',      icon: ClipboardCheck,permModulo: 'rh_avaliacoes' },
+      { title: 'Subempreiteiros',url: '/subempreiteiros',                  icon: Handshake,     permModulo: 'rh_subempreiteiros' },
     ],
   },
   {
     label: 'Marketing',
     icon: Megaphone,
+    apenasEmpresas: ['tudocasa', 'obrajusta'], // Tudo Casa Warm + Obrajusta II
     items: [
-      { title: 'Kanban', url: '/marketing', icon: Trello },
-      { title: 'Calendário Editorial', url: '/marketing/calendario', icon: Clock },
+      { title: 'Kanban',               url: '/marketing',           icon: Trello },
+      { title: 'Calendário Editorial', url: '/marketing/calendario',icon: Clock  },
     ],
   },
   {
     label: 'E-commerce',
     icon: ShoppingBag,
+    apenasEmpresas: ['tudocasa'], // exclusivo Tudo Casa Warm
     items: [
       { title: 'Inteligência Competitiva', url: '/ecommerce/inteligencia', icon: ShoppingBag },
-      { title: 'Pesquisa de Satisfação', url: '/ecommerce/satisfacao', icon: Star },
+      { title: 'Pesquisa de Satisfação',   url: '/ecommerce/satisfacao',   icon: Star        },
     ],
   },
   {
@@ -117,6 +123,47 @@ const sections: NavSection[] = [
     icon: Building,
     items: [
       { title: 'Planeamento Estratégico', url: '/administrativo/planeamento', icon: Lightbulb },
+    ],
+  },
+];
+
+// ── Secções para ITC Educa Pro (Clariza School) ───────────────────────────────
+const sectionsITC: NavSection[] = [
+  {
+    label: 'Pedagógico',
+    icon: GraduationCap,
+    items: [
+      { title: 'Cursos',            url: '/school/cursos',       icon: BookOpen     },
+      { title: 'Gestão de Alunos',  url: '/school/alunos',       icon: Users        },
+      { title: 'Turmas',            url: '/school/turmas',       icon: CalendarDays },
+      { title: 'Matrículas',        url: '/school/matriculas',   icon: ClipboardList},
+      { title: 'Certificados',      url: '/school/certificados', icon: Award        },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    icon: Wallet,
+    items: [
+      { title: 'Receitas',         url: '/receitas',             icon: TrendingUp,   permModulo: 'financeiro_receitas' },
+      { title: 'Despesas',         url: '/despesas',             icon: CreditCard,   permModulo: 'financeiro_despesas' },
+      { title: 'Contas a Pagar',   url: '/contas-pagar',         icon: Receipt,      permModulo: 'financeiro_despesas' },
+      { title: 'Fluxo de Caixa',   url: '/fluxo-caixa',         icon: Wallet,       permModulo: 'financeiro_fluxo'    },
+    ],
+  },
+  {
+    label: 'Recursos Humanos',
+    icon: UsersRound,
+    items: [
+      { title: 'Colaboradores', url: '/colaboradores', icon: HardHat, permModulo: 'rh_colaboradores' },
+    ],
+  },
+  {
+    label: 'Relatórios',
+    icon: BarChart3,
+    items: [
+      { title: 'Relatórios Pedagógicos', url: '/dashboard-executivo',   icon: GraduationCap },
+      { title: 'Relatórios Financeiros', url: '/relatorio-gerencial',   icon: PieChart,     permModulo: 'financeiro_receitas' },
+      { title: 'Relatórios de RH',       url: '/colaboradores',         icon: UsersRound,   permModulo: 'rh_colaboradores'    },
     ],
   },
 ];
@@ -146,11 +193,21 @@ export function AppSidebar() {
     navigate('/empresa');
   };
 
-  // Filter items by permission
-  const visibleSections = sections.map(section => ({
-    ...section,
-    items: section.items.filter(item => !item.permModulo || can(item.permModulo, 'ver')),
-  })).filter(section => section.items.length > 0);
+  // Seleccionar secções consoante a empresa (ITC = escola, resto = negócio)
+  const isITC = empresa?.slug === 'itc' || empresa?.slug === 'itc-educa-pro';
+  const activeSections = isITC ? sectionsITC : sectionsGeral;
+
+  // Filter sections by empresa slug (apenasEmpresas) + filter items by permission
+  const visibleSections = activeSections
+    .filter(section =>
+      !section.apenasEmpresas ||
+      (empresa?.slug != null && section.apenasEmpresas.includes(empresa.slug))
+    )
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => !item.permModulo || can(item.permModulo, 'ver')),
+    }))
+    .filter(section => section.items.length > 0);
 
   const sectionHasActive = (items: NavItem[]) => items.some(i => isActive(i.url));
 

@@ -11,6 +11,8 @@ const logoMap: Record<string, string> = {
   tudocasa: logoTudocasa,
   'tudocasa-matrizcharme': logoTudocasa,
   resiserv: logoResiserv,
+  itc: '/logo-itc.png',
+  'itc-educa-pro': '/logo-itc.png',
 };
 
 const SelectEmpresa = () => {
@@ -43,9 +45,7 @@ const SelectEmpresa = () => {
         {/* Company Cards - compact grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 max-w-6xl w-full">
           {empresas.map((empresa) => {
-            const logo = (empresa.logoPath && empresa.logoPath.startsWith('http'))
-              ? empresa.logoPath
-              : (logoMap[empresa.slug] || logoObrajusta);
+            const logo = logoMap[empresa.slug] || logoObrajusta;
             return (
               <div
                 key={empresa.id}

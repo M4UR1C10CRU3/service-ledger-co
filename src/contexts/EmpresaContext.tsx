@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import logoObrajusta from '@/assets/logo-obrajusta.png';
 import logoTudocasa from '@/assets/logo-tudocasa.png';
 import logoResiserv from '@/assets/logo-resiserv.jpg';
-
 interface EmpresaContextType {
   empresa: Empresa | null;
   empresas: Empresa[];
@@ -26,6 +25,8 @@ const logoMap: Record<string, string> = {
   tudocasa: logoTudocasa,
   'tudocasa-matrizcharme': logoTudocasa,
   resiserv: logoResiserv,
+  itc: '/logo-itc.png',
+  'itc-educa-pro': '/logo-itc.png',
 };
 
 export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
