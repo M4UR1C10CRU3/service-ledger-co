@@ -68,8 +68,8 @@ export const ServiceChart = ({ services }: ServiceChartProps) => {
   const totalDebito = services.reduce((sum, s) => sum + s.executadoEmDebito, 0);
   
   const pieData = [
-    { name: 'Liquidado', value: totalLiquidado, color: '#16a34a' },
-    { name: 'Em Débito', value: totalDebito, color: '#ea580c' },
+    { name: 'Liquidado', value: totalLiquidado, color: '#1E939C' },  /* Clariza Teal */
+    { name: 'Em Débito', value: totalDebito,    color: '#C45E58' },  /* Clariza Coral */
   ];
 
   const formatCurrency = (value: number) => {
@@ -118,9 +118,9 @@ export const ServiceChart = ({ services }: ServiceChartProps) => {
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar dataKey="faturado" fill="hsl(var(--chart-invoiced))" name="Faturado" />
-              <Bar dataKey="liquidado" fill="hsl(var(--chart-paid))" name="Liquidado" />
-              <Bar dataKey="debito" fill="hsl(var(--chart-pending))" name="Em Débito" />
+              <Bar dataKey="faturado"  fill="#5B4598" name="Faturado"   radius={[4,4,0,0]} />
+              <Bar dataKey="liquidado" fill="#1E939C" name="Liquidado"  radius={[4,4,0,0]} />
+              <Bar dataKey="debito"    fill="#C45E58" name="Em Débito"  radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

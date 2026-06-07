@@ -4,53 +4,66 @@
 
 @layer base {
   :root {
-    /* Light theme (fallback) */
+    /* ── Clariza Brand — Light theme ── */
     --background: 220 20% 97%;
-    --foreground: 220 30% 15%;
+    --foreground: 354 6% 13%;           /* Clariza Dark #231F20 */
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 15%;
+    --card-foreground: 354 6% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 15%;
-    --primary: 160 80% 42%;
+    --popover-foreground: 354 6% 13%;
+
+    /* Clariza Teal #1E939C — primary anchor */
+    --primary: 184 68% 37%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 160 70% 52%;
-    --primary-lighter: 160 55% 92%;
+    --primary-light: 184 60% 50%;
+    --primary-lighter: 184 55% 93%;
+
+    /* Semantic — green stays for success */
     --success: 152 69% 40%;
     --success-foreground: 0 0% 100%;
     --success-light: 152 60% 52%;
     --success-lighter: 152 60% 93%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 220 30% 15%;
-    --warning-light: 38 92% 60%;
-    --warning-lighter: 38 92% 93%;
-    --danger: 0 72% 51%;
+
+    /* Clariza Orange #F3B247 — warning / KPI */
+    --warning: 37 88% 62%;
+    --warning-foreground: 354 6% 13%;
+    --warning-light: 37 88% 72%;
+    --warning-lighter: 37 88% 93%;
+
+    /* Clariza Coral #C45E58 — danger */
+    --danger: 3 48% 56%;
     --danger-foreground: 0 0% 100%;
-    --danger-light: 0 72% 62%;
-    --danger-lighter: 0 72% 93%;
+    --danger-light: 3 48% 68%;
+    --danger-lighter: 3 48% 93%;
+
     --secondary: 220 14% 93%;
-    --secondary-foreground: 220 30% 15%;
+    --secondary-foreground: 354 6% 13%;
     --muted: 220 14% 95%;
     --muted-foreground: 220 10% 46%;
     --accent: 220 14% 93%;
-    --accent-foreground: 220 30% 15%;
-    --destructive: 0 72% 51%;
+    --accent-foreground: 354 6% 13%;
+    --destructive: 3 48% 56%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 13% 90%;
     --input: 220 13% 90%;
-    --ring: 160 80% 42%;
+    --ring: 184 68% 37%;
     --radius: 0.625rem;
-    --chart-invoiced: 160 80% 42%;
-    --chart-paid: 152 69% 40%;
-    --chart-pending: 38 92% 50%;
-    --chart-overdue: 0 72% 51%;
-    --sidebar-background: 220 30% 12%;
-    --sidebar-foreground: 220 10% 85%;
-    --sidebar-primary: 160 80% 42%;
+
+    /* Charts — Clariza palette */
+    --chart-invoiced: 184 68% 37%;      /* Teal */
+    --chart-paid: 152 69% 40%;          /* Green */
+    --chart-pending: 37 88% 62%;        /* Orange */
+    --chart-overdue: 3 48% 56%;         /* Coral */
+
+    /* Sidebar — Clariza Dark base */
+    --sidebar-background: 354 8% 12%;   /* near Clariza Dark */
+    --sidebar-foreground: 220 10% 75%;
+    --sidebar-primary: 184 68% 45%;     /* Teal, lighter for dark bg */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 25% 18%;
+    --sidebar-accent: 354 6% 18%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 25% 18%;
-    --sidebar-ring: 160 80% 42%;
+    --sidebar-border: 354 6% 18%;
+    --sidebar-ring: 184 68% 45%;
   }
 
   .dark {
@@ -64,29 +77,29 @@
     --popover:            240 8%  11%;    /* elevated surfaces */
     --popover-foreground: 0   0% 96%;
 
-    /* Emerald — marca Liberty */
-    --primary:            160 80% 42%;
+    /* Clariza Teal #1E939C — primary anchor */
+    --primary:            184 68% 50%;
     --primary-foreground: 0   0% 100%;
-    --primary-light:      160 70% 54%;
-    --primary-lighter:    160 45% 13%;
+    --primary-light:      184 60% 62%;
+    --primary-lighter:    184 45% 13%;
 
-    /* Semantic: Success */
-    --success:            160 70% 44%;
+    /* Semantic: Success (green, distinct from Teal) */
+    --success:            152 65% 44%;
     --success-foreground: 0   0% 100%;
-    --success-light:      160 65% 55%;
-    --success-lighter:    160 40% 12%;
+    --success-light:      152 60% 56%;
+    --success-lighter:    152 40% 12%;
 
-    /* Semantic: Warning — foreground claro sobre fundo escuro */
-    --warning:            38  92% 52%;
-    --warning-foreground: 38  85% 80%;
-    --warning-light:      38  92% 62%;
-    --warning-lighter:    38  60% 12%;
+    /* Clariza Orange — warning */
+    --warning:            37  88% 62%;
+    --warning-foreground: 37  80% 82%;
+    --warning-light:      37  88% 72%;
+    --warning-lighter:    37  60% 13%;
 
-    /* Semantic: Danger */
-    --danger:             0   72% 57%;
+    /* Clariza Coral — danger */
+    --danger:             3   48% 60%;
     --danger-foreground:  0   0%  100%;
-    --danger-light:       0   72% 67%;
-    --danger-lighter:     0   55% 12%;
+    --danger-light:       3   48% 70%;
+    --danger-lighter:     3   40% 13%;
 
     /* Neutrals */
     --secondary:          240 8%  13%;
@@ -101,23 +114,23 @@
 
     --border:             240 6%  15%;
     --input:              240 6%  15%;
-    --ring:               160 80% 42%;
+    --ring:               184 68% 50%;
 
-    /* Charts */
-    --chart-invoiced:     160 80% 42%;
-    --chart-paid:         160 70% 54%;
-    --chart-pending:      38  92% 52%;
-    --chart-overdue:      0   72% 57%;
+    /* Charts — Clariza palette */
+    --chart-invoiced:     184 68% 50%;   /* Teal */
+    --chart-paid:         152 65% 44%;   /* Green */
+    --chart-pending:      37  88% 62%;   /* Orange */
+    --chart-overdue:      3   48% 60%;   /* Coral */
 
-    /* Sidebar — camada mais profunda */
-    --sidebar-background:           240 12% 3.5%;
-    --sidebar-foreground:           240 5%  72%;
-    --sidebar-primary:              160 80% 42%;
+    /* Sidebar — Clariza Dark base, deeper */
+    --sidebar-background:           354 8%  7%;
+    --sidebar-foreground:           220 5%  70%;
+    --sidebar-primary:              184 68% 50%;
     --sidebar-primary-foreground:   0   0%  100%;
-    --sidebar-accent:               240 10% 8%;
-    --sidebar-accent-foreground:    240 5%  85%;
-    --sidebar-border:               240 8%  9%;
-    --sidebar-ring:                 160 80% 42%;
+    --sidebar-accent:               354 6%  12%;
+    --sidebar-accent-foreground:    220 5%  85%;
+    --sidebar-border:               354 6%  12%;
+    --sidebar-ring:                 184 68% 50%;
   }
 }
 
@@ -137,7 +150,7 @@
   ::-webkit-scrollbar-thumb:hover { background: hsl(240 5% 28%); }
 
   ::selection {
-    background-color: hsl(160 80% 42% / 0.30);
+    background-color: hsl(184 68% 37% / 0.30);  /* Clariza Teal */
     color: hsl(0 0% 100%);
   }
 
