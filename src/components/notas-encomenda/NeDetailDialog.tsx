@@ -59,7 +59,7 @@ export function NeDetailDialog({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
-  const [emailData, setEmailData] = useState<{ subject: string; html: string } | null>(null);
+  const [emailData, setEmailData] = useState<{ subject: string; html: string; from: string } | null>(null);
   const { empresa } = useEmpresa();
 
   useEffect(() => {
@@ -369,6 +369,7 @@ export function NeDetailDialog({
         onOpenChange={setEmailOpen}
         title="Enviar NE ao Fornecedor"
         description={`${ne.numero} — ${ne.fornecedorNome || 'Fornecedor'}`}
+        from={emailData.from}
         subject={emailData.subject}
         html={emailData.html}
       />

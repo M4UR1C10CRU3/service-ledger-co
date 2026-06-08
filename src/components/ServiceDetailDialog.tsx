@@ -419,7 +419,7 @@ export const ServiceDetailDialog = ({
 
     {/* Email — lembrete de pagamento */}
     {(() => {
-      const { subject, html } = buildCobrancaDebitoEmail({
+      const { subject, html, from } = buildCobrancaDebitoEmail({
         clienteNome:  service.cliente,
         servico:      service.servico,
         valorTotal:   service.valorComIVA,
@@ -434,6 +434,7 @@ export const ServiceDetailDialog = ({
           title="Enviar lembrete de pagamento"
           description={`${service.cliente} · Em dívida: ${formatEUR(service.executadoEmDebito)}`}
           defaultTo={service.email || ''}
+          from={from}
           subject={subject}
           html={html}
         />

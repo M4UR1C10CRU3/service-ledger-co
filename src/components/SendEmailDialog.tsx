@@ -18,6 +18,8 @@ interface Props {
   description?: string;
   /** Email pré-preenchido (pode ficar vazio para o utilizador preencher) */
   defaultTo?: string;
+  /** Remetente — formato "Nome <email@dominio.com>" */
+  from?: string;
   /** Assunto do email */
   subject: string;
   /** Corpo HTML do email */
@@ -27,7 +29,7 @@ interface Props {
 }
 
 export function SendEmailDialog({
-  open, onOpenChange, title, description, defaultTo = '', subject, html, onSent,
+  open, onOpenChange, title, description, defaultTo = '', from, subject, html, onSent,
 }: Props) {
   const [to, setTo] = useState(defaultTo);
   const [sending, setSending] = useState(false);
@@ -40,7 +42,7 @@ export function SendEmailDialog({
     const email = to.trim();
     if (!email) return;
     setSending(true);
-    const result = await sendEmail(email, subject, html);
+    const result = await sendEmail(email, subject, html, from);
     setSending(false);
 
     if (result.ok) {
@@ -74,6 +76,15 @@ export function SendEmailDialog({
         <div className="space-y-4 py-1">
           {description && (
             <p className="text-sm text-muted-foreground">{description}</p>
+          )}
+
+          {from && (
+            <div className="rounded-md border bg-muted/20 px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">De:</span>{' '}
+                <span className="font-mono">{from}</span>
+              </p>
+            </div>
           )}
 
           <div className="space-y-1.5">

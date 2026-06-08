@@ -93,7 +93,9 @@ export interface PropostaEmailData {
 export function buildPropostaAdjudicadaEmail(
   data: PropostaEmailData,
   empresa: EmpresaEmailInfo,
-): { subject: string; html: string } {
+): { subject: string; html: string; from: string } {
+  const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.comercial;
   const subject = `Confirmação de adjudicação — ${data.numeroProposta}`;
 
   const rows = [
@@ -136,7 +138,7 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
   Agradecemos a sua confiança. Para qualquer questão, não hesite em contactar-nos.
 </p>`;
 
-  return { subject, html: baseLayout(empresa, body) };
+  return { subject, html: baseLayout(empresa, body), from };
 }
 
 // ── Template 2: Nota de Encomenda ao Fornecedor ───────────────────────────────
@@ -162,8 +164,9 @@ export interface NeEmailData {
 export function buildNotaEncomendaEmail(
   data: NeEmailData,
   empresa: EmpresaEmailInfo,
-): { subject: string; html: string } {
+): { subject: string; html: string; from: string } {
   const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.compras;
   const subject = `Nota de Encomenda ${data.numero} — ${cfg.nomeDocumento}`;
 
   const itemsHtml = data.items.length > 0 ? `
@@ -218,7 +221,7 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
   Aguardamos a sua confirmação. Obrigado pela colaboração.
 </p>`;
 
-  return { subject, html: baseLayout(empresa, body) };
+  return { subject, html: baseLayout(empresa, body), from };
 }
 
 // ── Template 3: Lembrete de Cobrança ─────────────────────────────────────────
@@ -235,9 +238,10 @@ export interface CobrancaEmailData {
 export function buildCobrancaDebitoEmail(
   data: CobrancaEmailData,
   empresa: EmpresaEmailInfo,
-): { subject: string; html: string } {
+): { subject: string; html: string; from: string } {
   const emDivida = data.valorTotal - data.valorPago;
   const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.financeiro;
   const subject = `Lembrete de pagamento — ${cfg.nomeDocumento}`;
 
   const body = `
@@ -281,5 +285,5 @@ export function buildCobrancaDebitoEmail(
   Agradecemos a sua atenção e colaboração.
 </p>`;
 
-  return { subject, html: baseLayout(empresa, body) };
+  return { subject, html: baseLayout(empresa, body), from };
 }
