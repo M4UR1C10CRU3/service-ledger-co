@@ -4,7 +4,7 @@ import { getEmpresaDocConfig } from '@/lib/empresaConfig';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface TePdfData {
-  osNumero: string;               // e.g. "OS 2025/001"
+  osNumero: string;
   clienteNome: string;
   clienteMorada?: string;
   clienteNif?: string;
@@ -12,12 +12,17 @@ export interface TePdfData {
   clienteEmail?: string;
   responsavelNome?: string;
   dataEmissao: string;            // ISO date
-  items: TrabalhoExtra[];         // the extra work items
+  items: TrabalhoExtra[];
   observacoes?: string;
-  condicoesPagamento?: string;    // e.g. "60% adjudicação / 35% intermédio / 5% conclusão"
+  condicoesPagamento?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const fmtEur = (v: number) =>
+  new Intl.NumberFormat('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+
+const fmtQty = (v: number) => v.toFixed(3).replace('.', ',');
 
 const fmtDate = (iso?: string) => {
   if (!iso) return '';
@@ -28,57 +33,61 @@ const fmtDate = (iso?: string) => {
   } catch { return iso; }
 };
 
-const fmtEUR = (v: number) =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(v);
-
-const fmtQty = (v: number) => v.toFixed(2).replace('.', ',');
-
-function buildTeFilename(data: TePdfData): string {
-  const sanitize = (s: string) =>
-    (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
-  const os = sanitize(data.osNumero).replace(/\//g, '-');
-  const cliente = sanitize(data.clienteNome) || 'Cliente';
-  return `TE_${os}_${cliente}`;
-}
-
-// ── Main export function ──────────────────────────────────────────────────────
+// ── Main export ───────────────────────────────────────────────────────────────
 
 export function exportTePropostaPdf(data: TePdfData, empresa: any, logoDataUrl?: string) {
-  const primaryColor = empresa?.corPrimaria || '#1E939C';
+  const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
 
-  // ── Totals ─────────────────────────────────────────────────────────────
+  // Filename
+  const sanitize = (s: string) =>
+    (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+  const osClean = sanitize(data.osNumero).replace(/\//g, '-');
+  const cliClean = sanitize(data.clienteNome) || 'Cliente';
+  const filename = `TE_${osClean}_${cliClean}`;
+
+  // Totals
   const subtotal = data.items.reduce((s, it) => s + (it.total ?? it.precoUnit * it.quantidade), 0);
   const iva = subtotal * 0.23;
-  const totalComIVA = subtotal + iva;
+  const totalComIva = subtotal + iva;
 
-  // ── Items HTML ──────────────────────────────────────────────────────────
-  let itemsHtml = '';
-  data.items.forEach((it, i) => {
-    const bg = i % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
-    const total = it.total ?? (it.precoUnit * it.quantidade);
-    itemsHtml += `<tr style="background:${bg}">
-      <td style="padding:6px 10px;font-size:11px;text-align:left;font-weight:500">${it.descricao}</td>
-      <td style="padding:6px 10px;font-size:11px;text-align:right">${fmtQty(it.quantidade)}</td>
-      <td style="padding:6px 10px;font-size:11px;text-align:right">${fmtEUR(it.precoUnit)}</td>
-      <td style="padding:6px 10px;font-size:11px;text-align:right;font-weight:600">${fmtEUR(total)}</td>
-      <td style="padding:6px 10px;font-size:10px;color:#888;font-style:italic">${it.observacoes || ''}</td>
-    </tr>`;
-  });
-
+  // Table rows
+  let linhasHtml = '';
   if (data.items.length === 0) {
-    itemsHtml = `<tr><td colspan="5" style="padding:14px 10px;text-align:center;font-size:11px;color:#999;font-style:italic">
+    linhasHtml = `<tr><td colspan="6" style="padding:14px 8px;text-align:center;font-size:11px;color:#999;font-style:italic">
       Nenhum trabalho a mais registado
     </td></tr>`;
+  } else {
+    data.items.forEach((it, i) => {
+      const bg = i % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
+      const total = it.total ?? (it.precoUnit * it.quantidade);
+      linhasHtml += `<tr style="background:${bg}">
+        <td style="padding:4px 8px;font-size:11px"></td>
+        <td style="padding:4px 8px;font-size:11px">${it.descricao}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtQty(it.quantidade)}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:11px">un</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtEur(it.precoUnit)}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${it.precoUnit > 0 ? '' : ''}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px;font-weight:600">${fmtEur(total)}</td>
+      </tr>`;
+      if (it.observacoes) {
+        linhasHtml += `<tr style="background:${bg}">
+          <td colspan="7" style="padding:2px 8px 5px 24px;font-size:10px;color:#888;font-style:italic">${it.observacoes}</td>
+        </tr>`;
+      }
+    });
   }
 
-  // ── Condições de pagamento (default: 60/35/5) ───────────────────────────
   const condicoesPag = data.condicoesPagamento ||
     '60% no ato de adjudicação  |  35% na fase intermédia  |  5% na conclusão e entrega da obra';
 
-  const filename = buildTeFilename(data);
+  const emails = cfg.emailsRodape.split('|').map((e: string) => e.trim()).filter(Boolean);
 
-  const thStyle = `background:${primaryColor};color:white;padding:7px 10px;font-size:11px;font-weight:bold;border:none`;
+  const th = `background:${primaryColor};color:white;padding:6px 8px;font-size:11px;font-weight:bold;border:none`;
+
+  // Now emitted timestamp in PT format
+  const emissaoFormatted = fmtDate(data.dataEmissao);
+  const hora = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
   const html = `<!DOCTYPE html>
 <html lang="pt-PT">
@@ -87,292 +96,135 @@ export function exportTePropostaPdf(data: TePdfData, empresa: any, logoDataUrl?:
   <title>${filename}</title>
   <style>
     @page { size: A4; margin: 15mm; }
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 12px;
-      color: #1A1A1A;
-      margin: 0;
-      padding: 20px;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 14px;
-      gap: 24px;
-    }
-    .header-left { flex: 1; }
-    .header-right { text-align: right; flex: 1; }
-    .empresa-info { font-size: 10px; line-height: 1.7; color: #1A1A1A; }
-    .doc-type {
-      font-weight: bold;
-      font-size: 17px;
-      color: ${primaryColor};
-      letter-spacing: -0.3px;
-      margin-bottom: 3px;
-    }
-    .doc-sub {
-      font-size: 12px;
-      color: #555;
-      margin-bottom: 6px;
-    }
-    .doc-original { font-size: 10px; color: #888; font-style: italic; margin-bottom: 10px; }
-    .destinatario {
-      border: 1px solid #DDD;
-      border-radius: 4px;
-      padding: 8px 12px;
-      font-size: 11px;
-      line-height: 1.7;
-      background: #FAFAFA;
-      display: inline-block;
-      text-align: left;
-      min-width: 200px;
-    }
-    .destinatario .label {
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #888;
-      margin-bottom: 3px;
-      font-weight: bold;
-    }
-    .destinatario .nome { font-weight: bold; font-size: 12px; color: #1A1A1A; }
-    .barra-cor {
-      background: ${primaryColor};
-      color: white;
-      padding: 7px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 10px;
-      margin: 12px 0;
-      border-radius: 2px;
-    }
-    .aviso-box {
-      background: #FFF8EC;
-      border-left: 4px solid ${primaryColor};
-      padding: 10px 14px;
-      font-size: 11px;
-      color: #555;
-      line-height: 1.6;
-      margin-bottom: 12px;
-    }
-    .aviso-box strong { color: ${primaryColor}; }
-    table.linhas {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 8px;
-    }
-    table.linhas td {
-      border-bottom: 1px solid #EFEFEF;
-      vertical-align: middle;
-    }
-    .totais-outer {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 18px;
-    }
-    .totais-box {
-      width: 300px;
-      border: 1px solid #E0E0E0;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .totais-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 12px;
-      font-size: 11px;
-    }
-    .totais-row:nth-child(odd) { background: #F9F9F9; }
-    .totais-row.grand {
-      background: ${primaryColor};
-      color: white;
-      font-weight: bold;
-      font-size: 13px;
-      padding: 8px 12px;
-    }
-    .condicoes-pag {
-      font-size: 10px;
-      color: #444;
-      padding: 8px 12px;
-      background: #F4F4F4;
-      border-radius: 4px;
-      line-height: 1.7;
-      margin-bottom: 10px;
-    }
-    .condicoes-pag strong { color: ${primaryColor}; }
-    .rodape-obs {
-      font-size: 10px;
-      line-height: 1.7;
-      margin-bottom: 16px;
-    }
-    .rodape-obs p { margin: 3px 0; }
-    .assinaturas {
-      margin-top: 24px;
-      display: flex;
-      justify-content: space-between;
-      gap: 28px;
-    }
-    .assinaturas div {
-      border-top: 1px solid #333;
-      padding-top: 8px;
-      flex: 1;
-      text-align: center;
-      font-size: 10px;
-      line-height: 1.8;
-    }
-    .nota-legal {
-      text-align: center;
-      font-size: 9px;
-      font-style: italic;
-      color: ${primaryColor};
-      margin-top: 12px;
-    }
-    .page-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 9.5px;
-      color: #1A1A1A;
-      line-height: 1.7;
-      padding: 8px 15mm;
-      background: #F0FAFB;
-      border-top: 3px solid ${primaryColor};
-    }
-    .page-footer .legal {
-      font-style: italic;
-      color: ${primaryColor};
-      font-weight: 600;
-      font-size: 10px;
-      margin-bottom: 3px;
-    }
-    .page-footer .accent { color: ${primaryColor}; font-weight: 600; }
-    @media print {
-      body { padding: 0; padding-bottom: 90px; }
-      .page-footer { position: fixed; bottom: 0; }
-    }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1A1A1A; margin: 0; padding: 20px; }
+    table.linhas { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    table.linhas td { border-bottom: 1px solid #F0F0F0; vertical-align: top; }
+    @media print { body { padding: 0; } }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
+  <!-- HEADER: Logo + Doc reference -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+    <div>
       ${logoDataUrl
-        ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" style="max-height:75px;margin-bottom:10px;display:block" />`
-        : `<strong style="font-size:17px;color:${primaryColor};display:block;margin-bottom:8px">${cfg.nomeDocumento}</strong>`}
-      <div class="empresa-info">
-        <strong>${cfg.nomeDocumento}</strong><br/>
-        ${cfg.morada}<br/>
-        ${cfg.codigoPostal} ${cfg.localidade}<br/>
-        NIF: ${cfg.contribuinte}<br/>
-        ${cfg.telefones}
-      </div>
+        ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" style="max-height:65px;display:block;margin-bottom:4px" />`
+        : `<strong style="font-size:16px;color:${primaryColor};display:block;margin-bottom:4px">${cfg.nomeDocumento}</strong>`}
     </div>
-    <div class="header-right">
-      <div class="doc-type">Proposta de Trabalhos a Mais</div>
-      <div class="doc-sub">Ref. Ordem de Serviço: <strong>${data.osNumero}</strong></div>
-      <div class="doc-original">ORIGINAL</div>
-      <div class="destinatario">
-        <div class="label">Cliente / Destinatário</div>
-        <div class="nome">${data.clienteNome}</div>
-        ${data.clienteMorada ? `<div>${data.clienteMorada}</div>` : ''}
-        ${data.clienteNif ? `<div>NIF: ${data.clienteNif}</div>` : ''}
-        ${data.clienteTelefone ? `<div>Tel: ${data.clienteTelefone}</div>` : ''}
-        ${data.clienteEmail ? `<div>${data.clienteEmail}</div>` : ''}
-      </div>
+    <div style="text-align:right">
+      <div style="font-size:9px;color:#888">Não entra para SAF-T</div>
+      <div style="font-size:11px">Proposta de Trabalhos a Mais &nbsp;—&nbsp; OS: <strong style="font-size:13px">${data.osNumero}</strong></div>
+      <div style="font-size:11px;margin-top:2px">ORIGINAL</div>
     </div>
   </div>
 
-  <!-- BARRA -->
-  <div class="barra-cor">
-    <span>Data de Emissão: <strong>${fmtDate(data.dataEmissao)}</strong></span>
-    <span>OS de Referência: <strong>${data.osNumero}</strong></span>
-    <span>Responsável: <strong>${data.responsavelNome || '—'}</strong></span>
+  <!-- Company + Client info -->
+  <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:11px;line-height:1.7">
+      <strong style="font-size:13px">${cfg.nomeDocumento}</strong><br/>
+      ${cfg.morada.toUpperCase()}<br/>
+      ${cfg.codigoPostal}&nbsp;&nbsp;${cfg.localidade.toUpperCase()}<br/>
+      Contribuinte Nº: ${cfg.contribuinte}<br/>
+      Conserv. Registo Comercial:<br/>
+      Capital Social:
+    </div>
+    <div style="text-align:right;font-size:12px;line-height:1.6">
+      <strong style="font-size:13px">${data.clienteNome}</strong><br/>
+      ${data.clienteMorada ? data.clienteMorada + '<br/>' : ''}
+      ${data.clienteNif ? 'NIF: ' + data.clienteNif + '<br/>' : ''}
+      ${data.clienteTelefone ? 'Tel: ' + data.clienteTelefone + '<br/>' : ''}
+      ${data.clienteEmail ? data.clienteEmail : ''}
+    </div>
   </div>
 
-  <!-- AVISO CONTEXTUAL -->
-  <div class="aviso-box">
-    <strong>Trabalhos a mais não incluídos na proposta original</strong><br/>
+  <!-- Section heading -->
+  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Trabalhos a executar (adicionais):</p>
+
+  <!-- Colored bar -->
+  <div style="background:${primaryColor};color:white;padding:6px 12px;display:flex;justify-content:space-between;align-items:flex-start;font-size:10px">
+    <div>
+      <strong>Data de emissão :</strong>&nbsp;${emissaoFormatted}<br/>
+      Hora de emissão :&nbsp;${hora}
+    </div>
+    <span><strong>Responsável:</strong>&nbsp;${data.responsavelNome || '—'}</span>
+    <span><strong>V/Nº Contribuinte:</strong>&nbsp;${data.clienteNif || '—'}</span>
+  </div>
+
+  <!-- System note -->
+  <div style="font-size:9px;font-style:italic;color:#888;padding:3px 0 5px;border-bottom:1px solid #E0E0E0;margin-bottom:6px">
+    Clariza Manager — Sistema de Gestão Empresarial — Este documento não serve de fatura
+  </div>
+
+  <!-- Contextual note -->
+  <div style="background:#FFF8EC;border-left:4px solid ${primaryColor};padding:8px 12px;font-size:10px;color:#555;line-height:1.6;margin-bottom:10px">
+    <strong style="color:${primaryColor}">Trabalhos a mais não incluídos na proposta original</strong><br/>
     Os trabalhos listados abaixo surgiram no decorrer da execução da obra e não estavam contemplados no contrato inicial.
     A sua realização requer aprovação formal do cliente antes de serem executados ou faturados.
   </div>
 
-  <!-- TABELA DE EXTRAS -->
+  <!-- Items table -->
   <table class="linhas">
     <thead>
       <tr>
-        <th style="${thStyle};text-align:left;width:45%">Descrição do Trabalho</th>
-        <th style="${thStyle};text-align:right;width:10%">Qtd.</th>
-        <th style="${thStyle};text-align:right;width:15%">Preço Unit.</th>
-        <th style="${thStyle};text-align:right;width:15%">Total</th>
-        <th style="${thStyle};text-align:left;width:15%">Obs.</th>
+        <th style="${th};text-align:left;width:10%">Referência</th>
+        <th style="${th};text-align:left">Designação</th>
+        <th style="${th};text-align:right;width:9%">Quantidade</th>
+        <th style="${th};text-align:center;width:6%">Uni.</th>
+        <th style="${th};text-align:right;width:12%">Preço Unitário</th>
+        <th style="${th};text-align:right;width:9%">Descontos</th>
+        <th style="${th};text-align:right;width:10%">Total</th>
       </tr>
     </thead>
-    <tbody>${itemsHtml}</tbody>
+    <tbody>${linhasHtml}</tbody>
   </table>
 
-  <!-- TOTAIS -->
-  <div class="totais-outer">
-    <div class="totais-box">
-      <div class="totais-row">
-        <span>Subtotal (s/ IVA)</span>
-        <span>${fmtEUR(subtotal)}</span>
-      </div>
-      <div class="totais-row">
-        <span>IVA (23%)</span>
-        <span>${fmtEUR(iva)}</span>
-      </div>
-      <div class="totais-row grand">
-        <span>Total com IVA</span>
-        <span>${fmtEUR(totalComIVA)}</span>
-      </div>
+  <!-- Footer: Conditions + Totals -->
+  <div style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">
+
+    <div style="flex:1;background:#F5F5F5;border:1px solid #E0E0E0;padding:8px 12px;font-size:10px;line-height:1.7">
+      <p style="margin:2px 0"><strong>Como condições gerais teremos:</strong></p>
+      <p style="margin:2px 0">O valor acima indicado é acrescido de IVA à taxa legal em vigor.</p>
+      <p style="margin:4px 0 2px"><strong>Validade da proposta:</strong><br/>Proposta tem validade de 30 dias, sujeita a rectificação após esse prazo.</p>
+      <p style="margin:2px 0"><strong>Condições de pagamento:</strong><br/>${condicoesPag}</p>
+      <p style="margin:2px 0"><strong>Observações</strong>${data.observacoes ? '<br/>' + data.observacoes.replace(/\n/g, '<br/>') : ''}</p>
+    </div>
+
+    <div style="width:230px;font-size:11px">
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="padding:3px 6px;font-size:10px;color:#666">Valor do IVA</td>
+          <td style="padding:3px 6px;font-size:10px;color:#666;text-align:right">Total com IVA</td>
+        </tr>
+        <tr>
+          <td style="padding:3px 6px;font-weight:600">${fmtEur(iva)}</td>
+          <td style="padding:3px 6px;font-weight:600;text-align:right">${fmtEur(totalComIva)}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border-top:1px solid #CCC;padding:0"></td>
+        </tr>
+        <tr>
+          <td style="padding:5px 6px;font-weight:bold;font-size:12px">TOTAL sem IVA:</td>
+          <td style="padding:5px 6px;font-weight:bold;font-size:12px;text-align:right">${fmtEur(subtotal)}</td>
+        </tr>
+      </table>
     </div>
   </div>
 
-  <!-- CONDIÇÕES DE PAGAMENTO -->
-  <div class="condicoes-pag">
-    <strong>Condições de Pagamento:</strong><br/>
-    ${condicoesPag}
-  </div>
-
-  <!-- OBSERVAÇÕES -->
-  ${data.observacoes ? `<div class="rodape-obs"><p><strong>Observações:</strong><br/>${data.observacoes.replace(/\n/g, '<br/>')}</p></div>` : ''}
-
-  <!-- ASSINATURAS -->
-  <div class="assinaturas">
-    <div>
-      Cliente (aprovação):<br/>&nbsp;<br/>
-      Data: _____ / _____ / _________<br/>
-      Assinatura e NIF
+  <!-- Signatures — PHC 3-column layout -->
+  <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end">
+    <div style="font-size:10px">
+      Cliente (aprovação):<br/>
+      <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px">&nbsp;</div>
+      Assinatura e NIF.
     </div>
-    <div>
-      ${cfg.nomeDocumento}<br/>&nbsp;<br/>
-      Data: _____ / _____ / _________<br/>
-      Assinatura e carimbo
+    <div style="font-size:10px;text-align:center">
+      Assinatura e carimbo.<br/>
+      <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px;display:inline-block">&nbsp;</div>
     </div>
-  </div>
-
-  <div class="nota-legal">
-    Documento sujeito a aprovação pelo cliente. Não tem validade fiscal sem carimbo e assinatura de ambas as partes.
-    Emitido electronicamente pelo sistema Clariza.
-  </div>
-
-  <!-- RODAPÉ PÁGINA -->
-  <div class="page-footer">
-    <div class="legal">Este documento é uma Proposta de Trabalhos a Mais — não substitui fatura comercial.</div>
-    <div><span class="accent">${cfg.emailsRodape.split('|').map((e: string) => e.trim()).filter(Boolean).join('</span>&nbsp;|&nbsp;<span class="accent">')}</span></div>
-    <div>${cfg.telefones}</div>
-    <div><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade} &nbsp;|&nbsp; NIF: ${cfg.contribuinte}</div>
+    <div style="font-size:10px;text-align:right;line-height:1.8">
+      ${emails.map((e: string) => `<div>${e}</div>`).join('')}
+    </div>
   </div>
 
   <script>

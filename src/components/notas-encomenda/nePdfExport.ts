@@ -1,42 +1,35 @@
 import type { NeItem } from '@/types/notaEncomenda';
 import { getEmpresaDocConfig } from '@/lib/empresaConfig';
 
-// ── Data types ────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface NePdfData {
-  // NE identification
   numeroNe: string;
   titulo: string;
   descricao?: string;
   observacoes?: string;
   prioridade: 'baixa' | 'normal' | 'alta' | 'urgente';
-
-  // Supplier (recipient)
   fornecedorNome: string;
   fornecedorMorada?: string;
   fornecedorNif?: string;
   fornecedorTelefone?: string;
   fornecedorEmail?: string;
-
-  // Dates
+  responsavelNome?: string;
   dataCriacao: string;
   dataNecessidade?: string;
-
-  // Internal references
   propostaNumero?: string;
   osNumero?: string;
-
-  // Responsible
-  responsavelNome?: string;
-
-  // Line items
   items: NeItem[];
-
-  // Optional estimated value (shown when no priced items)
   valorEstimado?: number | null;
+  condicoesPagamento?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const fmtEur = (v: number) =>
+  new Intl.NumberFormat('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+
+const fmtQty = (v: number) => v.toFixed(3).replace('.', ',');
 
 const fmtDate = (iso?: string) => {
   if (!iso) return '';
@@ -47,109 +40,68 @@ const fmtDate = (iso?: string) => {
   } catch { return iso; }
 };
 
-const fmtEUR = (v: number) =>
-  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(v);
-
-const fmtQty = (v: number) => v.toFixed(3).replace('.', ',');
-
 const PRIORIDADE_LABEL: Record<string, string> = {
-  baixa: 'Baixa',
-  normal: 'Normal',
-  alta: 'Alta',
-  urgente: '⚠ URGENTE',
+  baixa: 'Baixa', normal: 'Normal', alta: 'Alta', urgente: '⚠ URGENTE',
 };
 
-function buildNeFilename(data: NePdfData): string {
-  const sanitize = (s: string) =>
-    (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
-  const numero = sanitize(data.numeroNe).replace(/\//g, '-');
-  const forn = sanitize(data.fornecedorNome) || 'Fornecedor';
-  const titulo = sanitize(data.titulo) || 'Encomenda';
-  return `NE_${numero}_${forn}_${titulo}`;
-}
-
-// ── Main export function ──────────────────────────────────────────────────────
+// ── Main export ───────────────────────────────────────────────────────────────
 
 export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string) {
-  const primaryColor = empresa?.corPrimaria || '#1E939C';
+  const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
 
-  // ── Totals calculation ──────────────────────────────────────────────────
+  // Filename
+  const numClean = (data.numeroNe || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
+  const fornClean = (data.fornecedorNome || 'Fornecedor').replace(/[\\:*?"<>|]/g, '').trim();
+  const filename = `NE_${numClean}_${fornClean}`;
+
+  // Totals
   const hasUnitPrices = data.items.some(it => it.precoUnit != null && it.precoUnit > 0);
-  const subtotal = data.items.reduce((s, it) => s + (it.total ?? (it.precoUnit ?? 0) * it.quantidade), 0);
+  const subtotal = data.items.reduce((s, it) =>
+    s + (it.total ?? ((it.precoUnit ?? 0) * it.quantidade)), 0);
   const iva = subtotal * 0.23;
-  const totalComIVA = subtotal + iva;
+  const totalComIva = subtotal + iva;
 
-  // ── Items HTML ──────────────────────────────────────────────────────────
-  let itemsHtml = '';
-  data.items.forEach((it, i) => {
-    const bg = i % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
-    const total = it.total ?? (it.precoUnit != null ? it.precoUnit * it.quantidade : null);
-    itemsHtml += `<tr style="background:${bg}">
-      <td style="padding:5px 8px;font-size:11px;text-align:left;color:#555">${it.referencia || ''}</td>
-      <td style="padding:5px 8px;font-size:11px;text-align:left;font-weight:500">${it.descricao}</td>
-      <td style="padding:5px 8px;font-size:11px;text-align:right">${fmtQty(it.quantidade)}</td>
-      <td style="padding:5px 8px;font-size:11px;text-align:center;color:#555">${it.unidade}</td>
-      ${hasUnitPrices ? `
-      <td style="padding:5px 8px;font-size:11px;text-align:right">${it.precoUnit != null ? fmtEUR(it.precoUnit) : '—'}</td>
-      <td style="padding:5px 8px;font-size:11px;text-align:right;font-weight:600">${total != null ? fmtEUR(total) : '—'}</td>
-      ` : ''}
-      ${it.observacoes ? `<td style="padding:5px 8px;font-size:10px;color:#888;font-style:italic">${it.observacoes}</td>` : (hasUnitPrices ? '' : '<td></td>')}
-    </tr>`;
-  });
-
-  // ── Empty state ─────────────────────────────────────────────────────────
+  // ── Table rows ──────────────────────────────────────────────────────────────
+  let linhasHtml = '';
   if (data.items.length === 0) {
-    itemsHtml = `<tr><td colspan="${hasUnitPrices ? 7 : 5}" style="padding:16px 8px;text-align:center;font-size:11px;color:#999;font-style:italic">
+    linhasHtml = `<tr><td colspan="7" style="padding:14px 8px;text-align:center;font-size:11px;color:#999;font-style:italic">
       Nenhum material especificado
     </td></tr>`;
+  } else {
+    data.items.forEach((it, i) => {
+      const bg = i % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
+      const total = it.total ?? (it.precoUnit != null ? it.precoUnit * it.quantidade : null);
+      linhasHtml += `<tr style="background:${bg}">
+        <td style="padding:4px 8px;font-size:11px;color:#555">${it.referencia || ''}</td>
+        <td style="padding:4px 8px;font-size:11px">${it.descricao}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtQty(it.quantidade)}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:11px">${it.unidade}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${hasUnitPrices && it.precoUnit != null ? fmtEur(it.precoUnit) : ''}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:11px"></td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px;font-weight:600">${hasUnitPrices && total != null ? fmtEur(total) : ''}</td>
+      </tr>`;
+      if (it.observacoes) {
+        linhasHtml += `<tr style="background:${bg}">
+          <td colspan="7" style="padding:2px 8px 5px 24px;font-size:10px;color:#888;font-style:italic">${it.observacoes}</td>
+        </tr>`;
+      }
+    });
   }
 
-  // ── Totals block (only when unit prices exist) ──────────────────────────
-  const totaisHtml = hasUnitPrices ? `
-    <table style="width:100%;border-collapse:collapse;margin-top:8px">
-      <tr>
-        <td style="padding:4px 0;font-size:11px;color:#555;width:70%">Subtotal (s/ IVA)</td>
-        <td style="padding:4px 0;font-size:11px;text-align:right">${fmtEUR(subtotal)}</td>
-      </tr>
-      <tr>
-        <td style="padding:4px 0;font-size:11px;color:#555">IVA (23%)</td>
-        <td style="padding:4px 0;font-size:11px;text-align:right">${fmtEUR(iva)}</td>
-      </tr>
-      <tr style="border-top:2px solid ${primaryColor}">
-        <td style="padding:6px 0 2px;font-size:13px;font-weight:bold;color:${primaryColor}">Total com IVA</td>
-        <td style="padding:6px 0 2px;font-size:13px;font-weight:bold;color:${primaryColor};text-align:right">${fmtEUR(totalComIVA)}</td>
-      </tr>
-    </table>` : (data.valorEstimado ? `
-    <div style="margin-top:8px;font-size:11px">
-      <strong>Valor estimado:</strong> ${fmtEUR(data.valorEstimado)}
-    </div>` : '');
-
-  // ── Referências (proposta / OS) ─────────────────────────────────────────
+  // Refs
   const refs: string[] = [];
   if (data.propostaNumero) refs.push(`Proposta: <strong>${data.propostaNumero}</strong>`);
   if (data.osNumero) refs.push(`OS: <strong>${data.osNumero}</strong>`);
-  const refsHtml = refs.length
-    ? `<div style="margin-top:4px;font-size:10px;color:#666">Ref. interna — ${refs.join(' &nbsp;|&nbsp; ')}</div>`
+  const refsLine = refs.length
+    ? `<div style="font-size:9px;color:#888;margin-top:3px">Ref. interna — ${refs.join(' &nbsp;|&nbsp; ')}</div>`
     : '';
 
-  const filename = buildNeFilename(data);
+  // Default conditions
+  const condicoesPag = data.condicoesPagamento || 'Conforme acordo comercial em vigor.';
+  const emails = cfg.emailsRodape.split('|').map((e: string) => e.trim()).filter(Boolean);
 
-  // ── TABLE header columns ────────────────────────────────────────────────
-  const thBase = `background:${primaryColor};color:white;padding:6px 8px;font-size:11px;font-weight:bold;border:none`;
-  const tableColsHeader = hasUnitPrices
-    ? `<th style="${thBase};text-align:left">Referência</th>
-       <th style="${thBase};text-align:left">Descrição / Material</th>
-       <th style="${thBase};text-align:right">Quantidade</th>
-       <th style="${thBase};text-align:center">Un.</th>
-       <th style="${thBase};text-align:right">Preço Unit.</th>
-       <th style="${thBase};text-align:right">Total</th>
-       <th style="${thBase};text-align:left">Obs.</th>`
-    : `<th style="${thBase};text-align:left">Referência</th>
-       <th style="${thBase};text-align:left">Descrição / Material</th>
-       <th style="${thBase};text-align:right">Quantidade</th>
-       <th style="${thBase};text-align:center">Un.</th>
-       <th style="${thBase};text-align:left">Obs.</th>`;
+  const th = `background:${primaryColor};color:white;padding:6px 8px;font-size:11px;font-weight:bold;border:none`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-PT">
@@ -158,256 +110,141 @@ export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string)
   <title>${filename}</title>
   <style>
     @page { size: A4; margin: 15mm; }
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 12px;
-      color: #1A1A1A;
-      margin: 0;
-      padding: 20px;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 14px;
-      gap: 24px;
-    }
-    .header-left { flex: 1; }
-    .header-right { text-align: right; flex: 1; }
-    .empresa-info { font-size: 10px; line-height: 1.7; color: #1A1A1A; }
-    .doc-type {
-      font-weight: bold;
-      font-size: 18px;
-      color: ${primaryColor};
-      letter-spacing: -0.3px;
-      margin-bottom: 2px;
-    }
-    .doc-numero { font-size: 13px; font-weight: 600; color: #1A1A1A; margin-bottom: 6px; }
-    .doc-original { font-size: 10px; color: #888; font-style: italic; margin-bottom: 8px; }
-    .destinatario {
-      border: 1px solid #DDD;
-      border-radius: 4px;
-      padding: 8px 12px;
-      font-size: 11px;
-      line-height: 1.7;
-      background: #FAFAFA;
-      display: inline-block;
-      text-align: left;
-    }
-    .destinatario .label {
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #888;
-      margin-bottom: 3px;
-      font-weight: bold;
-    }
-    .destinatario .nome { font-weight: bold; font-size: 12px; color: #1A1A1A; }
-    .barra-cor {
-      background: ${primaryColor};
-      color: white;
-      padding: 7px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 10px;
-      margin: 12px 0;
-      border-radius: 2px;
-    }
-    .barra-cor .prio-badge {
-      background: rgba(255,255,255,0.20);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 10px;
-    }
-    .titulo-secao {
-      font-size: 13px;
-      font-weight: bold;
-      color: #1A1A1A;
-      margin: 10px 0 4px;
-      padding-bottom: 4px;
-      border-bottom: 2px solid ${primaryColor};
-    }
-    .descricao-box {
-      font-size: 11px;
-      color: #444;
-      line-height: 1.6;
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      background: #F8F8F8;
-      border-left: 3px solid ${primaryColor};
-    }
-    table.linhas {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 6px;
-    }
-    table.linhas td {
-      border-bottom: 1px solid #EFEFEF;
-      vertical-align: middle;
-    }
-    .totais-box {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 16px;
-    }
-    .totais-inner { width: 280px; }
-    .rodape {
-      display: flex;
-      gap: 20px;
-      margin-top: 12px;
-    }
-    .rodape-esq { flex: 2; font-size: 10px; line-height: 1.8; }
-    .rodape-esq p { margin: 3px 0; }
-    .rodape-esq strong { font-weight: bold; color: #1A1A1A; }
-    .rodape-dir { flex: 1; border: 1px solid #CCC; min-height: 70px; border-radius: 4px; }
-    .assinaturas {
-      margin-top: 28px;
-      display: flex;
-      justify-content: space-between;
-      gap: 28px;
-    }
-    .assinaturas div {
-      border-top: 1px solid #333;
-      padding-top: 8px;
-      flex: 1;
-      text-align: center;
-      font-size: 10px;
-      line-height: 1.8;
-    }
-    .nota-legal {
-      text-align: center;
-      font-size: 9px;
-      font-style: italic;
-      color: ${primaryColor};
-      margin-top: 12px;
-    }
-    .page-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 9.5px;
-      color: #1A1A1A;
-      line-height: 1.7;
-      padding: 8px 15mm;
-      background: #F0FAFB;
-      border-top: 3px solid ${primaryColor};
-    }
-    .page-footer .legal {
-      font-style: italic;
-      color: ${primaryColor};
-      font-weight: 600;
-      font-size: 10px;
-      margin-bottom: 4px;
-    }
-    .page-footer .accent { color: ${primaryColor}; font-weight: 600; }
-    @media print {
-      body { padding: 0; padding-bottom: 90px; }
-      .page-footer { position: fixed; bottom: 0; }
-    }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1A1A1A; margin: 0; padding: 20px; }
+    table.linhas { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    table.linhas td { border-bottom: 1px solid #F0F0F0; vertical-align: top; }
+    @media print { body { padding: 0; } }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
+  <!-- HEADER: Logo + Doc reference -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+    <div>
       ${logoDataUrl
-        ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" style="max-height:75px;margin-bottom:10px;display:block" />`
-        : `<strong style="font-size:17px;color:${primaryColor};display:block;margin-bottom:8px">${cfg.nomeDocumento}</strong>`}
-      <div class="empresa-info">
-        <strong>${cfg.nomeDocumento}</strong><br/>
-        ${cfg.morada}<br/>
-        ${cfg.codigoPostal} ${cfg.localidade}<br/>
-        NIF: ${cfg.contribuinte}<br/>
-        ${cfg.telefones}
-      </div>
+        ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" style="max-height:65px;display:block;margin-bottom:4px" />`
+        : `<strong style="font-size:16px;color:${primaryColor};display:block;margin-bottom:4px">${cfg.nomeDocumento}</strong>`}
     </div>
-    <div class="header-right">
-      <div class="doc-type">Nota de Encomenda</div>
-      <div class="doc-numero">Nº ${data.numeroNe}</div>
-      <div class="doc-original">ORIGINAL</div>
-      ${refsHtml}
-      <div class="destinatario">
-        <div class="label">Fornecedor / Destinatário</div>
-        <div class="nome">${data.fornecedorNome}</div>
-        ${data.fornecedorMorada ? `<div>${data.fornecedorMorada}</div>` : ''}
-        ${data.fornecedorNif ? `<div>NIF: ${data.fornecedorNif}</div>` : ''}
-        ${data.fornecedorTelefone ? `<div>Tel: ${data.fornecedorTelefone}</div>` : ''}
-        ${data.fornecedorEmail ? `<div>${data.fornecedorEmail}</div>` : ''}
-      </div>
+    <div style="text-align:right">
+      <div style="font-size:9px;color:#888">Não entra para SAF-T</div>
+      <div style="font-size:11px">Nota de Encomenda &nbsp;Nº &nbsp;&nbsp;<strong style="font-size:14px">${data.numeroNe}</strong></div>
+      <div style="font-size:11px;margin-top:2px">ORIGINAL</div>
+      ${refsLine}
     </div>
   </div>
 
-  <!-- BARRA COLORIDA -->
-  <div class="barra-cor">
-    <span>Data de Emissão: <strong>${fmtDate(data.dataCriacao)}</strong></span>
-    ${data.dataNecessidade ? `<span>Prazo de Entrega: <strong>${fmtDate(data.dataNecessidade)}</strong></span>` : '<span></span>'}
-    <span>Responsável: <strong>${data.responsavelNome || '—'}</strong></span>
-    <span class="prio-badge">Prioridade: ${PRIORIDADE_LABEL[data.prioridade] ?? data.prioridade}</span>
+  <!-- Company + Supplier info -->
+  <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:11px;line-height:1.7">
+      <strong style="font-size:13px">${cfg.nomeDocumento}</strong><br/>
+      ${cfg.morada.toUpperCase()}<br/>
+      ${cfg.codigoPostal}&nbsp;&nbsp;${cfg.localidade.toUpperCase()}<br/>
+      Contribuinte Nº: ${cfg.contribuinte}<br/>
+      Conserv. Registo Comercial:<br/>
+      Capital Social:
+    </div>
+    <div style="text-align:right;font-size:12px;line-height:1.6">
+      <strong style="font-size:13px">${data.fornecedorNome}</strong><br/>
+      ${data.fornecedorMorada ? data.fornecedorMorada + '<br/>' : ''}
+      ${data.fornecedorNif ? 'NIF: ' + data.fornecedorNif + '<br/>' : ''}
+      ${data.fornecedorTelefone ? 'Tel: ' + data.fornecedorTelefone + '<br/>' : ''}
+      ${data.fornecedorEmail ? data.fornecedorEmail : ''}
+    </div>
   </div>
 
-  <!-- TÍTULO + DESCRIÇÃO -->
-  ${data.titulo ? `<div class="titulo-secao">${data.titulo}</div>` : ''}
-  ${data.descricao ? `<div class="descricao-box">${data.descricao.replace(/\n/g, '<br/>')}</div>` : ''}
+  <!-- Section heading -->
+  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Materiais a encomendar:</p>
 
-  <!-- TABELA DE MATERIAIS -->
+  <!-- Colored bar -->
+  <div style="background:${primaryColor};color:white;padding:6px 12px;display:flex;justify-content:space-between;align-items:flex-start;font-size:10px">
+    <div>
+      <strong>Data de emissão :</strong>&nbsp;${fmtDate(data.dataCriacao)}<br/>
+      ${data.dataNecessidade ? `Prazo de entrega :&nbsp;<strong>${fmtDate(data.dataNecessidade)}</strong>` : 'Prazo de entrega :'}
+    </div>
+    <span><strong>Responsável:</strong>&nbsp;${data.responsavelNome || '—'}</span>
+    <span><strong>Prioridade:</strong>&nbsp;${PRIORIDADE_LABEL[data.prioridade] ?? data.prioridade}</span>
+  </div>
+
+  <!-- System note -->
+  <div style="font-size:9px;font-style:italic;color:#888;padding:3px 0 5px;border-bottom:1px solid #E0E0E0;margin-bottom:6px">
+    Clariza Manager — Sistema de Gestão Empresarial — Este documento não serve de fatura
+  </div>
+
+  ${data.descricao ? `<p style="font-size:11px;margin-bottom:8px">${data.descricao.replace(/\n/g, '<br/>')}</p>` : ''}
+
+  <!-- Items table -->
   <table class="linhas">
     <thead>
-      <tr>${tableColsHeader}</tr>
+      <tr>
+        <th style="${th};text-align:left;width:10%">Referência</th>
+        <th style="${th};text-align:left">Designação</th>
+        <th style="${th};text-align:right;width:9%">Quantidade</th>
+        <th style="${th};text-align:center;width:6%">Uni.</th>
+        <th style="${th};text-align:right;width:12%">Preço Unitário</th>
+        <th style="${th};text-align:right;width:9%">Descontos</th>
+        <th style="${th};text-align:right;width:10%">Total</th>
+      </tr>
     </thead>
-    <tbody>${itemsHtml}</tbody>
+    <tbody>${linhasHtml}</tbody>
   </table>
 
-  <!-- TOTAIS -->
-  ${hasUnitPrices ? `<div class="totais-box"><div class="totais-inner">${totaisHtml}</div></div>` : totaisHtml}
+  <!-- Footer: Conditions + Totals -->
+  <div style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">
 
-  <!-- RODAPÉ CONDIÇÕES + ASSINATURA FORNECEDOR -->
-  <div class="rodape">
-    <div class="rodape-esq">
-      ${data.observacoes ? `<p><strong>Observações:</strong><br/>${data.observacoes.replace(/\n/g, '<br/>')}</p>` : ''}
-      ${data.dataNecessidade ? `<p><strong>Prazo de entrega:</strong> ${fmtDate(data.dataNecessidade)}</p>` : ''}
-      <p><strong>Condições de pagamento:</strong> Conforme acordo comercial em vigor.</p>
-      <p><strong>Entrega:</strong> Nas instalações indicadas pelo responsável.</p>
+    <div style="flex:1;background:#F5F5F5;border:1px solid #E0E0E0;padding:8px 12px;font-size:10px;line-height:1.7">
+      <p style="margin:2px 0"><strong>Como condições gerais teremos:</strong></p>
+      <p style="margin:2px 0">O valor acima indicado é acrescido de IVA à taxa legal em vigor.</p>
+      ${data.dataNecessidade
+        ? `<p style="margin:4px 0 2px"><strong>Prazo de entrega:</strong><br/>${fmtDate(data.dataNecessidade)}</p>`
+        : `<p style="margin:2px 0"><strong>Prazo de entrega:</strong></p>`}
+      <p style="margin:2px 0"><strong>Condições de pagamento:</strong><br/>${condicoesPag}</p>
+      <p style="margin:2px 0"><strong>Local de entrega:</strong><br/>Nas instalações indicadas pelo responsável.</p>
+      <p style="margin:2px 0"><strong>Observações</strong>${data.observacoes ? '<br/>' + data.observacoes.replace(/\n/g, '<br/>') : ''}</p>
     </div>
-    <div class="rodape-dir"></div>
+
+    <div style="width:230px;font-size:11px">
+      ${hasUnitPrices ? `
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="padding:3px 6px;font-size:10px;color:#666">Valor do IVA</td>
+          <td style="padding:3px 6px;font-size:10px;color:#666;text-align:right">Total com IVA</td>
+        </tr>
+        <tr>
+          <td style="padding:3px 6px;font-weight:600">${fmtEur(iva)}</td>
+          <td style="padding:3px 6px;font-weight:600;text-align:right">${fmtEur(totalComIva)}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="border-top:1px solid #CCC;padding:0"></td>
+        </tr>
+        <tr>
+          <td style="padding:5px 6px;font-weight:bold;font-size:12px">TOTAL sem IVA:</td>
+          <td style="padding:5px 6px;font-weight:bold;font-size:12px;text-align:right">${fmtEur(subtotal)}</td>
+        </tr>
+      </table>` : data.valorEstimado ? `
+      <table style="width:100%;border-collapse:collapse">
+        <tr>
+          <td style="padding:5px 6px;font-size:11px">Valor estimado:</td>
+          <td style="padding:5px 6px;font-size:11px;text-align:right;font-weight:600">${fmtEur(data.valorEstimado)}</td>
+        </tr>
+      </table>` : ''}
+    </div>
   </div>
 
-  <!-- ASSINATURAS -->
-  <div class="assinaturas">
-    <div>
-      Fornecedor:<br/>&nbsp;<br/>
-      Data: _____ / _____ / _________<br/>
-      Assinatura e carimbo
+  <!-- Signatures -->
+  <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end">
+    <div style="font-size:10px">
+      Fornecedor:<br/>
+      <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px">&nbsp;</div>
+      Assinatura e carimbo.
     </div>
-    <div>
-      ${cfg.nomeDocumento}<br/>&nbsp;<br/>
-      Data: _____ / _____ / _________<br/>
-      Assinatura e carimbo
+    <div style="font-size:10px;text-align:center">
+      ${cfg.nomeDocumento}<br/>
+      <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px;display:inline-block">&nbsp;</div>
     </div>
-  </div>
-
-  <!-- NOTA LEGAL -->
-  <div class="nota-legal">
-    Documento interno de gestão — não substitui fatura comercial.
-    Emitido electronicamente pelo sistema Clariza.
-  </div>
-
-  <!-- RODAPÉ PÁGINA -->
-  <div class="page-footer">
-    <div class="legal">Este documento é uma Nota de Encomenda e não serve de fatura ou documento fiscal.</div>
-    <div><span class="accent">${cfg.emailsRodape.split('|').map((e: string) => e.trim()).filter(Boolean).join('</span>&nbsp;|&nbsp;<span class="accent">')}</span></div>
-    <div>${cfg.telefones}</div>
-    <div><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade} &nbsp;|&nbsp; NIF: ${cfg.contribuinte}</div>
+    <div style="font-size:10px;text-align:right;line-height:1.8">
+      ${emails.map((e: string) => `<div>${e}</div>`).join('')}
+    </div>
   </div>
 
   <script>
@@ -423,7 +260,6 @@ export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string)
       document.title = ${JSON.stringify(filename)};
     });
   </script>
-
 </body>
 </html>`;
 

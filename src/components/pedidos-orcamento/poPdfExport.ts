@@ -1,6 +1,8 @@
 import type { POLinhaForm } from '@/types/pedidoOrcamento';
 import { getEmpresaDocConfig } from '@/lib/empresaConfig';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 interface PdfData {
   numeroPo: string;
   clienteNome: string;
@@ -22,6 +24,8 @@ interface PdfData {
   condicoesGerais: string;
   observacoes: string;
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmtQty = (v: number) => v.toFixed(3).replace('.', ',');
 
@@ -52,10 +56,8 @@ function getLocalidadeCodigo(input?: string): string {
   for (const [nome, code] of Object.entries(LOCALIDADE_CODIGOS)) {
     if (lower.includes(nome)) return code;
   }
-  // Fallback: primeiras 3 consoantes maiúsculas
   const consoantes = input.toUpperCase().replace(/[^A-ZÇ]/g, '').replace(/[AEIOU]/g, '');
   if (consoantes.length >= 3) return consoantes.slice(0, 3);
-  // Fallback final: primeiras 3 letras
   return input.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
 }
 
@@ -64,190 +66,213 @@ function toSentenceCase(s: string): string {
   return lower.charAt(0).toLocaleUpperCase('pt-PT') + lower.slice(1);
 }
 
-function buildPoFilename(data: { numeroPo: string; clienteNome: string; titulo: string; localExecucao?: string; clienteMorada?: string }): string {
-  const sanitize = (s: string) => (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+function buildPoFilename(data: {
+  numeroPo: string; clienteNome: string; titulo: string;
+  localExecucao?: string; clienteMorada?: string;
+}): string {
+  const sanitize = (s: string) =>
+    (s || '').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
   const numero = (data.numeroPo || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
   const cliente = sanitize(data.clienteNome) || 'Cliente';
-  const tituloRaw = sanitize(data.titulo) || 'Serviço';
-  const titulo = toSentenceCase(tituloRaw);
-  const localFonte = data.localExecucao || data.clienteMorada || '';
-  const localCode = getLocalidadeCodigo(localFonte);
+  const titulo = toSentenceCase(sanitize(data.titulo) || 'Serviço');
+  const localCode = getLocalidadeCodigo(data.localExecucao || data.clienteMorada || '');
   return `${numero}_${cliente}_${titulo}_${localCode}`;
 }
+
+// ── Main export ───────────────────────────────────────────────────────────────
 
 export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
 
+  const filename = buildPoFilename(data);
+
   const dataFormatted = data.dataEmissao
-    ? new Date(data.dataEmissao).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '.')
+    ? new Date(data.dataEmissao)
+        .toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        .replace(/\//g, '.')
     : '';
 
+  // ── Table rows ──────────────────────────────────────────────────────────────
   const linhasParaRender = data.linhas && data.linhas.length > 0
     ? data.linhas
-    : [{ tipoLinha: 'artigo', referencia: '', designacao: '', quantidade: 1, unidade: 'und', observacaoLinha: '' } as POLinhaForm];
+    : [{ tipoLinha: 'artigo', referencia: '', designacao: '', quantidade: 1, unidade: 'un', observacaoLinha: '' } as POLinhaForm];
 
   let linhasHtml = '';
   linhasParaRender.forEach((l, i) => {
     if (l.tipoLinha === 'seccao') {
-      linhasHtml += `<tr style="background:#F2F2F2"><td colspan="5" style="padding:6px 8px;font-weight:bold;color:${primaryColor};font-size:11px">${l.designacao || ''}</td></tr>`;
+      linhasHtml += `<tr style="background:#F2F2F2">
+        <td colspan="5" style="padding:6px 8px;font-weight:bold;color:${primaryColor};font-size:11px">${l.designacao || ''}</td>
+      </tr>`;
     } else if (l.tipoLinha === 'texto') {
-      linhasHtml += `<tr><td colspan="5" style="padding:4px 8px;font-style:italic;color:#666;font-size:11px">${l.designacao || ''}</td></tr>`;
+      linhasHtml += `<tr>
+        <td colspan="5" style="padding:4px 8px;font-style:italic;color:#555;font-size:10px">${l.designacao || ''}</td>
+      </tr>`;
     } else {
       const bg = i % 2 === 0 ? '#FFFFFF' : '#F9F9F9';
       linhasHtml += `<tr style="background:${bg}">
-        <td style="padding:5px 8px;font-size:11px;text-align:left">${l.referencia || ''}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:left">${l.designacao || ''}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:right">${fmtQty(l.quantidade)}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:center">${l.unidade}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:left">${l.observacaoLinha || ''}</td>
+        <td style="padding:4px 8px;font-size:11px;color:#555">${l.referencia || ''}</td>
+        <td style="padding:4px 8px;font-size:11px">${l.designacao || ''}</td>
+        <td style="padding:4px 8px;text-align:right;font-size:11px">${fmtQty(l.quantidade)}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:11px">${l.unidade}</td>
+        <td style="padding:4px 8px;font-size:10px;color:#666">${l.observacaoLinha || ''}</td>
       </tr>`;
     }
   });
 
+  const th = `background:${primaryColor};color:white;padding:6px 8px;font-size:11px;font-weight:bold;border:none`;
   const showObra = !!(data.obra && data.obra.trim());
-  const showContacto = !!(data.clienteTelefone || data.clienteEmail);
 
-  const filename = buildPoFilename(data);
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title>
-<style>
-  @page { size: A4; margin: 15mm; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1A1A1A; margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 20px; }
-  .header-left { flex: 1; }
-  .header-right { text-align: right; flex: 1; }
-  .logo img { max-height: 80px; margin-bottom: 8px; }
-  .empresa-info { font-size: 10px; line-height: 1.6; color: #1A1A1A; }
-  .doc-meta { font-size: 9px; color: #888; font-style: italic; }
-  .doc-title { font-weight: bold; font-size: 16px; color: #1A1A1A; margin: 4px 0 2px; }
-  .doc-original { font-size: 11px; color: #555; margin-bottom: 10px; }
-  .cliente-bloco { font-size: 11px; font-weight: bold; line-height: 1.6; color: #1A1A1A; }
-  .barra-cor { background: ${primaryColor}; color: white; padding: 6px 12px; display: flex; justify-content: space-between; font-size: 10px; margin: 10px 0; }
-  .obra-box { background: #FFF3E8; border-left: 3px solid ${primaryColor}; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: #1A1A1A; }
-  .obra-box strong { color: ${primaryColor}; font-weight: bold; }
-  .titulo-tabela { font-weight: bold; font-size: 12px; margin-bottom: 6px; }
-  .descricao-necessidade { font-style: italic; font-size: 10px; color: #666; margin-bottom: 8px; }
-  .contacto-box { font-size: 10px; margin-bottom: 8px; line-height: 1.5; }
-  .contacto-box strong { display: block; margin-bottom: 2px; }
-  table.linhas { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-  table.linhas th { background: ${primaryColor}; color: white; padding: 6px 8px; font-size: 11px; font-weight: bold; }
-  table.linhas th.col-ref { text-align: left; }
-  table.linhas th.col-des { text-align: left; }
-  table.linhas th.col-qtd { text-align: right; }
-  table.linhas th.col-uni { text-align: center; }
-  table.linhas th.col-obs { text-align: left; }
-  .rodape { display: flex; gap: 20px; margin-top: 10px; }
-  .rodape-esq { flex: 2; font-size: 10px; line-height: 1.8; }
-  .rodape-esq p { margin: 4px 0; }
-  .rodape-esq strong { font-weight: bold; }
-  .rodape-dir { flex: 1; border: 1px solid #CCCCCC; min-height: 80px; }
-  .assinaturas { margin-top: 30px; display: flex; justify-content: space-between; gap: 20px; }
-  .assinaturas div { border-top: 1px solid #333; padding-top: 8px; flex: 1; text-align: center; font-size: 10px; line-height: 1.8; }
-  .nota-legal { text-align: center; font-size: 9px; font-style: italic; color: ${primaryColor}; margin-top: 15px; }
-  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-size: 9.5px; color: #1A1A1A; line-height: 1.7; padding: 10px 15mm; background: #FFF3E8; border-top: 3px solid ${primaryColor}; }
-  .page-footer .legal { font-style: italic; margin-bottom: 6px; color: ${primaryColor}; font-weight: 600; font-size: 10px; }
-  .page-footer .contact-line { color: #1A1A1A; }
-  .page-footer .accent { color: ${primaryColor}; font-weight: 600; }
-  @media print { body { padding: 0; padding-bottom: 95px; } .page-footer { position: fixed; bottom: 0; } }
-</style></head><body>
-  <div class="header">
-    <div class="header-left">
-      <div class="logo">${logoDataUrl ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" />` : `<strong style="font-size:18px;color:${primaryColor}">${cfg.nomeDocumento}</strong>`}</div>
-      <div class="empresa-info">
-        ${cfg.nomeDocumento}<br/>
-        ${cfg.morada}<br/>
-        ${cfg.codigoPostal} ${cfg.localidade}<br/>
-        Contribuinte Nº: ${cfg.contribuinte}<br/>
-        ${cfg.telefones}
-      </div>
+  const condicoesGerais  = data.condicoesGerais  || 'O valor a indicar deverá ser acrescido de IVA à taxa legal em vigor.';
+  const validadeTexto    = data.validadeTexto    || 'Proposta tem validade de 30 dias, sujeita a rectificação após esse prazo.';
+  const condicoesPag     = data.condicoesPagamento || 'Pagamento conforme acordo comercial em vigor.';
+
+  const emails = cfg.emailsRodape.split('|').map((e: string) => e.trim()).filter(Boolean);
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <title>${filename}</title>
+  <style>
+    @page { size: A4; margin: 15mm; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1A1A1A; margin: 0; padding: 20px; }
+    table.linhas { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    table.linhas td { border-bottom: 1px solid #F0F0F0; vertical-align: top; }
+    @media print { body { padding: 0; } }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER: Logo + Doc reference -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+    <div>
+      ${logoDataUrl
+        ? `<img src="${logoDataUrl}" alt="${cfg.nomeDocumento}" style="max-height:65px;display:block;margin-bottom:4px" />`
+        : `<strong style="font-size:16px;color:${primaryColor};display:block;margin-bottom:4px">${cfg.nomeDocumento}</strong>`}
     </div>
-    <div class="header-right">
-      <div class="doc-meta">Documento interno — não fiscal</div>
-      <div class="doc-title">Pedido de Orçamento Nº ${data.numeroPo}</div>
-      <div class="doc-original">ORIGINAL</div>
-      <div class="cliente-bloco">
-        ${data.clienteNome || ''}<br/>
-        ${data.clienteMorada ? data.clienteMorada + '<br/>' : ''}
-        ${data.clienteNif ? 'NIF: ' + data.clienteNif + '<br/>' : ''}
-        ${data.clienteTelefone ? 'Tel: ' + data.clienteTelefone + '<br/>' : ''}
-        ${data.clienteEmail || ''}
-      </div>
+    <div style="text-align:right">
+      <div style="font-size:9px;color:#888">Não entra para SAF-T</div>
+      <div style="font-size:11px">Pedido de Orçamento &nbsp;Nº &nbsp;&nbsp;<strong style="font-size:14px">${data.numeroPo}</strong></div>
+      <div style="font-size:11px;margin-top:2px">ORIGINAL</div>
     </div>
   </div>
 
-  <div class="barra-cor">
-    <span>Data: ${dataFormatted}</span>
-    <span>Hora: ${data.horaEmissao || ''}</span>
-    <span>Responsável: ${data.vendedorNome || '—'}</span>
-    <span>V/Nº Contribuinte: ${data.clienteNif || '—'}</span>
+  <!-- Company + Client info -->
+  <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+    <div style="font-size:11px;line-height:1.7">
+      <strong style="font-size:13px">${cfg.nomeDocumento}</strong><br/>
+      ${cfg.morada.toUpperCase()}<br/>
+      ${cfg.codigoPostal}&nbsp;&nbsp;${cfg.localidade.toUpperCase()}<br/>
+      Contribuinte Nº: ${cfg.contribuinte}<br/>
+      Conserv. Registo Comercial:<br/>
+      Capital Social:
+    </div>
+    <div style="text-align:right;font-size:12px;line-height:1.6">
+      <strong style="font-size:13px">${data.clienteNome}</strong><br/>
+      ${data.clienteMorada ? data.clienteMorada + '<br/>' : ''}
+      ${data.clienteNif ? 'NIF: ' + data.clienteNif + '<br/>' : ''}
+      ${data.clienteTelefone ? 'Tel: ' + data.clienteTelefone + '<br/>' : ''}
+      ${data.clienteEmail ? data.clienteEmail : ''}
+    </div>
   </div>
 
-  ${showObra ? `<div class="obra-box">
-    <strong>Obra:</strong> ${data.obra}${data.localExecucao ? ` &nbsp;|&nbsp; <strong>Local:</strong> ${data.localExecucao}` : ''}${data.duracaoObra ? ` &nbsp;|&nbsp; <strong>Duração prevista:</strong> ${data.duracaoObra}` : ''}
+  <!-- Section heading -->
+  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Materiais / Serviços a orçamentar:</p>
+
+  <!-- Colored bar -->
+  <div style="background:${primaryColor};color:white;padding:6px 12px;display:flex;justify-content:space-between;align-items:flex-start;font-size:10px">
+    <div>
+      <strong>Data de emissão :</strong>&nbsp;${dataFormatted}<br/>
+      Hora de emissão :&nbsp;${data.horaEmissao || ''}
+    </div>
+    <span><strong>Responsável:</strong>&nbsp;${data.vendedorNome || '—'}</span>
+    <span><strong>V/Nº Contribuinte:</strong>&nbsp;${data.clienteNif || '—'}</span>
+  </div>
+
+  <!-- System note -->
+  <div style="font-size:9px;font-style:italic;color:#888;padding:3px 0 5px;border-bottom:1px solid #E0E0E0;margin-bottom:6px">
+    Clariza Manager — Sistema de Gestão Empresarial — Este documento não serve de fatura
+  </div>
+
+  ${showObra ? `<div style="background:#FFF3E8;border-left:3px solid ${primaryColor};padding:8px 12px;margin-bottom:8px;font-size:11px">
+    <strong style="color:${primaryColor}">Obra:</strong> ${data.obra}
+    ${data.localExecucao ? ` &nbsp;|&nbsp; <strong style="color:${primaryColor}">Local:</strong> ${data.localExecucao}` : ''}
+    ${data.duracaoObra ? ` &nbsp;|&nbsp; <strong style="color:${primaryColor}">Duração prevista:</strong> ${data.duracaoObra}` : ''}
   </div>` : ''}
 
-  ${data.titulo ? `<div class="titulo-tabela">${data.titulo}</div>` : ''}
-  ${data.descricaoNecessidade ? `<div class="descricao-necessidade">${data.descricaoNecessidade.replace(/\n/g, '<br/>')}</div>` : ''}
+  ${data.titulo ? `<p style="font-weight:bold;font-size:12px;margin:0 0 4px">${data.titulo}</p>` : ''}
+  ${data.descricaoNecessidade ? `<p style="font-size:10px;font-style:italic;color:#666;margin:0 0 8px">${data.descricaoNecessidade.replace(/\n/g, '<br/>')}</p>` : ''}
 
-  ${showContacto ? `<div class="contacto-box">
-    <strong>CONTACTO</strong>
-    ${data.clienteTelefone ? `Telemóvel: ${data.clienteTelefone}${data.clienteNome ? ' ' + data.clienteNome : ''}<br/>` : ''}
-    ${data.clienteEmail ? `E-mail: ${data.clienteEmail}` : ''}
-  </div>` : ''}
-
+  <!-- Items table (5 columns — no prices, request document) -->
   <table class="linhas">
-    <thead><tr>
-      <th class="col-ref">Referência</th>
-      <th class="col-des">Designação</th>
-      <th class="col-qtd">Quantidade</th>
-      <th class="col-uni">Uni.</th>
-      <th class="col-obs">Observação</th>
-    </tr></thead>
+    <thead>
+      <tr>
+        <th style="${th};text-align:left;width:12%">Referência</th>
+        <th style="${th};text-align:left">Designação</th>
+        <th style="${th};text-align:right;width:10%">Quantidade</th>
+        <th style="${th};text-align:center;width:7%">Uni.</th>
+        <th style="${th};text-align:left;width:20%">Observação</th>
+      </tr>
+    </thead>
     <tbody>${linhasHtml}</tbody>
   </table>
 
-  <div class="rodape">
-    <div class="rodape-esq">
-      ${data.condicoesGerais ? `<p><strong>Condições gerais:</strong><br/>${data.condicoesGerais.replace(/\n/g, '<br/>')}</p>` : ''}
-      ${data.validadeTexto ? `<p><strong>Validade da proposta:</strong><br/>${data.validadeTexto}</p>` : ''}
-      ${data.duracaoObra ? `<p><strong>Duração:</strong><br/>${data.duracaoObra}</p>` : ''}
-      ${data.condicoesPagamento ? `<p><strong>Condições de pagamento:</strong><br/>${data.condicoesPagamento.replace(/\n/g, '<br/>')}</p>` : ''}
-      ${data.observacoes ? `<p><strong>Observações:</strong><br/>${data.observacoes.replace(/\n/g, '<br/>')}</p>` : ''}
+  <!-- Footer: Conditions (left) + Empty box (right, for supplier's quote) -->
+  <div style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">
+
+    <div style="flex:1;background:#F5F5F5;border:1px solid #E0E0E0;padding:8px 12px;font-size:10px;line-height:1.7">
+      <p style="margin:2px 0"><strong>Como condições gerais teremos:</strong></p>
+      <p style="margin:2px 0">${condicoesGerais}</p>
+      <p style="margin:4px 0 2px"><strong>Validade da proposta:</strong><br/>${validadeTexto}</p>
+      ${data.duracaoObra ? `<p style="margin:2px 0"><strong>Duração:</strong><br/>${data.duracaoObra}</p>` : ''}
+      <p style="margin:2px 0"><strong>Condições de pagamento:</strong><br/>${condicoesPag}</p>
+      ${data.observacoes ? `<p style="margin:2px 0"><strong>Observações:</strong><br/>${data.observacoes.replace(/\n/g, '<br/>')}</p>` : ''}
     </div>
-    <div class="rodape-dir"></div>
+
+    <div style="width:230px;border:1px solid #E0E0E0;min-height:80px;padding:8px 12px;font-size:10px;color:#999;font-style:italic">
+      Resposta / Proposta de preço do fornecedor
+    </div>
   </div>
 
-  <div class="assinaturas">
-    <div>Cliente:<br/>&nbsp;<br/>Assinatura se aceite.</div>
-    <div>${cfg.nomeDocumento}<br/>&nbsp;<br/>Assinatura e carimbo.</div>
-  </div>
-
-  <div class="page-footer">
-    <div class="legal">Este documento é um Pedido de Orçamento e não serve de fatura.</div>
-    <div class="contact-line"><span class="accent">${cfg.emailsRodape.split('|').map(e => e.trim()).filter(Boolean).join('</span>&nbsp;|&nbsp;<span class="accent">')}</span></div>
-    <div class="contact-line">${cfg.telefones.replace(/(\d[\d\s]+)/g, '<span class="accent">$1</span>')}</div>
-    <div class="contact-line"><span class="accent">Sede:</span> ${cfg.morada}, ${cfg.codigoPostal} ${cfg.localidade}</div>
+  <!-- Signatures — PHC 3-column layout -->
+  <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end">
+    <div style="font-size:10px">
+      Cliente:<br/>
+      <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px">&nbsp;</div>
+      Assinatura se aceite.
+    </div>
+    <div style="font-size:10px;text-align:center">
+      Assinatura e carimbo.<br/>
+      <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px;display:inline-block">&nbsp;</div>
+    </div>
+    <div style="font-size:10px;text-align:right;line-height:1.8">
+      ${emails.map((e: string) => `<div>${e}</div>`).join('')}
+    </div>
   </div>
 
   <script>
     document.title = ${JSON.stringify(filename)};
-    window.addEventListener('load', function(){
+    window.addEventListener('load', function () {
       document.title = ${JSON.stringify(filename)};
-      setTimeout(function(){
+      setTimeout(function () {
         document.title = ${JSON.stringify(filename)};
         window.print();
       }, 300);
     });
-    window.addEventListener('afterprint', function(){ document.title = ${JSON.stringify(filename)}; });
+    window.addEventListener('afterprint', function () {
+      document.title = ${JSON.stringify(filename)};
+    });
   </script>
-</body></html>`;
+</body>
+</html>`;
 
   const w = window.open('', '_blank');
   if (w) {
     w.document.open();
     w.document.write(html);
     w.document.close();
-    try { w.document.title = filename; } catch (e) {}
+    try { w.document.title = filename; } catch (_) {}
   }
 }
