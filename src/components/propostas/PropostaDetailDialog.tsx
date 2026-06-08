@@ -9,8 +9,10 @@ import { buildPropostaPdfHtml, exportPropostaPdf, type PropostaPdfMode } from '@
 import { exportPropostaExcel } from '@/components/propostas/propostaExcelExport';
 import { supabase } from '@/integrations/supabase/client';
 import { inserirNotificacaoInterna } from '@/hooks/useNotificacoesInternas';
+import { buildPropostaAdjudicadaEmail } from '@/lib/emailTemplates';
+import { SendEmailDialog } from '@/components/SendEmailDialog';
 import type { Proposta, PropostaLinha, PropostaEstado } from '@/types/proposta';
-import { Pencil, FileDown, FileSpreadsheet, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { Pencil, FileDown, FileSpreadsheet, CheckCircle, XCircle, Loader2, ExternalLink, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
@@ -57,6 +59,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
   const { toast } = useToast();
   const [linhas, setLinhas] = useState<PropostaLinha[]>([]);
   const [isAceitando, setIsAceitando] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   useEffect(() => {
     if (proposta && open) {
@@ -378,6 +381,12 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
               </Button>
             </>
           )}
+          {proposta.estado === 'aceite' && (
+            <Button variant="outline" size="sm" onClick={() => setEmailOpen(true)}
+              className="text-primary border-primary/30 hover:bg-primary/5">
+              <Mail className="h-4 w-4 mr-1" /> Enviar ao Cliente
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => handlePdf('unitarios')}>
             <FileDown className="h-4 w-4 mr-1" /> PDF Unitários
           </Button>
@@ -396,5 +405,29 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Email dialog — confirmação ao cliente */}
+    {(() => {
+      const { subject, html } = buildPropostaAdjudicadaEmail({
+        numeroProposta: proposta.numeroProposta,
+        clienteNome:    proposta.clienteNome || '',
+        totalComIva:    proposta.totalComIva,
+        dataEmissao:    proposta.dataEmissao,
+        titulo:         proposta.titulo || undefined,
+        duracao:        proposta.duracao || undefined,
+        condicoesPagamento: proposta.condicoesPagamento || undefined,
+        observacoes:    proposta.observacoes || undefined,
+      }, empresa);
+      return (
+        <SendEmailDialog
+          open={emailOpen}
+          onOpenChange={setEmailOpen}
+          title="Enviar confirmação ao cliente"
+          description={`Proposta ${proposta.numeroProposta} — ${proposta.clienteNome || ''}`}
+          subject={subject}
+          html={html}
+        />
+      );
+    })()}
   );
 }

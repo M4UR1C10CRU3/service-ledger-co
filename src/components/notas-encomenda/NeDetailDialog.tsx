@@ -10,8 +10,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Package, CheckSquare, Zap, Trash2, Plus, FileDown, Loader2 } from 'lucide-react';
+import { Package, CheckSquare, Zap, Trash2, Plus, FileDown, Loader2, Mail } from 'lucide-react';
 import { exportNePdf } from './nePdfExport';
+import { buildNotaEncomendaEmail } from '@/lib/emailTemplates';
+import { SendEmailDialog } from '@/components/SendEmailDialog';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 
 interface Props {
@@ -56,6 +58,8 @@ export function NeDetailDialog({
   const [newChkDesc, setNewChkDesc] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailData, setEmailData] = useState<{ subject: string; html: string } | null>(null);
   const { empresa } = useEmpresa();
 
   useEffect(() => {
@@ -129,6 +133,34 @@ export function NeDetailDialog({
     } finally {
       setPdfLoading(false);
     }
+  };
+
+  const handleOpenEmail = async () => {
+    let emailItems = items;
+    if (emailItems.length === 0) {
+      emailItems = await fetchItems(ne.id);
+      setItems(emailItems);
+    }
+    const result = buildNotaEncomendaEmail(
+      {
+        numero:          ne.numero,
+        titulo:          ne.titulo,
+        fornecedorNome:  ne.fornecedorNome,
+        dataCriacao:     ne.dataCriacao,
+        dataNecessidade: ne.dataNecessidade,
+        items:           emailItems.map(it => ({
+          descricao:   it.descricao,
+          referencia:  it.referencia,
+          quantidade:  it.quantidade,
+          unidade:     it.unidade,
+        })),
+        observacoes:     ne.observacoes,
+        valorEstimado:   ne.valorEstimado,
+      },
+      empresa,
+    );
+    setEmailData(result);
+    setEmailOpen(true);
   };
 
   return (
@@ -278,6 +310,18 @@ export function NeDetailDialog({
             <Separator />
 
             <div>
+              <h3 className="font-semibold mb-3">Enviar por Email</h3>
+              <Button variant="outline" size="sm" onClick={handleOpenEmail}>
+                <Mail className="h-4 w-4 mr-2" /> Enviar NE ao Fornecedor por Email
+              </Button>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Gera o email com a lista de materiais e envia directamente ao fornecedor.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div>
               <h3 className="font-semibold mb-3">Transição de Estado</h3>
               {transitions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Sem transições disponíveis</p>
@@ -318,6 +362,17 @@ export function NeDetailDialog({
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    {emailData && (
+      <SendEmailDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        title="Enviar NE ao Fornecedor"
+        description={`${ne.numero} — ${ne.fornecedorNome || 'Fornecedor'}`}
+        subject={emailData.subject}
+        html={emailData.html}
+      />
+    )}
   );
 }
 

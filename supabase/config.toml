@@ -54,3 +54,6 @@ verify_jwt = true
 [functions.marketing-notify-approval]
 verify_jwt = false
 
+[functions.send-email]
+verify_jwt = true
+

@@ -3,8 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { ServiceWithCalculations, Liquidacao } from '@/types/service';
 import { LiquidacoesManager } from './LiquidacoesManager';
 import { MateriaisUtilizadosDialog } from './materiais/MateriaisUtilizadosDialog';
+import { SendEmailDialog } from '@/components/SendEmailDialog';
+import { buildCobrancaDebitoEmail } from '@/lib/emailTemplates';
 import { formatEUR } from '@/lib/formatters';
 import { parseInvoiceEntries } from '@/components/InvoiceHistoryInput';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Mail, Package } from 'lucide-react';
+import { Phone, Mail, Package, Bell } from 'lucide-react';
 
 interface ServiceDetailDialogProps {
   open: boolean;
@@ -38,6 +41,8 @@ export const ServiceDetailDialog = ({
 }: ServiceDetailDialogProps) => {
   const [materiaisOpen, setMateriaisOpen] = useState(false);
   const [materiaisCount, setMateriaisCount] = useState(0);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const { empresa } = useEmpresa();
 
   const loadMateriaisCount = async () => {
     if (!service?.dbId) return;
@@ -121,6 +126,17 @@ export const ServiceDetailDialog = ({
                           <Mail className="h-4 w-4" />
                           {service.email}
                         </a>
+                      )}
+                      {service.email && service.executadoEmDebito > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-fit mt-1 text-destructive border-destructive/30 hover:bg-destructive/5"
+                          onClick={() => setEmailOpen(true)}
+                        >
+                          <Bell className="h-3.5 w-3.5 mr-1.5" />
+                          Enviar lembrete de pagamento
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -400,5 +416,28 @@ export const ServiceDetailDialog = ({
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Email — lembrete de pagamento */}
+    {(() => {
+      const { subject, html } = buildCobrancaDebitoEmail({
+        clienteNome:  service.cliente,
+        servico:      service.servico,
+        valorTotal:   service.valorComIVA,
+        valorPago:    service.liquidado,
+        referencia:   service.proposta || service.fatura || null,
+        dataServico:  service.data || null,
+      }, empresa);
+      return (
+        <SendEmailDialog
+          open={emailOpen}
+          onOpenChange={setEmailOpen}
+          title="Enviar lembrete de pagamento"
+          description={`${service.cliente} · Em dívida: ${formatEUR(service.executadoEmDebito)}`}
+          defaultTo={service.email || ''}
+          subject={subject}
+          html={html}
+        />
+      );
+    })()}
   );
 };
