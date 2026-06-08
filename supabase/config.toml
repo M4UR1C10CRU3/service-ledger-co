@@ -22,11 +22,9 @@ pop3_port = 54326
 
 [storage]
 enabled = true
-port = 54327
 
 [auth]
 enabled = true
-port = 54328
 
 [auth.email]
 enable_signup = true
