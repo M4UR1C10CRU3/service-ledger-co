@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrdemServico, OsChecklistItem, OsFormData, OsEstado } from '@/types/ordemServico';
 import { useToast } from '@/hooks/use-toast';
+import { inserirNotificacaoInterna } from '@/hooks/useNotificacoesInternas';
 
 function mapOs(row: any): OrdemServico {
   return {
@@ -103,6 +104,18 @@ export function useOrdensServico(empresaId: string | undefined) {
       }
       setOrdens(prev => [os, ...prev]);
       toast({ title: `OS criada: ${os.numero}` });
+
+      // Notificação interna → produção
+      inserirNotificacaoInterna({
+        empresa_id: empresaId,
+        tipo: 'os_criada',
+        titulo: `OS ${os.numero} criada`,
+        mensagem: `${form.clienteNome ? form.clienteNome + ' · ' : ''}${form.titulo}`,
+        perfil_destino: 'producao',
+        referencia_id: os.id,
+        referencia_tipo: 'ordem_servico',
+      }).catch(() => {}); // fire-and-forget; não bloqueia a criação
+
       return os;
     } catch (e: any) {
       toast({ title: 'Erro ao criar OS', description: e.message, variant: 'destructive' });

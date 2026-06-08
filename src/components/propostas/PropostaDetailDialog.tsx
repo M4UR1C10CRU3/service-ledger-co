@@ -8,6 +8,7 @@ import { formatEUR } from '@/lib/formatters';
 import { buildPropostaPdfHtml, exportPropostaPdf, type PropostaPdfMode } from '@/components/propostas/propostaPdfExport';
 import { exportPropostaExcel } from '@/components/propostas/propostaExcelExport';
 import { supabase } from '@/integrations/supabase/client';
+import { inserirNotificacaoInterna } from '@/hooks/useNotificacoesInternas';
 import type { Proposta, PropostaLinha, PropostaEstado } from '@/types/proposta';
 import { Pencil, FileDown, FileSpreadsheet, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -155,6 +156,17 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
     setIsAceitando(false);
 
     if (ok) {
+      // 5. Notificação interna → financeiro
+      await inserirNotificacaoInterna({
+        empresa_id: empresa.id,
+        tipo: 'proposta_aceite',
+        titulo: `Proposta ${proposta.numeroProposta} adjudicada`,
+        mensagem: `${proposta.clienteNome ? proposta.clienteNome + ' · ' : ''}${formatEUR(proposta.totalComIva)}`,
+        perfil_destino: 'financeiro',
+        referencia_id: proposta.id,
+        referencia_tipo: 'proposta',
+      });
+
       if (pdfUrl) {
         toast({
           title: '✅ Proposta aceite',

@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { formatDateToISO } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { Bell, AlertTriangle, Clock, ArrowRight, Phone, Megaphone } from 'lucide-react';
+import { Bell, AlertTriangle, Clock, ArrowRight, Phone, Megaphone, CheckCheck, Briefcase, Wrench, CreditCard, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useNotificacoesInternas } from '@/hooks/useNotificacoesInternas';
 
 interface AlertAccount {
   id: string;
@@ -57,9 +58,34 @@ const getMeioLabel = (emailType: string | null) => {
   return 'E-mail';
 };
 
+// ── Tipo icon/colour map ───────────────────────────────────────────────────────
+
+const NOTIF_META: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+  proposta_aceite:      { icon: <Briefcase className="h-3 w-3" />, color: 'text-green-700',  bg: 'bg-green-500/10' },
+  os_criada:            { icon: <Wrench className="h-3 w-3" />,    color: 'text-blue-700',   bg: 'bg-blue-500/10'  },
+  pagamento_confirmado: { icon: <CreditCard className="h-3 w-3" />,color: 'text-amber-700',  bg: 'bg-amber-500/10' },
+  te_aprovado:          { icon: <CheckCheck className="h-3 w-3" />,color: 'text-purple-700', bg: 'bg-purple-500/10'},
+};
+
+const notifMeta = (tipo: string) =>
+  NOTIF_META[tipo] ?? { icon: <Info className="h-3 w-3" />, color: 'text-muted-foreground', bg: 'bg-muted/50' };
+
+const fmtRelTime = (iso: string) => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'Agora';
+  if (m < 60) return `há ${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function NotificationBell() {
   const { empresa } = useEmpresa();
   const navigate = useNavigate();
+  const { notifs, unreadCount, marcarLida, marcarTodasLidas } = useNotificacoesInternas();
   const [alerts, setAlerts] = useState<AlertAccount[]>([]);
   const [followupAlerts, setFollowupAlerts] = useState<FollowupAlert[]>([]);
   const [marketingApprovals, setMarketingApprovals] = useState<MarketingApproval[]>([]);
@@ -177,7 +203,7 @@ export function NotificationBell() {
   const nearDueAlerts = alerts.filter(a => a.daysUntilDue >= 0);
   const overdueFollowups = followupAlerts.filter(f => f.minutesUntil <= 0);
   const upcomingFollowups = followupAlerts.filter(f => f.minutesUntil > 0);
-  const totalAlerts = alerts.length + followupAlerts.length + marketingApprovals.length;
+  const totalAlerts = alerts.length + followupAlerts.length + marketingApprovals.length + unreadCount;
 
   const handleViewAll = () => {
     setOpen(false);
@@ -249,6 +275,11 @@ export function NotificationBell() {
               </Badge>
             )}
           </div>
+          {unreadCount > 0 && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground px-2" onClick={marcarTodasLidas}>
+              <CheckCheck className="h-3 w-3 mr-1" /> Marcar lidas
+            </Button>
+          )}
         </div>
 
         <ScrollArea className="max-h-[400px]">
@@ -260,6 +291,50 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="divide-y divide-border">
+              {/* ── Clariza internal notifications ── */}
+              {notifs.length > 0 && (
+                <div>
+                  <div className="px-4 py-2 bg-primary/8 border-b border-border/60">
+                    <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
+                      <Bell className="h-3 w-3" />
+                      Clariza — Actividade recente ({notifs.length})
+                    </p>
+                  </div>
+                  {notifs.map(n => {
+                    const meta = notifMeta(n.tipo);
+                    return (
+                      <div
+                        key={n.id}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-muted/40 transition-colors border-b border-border/50 last:border-0"
+                      >
+                        {/* Tipo icon */}
+                        <div className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full ${meta.bg}`}>
+                          <span className={meta.color}>{meta.icon}</span>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground leading-tight">{n.titulo}</p>
+                          {n.mensagem && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.mensagem}</p>
+                          )}
+                          <p className="text-[11px] text-muted-foreground/70 mt-1">{fmtRelTime(n.criada_em)}</p>
+                        </div>
+
+                        {/* Mark as read */}
+                        <button
+                          onClick={() => marcarLida(n.id)}
+                          title="Marcar como lida"
+                          className="flex-shrink-0 mt-0.5 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <CheckCheck className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Marketing approvals section */}
               {marketingApprovals.length > 0 && (
                 <div>
