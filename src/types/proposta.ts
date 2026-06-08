@@ -33,6 +33,7 @@ export interface Proposta {
   updatedAt: string;
   poId?: string | null;
   numeroPo?: string | null;
+  pdfAceiteUrl?: string | null;
 }
 
 export interface PropostaLinha {

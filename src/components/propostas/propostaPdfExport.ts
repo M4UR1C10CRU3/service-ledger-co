@@ -3,7 +3,7 @@ import { getEmpresaDocConfig } from '@/lib/empresaConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface PdfData {
+export interface PdfData {
   numeroProposta: string;
   clienteNome: string;
   clienteMorada: string;
@@ -51,23 +51,21 @@ const MODE_SUFFIX: Record<PropostaPdfMode, string> = {
   global:    'Valor Global',
 };
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── HTML Builder (exported — used for Storage upload too) ─────────────────────
 
-export function exportPropostaPdf(
+export function buildPropostaPdfHtml(
   data: PdfData,
   empresa: any,
   logoDataUrl?: string,
   mode: PropostaPdfMode = 'unitarios',
-) {
+): { html: string; filename: string } {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
   const cfg = getEmpresaDocConfig(empresa?.slug);
 
-  // Filename — company-agnostic
   const numClean = (data.numeroProposta || '')
     .replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
   const filename = `Proposta ${cfg.prefixoProposta} ${numClean}_${MODE_SUFFIX[mode]}`;
 
-  // Date
   const dataFormatted = data.dataEmissao
     ? new Date(data.dataEmissao)
         .toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -77,7 +75,6 @@ export function exportPropostaPdf(
   const hideLineValues = mode === 'subtotais' || mode === 'global';
   const hideSubtotals  = mode === 'global';
 
-  // ── Table rows ──────────────────────────────────────────────────────────────
   let linhasHtml = '';
   data.linhas.forEach((l, i) => {
     if (l.tipoLinha === 'seccao') {
@@ -110,14 +107,10 @@ export function exportPropostaPdf(
     }
   });
 
-  // ── Defaults (match PHC) ────────────────────────────────────────────────────
   const condicoesGerais    = data.condicoesGerais    || 'O valor acima indicado é acrescido de IVA à taxa legal em vigor.';
   const validadeTexto      = data.validadeTexto      || 'Proposta tem validade de 30 dias, sujeita a rectificação após esse prazo.';
   const condicoesPagamento = data.condicoesPagamento || 'Pagamento até 60 dias após a emissão de fatura.';
-
-  // Emails for signature area
   const emails = cfg.emailsRodape.split('|').map((e: string) => e.trim()).filter(Boolean);
-
   const th = `background:${primaryColor};color:white;padding:6px 8px;font-size:11px;font-weight:bold;border:none`;
 
   const html = `<!DOCTYPE html>
@@ -136,7 +129,6 @@ export function exportPropostaPdf(
 </head>
 <body>
 
-  <!-- HEADER: Logo + Doc reference -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
     <div>
       ${logoDataUrl
@@ -150,7 +142,6 @@ export function exportPropostaPdf(
     </div>
   </div>
 
-  <!-- Company + Client info -->
   <div style="display:flex;justify-content:space-between;margin-bottom:10px">
     <div style="font-size:11px;line-height:1.7">
       <strong style="font-size:13px">${cfg.nomeDocumento}</strong><br/>
@@ -167,10 +158,8 @@ export function exportPropostaPdf(
     </div>
   </div>
 
-  <!-- Section heading -->
   <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Trabalhos a executar:</p>
 
-  <!-- Colored bar -->
   <div style="background:${primaryColor};color:white;padding:6px 12px;display:flex;justify-content:space-between;align-items:flex-start;font-size:10px">
     <div>
       <strong>Data de emissão :</strong>&nbsp;${dataFormatted}<br/>
@@ -180,14 +169,12 @@ export function exportPropostaPdf(
     <span><strong>V/Nº Contribuinte:</strong>&nbsp;${data.clienteNif}</span>
   </div>
 
-  <!-- System note (replaces PHC note) -->
   <div style="font-size:9px;font-style:italic;color:#888;padding:3px 0 5px;border-bottom:1px solid #E0E0E0;margin-bottom:6px">
     Clariza Manager — Sistema de Gestão Empresarial — Este documento não serve de fatura
   </div>
 
   ${data.descricaoGeral ? `<p style="font-size:11px;margin-bottom:8px">${data.descricaoGeral}</p>` : ''}
 
-  <!-- Items table -->
   <table class="linhas">
     <thead>
       <tr>
@@ -203,9 +190,7 @@ export function exportPropostaPdf(
     <tbody>${linhasHtml}</tbody>
   </table>
 
-  <!-- Footer: Conditions (left) + Totals (right) — PHC layout -->
   <div style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">
-
     <div style="flex:1;background:#F5F5F5;border:1px solid #E0E0E0;padding:8px 12px;font-size:10px;line-height:1.7">
       <p style="margin:2px 0"><strong>Como condições gerais teremos:</strong></p>
       <p style="margin:2px 0">${condicoesGerais}</p>
@@ -216,7 +201,6 @@ export function exportPropostaPdf(
       <p style="margin:2px 0"><strong>Condições de pagamento:</strong><br/>${condicoesPagamento}</p>
       <p style="margin:2px 0"><strong>Observações</strong>${data.observacoes ? '<br/>' + data.observacoes.replace(/\n/g, '<br/>') : ''}</p>
     </div>
-
     <div style="width:230px;font-size:11px">
       ${mode !== 'global' ? `
       <table style="width:100%;border-collapse:collapse">
@@ -228,9 +212,7 @@ export function exportPropostaPdf(
           <td style="padding:3px 6px;font-weight:600">${fmtEur(data.valorIva)}</td>
           <td style="padding:3px 6px;font-weight:600;text-align:right">${fmtEur(data.totalComIva)}</td>
         </tr>
-        <tr>
-          <td colspan="2" style="border-top:1px solid #CCC;padding:0"></td>
-        </tr>
+        <tr><td colspan="2" style="border-top:1px solid #CCC;padding:0"></td></tr>
         <tr>
           <td style="padding:5px 6px;font-weight:bold;font-size:12px">TOTAL sem IVA:</td>
           <td style="padding:5px 6px;font-weight:bold;font-size:12px;text-align:right">${fmtEur(data.totalSemIva)}</td>
@@ -245,7 +227,6 @@ export function exportPropostaPdf(
     </div>
   </div>
 
-  <!-- Signatures — PHC 3-column layout -->
   <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end">
     <div style="font-size:10px">
       Cliente:<br/>
@@ -261,7 +242,23 @@ export function exportPropostaPdf(
     </div>
   </div>
 
-  <script>
+</body>
+</html>`;
+
+  return { html, filename };
+}
+
+// ── Print export (opens window + triggers print dialog) ───────────────────────
+
+export function exportPropostaPdf(
+  data: PdfData,
+  empresa: any,
+  logoDataUrl?: string,
+  mode: PropostaPdfMode = 'unitarios',
+) {
+  const { html, filename } = buildPropostaPdfHtml(data, empresa, logoDataUrl, mode);
+
+  const printScript = `<script>
     document.title = ${JSON.stringify(filename)};
     window.addEventListener('load', function () {
       document.title = ${JSON.stringify(filename)};
@@ -273,14 +270,14 @@ export function exportPropostaPdf(
     window.addEventListener('afterprint', function () {
       document.title = ${JSON.stringify(filename)};
     });
-  </script>
-</body>
-</html>`;
+  <\/script>`;
+
+  const htmlWithScript = html.replace('</body>', printScript + '</body>');
 
   const w = window.open('', '_blank');
   if (w) {
     w.document.open();
-    w.document.write(html);
+    w.document.write(htmlWithScript);
     w.document.close();
     try { w.document.title = filename; } catch (_) {}
   }

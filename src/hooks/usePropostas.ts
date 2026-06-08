@@ -37,6 +37,7 @@ function mapProposta(r: any): Proposta {
     updatedAt: r.updated_at,
     poId: r.po_id ?? null,
     numeroPo: r.numero_po ?? null,
+    pdfAceiteUrl: r.pdf_aceite_url ?? null,
   };
 }
 
@@ -299,8 +300,14 @@ export function usePropostas() {
     return row.id;
   };
 
-  const updateEstado = async (id: string, estado: PropostaEstado): Promise<boolean> => {
-    const { error } = await supabase.from('propostas').update({ estado }).eq('id', id);
+  const updateEstado = async (
+    id: string,
+    estado: PropostaEstado,
+    pdfAceiteUrl?: string,
+  ): Promise<boolean> => {
+    const update: Record<string, unknown> = { estado };
+    if (pdfAceiteUrl) update.pdf_aceite_url = pdfAceiteUrl;
+    const { error } = await supabase.from('propostas').update(update).eq('id', id);
     if (error) { console.error(error); return false; }
     await fetchPropostas();
     return true;

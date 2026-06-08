@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useRelatorioGerencial, getPeriodoRange } from '@/hooks/useRelatorioGerencial';
 import type { PeriodoTipo } from '@/hooks/useRelatorioGerencial';
 import { useEmpresa } from '@/contexts/EmpresaContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getEmpresaDocConfig } from '@/lib/empresaConfig';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,7 +33,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function RelatorioGerencial() {
-  const { empresa } = useEmpresa();
+  const { empresa, getLogo } = useEmpresa();
   const { data, isLoading, gerar } = useRelatorioGerencial();
   const [periodoTipo, setPeriodoTipo] = useState<PeriodoTipo>('mes_atual');
   const [customInicio, setCustomInicio] = useState('');
@@ -122,10 +123,31 @@ export default function RelatorioGerencial() {
           </Card>
         ) : (
           <div id="relatorio-print" className="space-y-8 bg-background p-6 rounded-lg border">
+            {/* Print header — PHC style */}
             <div className="flex items-start justify-between border-b pb-4">
-              <div>
-                <h2 className="text-2xl font-bold">{data.empresaNome}</h2>
-                <p className="text-sm text-muted-foreground">Relatório Gerencial — {data.periodo.label}</p>
+              <div className="flex items-center gap-4">
+                {getLogo() && (
+                  <img
+                    src={getLogo()}
+                    alt={data.empresaNome}
+                    className="max-h-14 object-contain"
+                    crossOrigin="anonymous"
+                  />
+                )}
+                <div>
+                  <h2 className="text-2xl font-bold" style={{ color: empresa?.corPrimaria || '#E8630A' }}>
+                    {data.empresaNome}
+                  </h2>
+                  {empresa && (() => {
+                    const cfg = getEmpresaDocConfig(empresa.slug);
+                    return (
+                      <p className="text-xs text-muted-foreground leading-5">
+                        {cfg.morada} · {cfg.codigoPostal} {cfg.localidade} · NIF {cfg.contribuinte}
+                      </p>
+                    );
+                  })()}
+                  <p className="text-sm text-muted-foreground">Relatório Gerencial — {data.periodo.label}</p>
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground uppercase">Gerado em</p>
@@ -174,7 +196,7 @@ export default function RelatorioGerencial() {
 
             <div className="border-t pt-4 mt-8">
               <p className="text-xs text-center text-muted-foreground">
-                Liberty — Sistema de Gestão · Relatório gerado em {data.geradoEm} · Período: {data.periodo.inicio} a {data.periodo.fim}
+                Clariza Manager — Sistema de Gestão · Relatório gerado em {data.geradoEm} · Período: {data.periodo.inicio} a {data.periodo.fim}
               </p>
             </div>
           </div>
