@@ -120,22 +120,24 @@ export function useUtilizadores() {
     empresaIds: string[];
     empresaPadrao: string;
   }) => {
-    // Create auth user via Supabase signUp (admin would need service role for full control)
-    // For now we use signUp which will send confirmation email
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: params.email,
-      password: params.password,
-      options: { data: { nome: params.nome } },
+    // ─── IMPORTANTE: Usar Edge Function com service_role para criar o utilizador auth.
+    // NÃO usar supabase.auth.signUp() directamente — em Supabase JS v2 com
+    // enable_confirmations=false isso substitui a sessão do admin pela do novo utilizador,
+    // fazendo o admin perder acesso imediatamente.
+    const { data: fnData, error: fnError } = await supabase.functions.invoke('admin-create-user', {
+      body: { email: params.email, password: params.password, nome: params.nome },
     });
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Falha ao criar utilizador');
+    if (fnError) throw new Error(fnError.message);
+    if (!fnData?.user) throw new Error(fnData?.error || 'Falha ao criar utilizador de autenticação');
+
+    const newAuthUser = fnData.user;
 
     // Create liberty_utilizadores record
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const { data: lutilizador, error: luError } = await (supabase
       .from('liberty_utilizadores') as any)
       .insert({
-        auth_user_id: authData.user.id,
+        auth_user_id: newAuthUser.id,
         nome: params.nome,
         email: params.email,
         telefone: params.telefone || null,
