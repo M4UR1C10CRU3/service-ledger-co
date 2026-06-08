@@ -164,6 +164,7 @@ export function NeDetailDialog({
   };
 
   return (
+    <>
     <Dialog open={!!ne} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -374,6 +375,7 @@ export function NeDetailDialog({
         html={emailData.html}
       />
     )}
+    </>
   );
 }
 

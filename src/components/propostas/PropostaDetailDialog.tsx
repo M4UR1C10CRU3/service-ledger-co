@@ -228,6 +228,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -430,5 +431,6 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
         />
       );
     })()}
+    </>
   );
 }
