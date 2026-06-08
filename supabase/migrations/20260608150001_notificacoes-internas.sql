@@ -42,4 +42,12 @@ CREATE POLICY "notif_internas_update" ON public.notificacoes_internas
   USING (auth.uid() IS NOT NULL);
 
 -- Enable Realtime for this table (required for live notification bell)
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notificacoes_internas;
+-- Wrapped in DO block to be idempotent (no-op if already a member)
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.notificacoes_internas;
+EXCEPTION WHEN duplicate_object THEN
+  -- Already a member of the publication — no action needed
+  NULL;
+END;
+$$;
