@@ -93,7 +93,7 @@ export interface PropostaEmailData {
 export function buildPropostaAdjudicadaEmail(
   data: PropostaEmailData,
   empresa: EmpresaEmailInfo,
-): { subject: string; html: string; from: string } {
+): { subject: string; html: string; from: string; tipo: 'comercial' } {
   const cfg = getEmpresaDocConfig(empresa.slug);
   const from = cfg.emailRemetentes.comercial;
   const subject = `Confirmação de adjudicação — ${data.numeroProposta}`;
@@ -138,7 +138,62 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
   Agradecemos a sua confiança. Para qualquer questão, não hesite em contactar-nos.
 </p>`;
 
-  return { subject, html: baseLayout(empresa, body), from };
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'comercial' as const };
+}
+
+// ── Template 1b: Proposta Enviada ao Cliente ──────────────────────────────────
+
+export function buildPropostaEnviadaEmail(
+  data: PropostaEmailData,
+  empresa: EmpresaEmailInfo,
+): { subject: string; html: string; from: string; tipo: 'comercial' } {
+  const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.comercial;
+  const subject = `Proposta ${data.numeroProposta} — ${cfg.nomeDocumento}`;
+
+  const rows = [
+    { label: 'Referência', value: `<strong>${data.numeroProposta}</strong>` },
+    ...(data.titulo ? [{ label: 'Descrição', value: data.titulo }] : []),
+    { label: 'Data', value: fmtDate(data.dataEmissao) },
+    ...(data.duracao ? [{ label: 'Prazo de execução', value: data.duracao }] : []),
+    ...(data.condicoesPagamento ? [{ label: 'Condições de pagamento', value: data.condicoesPagamento }] : []),
+  ];
+
+  const tableRows = rows.map(r =>
+    `<tr>
+      <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb;width:42%;white-space:nowrap">${r.label}</td>
+      <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${r.value}</td>
+    </tr>`
+  ).join('');
+
+  const body = `
+<h2 style="margin:0 0 6px;font-size:22px;color:#111;font-weight:700">Proposta Comercial</h2>
+<p style="margin:0 0 24px;font-size:12px;color:#999">Referência: ${data.numeroProposta}</p>
+
+<p style="margin:0 0 22px;font-size:14px;color:#444;line-height:1.7">
+  Exmo(a) Sr(a). <strong>${data.clienteNome}</strong>,<br><br>
+  É com prazer que apresentamos a nossa proposta comercial. Analisámos o vosso pedido e
+  elaborámos a solução que melhor se adapta às suas necessidades.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:22px;overflow:hidden">
+  ${tableRows}
+  <tr style="background:#eff6ff">
+    <td style="padding:13px 14px;font-size:13px;color:#1e40af;font-weight:700">Valor total (c/ IVA)</td>
+    <td style="padding:13px 14px;font-size:18px;font-weight:700;color:#1d4ed8">${fmtEUR(data.totalComIva)}</td>
+  </tr>
+</table>
+
+${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:14px 16px;margin-bottom:22px">
+  <p style="margin:0;font-size:13px;color:#713f12"><strong>Observações:</strong> ${data.observacoes}</p>
+</div>` : ''}
+
+<p style="margin:0;font-size:13px;color:#666;line-height:1.7">
+  O documento completo segue em anexo. Para aceitar ou colocar questões, não hesite em contactar-nos.
+  A proposta é válida por 30 dias a partir da data de emissão.
+</p>`;
+
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'comercial' as const };
 }
 
 // ── Template 2: Nota de Encomenda ao Fornecedor ───────────────────────────────
@@ -164,7 +219,7 @@ export interface NeEmailData {
 export function buildNotaEncomendaEmail(
   data: NeEmailData,
   empresa: EmpresaEmailInfo,
-): { subject: string; html: string; from: string } {
+): { subject: string; html: string; from: string; tipo: 'compras' } {
   const cfg = getEmpresaDocConfig(empresa.slug);
   const from = cfg.emailRemetentes.compras;
   const subject = `Nota de Encomenda ${data.numero} — ${cfg.nomeDocumento}`;
@@ -221,7 +276,7 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
   Aguardamos a sua confirmação. Obrigado pela colaboração.
 </p>`;
 
-  return { subject, html: baseLayout(empresa, body), from };
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'compras' as const };
 }
 
 // ── Template 3: Lembrete de Cobrança ─────────────────────────────────────────
@@ -238,7 +293,7 @@ export interface CobrancaEmailData {
 export function buildCobrancaDebitoEmail(
   data: CobrancaEmailData,
   empresa: EmpresaEmailInfo,
-): { subject: string; html: string; from: string } {
+): { subject: string; html: string; from: string; tipo: 'financeiro' } {
   const emDivida = data.valorTotal - data.valorPago;
   const cfg = getEmpresaDocConfig(empresa.slug);
   const from = cfg.emailRemetentes.financeiro;
@@ -285,5 +340,5 @@ export function buildCobrancaDebitoEmail(
   Agradecemos a sua atenção e colaboração.
 </p>`;
 
-  return { subject, html: baseLayout(empresa, body), from };
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'financeiro' as const };
 }
