@@ -279,7 +279,76 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
   return { subject, html: baseLayout(empresa, body), from, tipo: 'compras' as const };
 }
 
-// ── Template 3: Lembrete de Cobrança ─────────────────────────────────────────
+// ── Template 3: Pedido de Pagamento (pós-adjudicação) ────────────────────────
+
+export interface PedidoPagamentoEmailData {
+  clienteNome: string;
+  servico: string;
+  valorTotal: number;
+  valorPago: number;
+  referencia?: string | null;
+  dataServico?: string | null;
+  condicoesPagamento?: string | null;
+}
+
+export function buildPedidoPagamentoEmail(
+  data: PedidoPagamentoEmailData,
+  empresa: EmpresaEmailInfo,
+): { subject: string; html: string; from: string; tipo: 'financeiro' } {
+  const saldo = data.valorTotal - data.valorPago;
+  const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.financeiro;
+  const subject = `Pedido de pagamento${data.referencia ? ` — ${data.referencia}` : ''} — ${cfg.nomeDocumento}`;
+
+  const body = `
+<h2 style="margin:0 0 16px;font-size:22px;color:#111;font-weight:700">Pedido de Pagamento</h2>
+
+<p style="margin:0 0 22px;font-size:14px;color:#444;line-height:1.7">
+  Exmo(a) Sr(a). <strong>${data.clienteNome}</strong>,<br><br>
+  Informamos que a fatura referente ao serviço abaixo se encontra disponível para pagamento.
+  Agradecemos a liquidação no prazo acordado.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;margin-bottom:22px">
+  ${data.referencia ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb;width:42%">Referência</td>
+    <td style="padding:11px 14px;font-size:13px;font-weight:600;border-bottom:1px solid #ebebeb">${data.referencia}</td>
+  </tr>` : ''}
+  <tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Serviço / Obra</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${data.servico}</td>
+  </tr>
+  ${data.dataServico ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Data</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${data.dataServico}</td>
+  </tr>` : ''}
+  ${data.condicoesPagamento ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Condições de pagamento</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${data.condicoesPagamento}</td>
+  </tr>` : ''}
+  <tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Valor total (c/ IVA)</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${fmtEUR(data.valorTotal)}</td>
+  </tr>
+  ${data.valorPago > 0 ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#15803d;border-bottom:1px solid #ebebeb">Já liquidado</td>
+    <td style="padding:11px 14px;font-size:13px;color:#16a34a;border-bottom:1px solid #ebebeb">${fmtEUR(data.valorPago)}</td>
+  </tr>` : ''}
+  <tr style="background:#eff6ff">
+    <td style="padding:13px 14px;font-size:13px;color:#1e40af;font-weight:700">Saldo a liquidar</td>
+    <td style="padding:13px 14px;font-size:18px;font-weight:700;color:#1d4ed8">${fmtEUR(saldo)}</td>
+  </tr>
+</table>
+
+<p style="margin:0;font-size:13px;color:#666;line-height:1.7">
+  Para efectuar o pagamento ou obter dados bancários, por favor contacte-nos através dos dados indicados no rodapé.<br>
+  Após o pagamento, agradecemos o envio do comprovativo para confirmar a liquidação.
+</p>`;
+
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'financeiro' as const };
+}
+
+// ── Template 4: Lembrete de Cobrança ─────────────────────────────────────────
 
 export interface CobrancaEmailData {
   clienteNome: string;
@@ -341,4 +410,126 @@ export function buildCobrancaDebitoEmail(
 </p>`;
 
   return { subject, html: baseLayout(empresa, body), from, tipo: 'financeiro' as const };
+}
+
+// ── Template 5: Comprovativo de Pagamento (ao fornecedor) ─────────────────────
+
+export interface ComprovativoPagamentoEmailData {
+  fornecedorNome: string;
+  neNumero: string;
+  descricao?: string | null;
+  valorPago: number;
+  referencia?: string | null;
+  dataPagamento?: string | null;
+  observacoes?: string | null;
+}
+
+export function buildComprovativoPagamentoEmail(
+  data: ComprovativoPagamentoEmailData,
+  empresa: EmpresaEmailInfo,
+): { subject: string; html: string; from: string; tipo: 'compras' } {
+  const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.compras;
+  const subject = `Comprovativo de pagamento — ${data.neNumero} — ${cfg.nomeDocumento}`;
+
+  const body = `
+<h2 style="margin:0 0 16px;font-size:22px;color:#111;font-weight:700">Comprovativo de Pagamento</h2>
+
+<p style="margin:0 0 22px;font-size:14px;color:#444;line-height:1.7">
+  Exmo(a) Sr(a). <strong>${data.fornecedorNome}</strong>,<br><br>
+  Informamos que o pagamento referente ao pedido abaixo foi efectuado.
+  Em anexo (ou conforme indicado) encontra-se o respectivo comprovativo.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;margin-bottom:22px">
+  <tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb;width:42%">Nota de Encomenda</td>
+    <td style="padding:11px 14px;font-size:13px;font-weight:600;border-bottom:1px solid #ebebeb">${data.neNumero}</td>
+  </tr>
+  ${data.referencia ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Referência fatura</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${data.referencia}</td>
+  </tr>` : ''}
+  ${data.descricao ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Descrição</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${data.descricao}</td>
+  </tr>` : ''}
+  ${data.dataPagamento ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Data de pagamento</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${fmtDate(data.dataPagamento)}</td>
+  </tr>` : ''}
+  <tr style="background:#f0fdf4">
+    <td style="padding:13px 14px;font-size:13px;color:#15803d;font-weight:700">Valor pago</td>
+    <td style="padding:13px 14px;font-size:18px;font-weight:700;color:#16a34a">${fmtEUR(data.valorPago)}</td>
+  </tr>
+</table>
+
+${data.observacoes ? `<p style="margin:0 0 22px;font-size:13px;color:#666;line-height:1.7"><strong>Observações:</strong> ${data.observacoes}</p>` : ''}
+
+<p style="margin:0;font-size:13px;color:#666;line-height:1.7">
+  Caso tenha alguma questão relativamente a este pagamento, contacte-nos através dos dados indicados no rodapé.<br>
+  Agradecemos a colaboração.
+</p>`;
+
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'compras' as const };
+}
+
+// ── Template 6: Follow-up de Proposta (sem resposta) ─────────────────────────
+
+export interface FollowUpPropostaEmailData {
+  clienteNome: string;
+  numeroProposta: string;
+  titulo?: string | null;
+  totalComIva: number;
+  dataEmissao: string;
+  diasPendente: number;
+  dataValidade?: string | null;
+}
+
+export function buildFollowUpPropostaEmail(
+  data: FollowUpPropostaEmailData,
+  empresa: EmpresaEmailInfo,
+): { subject: string; html: string; from: string; tipo: 'comercial' } {
+  const cfg = getEmpresaDocConfig(empresa.slug);
+  const from = cfg.emailRemetentes.comercial;
+  const subject = `Seguimento — ${data.numeroProposta} — ${cfg.nomeDocumento}`;
+
+  const body = `
+<h2 style="margin:0 0 16px;font-size:22px;color:#111;font-weight:700">Seguimento de Proposta</h2>
+
+<p style="margin:0 0 22px;font-size:14px;color:#444;line-height:1.7">
+  Exmo(a) Sr(a). <strong>${data.clienteNome}</strong>,<br><br>
+  Vimos por este meio dar seguimento à proposta comercial enviada há ${data.diasPendente} dia${data.diasPendente !== 1 ? 's' : ''}.
+  Gostaríamos de saber se tiveram oportunidade de analisar a nossa proposta e se existem questões que possamos esclarecer.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;margin-bottom:22px">
+  <tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb;width:42%">Proposta</td>
+    <td style="padding:11px 14px;font-size:13px;font-weight:600;border-bottom:1px solid #ebebeb">${data.numeroProposta}</td>
+  </tr>
+  ${data.titulo ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Assunto</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${data.titulo}</td>
+  </tr>` : ''}
+  <tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Data de emissão</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb">${fmtDate(data.dataEmissao)}</td>
+  </tr>
+  ${data.dataValidade ? `<tr>
+    <td style="padding:11px 14px;font-size:13px;color:#666;border-bottom:1px solid #ebebeb">Válida até</td>
+    <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid #ebebeb;color:#b45309">${fmtDate(data.dataValidade)}</td>
+  </tr>` : ''}
+  <tr style="background:#eff6ff">
+    <td style="padding:13px 14px;font-size:13px;color:#1e40af;font-weight:700">Valor total (c/ IVA)</td>
+    <td style="padding:13px 14px;font-size:18px;font-weight:700;color:#1d4ed8">${fmtEUR(data.totalComIva)}</td>
+  </tr>
+</table>
+
+<p style="margin:0;font-size:13px;color:#666;line-height:1.7">
+  Estamos ao dispor para quaisquer esclarecimentos adicionais ou para agendar uma reunião.<br>
+  Aguardamos a vossa resposta com expectativa.
+</p>`;
+
+  return { subject, html: baseLayout(empresa, body), from, tipo: 'comercial' as const };
 }

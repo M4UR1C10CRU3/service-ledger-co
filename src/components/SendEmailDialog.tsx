@@ -6,30 +6,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Loader2 } from 'lucide-react';
-import { sendEmail } from '@/lib/sendEmail';
+import { sendEmail, type EmailTipo } from '@/lib/sendEmail';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Título da modal, ex: "Enviar confirmação ao cliente" */
   title: string;
-  /** Descrição opcional abaixo do título */
   description?: string;
-  /** Email pré-preenchido (pode ficar vazio para o utilizador preencher) */
   defaultTo?: string;
-  /** Remetente — formato "Nome <email@dominio.com>" */
+  /** Remetente para display — formato "Nome <email@dominio.com>" */
   from?: string;
-  /** Assunto do email */
   subject: string;
-  /** Corpo HTML do email */
   html: string;
-  /** Callback chamado após envio bem-sucedido */
+  /** ID da empresa para SMTP nativo */
+  empresa_id?: string;
+  /** Tipo de caixa SMTP (comercial | compras | financeiro | contabilidade) */
+  tipo?: EmailTipo;
   onSent?: () => void;
 }
 
 export function SendEmailDialog({
-  open, onOpenChange, title, description, defaultTo = '', from, subject, html, onSent,
+  open, onOpenChange, title, description, defaultTo = '', from, subject, html, empresa_id, tipo, onSent,
 }: Props) {
   const [to, setTo] = useState(defaultTo);
   const [sending, setSending] = useState(false);
@@ -42,7 +40,7 @@ export function SendEmailDialog({
     const email = to.trim();
     if (!email) return;
     setSending(true);
-    const result = await sendEmail(email, subject, html, from);
+    const result = await sendEmail({ to: email, subject, html, empresa_id, tipo, from });
     setSending(false);
 
     if (result.ok) {

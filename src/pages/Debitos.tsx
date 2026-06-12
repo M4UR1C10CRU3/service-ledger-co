@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ServiceWithCalculations } from '@/types/service';
 import { formatEUR } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
+import { sendEmail } from '@/lib/sendEmail';
+import { buildCobrancaDebitoEmail } from '@/lib/emailTemplates';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -192,6 +194,19 @@ const Debitos = () => {
       const email = debito.email || getClienteEmail(debito.cliente);
 
       try {
+        // Envio real de email quando meio de contacto é 'email' e há endereço disponível
+        if (meioContacto === 'email' && email) {
+          const { subject, html, tipo } = buildCobrancaDebitoEmail({
+            clienteNome:  debito.cliente,
+            servico:      debito.servico,
+            valorTotal:   debito.valorComIVA,
+            valorPago:    debito.liquidado,
+            referencia:   (debito as any).proposta || (debito as any).fatura || null,
+            dataServico:  (debito as any).data || null,
+          }, empresa);
+          await sendEmail({ to: email, subject, html, empresa_id: empresa.id, tipo });
+        }
+
         await supabase.from('email_history').insert({
           empresa_id: empresa.id,
           service_id: debito.id,

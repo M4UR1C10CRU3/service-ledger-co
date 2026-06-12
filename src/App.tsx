@@ -49,6 +49,7 @@ const RelatorioGerencial = lazy(() => import("./pages/RelatorioGerencial"));
 const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia"));
 const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
+const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +117,7 @@ const App = () => (
               <Route path="/receitas" element={<ProtectedWithLayout><Receitas /></ProtectedWithLayout>} />
               <Route path="/debitos" element={<ProtectedWithLayout><Debitos /></ProtectedWithLayout>} />
               <Route path="/historico-cobrancas" element={<ProtectedWithLayout><HistoricoCobrancas /></ProtectedWithLayout>} />
+              <Route path="/financeiro/kanban" element={<ProtectedWithLayout><FinanceiroKanbanPage /></ProtectedWithLayout>} />
               <Route path="/fluxo-caixa" element={<ProtectedWithLayout><FluxoCaixa /></ProtectedWithLayout>} />
               <Route path="/colaboradores" element={<ProtectedWithLayout><Colaboradores /></ProtectedWithLayout>} />
               <Route path="/controle-ponto" element={<ProtectedWithLayout><ControlePonto /></ProtectedWithLayout>} />

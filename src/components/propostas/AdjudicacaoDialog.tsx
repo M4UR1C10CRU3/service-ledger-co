@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { buildPropostaAdjudicadaEmail } from '@/lib/emailTemplates';
+import { sendEmail } from '@/lib/sendEmail';
 import { Proposta } from '@/types/proposta';
 import { PpFormRow, PP_FASES, defaultPpRows, PP_MODELOS_SISTEMA, PpModeloLinha } from '@/types/planoPagamento';
 import { usePlanoPagamentosModelos } from '@/hooks/usePlanoPagamentosModelos';
@@ -161,6 +164,36 @@ export function AdjudicacaoDialog({ open, onOpenChange, proposta, onComplete }: 
           valorEstimado: total.toString(),
         });
         osId = os?.id;
+      }
+
+      // Email automático ao cliente — não bloqueia em caso de falha
+      if (proposta.clienteId) {
+        try {
+          const { data: cliente } = await supabase
+            .from('clientes')
+            .select('email')
+            .eq('id', proposta.clienteId)
+            .eq('empresa_id', empresa!.id)
+            .single();
+          if (cliente?.email) {
+            const { subject, html, tipo } = buildPropostaAdjudicadaEmail({
+              numeroProposta:     proposta.numeroProposta,
+              clienteNome:        proposta.clienteNome || '',
+              totalComIva:        proposta.totalComIva,
+              dataEmissao:        proposta.dataEmissao,
+              titulo:             proposta.titulo || undefined,
+              duracao:            proposta.duracao || undefined,
+              condicoesPagamento: proposta.condicoesPagamento || undefined,
+              observacoes:        proposta.observacoes || undefined,
+            }, empresa);
+            const emailResult = await sendEmail({ to: cliente.email, subject, html, empresa_id: empresa?.id, tipo });
+            if (emailResult.ok) {
+              toast({ title: 'Email de adjudicação enviado', description: `Para: ${cliente.email}` });
+            }
+          }
+        } catch {
+          // Email failure não desfaz a adjudicação
+        }
       }
 
       onComplete(osId);

@@ -409,7 +409,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
 
     {/* Email dialog — confirmação ao cliente */}
     {(() => {
-      const { subject, html, from } = buildPropostaAdjudicadaEmail({
+      const { subject, html, from, tipo } = buildPropostaAdjudicadaEmail({
         numeroProposta: proposta.numeroProposta,
         clienteNome:    proposta.clienteNome || '',
         totalComIva:    proposta.totalComIva,
@@ -428,6 +428,8 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
           from={from}
           subject={subject}
           html={html}
+          empresa_id={empresa?.id}
+          tipo={tipo}
         />
       );
     })()}
