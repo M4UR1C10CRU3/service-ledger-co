@@ -24,11 +24,11 @@ export interface SchoolDocente {
   nome: string;
   email: string | null;
   telefone: string | null;
-  foto_url: string | null;
+  foto_path: string | null;
   formacao: string | null;
-  especializacao: string | null;
+  area_especializacao: string | null;
   tempo_experiencia: string | null;
-  resumo_ia: string | null;
+  resumo: string | null;
   cursos_ids: string[];
   ativo: boolean;
   created_at: string;
