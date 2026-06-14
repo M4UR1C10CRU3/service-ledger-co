@@ -7,7 +7,7 @@ import {
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
-  GraduationCap, BookOpen, CalendarDays, Award,
+  GraduationCap, BookOpen, CalendarDays, Award, UserRound, LayoutGrid,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
@@ -135,10 +135,12 @@ const sectionsITC: NavSection[] = [
     icon: GraduationCap,
     items: [
       { title: 'Cursos',            url: '/school/cursos',       icon: BookOpen     },
-      { title: 'Gestão de Alunos',  url: '/school/alunos',       icon: Users        },
-      { title: 'Turmas',            url: '/school/turmas',       icon: CalendarDays },
-      { title: 'Matrículas',        url: '/school/matriculas',   icon: ClipboardList},
-      { title: 'Certificados',      url: '/school/certificados', icon: Award        },
+      { title: 'Instrutores',         url: '/school/instrutores',    icon: UserRound    },
+      { title: 'Gestão de Alunos',   url: '/school/alunos',         icon: Users        },
+      { title: 'Turmas',             url: '/school/turmas',         icon: CalendarDays },
+      { title: 'Matrículas',         url: '/school/matriculas',     icon: ClipboardList},
+      { title: 'Certificados',       url: '/school/certificados',   icon: Award        },
+      { title: 'Clientes Corporat.', url: '/school/clientes-corp',  icon: Building2    },
     ],
   },
   {
@@ -156,6 +158,15 @@ const sectionsITC: NavSection[] = [
     icon: UsersRound,
     items: [
       { title: 'Colaboradores', url: '/colaboradores', icon: HardHat, permModulo: 'rh_colaboradores' },
+    ],
+  },
+  {
+    label: 'Portais',
+    icon: LayoutGrid,
+    items: [
+      { title: 'Portal do Aluno',       url: '/portal/aluno',        icon: UserRound   },
+      { title: 'Portal do Instrutor',   url: '/portal/instrutor',    icon: GraduationCap },
+      { title: 'Portal Corporativo',    url: '/portal/corporativo',  icon: Building2   },
     ],
   },
   {

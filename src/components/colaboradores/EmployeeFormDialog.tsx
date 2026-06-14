@@ -12,6 +12,8 @@ import { Plus, Upload, User, Link2 } from 'lucide-react';
 import { useJobPositions, useEmployees, Employee } from '@/hooks/useEmployees';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useEmpresa } from '@/contexts/EmpresaContext';
+import { employeePhotosPath } from '@/lib/storagePaths';
 import { formatEUR } from '@/lib/formatters';
 import { useQuery } from '@tanstack/react-query';
 
@@ -121,6 +123,7 @@ const emptyForm = {
 };
 
 export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFormDialogProps) {
+  const { empresa } = useEmpresa();
   const { data: positions } = useJobPositions();
   const { createEmployee, updateEmployee, createJobPosition } = useEmployees();
   const { toast } = useToast();
@@ -200,8 +203,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee }: EmployeeFor
     }
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${ext}`;
+      const fileName = employeePhotosPath(empresa?.id ?? 'shared', file.name);
       const { error } = await supabase.storage.from('employee-photos').upload(fileName, file);
       if (error) throw error;
       const { data: urlData } = supabase.storage.from('employee-photos').getPublicUrl(fileName);

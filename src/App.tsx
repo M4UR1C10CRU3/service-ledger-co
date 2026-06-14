@@ -51,6 +51,19 @@ const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
 
+// Clariza School — ITC
+const SchoolCursos = lazy(() => import("./pages/school/SchoolCursos"));
+const SchoolAlunos = lazy(() => import("./pages/school/SchoolAlunos"));
+const SchoolDocentes = lazy(() => import("./pages/school/SchoolDocentes"));
+const SchoolTurmas = lazy(() => import("./pages/school/SchoolTurmas"));
+const SchoolMatriculas = lazy(() => import("./pages/school/SchoolMatriculas"));
+const SchoolCertificados = lazy(() => import("./pages/school/SchoolCertificados"));
+const SchoolClientesCorp = lazy(() => import("./pages/school/SchoolClientesCorp"));
+const PortalAluno = lazy(() => import("./pages/school/PortalAluno"));
+const PortalInstrutor = lazy(() => import("./pages/school/PortalInstrutor"));
+const PortalCorporativo = lazy(() => import("./pages/school/PortalCorporativo"));
+const CertificadoPublico = lazy(() => import("./pages/CertificadoPublico"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -147,6 +160,24 @@ const App = () => (
               <Route path="/ecommerce/satisfacao" element={<ProtectedWithLayout><PesquisaSatisfacao /></ProtectedWithLayout>} />
 
               <Route path="/pedidos-orcamento" element={<ProtectedWithLayout><PedidosOrcamento /></ProtectedWithLayout>} />
+
+              {/* Verificação pública de certificado — sem autenticação */}
+              <Route path="/certificado/:codigo" element={<Suspense fallback={<PageLoader />}><CertificadoPublico /></Suspense>} />
+
+              {/* Clariza School — Admin */}
+              <Route path="/school/cursos" element={<ProtectedWithLayout><SchoolCursos /></ProtectedWithLayout>} />
+              <Route path="/school/alunos" element={<ProtectedWithLayout><SchoolAlunos /></ProtectedWithLayout>} />
+              <Route path="/school/instrutores" element={<ProtectedWithLayout><SchoolDocentes /></ProtectedWithLayout>} />
+              <Route path="/school/turmas" element={<ProtectedWithLayout><SchoolTurmas /></ProtectedWithLayout>} />
+              <Route path="/school/matriculas" element={<ProtectedWithLayout><SchoolMatriculas /></ProtectedWithLayout>} />
+              <Route path="/school/certificados" element={<ProtectedWithLayout><SchoolCertificados /></ProtectedWithLayout>} />
+              <Route path="/school/clientes-corp" element={<ProtectedWithLayout><SchoolClientesCorp /></ProtectedWithLayout>} />
+
+              {/* Clariza School — Portais */}
+              <Route path="/portal/aluno" element={<ProtectedWithLayout><PortalAluno /></ProtectedWithLayout>} />
+              <Route path="/portal/instrutor" element={<ProtectedWithLayout><PortalInstrutor /></ProtectedWithLayout>} />
+              <Route path="/portal/corporativo" element={<ProtectedWithLayout><PortalCorporativo /></ProtectedWithLayout>} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

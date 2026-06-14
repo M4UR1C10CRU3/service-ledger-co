@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { planeamentoAnexoPath } from '@/lib/storagePaths';
 import { useToast } from '@/hooks/use-toast';
 import type {
   PlaneamentoCard, PlaneamentoColuna, PlaneamentoConsulta,
@@ -190,7 +191,7 @@ export function usePlaneamento() {
   const uploadAnexo = async (cardId: string, file: File, consultaId?: string | null) => {
     if (!empresa?.id) return false;
     const u = await currentUserName();
-    const path = `${empresa.id}/${cardId}/${Date.now()}_${file.name}`;
+    const path = planeamentoAnexoPath(empresa.id, cardId, file.name);
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
     if (upErr) { toast({ title: 'Erro upload', description: upErr.message, variant: 'destructive' }); return false; }
     const { data: signed } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);

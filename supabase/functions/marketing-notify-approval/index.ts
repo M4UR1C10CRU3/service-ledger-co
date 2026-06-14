@@ -64,8 +64,7 @@ serve(async (req) => {
     // Email — só se Resend estiver configurado (opcional)
     let emailSent = false;
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (RESEND_API_KEY && LOVABLE_API_KEY) {
+    if (RESEND_API_KEY) {
       const to = destinatarios.map((u) => u.email).filter(Boolean) as string[];
       if (to.length > 0) {
         const link = body.linkApp || "";
@@ -73,24 +72,23 @@ serve(async (req) => {
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#111">
   <h2 style="color:#A855F7">Aprovação pendente — Marketing</h2>
   <p>Olá,</p>
-  <p>Um post está a aguardar a sua aprovação no sistema Liberty:</p>
+  <p>Um post está a aguardar a sua aprovação no sistema Clariza:</p>
   <table style="border-collapse:collapse;margin:14px 0">
     <tr><td style="padding:6px 10px;color:#666">Título</td><td style="padding:6px 10px;font-weight:600">${body.titulo}</td></tr>
     <tr><td style="padding:6px 10px;color:#666">Publicação prevista</td><td style="padding:6px 10px">${dataStr}</td></tr>
   </table>
   ${link ? `<p><a href="${link}" style="display:inline-block;background:#A855F7;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600">Abrir e aprovar</a></p>` : ""}
-  <p style="color:#888;font-size:12px;margin-top:24px">Liberty — Sistema Híbrido de Gestão Empresarial</p>
+  <p style="color:#888;font-size:12px;margin-top:24px">Clariza — Plataforma de Gestão Empresarial</p>
 </div>`.trim();
         try {
-          const r = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+          const r = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-              "X-Connection-Api-Key": RESEND_API_KEY,
+              "Authorization": `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-              from: "Liberty <onboarding@resend.dev>",
+              from: "Clariza <onboarding@resend.dev>",
               to,
               subject: `Aprovação pendente: ${body.titulo}`,
               html,

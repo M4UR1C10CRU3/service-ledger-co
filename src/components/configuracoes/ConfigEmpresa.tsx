@@ -9,6 +9,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/integrations/supabase/client';
+import { logoPath } from '@/lib/storagePaths';
 import { Save, Upload, Trash2 } from 'lucide-react';
 
 const COLOR_PRESETS = [
@@ -120,8 +121,7 @@ export default function ConfigEmpresa() {
       // Upload logo if changed
       let logoUrl = empresa.logoPath;
       if (logoFile) {
-        const ext = logoFile.name.split('.').pop();
-        const path = `${empresa.id}/logo.${ext}`;
+        const path = logoPath(empresa.id, logoFile.name);
         await supabase.storage.from('logos').upload(path, logoFile, { upsert: true });
         const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
         logoUrl = urlData.publicUrl;

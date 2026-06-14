@@ -11,6 +11,7 @@ import { Loader2, Upload, Bot, AlertTriangle } from 'lucide-react';
 import { useCandidatos } from '@/hooks/useRecrutamento';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
+import { cvPath } from '@/lib/storagePaths';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configure PDF.js worker
@@ -107,7 +108,7 @@ export function CandidatoFormDialog({ open, onOpenChange, vagaId, cargo }: Props
     try {
       let cv_url = null;
       if (cvFile) {
-        const path = `${empresa.id}/${Date.now()}_${cvFile.name}`;
+        const path = cvPath(empresa.id, vagaId, cvFile.name);
         const { error: uploadError } = await supabase.storage.from('cvs').upload(path, cvFile);
         if (!uploadError) {
           const { data: urlData } = supabase.storage.from('cvs').getPublicUrl(path);

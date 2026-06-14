@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { subempreiteiroDocPath } from '@/lib/storagePaths';
 import type { Subempreiteiro, SubDocumento, SubFormData } from '@/types/subempreiteiro';
 
 function mapSub(r: any): Subempreiteiro {
@@ -124,8 +125,7 @@ export function useSubempreiteiros() {
     notas?: string,
   ): Promise<boolean> => {
     if (!empresa) return false;
-    const ext = file.name.split('.').pop();
-    const path = `${empresa.id}/${subId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = subempreiteiroDocPath(empresa.id, subId, file.name);
     const { error: upErr } = await supabase.storage.from('subempreiteiros').upload(path, file);
     if (upErr) { console.error(upErr); return false; }
     const { error: dbErr } = await supabase.from('subempreiteiros_documentos').insert({

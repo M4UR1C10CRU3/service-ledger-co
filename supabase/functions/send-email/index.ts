@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SmtpClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "npm:nodemailer@6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,23 +45,19 @@ serve(async (req) => {
         );
       }
 
-      const client = new SmtpClient();
-      await client.connectTLS({
-        hostname: cfg.smtp_host,
+      const transporter = nodemailer.createTransport({
+        host: cfg.smtp_host,
         port: cfg.smtp_port,
-        username: cfg.smtp_user,
-        password: cfg.smtp_pass,
+        secure: true,
+        auth: { user: cfg.smtp_user, pass: cfg.smtp_pass },
       });
 
-      await client.send({
+      await transporter.sendMail({
         from: `${cfg.nome_exibicao} <${cfg.email}>`,
-        to: Array.isArray(to) ? to : [to],
+        to: Array.isArray(to) ? to.join(", ") : to,
         subject,
-        content: "Este email requer um cliente com suporte a HTML.",
         html,
       });
-
-      await client.close();
 
       return new Response(
         JSON.stringify({ ok: true, method: "smtp", from: cfg.email }),
@@ -71,9 +67,8 @@ serve(async (req) => {
 
     // ── Resend fallback — legacy calls that pass `from` directly ───────────────
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!RESEND_API_KEY || !LOVABLE_API_KEY) {
+    if (!RESEND_API_KEY) {
       console.warn("[send-email] Sem SMTP config e sem RESEND_API_KEY — email não enviado");
       return new Response(
         JSON.stringify({ ok: false, error: "Email não configurado. Defina empresa_id+tipo ou configure RESEND_API_KEY." }),
@@ -81,12 +76,11 @@ serve(async (req) => {
       );
     }
 
-    const r = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: fromOverride ?? "Clariza Manager <onboarding@resend.dev>",

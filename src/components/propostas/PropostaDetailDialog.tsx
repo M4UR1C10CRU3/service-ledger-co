@@ -8,6 +8,7 @@ import { formatEUR } from '@/lib/formatters';
 import { buildPropostaPdfHtml, exportPropostaPdf, type PropostaPdfMode } from '@/components/propostas/propostaPdfExport';
 import { exportPropostaExcel } from '@/components/propostas/propostaExcelExport';
 import { supabase } from '@/integrations/supabase/client';
+import { propostaPdfPath } from '@/lib/storagePaths';
 import { inserirNotificacaoInterna } from '@/hooks/useNotificacoesInternas';
 import { buildPropostaAdjudicadaEmail } from '@/lib/emailTemplates';
 import { SendEmailDialog } from '@/components/SendEmailDialog';
@@ -137,8 +138,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
 
     // 3. Upload to Supabase Storage (bucket: proposta-pdfs)
-    const numClean = (proposta.numeroProposta || '').replace(/[\/\\:*?"<>|]/g, '-').trim();
-    const storagePath = `${empresa.id}/propostas/${numClean}.html`;
+    const storagePath = propostaPdfPath(empresa.id, proposta.numeroProposta || '');
     let pdfUrl: string | undefined;
 
     const { error: upErr } = await supabase.storage

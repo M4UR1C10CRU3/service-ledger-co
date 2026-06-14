@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { marketingAnexoPath, marketingEntregaPath } from '@/lib/storagePaths';
 import type {
   MarketingTarefa,
   MarketingAnexo,
@@ -323,8 +324,7 @@ export function useMarketing() {
 
   const uploadAnexo = async (tarefaId: string, file: File): Promise<boolean> => {
     if (!empresa) return false;
-    const ext = file.name.split('.').pop() || 'bin';
-    const path = `${empresa.id}/${tarefaId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = marketingAnexoPath(empresa.id, tarefaId, file.name);
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
       cacheControl: '3600',
       upsert: false,

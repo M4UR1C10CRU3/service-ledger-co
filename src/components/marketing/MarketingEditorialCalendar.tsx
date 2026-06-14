@@ -15,6 +15,7 @@ import { Printer, RotateCcw, FileJson, Plus, Eye, Sparkles, Trash2, Save, Upload
 import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
+import { marketingEntregaPath } from '@/lib/storagePaths';
 import { Badge } from '@/components/ui/badge';
 import { STATUS_CONFIG, type MarketingStatus, type MarketingTarefa } from '@/types/marketing';
 import { MarketingFullMonthAIDialog } from './MarketingFullMonthAIDialog';
@@ -356,8 +357,7 @@ export function MarketingEditorialCalendar({ empresaIniciais = 'TC', empresaNome
 
   const uploadEntrega = async (dia: number, file: File): Promise<boolean> => {
     if (!empresa?.id) return false;
-    const ext = file.name.split('.').pop() || 'bin';
-    const path = `${empresa.id}/${year}-${String(month).padStart(2, '0')}/dia-${dia}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = marketingEntregaPath(empresa.id, year, month, dia, file.name);
     const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
     if (upErr) { console.error(upErr); toast({ title: 'Erro no upload', description: upErr.message, variant: 'destructive' }); return false; }
     const { data: u } = await supabase.auth.getUser();
