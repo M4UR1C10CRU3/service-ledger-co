@@ -48,12 +48,24 @@ function isHealthCategory(cat?: string | null): boolean {
   return HEALTH_CATS.some(h => c.includes(h));
 }
 
-function fmtDate(d: string): string {
-  return format(new Date(d + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR });
+function parseDate(d: string): Date | null {
+  const clean = d.length === 10 ? d + 'T00:00:00' : d;
+  const dt = new Date(clean);
+  return isNaN(dt.getTime()) ? null : dt;
 }
 
-function fmtDateLong(d: string): string {
-  return format(new Date(d + 'T00:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  const dt = parseDate(d);
+  if (!dt) return '—';
+  try { return format(dt, 'dd/MM/yyyy', { locale: ptBR }); } catch { return '—'; }
+}
+
+function fmtDateLong(d: string | null | undefined): string {
+  if (!d) return '—';
+  const dt = parseDate(d);
+  if (!dt) return '—';
+  try { return format(dt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }); } catch { return '—'; }
 }
 
 async function loadImg(url: string): Promise<string | null> {
