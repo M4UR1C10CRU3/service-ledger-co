@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,25 @@ export default function SchoolCertificados() {
   const [batchDocenteId, setBatchDocenteId] = useState<string>('');
   const [batchDataEmissao, setBatchDataEmissao] = useState(new Date().toISOString().split('T')[0]);
   const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; label: string } | null>(null);
+  const [batchAlunos, setBatchAlunos] = useState<{ aluno_id: string; nome: string; cpf: string | null }[]>([]);
+  const [batchLoadingAlunos, setBatchLoadingAlunos] = useState(false);
+
+  useEffect(() => {
+    if (!batchTurmaId) { setBatchAlunos([]); return; }
+    setBatchLoadingAlunos(true);
+    (supabase as any).from('school_matriculas')
+      .select('aluno_id')
+      .eq('turma_id', batchTurmaId)
+      .eq('status', 'concluido')
+      .then(({ data }: any) => {
+        const list = (data || []).map((m: any) => {
+          const a = alunos.find(x => x.id === m.aluno_id);
+          return { aluno_id: m.aluno_id, nome: a?.nome ?? m.aluno_id, cpf: (a as any)?.cpf ?? null };
+        });
+        setBatchAlunos(list);
+        setBatchLoadingAlunos(false);
+      });
+  }, [batchTurmaId, alunos]);
 
   const filtered = useMemo(() => {
     let list = certificados;
@@ -431,34 +450,75 @@ export default function SchoolCertificados() {
 
       {/* Dialog — Emissão em Lote */}
       <Dialog open={batchOpen} onOpenChange={o => { if (!batchProgress) setBatchOpen(o); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Emissão em Lote</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Emissão em Lote de Certificados</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Emite certificados para todos os alunos com status <strong>concluído</strong> na turma seleccionada. Alunos já com certificado são ignorados.
-            </p>
+
+            {/* Selecção de turma */}
             <div className="space-y-1">
-              <Label>Turma *</Label>
-              <Select value={batchTurmaId} onValueChange={setBatchTurmaId}>
+              <Label>Seleccionar Turma *</Label>
+              <Select value={batchTurmaId || '__none__'} onValueChange={v => setBatchTurmaId(v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar turma" /></SelectTrigger>
-                <SelectContent>{turmas.map(t => <SelectItem key={t.id} value={t.id}>{t.titulo}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Instrutor Responsável</Label>
-              <Select value={batchDocenteId || '__none__'} onValueChange={v => setBatchDocenteId(v === '__none__' ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar instrutor" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">— Nenhum —</SelectItem>
-                  {docentes.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
+                  <SelectItem value="__none__">— Seleccionar —</SelectItem>
+                  {turmas.map(t => <SelectItem key={t.id} value={t.id}>{t.titulo}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Info da turma seleccionada */}
+            {batchTurmaId && (() => {
+              const t = turmas.find(x => x.id === batchTurmaId);
+              const docente = docentes.find(d => d.id === (batchDocenteId || t?.docente_id));
+              return t ? (
+                <div className="rounded-md border bg-muted/30 px-4 py-3 text-sm space-y-1">
+                  <p><strong>Turma:</strong> {t.titulo}</p>
+                  {(t.inicio || t.fim) && <p><strong>Período:</strong> {fmtDate(t.inicio)}{t.fim ? ` a ${fmtDate(t.fim)}` : ''}</p>}
+                  {docente && <p><strong>Instrutor:</strong> {docente.nome}</p>}
+                </div>
+              ) : null;
+            })()}
+
+            {/* Data de emissão */}
             <div className="space-y-1">
               <Label>Data de Emissão</Label>
               <Input type="date" value={batchDataEmissao} onChange={e => setBatchDataEmissao(e.target.value)} />
             </div>
 
+            {/* Lista de alunos */}
+            {batchTurmaId && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Alunos da Turma ({batchAlunos.length})</Label>
+                  {batchAlunos.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {batchAlunos.filter(a => !certificados.some(c => c.turma_id === batchTurmaId && c.aluno_id === a.aluno_id)).length} certificados serão gerados
+                    </span>
+                  )}
+                </div>
+                {batchLoadingAlunos ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />A carregar alunos...
+                  </div>
+                ) : batchAlunos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">Nenhum aluno com status <strong>concluído</strong> nesta turma.</p>
+                ) : (
+                  <div className="rounded-md border divide-y max-h-52 overflow-y-auto">
+                    {batchAlunos.map(a => {
+                      const jaTem = certificados.some(c => c.turma_id === batchTurmaId && c.aluno_id === a.aluno_id);
+                      return (
+                        <div key={a.aluno_id} className={`flex items-center justify-between px-3 py-2 text-sm ${jaTem ? 'opacity-40' : ''}`}>
+                          <span className="font-medium">{a.nome}</span>
+                          <span className="text-muted-foreground text-xs">{a.cpf ? `CPF: ${a.cpf}` : jaTem ? 'já emitido' : ''}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Progresso */}
             {batchProgress && (
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -471,10 +531,10 @@ export default function SchoolCertificados() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBatchOpen(false)} disabled={!!batchProgress}>Cancelar</Button>
-            <Button onClick={handleEmissaoEmLote} disabled={!batchTurmaId || !!batchProgress}>
+            <Button onClick={handleEmissaoEmLote} disabled={!batchTurmaId || batchLoadingAlunos || batchAlunos.filter(a => !certificados.some(c => c.turma_id === batchTurmaId && c.aluno_id === a.aluno_id)).length === 0 || !!batchProgress}>
               {batchProgress
                 ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A gerar...</>
-                : <><Download className="h-4 w-4 mr-2" />Emitir e Descarregar ZIP</>
+                : <><Download className="h-4 w-4 mr-2" />Emitir {batchAlunos.filter(a => !certificados.some(c => c.turma_id === batchTurmaId && c.aluno_id === a.aluno_id)).length} Certificado{batchAlunos.filter(a => !certificados.some(c => c.turma_id === batchTurmaId && c.aluno_id === a.aluno_id)).length !== 1 ? 's' : ''}</>
               }
             </Button>
           </DialogFooter>
