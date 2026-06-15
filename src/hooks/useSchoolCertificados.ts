@@ -117,5 +117,5 @@ export function useSchoolCertificados() {
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
-  return { certificados, isLoading, emitirCertificado, deleteCertificado };
+  return { certificados, isLoading, emitirCertificado, deleteCertificado, gerarCodigo };
 }

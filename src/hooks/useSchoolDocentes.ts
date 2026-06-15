@@ -29,6 +29,7 @@ export interface SchoolDocente {
   area_especializacao: string | null;
   tempo_experiencia: string | null;
   resumo: string | null;
+  assinatura_path: string | null;
   cursos_ids: string[];
   ativo: boolean;
   created_at: string;
