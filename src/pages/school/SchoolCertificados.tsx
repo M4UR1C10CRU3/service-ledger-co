@@ -281,11 +281,20 @@ export default function SchoolCertificados() {
     toast({ title: 'Emissão em lote concluída', description: `${pendentes.length} certificado(s) gerado(s)` });
   };
 
-  const fmtDate = (d: string | null) => d ? format(new Date(d + 'T00:00:00'), 'dd/MM/yyyy', { locale: pt }) : '—';
+  const fmtDate = (d: string | null | undefined) => {
+    if (!d) return '—';
+    try {
+      const dt = new Date(d.length === 10 ? d + 'T00:00:00' : d);
+      if (isNaN(dt.getTime())) return '—';
+      return format(dt, 'dd/MM/yyyy', { locale: pt });
+    } catch { return '—'; }
+  };
 
   const vencimentoBadge = (validade: string | null) => {
     if (!validade) return null;
-    const vencido = isPast(new Date(validade + 'T23:59:59'));
+    const dt = new Date(validade + 'T23:59:59');
+    if (isNaN(dt.getTime())) return null;
+    const vencido = isPast(dt);
     return vencido
       ? <Badge variant="outline" className="border-red-500/40 text-red-600 bg-red-500/10 text-xs"><AlertTriangle className="h-3 w-3 mr-1" />Vencido</Badge>
       : <Badge variant="outline" className="border-green-500/40 text-green-600 bg-green-500/10 text-xs"><CheckCircle2 className="h-3 w-3 mr-1" />Válido</Badge>;
