@@ -446,10 +446,10 @@ export default function SchoolCertificados() {
             </div>
             <div className="space-y-1">
               <Label>Instrutor Responsável</Label>
-              <Select value={batchDocenteId} onValueChange={setBatchDocenteId}>
+              <Select value={batchDocenteId || '__none__'} onValueChange={v => setBatchDocenteId(v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar instrutor" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Nenhum —</SelectItem>
+                  <SelectItem value="__none__">— Nenhum —</SelectItem>
                   {docentes.map(d => <SelectItem key={d.id} value={d.id}>{d.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
