@@ -395,8 +395,8 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       tY += 10;
     }
 
-    // ── Objetivo + Metodologia ────────────────────────────────
-    if (data.objetivo || data.metodologia) {
+    // ── Objetivo + Metodologia (sempre renderizado) ──────────
+    {
       const colW = (W - 30) / 2;
       const c1 = 12;
       const c2 = c1 + colW + 6;
@@ -411,9 +411,12 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       doc.text('METODOLOGIA', c2 + colW / 2, tY + 6, { align: 'center' });
       tY += 9;
 
+      const objText = data.objetivo || 'Capacitar profissionais com conhecimentos teóricos e práticos para exercício seguro e eficiente das atividades do curso.';
+      const metText = data.metodologia || 'Aulas expositivas, demonstrações práticas, exercícios supervisionados e avaliação de desempenho individual.';
+
       doc.setFontSize(8.5);
-      const objLines = doc.splitTextToSize(data.objetivo || '', colW - 5);
-      const metLines = doc.splitTextToSize(data.metodologia || '', colW - 5);
+      const objLines = doc.splitTextToSize(objText, colW - 5);
+      const metLines = doc.splitTextToSize(metText, colW - 5);
       const maxL = Math.max(objLines.length, metLines.length);
       const bH = maxL * 4.5 + 10;
 
@@ -427,30 +430,31 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       tY += bH + 4;
     }
 
-    // ── Barra de estatísticas ─────────────────────────────────
-    const stats = [
-      data.carga_horaria    ? `Carga Horária: ${data.carga_horaria}h`        : null,
-      data.modulos_count    ? `Módulos: ${data.modulos_count}`                : null,
-      data.aprovacao_minima ? `Aprovação mínima: ${data.aprovacao_minima}%`  : null,
-      data.validade_anos    ? `Validade: ${data.validade_anos} anos`          : null,
-    ].filter(Boolean) as string[];
+    // ── Barra de estatísticas (sempre renderizada) ────────────
+    {
+      const statSegs: { text: string; bold: boolean; color: [number, number, number] }[] = [];
+      const addStat = (lbl: string, val: string, last: boolean) => {
+        statSegs.push({ text: lbl + ': ', bold: true,  color: PURPLE });
+        statSegs.push({ text: val,         bold: false, color: PURPLE });
+        if (!last) statSegs.push({ text: '   ', bold: false, color: PURPLE });
+      };
+      const statItems: [string, string][] = [];
+      if (data.carga_horaria)    statItems.push(['Carga Horária', `${data.carga_horaria}h`]);
+      if (data.modulos_count)    statItems.push(['Módulos', `${data.modulos_count}`]);
+      if (data.aprovacao_minima) statItems.push(['Aprovação mínima', `${data.aprovacao_minima}%`]);
+      if (data.validade_anos)    statItems.push(['Validade', `${data.validade_anos} anos`]);
+      if (statItems.length === 0) statItems.push(['Certificado', 'de Conclusão de Curso']);
 
-    if (stats.length > 0) {
+      statItems.forEach(([lbl, val], i) => addStat(lbl, val, i === statItems.length - 1));
+
       doc.setFillColor(235, 218, 248);
       doc.rect(12, tY, W - 24, 9, 'F');
-      const allSegs: { text: string; bold: boolean; color: [number, number, number] }[] = [];
-      stats.forEach((s, i) => {
-        const [lbl, ...rest] = s.split(': ');
-        allSegs.push({ text: lbl + ': ', bold: true,  color: PURPLE });
-        allSegs.push({ text: rest.join(': '), bold: false, color: PURPLE });
-        if (i < stats.length - 1) allSegs.push({ text: '   ', bold: false, color: PURPLE });
-      });
-      renderInlineText(doc, allSegs, tY + 6, 8.5);
+      renderInlineText(doc, statSegs, tY + 6, 8.5);
       tY += 13;
     }
 
-    // ── Reconhecimento / Verificação / Válido até (3 colunas) ─
-    if (data.reconhecimento || data.validade_em) {
+    // ── Reconhecimento / Verificação / Válido até (sempre) ───
+    {
       const c3W = (W - 30) / 3;
       const cols = [12, 12 + c3W + 3, 12 + (c3W + 3) * 2];
       const titles = ['RECONHECIMENTO', 'VERIFICAÇÃO DE AUTENTICIDADE', 'VÁLIDO ATÉ'];
@@ -468,10 +472,10 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       const recText = data.reconhecimento ||
         'Certificado reconhecido pelo Conselho Estadual de Educação do Amapá (CEE-AP) e alinhado às diretrizes da IRATA International e NR 35 (MTE/Brasil).';
       const verText =
-        'Certificado reconhecido pelo Conselho Estadual de Educação do Amapá (CEE-AP) e alinhado às diretrizes da IRATA International e NR 35 (MTE/Brasil).\nValidação via website do ITC.';
+        'Acesse o site www.itctreinamentos.com para verificar a autenticidade deste certificado através do código de codificação.';
 
       doc.setFillColor(250, 245, 255);
-      const bH3 = 32;
+      const bH3 = 34;
       cols.forEach(c => doc.rect(c, tY, c3W, bH3, 'F'));
 
       doc.setFont('helvetica', 'normal');
@@ -480,17 +484,17 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       doc.text(doc.splitTextToSize(recText, c3W - 4), cols[0] + 2, tY + 5);
       doc.text(doc.splitTextToSize(verText, c3W - 4), cols[1] + 2, tY + 5);
 
-      if (data.validade_em) {
-        doc.setFillColor(...PURPLE);
-        doc.roundedRect(cols[2] + 3, tY + 3, c3W - 6, 22, 2, 2, 'F');
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(...WHITE);
-        doc.text('Vencimento', cols[2] + c3W / 2, tY + 11, { align: 'center' });
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text(fmtDate(data.validade_em), cols[2] + c3W / 2, tY + 20, { align: 'center' });
-      }
+      // Caixa "VÁLIDO ATÉ" em verde escuro (como no template)
+      const GREEN_DARK: [number, number, number] = [20, 120, 60];
+      doc.setFillColor(...GREEN_DARK);
+      doc.roundedRect(cols[2] + 3, tY + 3, c3W - 6, 26, 3, 3, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...WHITE);
+      doc.text('Vencimento', cols[2] + c3W / 2, tY + 12, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(data.validade_em ? fmtDate(data.validade_em) : 'Sem validade', cols[2] + c3W / 2, tY + 23, { align: 'center' });
     }
 
     // Rodapé
