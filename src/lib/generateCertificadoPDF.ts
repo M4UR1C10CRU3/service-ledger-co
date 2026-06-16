@@ -327,12 +327,9 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
   doc.text('Diretor Pedagógico', rightX, sigLineY + 19, { align: 'center' });
 
   // ════════════════════════════════════════════════════════════
-  // PÁGINA 2 — CONTEÚDO PROGRAMÁTICO
+  // PÁGINA 2 — CONTEÚDO PROGRAMÁTICO (sempre gerada)
   // ════════════════════════════════════════════════════════════
-  const temConteudo = (data.conteudo_programatico?.length ?? 0) > 0;
-  const temObj = !!(data.objetivo || data.metodologia || data.reconhecimento);
-
-  if (temConteudo || temObj) {
+  {
     doc.addPage();
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, W, H, 'F');
