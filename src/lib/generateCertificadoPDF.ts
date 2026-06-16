@@ -354,6 +354,7 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
 
     // ── Tabela conteúdo programático ─────────────────────────
     let tY = 42;
+    const temConteudo = (data.conteudo_programatico?.length ?? 0) > 0;
     if (temConteudo && data.conteudo_programatico) {
       // Cabeçalho da tabela: texto roxo sobre branco
       doc.setFont('helvetica', 'bold');
