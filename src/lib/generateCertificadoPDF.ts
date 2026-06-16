@@ -346,11 +346,13 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     doc.setFontSize(9);
     doc.text('CONTEÚDO PROGRAMÁTICO DO CURSO', W / 2, 21, { align: 'center' });
 
-    // Nome do curso em roxo bold
+    // Nome do curso — faixa lavanda (como no template)
+    doc.setFillColor(230, 218, 245);
+    doc.rect(0, 30, W, 11, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(...PURPLE);
-    doc.text(data.curso_nome || '—', 14, 36);
+    doc.text(data.curso_nome || '—', 14, 38);
 
     // ── Tabela conteúdo programático ─────────────────────────
     let tY = 42;
