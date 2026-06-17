@@ -50,6 +50,8 @@ const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia")
 const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
+const Quadros = lazy(() => import("./pages/Quadros"));
+const QuadroDetail = lazy(() => import("./pages/QuadroDetail"));
 
 // Clariza School — ITC
 const SchoolCursos = lazy(() => import("./pages/school/SchoolCursos"));
@@ -160,6 +162,10 @@ const App = () => (
               <Route path="/ecommerce/satisfacao" element={<ProtectedWithLayout><PesquisaSatisfacao /></ProtectedWithLayout>} />
 
               <Route path="/pedidos-orcamento" element={<ProtectedWithLayout><PedidosOrcamento /></ProtectedWithLayout>} />
+
+              {/* Quadros — gestão de tarefas estilo Trello */}
+              <Route path="/quadros" element={<ProtectedWithLayout><Quadros /></ProtectedWithLayout>} />
+              <Route path="/quadros/:id" element={<ProtectedWithLayout><QuadroDetail /></ProtectedWithLayout>} />
 
               {/* Verificação pública de certificado — sem autenticação */}
               <Route path="/certificado/:codigo" element={<Suspense fallback={<PageLoader />}><CertificadoPublico /></Suspense>} />

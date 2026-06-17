@@ -280,6 +280,18 @@ export function AppSidebar() {
               <span>Dashboard Executivo</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => navigate('/quadros')}
+              className={cn(
+                'w-full justify-start gap-3 px-3 py-2.5 rounded-xl text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200',
+                location.pathname.startsWith('/quadros') && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-md shadow-sidebar-primary/20'
+              )}
+            >
+              <Trello className="h-4 w-4 shrink-0" />
+              <span>Quadros</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
 
         <SidebarSeparator className="my-2 opacity-10" />
