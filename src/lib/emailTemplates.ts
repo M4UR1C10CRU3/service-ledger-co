@@ -119,7 +119,7 @@ export function buildPropostaAdjudicadaEmail(
 
 <p style="margin:0 0 22px;font-size:14px;color:#444;line-height:1.7">
   Exmo(a) Sr(a). <strong>${data.clienteNome}</strong>,<br><br>
-  Confirmamos que a proposta abaixo foi adjudicada. Iremos proceder com os trabalhos conforme acordado.
+  Confirmamos que a proposta abaixo foi adjudicada. O nosso Dep. Financeiro entrará em contacto consigo para repassar as condições de pagamento com o objectivo de assegurar a formalização desta adjudicação, para que possamos proceder com os trabalhos conforme acordado.
 </p>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;margin-bottom:22px;overflow:hidden">
@@ -189,8 +189,9 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
 </div>` : ''}
 
 <p style="margin:0;font-size:13px;color:#666;line-height:1.7">
-  O documento completo segue em anexo. Para aceitar ou colocar questões, não hesite em contactar-nos.
-  A proposta é válida por 30 dias a partir da data de emissão.
+  O documento completo e detalhado segue em anexo. Para aceitar ou colocar questões, não hesite em contactar-nos.
+  A proposta é válida por 30 dias a partir da data de emissão.<br><br>
+  Informo que o tempo para a vossa tomada de decisão terá impacto directo na nossa agenda de produção.
 </p>`;
 
   return { subject, html: baseLayout(empresa, body), from, tipo: 'comercial' as const };
@@ -248,7 +249,7 @@ export function buildNotaEncomendaEmail(
 <p style="margin:0 0 18px;font-size:14px;color:#444;line-height:1.7">
   ${data.fornecedorNome ? `Exmo(a) Sr(a). / <strong>${data.fornecedorNome}</strong>,` : 'Exmo(s) Srs.,'}<br><br>
   Enviamos a nossa Nota de Encomenda referente a <strong>${data.titulo}</strong>.<br>
-  Por favor confirme a disponibilidade e o prazo de entrega.
+  Por favor confirme a disponibilidade dos produtos, preço, prazo de entrega e portes se houver.
 </p>
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden">
@@ -273,7 +274,7 @@ ${data.observacoes ? `<div style="background:#fefce8;border:1px solid #fde047;bo
 </div>` : ''}
 
 <p style="margin:18px 0 0;font-size:13px;color:#666;line-height:1.7">
-  Aguardamos a sua confirmação. Obrigado pela colaboração.
+  Aguardamos a sua confirmação para avançarmos com a encomenda. Obrigado pela colaboração.
 </p>`;
 
   return { subject, html: baseLayout(empresa, body), from, tipo: 'compras' as const };
@@ -305,7 +306,7 @@ export function buildPedidoPagamentoEmail(
 
 <p style="margin:0 0 22px;font-size:14px;color:#444;line-height:1.7">
   Exmo(a) Sr(a). <strong>${data.clienteNome}</strong>,<br><br>
-  Informamos que a fatura referente ao serviço abaixo se encontra disponível para pagamento.
+  Informamos que a fatura${data.referencia ? ` n.º ${data.referencia}` : ''} referente ao serviço realizado se encontra disponível para pagamento.
   Agradecemos a liquidação no prazo acordado.
 </p>
 
@@ -341,7 +342,7 @@ export function buildPedidoPagamentoEmail(
 </table>
 
 <p style="margin:0;font-size:13px;color:#666;line-height:1.7">
-  Para efectuar o pagamento ou obter dados bancários, por favor contacte-nos através dos dados indicados no rodapé.<br>
+  Para efectuar o pagamento de forma ainda mais cômoda, segue o nosso IBAN, por favor contacte-nos através dos dados indicados no rodapé.<br>
   Após o pagamento, agradecemos o envio do comprovativo para confirmar a liquidação.
 </p>`;
 
