@@ -7,7 +7,7 @@ import {
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
-  GraduationCap, BookOpen, CalendarDays, Award, UserRound, LayoutGrid,
+  GraduationCap, BookOpen, CalendarDays, Award, UserRound, LayoutGrid, Activity,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
