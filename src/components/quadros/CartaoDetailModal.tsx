@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,15 +7,40 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
   AlignLeft, Calendar, CheckSquare, Tag, Archive, Plus, X, Check, Clock,
-  MessageSquare, Users, Palette, Trash2, Activity,
+  MessageSquare, Users, Palette, Trash2, Activity, Pencil, SmilePlus,
+  UserCircle, CornerDownRight, Paperclip, Copy, LayoutTemplate, Link2, ExternalLink,
 } from 'lucide-react';
-import { QuadroCartao, Etiqueta, Comentario, Utilizador } from '@/types/quadros';
+import { QuadroCartao, ChecklistItem, Etiqueta, Comentario, Utilizador, CartaoAnexo, ChecklistModelo, ChecklistModeloItem } from '@/types/quadros';
 import { initials, avatarColor } from './CartaoCard';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
+const fmtDate = (iso: string | null | undefined, fmt: string): string => {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return isValid(d) ? format(d, fmt, { locale: pt }) : '';
+  } catch {
+    return '';
+  }
+};
+
 const PALETTE = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#6366f1','#a855f7','#ec4899','#14b8a6','#64748b'];
+
+const EMOJIS = [
+  '😀','😂','🥰','😍','🤔','😅','😭','😎','🥳','🤩','😊','😬','🙄','😤','😢','😱',
+  '👍','👎','❤️','🙌','👏','🤝','💪','✌️','🤞','👋','🫶','🙏','💯','👌',
+  '🔥','⭐','💡','📌','✅','❌','⚠️','🎯','🚀','🏆','💰','📊','📝','🔗','📎',
+  '🎉','🎊','🥂','🍕','☕','🌟','💥','⚡','🌈','🦾','🤖','💎','🏅','📣','🔔',
+];
+
+interface ItemEditState {
+  responsavel_id: string;
+  responsavel_nome: string;
+  hora: string;
+  data_limite: string;
+}
 
 interface Props {
   cartao: QuadroCartao | null;
@@ -31,21 +56,30 @@ interface Props {
   onAddChecklistItem: (checklistId: string, cartaoId: string, texto: string) => Promise<void>;
   onToggleChecklistItem: (itemId: string, checklistId: string, cartaoId: string, concluido: boolean) => Promise<void>;
   onDeleteChecklistItem: (itemId: string, checklistId: string, cartaoId: string) => Promise<void>;
+  onUpdateChecklistItem: (itemId: string, checklistId: string, cartaoId: string, updates: Partial<Pick<ChecklistItem, 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>) => Promise<void>;
   onFetchFeed: (cartaoId: string) => Promise<Comentario[]>;
-  onAddComentario: (cartaoId: string, texto: string) => Promise<Comentario | null>;
+  onAddComentario: (cartaoId: string, texto: string, replyTo?: { id: string; autor_nome: string | null; texto: string }) => Promise<Comentario | null>;
+  onUpdateComentario: (id: string, texto: string) => Promise<void>;
   onDeleteComentario: (id: string) => Promise<void>;
   onCreateEtiqueta: (nome: string, cor: string) => Promise<Etiqueta | null>;
   onUpdateEtiqueta: (id: string, updates: Partial<Pick<Etiqueta, 'nome' | 'cor'>>) => Promise<void>;
   onToggleEtiqueta: (cartaoId: string, etiquetaId: string, isActive: boolean) => Promise<void>;
   onToggleMembro: (cartaoId: string, util: Utilizador, isActive: boolean) => Promise<void>;
+  onListAnexos: (cartaoId: string) => Promise<CartaoAnexo[]>;
+  onAddAnexo: (cartaoId: string, nome: string, url: string) => Promise<CartaoAnexo | null>;
+  onDeleteAnexo: (id: string, cartaoId: string) => Promise<void>;
+  onDuplicarCartao: (cartaoId: string, listaId: string) => Promise<void>;
+  onListChecklistModelos: () => Promise<ChecklistModelo[]>;
+  onApplyChecklistModelo: (cartaoId: string, modeloNome: string, itens: ChecklistModeloItem[]) => Promise<void>;
 }
 
-type Popover = null | 'membros' | 'etiquetas' | 'capa';
+type Popover = null | 'membros' | 'etiquetas' | 'capa' | 'anexos' | 'modelos';
 
 export default function CartaoDetailModal(props: Props) {
   const { cartao, etiquetas, utilizadores, listaNome, isOpen, onClose } = props;
   const me = useCurrentUser();
 
+  // Core state
   const [titulo, setTitulo] = useState('');
   const [editingTitulo, setEditingTitulo] = useState(false);
   const [descricao, setDescricao] = useState('');
@@ -55,18 +89,64 @@ export default function CartaoDetailModal(props: Props) {
   const [novaChecklist, setNovaChecklist] = useState('');
   const [addingChecklist, setAddingChecklist] = useState(false);
   const [newItemTexts, setNewItemTexts] = useState<Record<string, string>>({});
-  const [addingItemFor, setAddingItemFor] = useState<string | null>(null);
   const [popover, setPopover] = useState<Popover>(null);
   const [novaEt, setNovaEt] = useState({ nome: '', cor: '#6366f1' });
+  const [showAtividade, setShowAtividade] = useState(false);
+
+  // Checklist item detail editor (responsável / hora / prazo)
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [itemEdits, setItemEdits] = useState<Record<string, ItemEditState>>({});
+
+  // Comment: reply
+  const [replyingTo, setReplyingTo] = useState<Comentario | null>(null);
+  // Comment: edit
+  const [editingComment, setEditingComment] = useState<{ id: string; texto: string } | null>(null);
+  // Emoji picker
+  const [showEmoji, setShowEmoji] = useState(false);
+  const commentRef = useRef<HTMLTextAreaElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
+
+  // @mention autocomplete
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const mentionAtPos = useRef(0);
+
+  // Anexos
+  const [anexos, setAnexos] = useState<CartaoAnexo[]>([]);
+  const [anexoUrl, setAnexoUrl] = useState('');
+  const [anexoNome, setAnexoNome] = useState('');
+
+  // Modelos de checklist
+  const [modelos, setModelos] = useState<ChecklistModelo[]>([]);
+  const [loadingModelos, setLoadingModelos] = useState(false);
 
   useEffect(() => {
     if (!cartao) return;
     setTitulo(cartao.titulo);
     setDescricao(cartao.descricao || '');
     props.onFetchFeed(cartao.id).then(setFeed);
-    setPopover(null); setEditingTitulo(false); setEditingDesc(false);
+    props.onListAnexos(cartao.id).then(setAnexos);
+    setPopover(null);
+    setEditingTitulo(false);
+    setEditingDesc(false);
+    setReplyingTo(null);
+    setEditingComment(null);
+    setExpandedItem(null);
+    setShowAtividade(false);
+    setAnexos([]);
+    setAnexoUrl(''); setAnexoNome('');
+    setModelos([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartao?.id]);
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!showEmoji) return;
+    const handler = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setShowEmoji(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEmoji]);
 
   if (!cartao) return null;
   const c = cartao;
@@ -85,29 +165,158 @@ export default function CartaoDetailModal(props: Props) {
     if (titulo.trim() && titulo !== c.titulo) await props.onUpdateCartao(c.id, { titulo: titulo.trim() });
     setEditingTitulo(false);
   };
-  const saveDesc = async () => { await props.onUpdateCartao(c.id, { descricao: descricao || null }); setEditingDesc(false); };
+  const saveDesc = async () => {
+    await props.onUpdateCartao(c.id, { descricao: descricao || null });
+    setEditingDesc(false);
+  };
 
   const setData = async (val: string) => {
     await props.onUpdateCartao(c.id, { data_limite: val ? new Date(val).toISOString() : null, data_limite_concluida: false },
-      val ? `definiu o prazo para ${format(new Date(val), 'd MMM yyyy', { locale: pt })}` : undefined);
+      val ? `definiu o prazo para ${fmtDate(val, 'd MMM yyyy')}` : undefined);
   };
   const toggleDone = async () => {
     await props.onUpdateCartao(c.id, { data_limite_concluida: !done }, !done ? 'marcou o prazo como concluído' : 'reabriu o prazo');
   };
 
-  const handleAddChecklist = async () => { if (novaChecklist.trim()) { await props.onAddChecklist(c.id, novaChecklist.trim()); } setNovaChecklist(''); setAddingChecklist(false); };
+  const handleAddChecklist = async () => {
+    if (novaChecklist.trim()) await props.onAddChecklist(c.id, novaChecklist.trim());
+    setNovaChecklist(''); setAddingChecklist(false);
+  };
   const handleAddItem = async (clId: string) => {
-    const texto = (newItemTexts[clId] || '').trim(); if (!texto) return;
+    const texto = (newItemTexts[clId] || '').trim();
+    if (!texto) return;
     await props.onAddChecklistItem(clId, c.id, texto);
     setNewItemTexts(p => ({ ...p, [clId]: '' }));
   };
+
   const handleComment = async () => {
     if (!novoComentario.trim()) return;
-    await props.onAddComentario(c.id, novoComentario.trim());
+    await props.onAddComentario(c.id, novoComentario.trim(), replyingTo ?? undefined);
     setNovoComentario('');
+    setReplyingTo(null);
+    setMentionQuery(null);
     refreshFeed();
   };
-  const handleCreateEt = async () => { if (novaEt.nome.trim() || novaEt.cor) { await props.onCreateEtiqueta(novaEt.nome.trim(), novaEt.cor); setNovaEt({ nome: '', cor: '#6366f1' }); } };
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    const cursor = e.target.selectionStart ?? val.length;
+    setNovoComentario(val);
+    const before = val.slice(0, cursor);
+    const lastAt = before.lastIndexOf('@');
+    if (lastAt >= 0) {
+      const query = before.slice(lastAt + 1);
+      if (!query.includes('  ')) {
+        const q = query.toLowerCase().trim();
+        const matched = utilizadores.filter(u =>
+          !q ? true : u.nome.toLowerCase().includes(q),
+        );
+        if (matched.length > 0) {
+          setMentionQuery(query);
+          mentionAtPos.current = lastAt;
+          return;
+        }
+      }
+    }
+    setMentionQuery(null);
+  };
+
+  const insertMention = (u: Utilizador) => {
+    const at = mentionAtPos.current;
+    const cursor = commentRef.current?.selectionStart ?? novoComentario.length;
+    const before = novoComentario.slice(0, at);
+    const after = novoComentario.slice(cursor);
+    const next = `${before}@${u.nome} ${after}`;
+    setNovoComentario(next);
+    setMentionQuery(null);
+    setTimeout(() => {
+      if (commentRef.current) {
+        const pos = at + 1 + u.nome.length + 1;
+        commentRef.current.setSelectionRange(pos, pos);
+        commentRef.current.focus();
+      }
+    }, 10);
+  };
+
+  const handleSaveEditComment = async () => {
+    if (!editingComment || !editingComment.texto.trim()) return;
+    await props.onUpdateComentario(editingComment.id, editingComment.texto.trim());
+    setEditingComment(null);
+    refreshFeed();
+  };
+
+  const handleCreateEt = async () => {
+    if (novaEt.nome.trim() || novaEt.cor) {
+      await props.onCreateEtiqueta(novaEt.nome.trim(), novaEt.cor);
+      setNovaEt({ nome: '', cor: '#6366f1' });
+    }
+  };
+
+  // Insert emoji at cursor in the comment textarea
+  const insertEmoji = (emoji: string) => {
+    const ta = commentRef.current;
+    if (!ta) { setNovoComentario(p => p + emoji); setShowEmoji(false); return; }
+    const start = ta.selectionStart ?? novoComentario.length;
+    const end = ta.selectionEnd ?? novoComentario.length;
+    const next = novoComentario.slice(0, start) + emoji + novoComentario.slice(end);
+    setNovoComentario(next);
+    setShowEmoji(false);
+    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + emoji.length, start + emoji.length); });
+  };
+
+  const handleAddAnexo = async () => {
+    if (!anexoUrl.trim()) return;
+    const nome = anexoNome.trim() || (() => { try { return new URL(anexoUrl).hostname; } catch { return anexoUrl; } })();
+    const novo = await props.onAddAnexo(c.id, nome, anexoUrl.trim());
+    if (novo) { setAnexos(p => [...p, novo]); }
+    setAnexoUrl(''); setAnexoNome(''); setPopover(null);
+  };
+
+  const handleDeleteAnexo = async (id: string) => {
+    await props.onDeleteAnexo(id, c.id);
+    setAnexos(p => p.filter(a => a.id !== id));
+  };
+
+  const handleOpenModelos = async () => {
+    setPopover(p => p === 'modelos' ? null : 'modelos');
+    if (modelos.length === 0) {
+      setLoadingModelos(true);
+      const list = await props.onListChecklistModelos();
+      setModelos(list);
+      setLoadingModelos(false);
+    }
+  };
+
+  const handleApplyModelo = async (m: ChecklistModelo) => {
+    setPopover(null);
+    await props.onApplyChecklistModelo(c.id, m.nome, m.cartao_checklist_modelo_itens);
+    props.onFetchFeed(c.id).then(setFeed);
+  };
+
+  const handleDuplicar = async () => {
+    await props.onDuplicarCartao(c.id, c.lista_id);
+    onClose();
+  };
+
+  // Checklist item detail helpers
+  const getItemEdit = (item: ChecklistItem): ItemEditState => itemEdits[item.id] ?? {
+    responsavel_id: item.responsavel_id || '',
+    responsavel_nome: item.responsavel_nome || '',
+    hora: item.hora?.slice(0, 5) || '',
+    data_limite: item.data_limite || '',
+  };
+
+  const saveItemEdit = async (item: ChecklistItem, clId: string) => {
+    const e = getItemEdit(item);
+    const u = utilizadores.find(u => u.id === e.responsavel_id);
+    await props.onUpdateChecklistItem(item.id, clId, c.id, {
+      responsavel_id: e.responsavel_id || null,
+      responsavel_nome: u?.nome || e.responsavel_nome || null,
+      hora: e.hora || null,
+      data_limite: e.data_limite || null,
+    });
+    setExpandedItem(null);
+  };
 
   const SideBtn = ({ icon: Icon, label, onClick, active }: { icon: any; label: string; onClick: () => void; active?: boolean }) => (
     <Button size="sm" variant="secondary" className={`w-full justify-start gap-2 text-xs h-8 ${active ? 'ring-1 ring-primary' : ''}`} onClick={onClick}>
@@ -124,6 +333,7 @@ export default function CartaoDetailModal(props: Props) {
           <div className="flex gap-5 flex-col md:flex-row">
             {/* ── Main column ── */}
             <div className="flex-1 min-w-0 space-y-5">
+              {/* Title */}
               <div>
                 <p className="text-xs text-muted-foreground mb-1">na lista <strong>{listaNome}</strong></p>
                 {editingTitulo ? (
@@ -165,7 +375,7 @@ export default function CartaoDetailModal(props: Props) {
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Prazo</p>
                     <button onClick={toggleDone} className={`inline-flex items-center gap-1.5 text-sm px-2.5 py-1 rounded ${done ? 'bg-green-100 text-green-700' : overdue ? 'bg-red-100 text-red-700 font-medium' : 'bg-muted'}`}>
                       <input type="checkbox" checked={done} readOnly className="h-3.5 w-3.5 accent-green-600 pointer-events-none" />
-                      <Clock size={13} /> {format(new Date(c.data_limite), "d MMM yyyy", { locale: pt })}
+                      <Clock size={13} /> {fmtDate(c.data_limite, "d MMM yyyy")}
                       {done ? ' · Concluído' : overdue ? ' · Em atraso' : ''}
                     </button>
                   </div>
@@ -178,7 +388,10 @@ export default function CartaoDetailModal(props: Props) {
                 {editingDesc ? (
                   <div className="space-y-2">
                     <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Adicione contexto, requisitos, links..." rows={4} autoFocus />
-                    <div className="flex gap-2"><Button size="sm" onClick={saveDesc}>Guardar</Button><Button size="sm" variant="ghost" onClick={() => { setDescricao(c.descricao || ''); setEditingDesc(false); }}>Cancelar</Button></div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={saveDesc}>Guardar</Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setDescricao(c.descricao || ''); setEditingDesc(false); }}>Cancelar</Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground cursor-pointer hover:bg-muted rounded p-2 min-h-[52px] whitespace-pre-wrap" onClick={() => setEditingDesc(true)}>
@@ -190,7 +403,11 @@ export default function CartaoDetailModal(props: Props) {
               {/* Checklists */}
               {c.checklists.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 mb-1"><CheckSquare size={15} className="text-muted-foreground" /><p className="text-sm font-semibold">Checklists</p><span className="text-xs text-muted-foreground ml-auto">{pct}%</span></div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckSquare size={15} className="text-muted-foreground" />
+                    <p className="text-sm font-semibold">Checklists</p>
+                    <span className="text-xs text-muted-foreground ml-auto">{pct}%</span>
+                  </div>
                   <Progress value={pct} className="h-1.5 mb-4" />
                   {c.checklists.map(cl => (
                     <div key={cl.id} className="mb-4 group/cl">
@@ -199,10 +416,92 @@ export default function CartaoDetailModal(props: Props) {
                         <button onClick={() => props.onDeleteChecklist(cl.id, c.id)} className="opacity-0 group-hover/cl:opacity-100 text-muted-foreground hover:text-destructive"><Trash2 size={13} /></button>
                       </div>
                       {cl.items.map(item => (
-                        <div key={item.id} className="flex items-start gap-2 py-0.5 group/item">
-                          <input type="checkbox" checked={item.concluido} onChange={() => props.onToggleChecklistItem(item.id, cl.id, c.id, !item.concluido)} className="mt-0.5 h-4 w-4 rounded cursor-pointer accent-primary" />
-                          <span className={`text-sm flex-1 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}>{item.texto}</span>
-                          <button onClick={() => props.onDeleteChecklistItem(item.id, cl.id, c.id)} className="opacity-0 group-hover/item:opacity-100 text-muted-foreground hover:text-destructive"><X size={12} /></button>
+                        <div key={item.id} className="group/item mb-1">
+                          {/* Item row */}
+                          <div className="flex items-start gap-2 py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={item.concluido}
+                              onChange={() => props.onToggleChecklistItem(item.id, cl.id, c.id, !item.concluido)}
+                              className="mt-0.5 h-4 w-4 rounded cursor-pointer accent-primary"
+                            />
+                            <span className={`text-sm flex-1 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}>{item.texto}</span>
+                            <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100">
+                              <button
+                                title="Detalhes (responsável, hora, prazo)"
+                                onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
+                                className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                              <button onClick={() => props.onDeleteChecklistItem(item.id, cl.id, c.id)} className="text-muted-foreground hover:text-destructive p-0.5 rounded"><X size={12} /></button>
+                            </div>
+                          </div>
+
+                          {/* Item meta badges */}
+                          {(item.responsavel_nome || item.hora || item.data_limite) && expandedItem !== item.id && (
+                            <div className="flex flex-wrap gap-2 ml-6 mt-0.5">
+                              {item.responsavel_nome && (
+                                <span className="inline-flex items-center gap-1 text-[11px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
+                                  <UserCircle size={11} /> {item.responsavel_nome}
+                                </span>
+                              )}
+                              {item.hora && (
+                                <span className="inline-flex items-center gap-1 text-[11px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
+                                  <Clock size={11} /> {item.hora.slice(0, 5)}
+                                </span>
+                              )}
+                              {item.data_limite && (
+                                <span className="inline-flex items-center gap-1 text-[11px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
+                                  <Calendar size={11} /> {fmtDate(item.data_limite + 'T00:00:00', 'd MMM yyyy')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Item detail editor */}
+                          {expandedItem === item.id && (
+                            <div className="ml-6 mt-2 p-3 bg-muted/50 rounded-lg border space-y-2">
+                              <div>
+                                <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Responsável</p>
+                                <select
+                                  className="w-full h-8 text-xs border rounded px-2 bg-background"
+                                  value={getItemEdit(item).responsavel_id}
+                                  onChange={e => {
+                                    const u = utilizadores.find(u => u.id === e.target.value);
+                                    setItemEdits(p => ({ ...p, [item.id]: { ...getItemEdit(item), responsavel_id: e.target.value, responsavel_nome: u?.nome || '' } }));
+                                  }}
+                                >
+                                  <option value="">— Nenhum —</option>
+                                  {utilizadores.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                                </select>
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Hora</p>
+                                  <Input
+                                    type="time"
+                                    className="h-8 text-xs"
+                                    value={getItemEdit(item).hora}
+                                    onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...getItemEdit(item), hora: e.target.value } }))}
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Data limite</p>
+                                  <Input
+                                    type="date"
+                                    className="h-8 text-xs"
+                                    value={getItemEdit(item).data_limite}
+                                    onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...getItemEdit(item), data_limite: e.target.value } }))}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" className="h-7 text-xs" onClick={() => saveItemEdit(item, cl.id)}>Guardar</Button>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setExpandedItem(null); setItemEdits(p => { const n = { ...p }; delete n[item.id]; return n; }); }}>Cancelar</Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                       <div className="flex gap-2 mt-2 ml-6">
@@ -217,7 +516,34 @@ export default function CartaoDetailModal(props: Props) {
               {addingChecklist && (
                 <div className="space-y-2">
                   <Input placeholder="Título da checklist..." value={novaChecklist} onChange={e => setNovaChecklist(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddChecklist()} autoFocus />
-                  <div className="flex gap-2"><Button size="sm" onClick={handleAddChecklist}>Criar</Button><Button size="sm" variant="ghost" onClick={() => { setAddingChecklist(false); setNovaChecklist(''); }}>Cancelar</Button></div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAddChecklist}>Criar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setAddingChecklist(false); setNovaChecklist(''); }}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Anexos */}
+              {anexos.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Paperclip size={15} className="text-muted-foreground" />
+                    <p className="text-sm font-semibold">Anexos</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {anexos.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 group py-0.5">
+                        <Link2 size={13} className="text-primary shrink-0" />
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex-1 truncate">
+                          {a.nome}
+                        </a>
+                        <ExternalLink size={11} className="text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
+                        <button onClick={() => handleDeleteAnexo(a.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -225,29 +551,186 @@ export default function CartaoDetailModal(props: Props) {
 
               {/* Feed: atividade + comentários */}
               <div>
-                <div className="flex items-center gap-2 mb-3"><Activity size={15} className="text-muted-foreground" /><p className="text-sm font-semibold">Atividade &amp; Comentários</p></div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity size={15} className="text-muted-foreground" />
+                  <p className="text-sm font-semibold">Atividade &amp; Comentários</p>
+                  <button
+                    onClick={() => setShowAtividade(p => !p)}
+                    className="ml-auto text-[11px] text-muted-foreground hover:text-foreground border rounded px-2 py-0.5 transition-colors"
+                  >
+                    {showAtividade ? 'Ocultar histórico' : 'Ver histórico'}
+                  </button>
+                </div>
+
+                {/* New comment box */}
                 <div className="flex gap-2.5 mb-4">
                   <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">{initials(me.nome)}</div>
                   <div className="flex-1 space-y-2">
-                    <Textarea placeholder="Escreva um comentário, follow-up ou feedback..." value={novoComentario} onChange={e => setNovoComentario(e.target.value)} rows={2} className="text-sm" />
-                    {novoComentario && <Button size="sm" onClick={handleComment}>Comentar</Button>}
+                    {/* Reply context */}
+                    {replyingTo && (
+                      <div className="flex items-start gap-1.5 bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground border-l-2 border-primary">
+                        <CornerDownRight size={12} className="mt-0.5 shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-foreground">{replyingTo.autor_nome}</span>
+                          <p className="truncate">{replyingTo.texto.slice(0, 120)}{replyingTo.texto.length > 120 ? '…' : ''}</p>
+                        </div>
+                        <button onClick={() => setReplyingTo(null)} className="hover:text-destructive shrink-0"><X size={12} /></button>
+                      </div>
+                    )}
+                    <div className="relative">
+                      <Textarea
+                        ref={commentRef}
+                        placeholder="Escreva um comentário, follow-up ou feedback..."
+                        value={novoComentario}
+                        onChange={handleCommentChange}
+                        rows={2}
+                        className="text-sm"
+                        onKeyDown={e => {
+                          if (e.key === 'Escape' && mentionQuery !== null) { e.preventDefault(); setMentionQuery(null); return; }
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleComment();
+                        }}
+                      />
+                      {mentionQuery !== null && (() => {
+                        const q = mentionQuery.toLowerCase().trim();
+                        const memberIds = new Set(c.membros.map(m => m.utilizador_id));
+                        const suggestions = [
+                          ...utilizadores.filter(u => memberIds.has(u.id) && (!q || u.nome.toLowerCase().includes(q))),
+                          ...utilizadores.filter(u => !memberIds.has(u.id) && (!q || u.nome.toLowerCase().includes(q))),
+                        ].slice(0, 8);
+                        if (!suggestions.length) return null;
+                        return (
+                          <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 bg-popover border rounded-lg shadow-lg overflow-hidden z-50">
+                            {suggestions.map(u => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent text-left text-sm transition-colors"
+                                onMouseDown={e => { e.preventDefault(); insertMention(u); }}
+                              >
+                                <span className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ background: avatarColor(u.id) }}>
+                                  {initials(u.nome)}
+                                </span>
+                                <span className="flex-1 font-medium">{u.nome}</span>
+                                {memberIds.has(u.id) && <span className="text-[10px] text-primary font-medium">membro</span>}
+                                {u.cargo && !memberIds.has(u.id) && <span className="text-[10px] text-muted-foreground">{u.cargo}</span>}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    {novoComentario || replyingTo ? (
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" onClick={handleComment}>Comentar</Button>
+                        {/* Emoji picker */}
+                        <div className="relative" ref={emojiRef}>
+                          <button
+                            type="button"
+                            onClick={() => setShowEmoji(p => !p)}
+                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                            title="Inserir emoji"
+                          >
+                            <SmilePlus size={16} />
+                          </button>
+                          {showEmoji && (
+                            <div className="absolute bottom-9 left-0 z-50 bg-white border rounded-xl shadow-xl p-3 w-64">
+                              <p className="text-[11px] font-semibold text-muted-foreground mb-2">Emojis</p>
+                              <div className="grid grid-cols-8 gap-0.5">
+                                {EMOJIS.map(em => (
+                                  <button
+                                    key={em}
+                                    onClick={() => insertEmoji(em)}
+                                    className="text-lg h-8 w-8 flex items-center justify-center hover:bg-muted rounded"
+                                  >{em}</button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <Button size="sm" variant="ghost" onClick={() => { setNovoComentario(''); setReplyingTo(null); }}>Cancelar</Button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
-                {feed.map(f => f.tipo === 'atividade' ? (
+                {/* Feed items */}
+                {feed.filter(f => f.tipo === 'comentario' || showAtividade).map(f => f.tipo === 'atividade' ? (
                   <div key={f.id} className="flex items-center gap-2 mb-2.5 text-xs text-muted-foreground pl-1">
                     <span className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ backgroundColor: avatarColor(f.autor_id || f.id) }}>{initials(f.autor_nome)}</span>
-                    <span><strong className="text-foreground/70 font-medium">{f.autor_nome}</strong> {f.texto} · {format(new Date(f.criado_em), "d MMM HH:mm", { locale: pt })}</span>
+                    <span><strong className="text-foreground/70 font-medium">{f.autor_nome}</strong> {f.texto} · {fmtDate(f.criado_em, "d MMM HH:mm")}</span>
                   </div>
                 ) : (
                   <div key={f.id} className="flex gap-2.5 mb-3 group/cm">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ backgroundColor: avatarColor(f.autor_id || f.id) }}>{initials(f.autor_nome)}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs"><strong>{f.autor_nome || 'Utilizador'}</strong> <span className="text-muted-foreground">{format(new Date(f.criado_em), "d MMM 'às' HH:mm", { locale: pt })}</span></p>
-                      <div className="flex items-start gap-2">
-                        <p className="text-sm mt-1 bg-muted rounded-lg px-3 py-2 whitespace-pre-wrap flex-1">{f.texto}</p>
-                        <button onClick={async () => { await props.onDeleteComentario(f.id); refreshFeed(); }} className="opacity-0 group-hover/cm:opacity-100 text-muted-foreground hover:text-destructive mt-2"><Trash2 size={13} /></button>
-                      </div>
+                      <p className="text-xs"><strong>{f.autor_nome || 'Utilizador'}</strong> <span className="text-muted-foreground">{fmtDate(f.criado_em, "d MMM 'às' HH:mm")}</span>
+                        {f.atualizado_em && f.atualizado_em !== f.criado_em && <span className="text-muted-foreground"> · editado</span>}
+                      </p>
+
+                      {/* Reply context inside comment */}
+                      {f.reply_to_id && f.reply_to_texto && (
+                        <div className="flex items-start gap-1.5 bg-muted rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground border-l-2 border-muted-foreground/30 mt-1 mb-1">
+                          <CornerDownRight size={11} className="mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-semibold text-foreground/70">{f.reply_to_autor_nome}</span>
+                            <p className="truncate">{f.reply_to_texto.slice(0, 100)}{(f.reply_to_texto.length > 100) ? '…' : ''}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Comment text or edit form */}
+                      {editingComment?.id === f.id ? (
+                        <div className="space-y-1.5 mt-1">
+                          <Textarea
+                            value={editingComment.texto}
+                            onChange={e => setEditingComment(p => p ? { ...p, texto: e.target.value } : p)}
+                            rows={2}
+                            className="text-sm"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" className="h-7 text-xs" onClick={handleSaveEditComment}>Guardar</Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingComment(null)}>Cancelar</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-start gap-2">
+                          <p className="text-sm mt-1 bg-muted rounded-lg px-3 py-2 whitespace-pre-wrap flex-1">{f.texto}</p>
+                          <div className="flex flex-col gap-0.5 opacity-0 group-hover/cm:opacity-100 mt-1 shrink-0">
+                            <button
+                              title="Responder"
+                              onClick={() => { setReplyingTo(f); commentRef.current?.focus(); }}
+                              className="text-muted-foreground hover:text-foreground p-0.5"
+                            >
+                              <MessageSquare size={13} />
+                            </button>
+                            <button
+                              title="Editar"
+                              onClick={() => setEditingComment({ id: f.id, texto: f.texto })}
+                              className="text-muted-foreground hover:text-foreground p-0.5"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              title="Eliminar"
+                              onClick={async () => { await props.onDeleteComentario(f.id); refreshFeed(); }}
+                              className="text-muted-foreground hover:text-destructive p-0.5"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reply action link */}
+                      {editingComment?.id !== f.id && (
+                        <button
+                          className="text-[11px] text-muted-foreground hover:text-foreground mt-0.5 ml-1"
+                          onClick={() => { setReplyingTo(f); commentRef.current?.focus(); }}
+                        >
+                          Responder
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -325,7 +808,61 @@ export default function CartaoDetailModal(props: Props) {
 
               <SideBtn icon={CheckSquare} label="Checklist" onClick={() => setAddingChecklist(true)} />
 
+              {/* Modelos de checklist */}
+              <div className="relative">
+                <SideBtn icon={LayoutTemplate} label="Modelos" active={popover === 'modelos'} onClick={handleOpenModelos} />
+                {popover === 'modelos' && (
+                  <Pop onClose={() => setPopover(null)} title="Modelos de checklist">
+                    {loadingModelos && <p className="text-xs text-muted-foreground py-2 text-center">A carregar...</p>}
+                    {!loadingModelos && modelos.length === 0 && (
+                      <p className="text-xs text-muted-foreground py-2 text-center">Nenhum modelo disponível.</p>
+                    )}
+                    {modelos.map(m => (
+                      <button
+                        key={m.id}
+                        className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                        onClick={() => handleApplyModelo(m)}
+                      >
+                        <span className="font-medium">{m.nome}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({m.cartao_checklist_modelo_itens.length} itens)</span>
+                      </button>
+                    ))}
+                  </Pop>
+                )}
+              </div>
+
+              {/* Anexos */}
+              <div className="relative">
+                <SideBtn icon={Paperclip} label="Anexo" active={popover === 'anexos'} onClick={() => setPopover(p => p === 'anexos' ? null : 'anexos')} />
+                {popover === 'anexos' && (
+                  <Pop onClose={() => setPopover(null)} title="Adicionar anexo">
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="URL (https://...)"
+                        value={anexoUrl}
+                        onChange={e => setAnexoUrl(e.target.value)}
+                        className="text-xs h-8"
+                        autoFocus
+                      />
+                      <Input
+                        placeholder="Nome (opcional)"
+                        value={anexoNome}
+                        onChange={e => setAnexoNome(e.target.value)}
+                        className="text-xs h-8"
+                        onKeyDown={e => e.key === 'Enter' && handleAddAnexo()}
+                      />
+                      <Button size="sm" className="w-full h-8" onClick={handleAddAnexo} disabled={!anexoUrl.trim()}>
+                        Adicionar
+                      </Button>
+                    </div>
+                  </Pop>
+                )}
+              </div>
+
               <Separator className="my-2" />
+              <Button size="sm" variant="ghost" className="w-full justify-start gap-2 text-xs text-muted-foreground h-8" onClick={handleDuplicar}>
+                <Copy size={13} /> Duplicar cartão
+              </Button>
               <Button size="sm" variant="ghost" className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-destructive h-8" onClick={() => { props.onArchiveCartao(c.id, c.lista_id); onClose(); }}>
                 <Archive size={13} /> Arquivar cartão
               </Button>
@@ -337,7 +874,6 @@ export default function CartaoDetailModal(props: Props) {
   );
 }
 
-// Popover leve com backdrop de fecho
 function Pop({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <>

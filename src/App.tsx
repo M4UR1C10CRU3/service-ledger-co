@@ -12,6 +12,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { EmpresaProvider } from "./contexts/EmpresaContext";
 import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { AppLayout } from "./components/AppLayout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Lazy-loaded pages for code splitting
 const DashboardGeral = lazy(() => import("./pages/DashboardGeral"));
@@ -50,6 +51,8 @@ const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia")
 const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
+const WorkflowComprasPage = lazy(() => import("./pages/WorkflowComprasPage"));
+const WorkflowProducao = lazy(() => import("./pages/WorkflowProducao"));
 const Quadros = lazy(() => import("./pages/Quadros"));
 const QuadroDetail = lazy(() => import("./pages/QuadroDetail"));
 
@@ -88,9 +91,11 @@ const PageLoader = () => (
 const ProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <AppLayout>
-      <Suspense fallback={<PageLoader />}>
-        {children}
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          {children}
+        </Suspense>
+      </ErrorBoundary>
     </AppLayout>
   </ProtectedRoute>
 );
@@ -133,6 +138,8 @@ const App = () => (
               <Route path="/debitos" element={<ProtectedWithLayout><Debitos /></ProtectedWithLayout>} />
               <Route path="/historico-cobrancas" element={<ProtectedWithLayout><HistoricoCobrancas /></ProtectedWithLayout>} />
               <Route path="/financeiro/kanban" element={<ProtectedWithLayout><FinanceiroKanbanPage /></ProtectedWithLayout>} />
+              <Route path="/workflow-compras" element={<ProtectedWithLayout><WorkflowComprasPage /></ProtectedWithLayout>} />
+              <Route path="/workflow-producao" element={<ProtectedWithLayout><WorkflowProducao /></ProtectedWithLayout>} />
               <Route path="/fluxo-caixa" element={<ProtectedWithLayout><FluxoCaixa /></ProtectedWithLayout>} />
               <Route path="/colaboradores" element={<ProtectedWithLayout><Colaboradores /></ProtectedWithLayout>} />
               <Route path="/controle-ponto" element={<ProtectedWithLayout><ControlePonto /></ProtectedWithLayout>} />

@@ -60,19 +60,21 @@ const sectionsGeral: NavSection[] = [
     label: 'Compras',
     icon: ShoppingCart,
     items: [
-      { title: 'Notas de Encomenda', url: '/notas-encomenda', icon: ClipboardList, permModulo: 'compras' },
-      { title: 'Compras',            url: '/compras',         icon: ShoppingCart,  permModulo: 'compras' },
-      { title: 'Fornecedores',       url: '/fornecedores',    icon: Truck,         permModulo: 'fornecedores' },
-      { title: 'Gestão de Stocks',   url: '/stocks',          icon: Package,       permModulo: 'stocks' },
-      { title: 'Produtos',           url: '/produtos',        icon: BoxSelect,     permModulo: 'produtos' },
+      { title: 'Notas de Encomenda', url: '/notas-encomenda',   icon: ClipboardList, permModulo: 'compras' },
+      { title: 'Compras',            url: '/compras',            icon: ShoppingCart,  permModulo: 'compras' },
+      { title: 'Workflow Compras',   url: '/workflow-compras',   icon: Trello,        permModulo: 'compras' },
+      { title: 'Fornecedores',       url: '/fornecedores',       icon: Truck,         permModulo: 'fornecedores' },
+      { title: 'Gestão de Stocks',   url: '/stocks',             icon: Package,       permModulo: 'stocks' },
+      { title: 'Produtos',           url: '/produtos',           icon: BoxSelect,     permModulo: 'produtos' },
     ],
   },
   {
     label: 'Produção',
     icon: Factory,
     items: [
-      { title: 'Vendas / Serviços',  url: '/vendas',         icon: Receipt,      permModulo: 'vendas' },
-      { title: 'Ordens de Serviço',  url: '/ordens-servico', icon: ClipboardList,permModulo: 'ordens_servico' },
+      { title: 'Vendas / Serviços',  url: '/vendas',              icon: Receipt,       permModulo: 'vendas' },
+      { title: 'Ordens de Serviço',  url: '/ordens-servico',      icon: ClipboardList, permModulo: 'ordens_servico' },
+      { title: 'Workflow Produção',  url: '/workflow-producao',   icon: Trello,        permModulo: 'ordens_servico' },
     ],
   },
   {

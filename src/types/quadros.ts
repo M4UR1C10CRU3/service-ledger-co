@@ -12,6 +12,10 @@ export interface ChecklistItem {
   concluido: boolean;
   posicao: number;
   criado_em: string;
+  responsavel_id?: string | null;
+  responsavel_nome?: string | null;
+  hora?: string | null;        // "HH:MM"
+  data_limite?: string | null; // "YYYY-MM-DD"
 }
 
 export interface Checklist {
@@ -34,6 +38,9 @@ export interface Comentario {
   tipo: FeedTipo;
   criado_em: string;
   atualizado_em: string;
+  reply_to_id?: string | null;
+  reply_to_autor_nome?: string | null;
+  reply_to_texto?: string | null;
 }
 
 export interface CartaoMembro {
@@ -88,4 +95,31 @@ export interface Quadro {
   criado_por: string | null;
   criado_em: string;
   atualizado_em: string;
+}
+
+export interface CartaoAnexo {
+  id: string;
+  cartao_id: string;
+  empresa_id: string;
+  nome: string;
+  url: string;
+  tipo: string | null;
+  adicionado_por_id: string | null;
+  adicionado_por_nome: string | null;
+  criado_em: string;
+}
+
+export interface ChecklistModeloItem {
+  id: string;
+  modelo_id: string;
+  texto: string;
+  posicao: number;
+}
+
+export interface ChecklistModelo {
+  id: string;
+  empresa_id: string;
+  nome: string;
+  criado_em: string;
+  cartao_checklist_modelo_itens: ChecklistModeloItem[];
 }

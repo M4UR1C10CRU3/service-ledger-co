@@ -252,13 +252,21 @@ export default function QuadroDetail() {
           onAddChecklistItem={d.addChecklistItem}
           onToggleChecklistItem={d.toggleChecklistItem}
           onDeleteChecklistItem={d.deleteChecklistItem}
+          onUpdateChecklistItem={d.updateChecklistItem}
           onFetchFeed={d.fetchFeed}
           onAddComentario={d.addComentario}
+          onUpdateComentario={d.updateComentario}
           onDeleteComentario={d.deleteComentario}
           onCreateEtiqueta={d.createEtiqueta}
           onUpdateEtiqueta={d.updateEtiqueta}
           onToggleEtiqueta={d.toggleEtiquetaOnCartao}
           onToggleMembro={d.toggleMembro}
+          onListAnexos={d.listAnexos}
+          onAddAnexo={d.addAnexo}
+          onDeleteAnexo={d.deleteAnexo}
+          onDuplicarCartao={d.duplicarCartao}
+          onListChecklistModelos={d.listChecklistModelos}
+          onApplyChecklistModelo={d.applyChecklistModelo}
         />
       )}
 
