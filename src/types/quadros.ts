@@ -100,18 +100,19 @@ export interface Quadro {
 export interface CartaoAnexo {
   id: string;
   cartao_id: string;
-  empresa_id: string;
+  empresa_id?: string;
   nome: string;
-  url: string;
+  url: string;          // derivado de `path` na leitura (a coluna real chama-se path)
+  path?: string | null; // caminho/URL guardado na BD
   tipo: string | null;
-  adicionado_por_id: string | null;
-  adicionado_por_nome: string | null;
+  adicionado_por_id?: string | null;
+  adicionado_por_nome?: string | null;
   criado_em: string;
 }
 
 export interface ChecklistModeloItem {
   id: string;
-  modelo_id: string;
+  template_id: string;
   texto: string;
   posicao: number;
 }
@@ -121,5 +122,5 @@ export interface ChecklistModelo {
   empresa_id: string;
   nome: string;
   criado_em: string;
-  cartao_checklist_modelo_itens: ChecklistModeloItem[];
+  checklist_template_items: ChecklistModeloItem[];
 }

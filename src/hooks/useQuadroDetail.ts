@@ -294,26 +294,64 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
   };
 
   // ── Anexos ────────────────────────────────────────────────────────────────
+  // A coluna real do ficheiro chama-se `path` (não `url`) e aponta para o bucket
+  // PRIVADO 'cartao-anexos'. Deriva um URL utilizável: se já for um URL completo
+  // usa-o; caso contrário gera um URL assinado (bucket privado → getPublicUrl dá 400).
+  const ANEXO_BUCKET = 'cartao-anexos';
+  const isDirectUrl = (s: string) => /^https?:\/\//i.test(s) || s.startsWith('blob:') || s.startsWith('data:');
+  const mapAnexo = async (a: any): Promise<CartaoAnexo> => {
+    const raw: string = a?.path ?? a?.url ?? '';
+    let url = '';
+    if (raw && isDirectUrl(raw)) url = raw;
+    else if (raw) {
+      const { data } = await supabase.storage.from(ANEXO_BUCKET).createSignedUrl(raw, 60 * 60);
+      url = data?.signedUrl || '';
+    }
+    return { ...a, url };
+  };
+
   const listAnexos = async (cartaoId: string): Promise<CartaoAnexo[]> => {
     try {
       const { data } = await (supabase.from('cartao_anexos' as any) as any)
         .select('*').eq('cartao_id', cartaoId).order('criado_em', { ascending: true });
-      return (data || []) as CartaoAnexo[];
+      return await Promise.all(((data || []) as any[]).map(mapAnexo));
     } catch { return []; }
   };
 
   const addAnexo = async (cartaoId: string, nome: string, url: string): Promise<CartaoAnexo | null> => {
-    if (!empresaId) return null;
     try {
       const { data } = await (supabase.from('cartao_anexos' as any) as any)
-        .insert({
-          cartao_id: cartaoId, empresa_id: empresaId, nome, url,
-          adicionado_por_id: meRef.current.authId,
-          adicionado_por_nome: meRef.current.nome,
-        }).select().single();
+        .insert({ cartao_id: cartaoId, nome, path: url })
+        .select().single();
       await logAtividade(cartaoId, `anexou "${nome}"`);
-      return (data as CartaoAnexo) || null;
+      return data ? await mapAnexo(data) : null;
     } catch { return null; }
+  };
+
+  // Upload de ficheiro do PC → bucket privado 'cartao-anexos' → registo em cartao_anexos.
+  const uploadAnexo = async (cartaoId: string, file: File): Promise<CartaoAnexo | null> => {
+    if (!empresaId) { toast({ title: 'Sem empresa ativa', variant: 'destructive' }); return null; }
+    try {
+      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+      const path = `${empresaId}/${cartaoId}/${crypto.randomUUID()}-${safeName}`;
+      const { error: upErr } = await supabase.storage.from(ANEXO_BUCKET).upload(path, file, {
+        contentType: file.type || undefined, upsert: false,
+      });
+      if (upErr) { toast({ title: `Falha ao carregar "${file.name}"`, description: upErr.message, variant: 'destructive' }); return null; }
+      const { data, error: insErr } = await (supabase.from('cartao_anexos' as any) as any)
+        .insert({ cartao_id: cartaoId, nome: file.name, path, tipo: file.type || null })
+        .select().single();
+      if (insErr || !data) {
+        await supabase.storage.from(ANEXO_BUCKET).remove([path]); // rollback: não deixar ficheiro órfão
+        toast({ title: `Falha ao registar "${file.name}"`, description: insErr?.message, variant: 'destructive' });
+        return null;
+      }
+      await logAtividade(cartaoId, `anexou "${file.name}"`);
+      return await mapAnexo(data);
+    } catch (e: any) {
+      toast({ title: `Erro ao anexar "${file.name}"`, description: e?.message, variant: 'destructive' });
+      return null;
+    }
   };
 
   const deleteAnexo = async (id: string, cartaoId: string): Promise<void> => {
@@ -359,8 +397,8 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
   const listChecklistModelos = async (): Promise<ChecklistModelo[]> => {
     if (!empresaId) return [];
     try {
-      const { data } = await (supabase.from('cartao_checklist_modelos' as any) as any)
-        .select('*, cartao_checklist_modelo_itens(*)')
+      const { data } = await (supabase.from('checklist_templates' as any) as any)
+        .select('*, checklist_template_items(*)')
         .eq('empresa_id', empresaId)
         .order('nome', { ascending: true });
       return (data || []) as ChecklistModelo[];
@@ -392,8 +430,21 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
   const createEtiqueta = async (nome: string, cor: string): Promise<Etiqueta | null> => {
     if (!quadroId) return null;
     const { data } = await supabase.from('cartao_etiquetas').insert({ quadro_id: quadroId, nome, cor }).select().single();
-    if (data) setEtiquetas(prev => [...prev, data as Etiqueta]);
-    return (data as Etiqueta) || null;
+    if (!data) return null;
+    const etiqueta = data as Etiqueta;
+    setEtiquetas(prev => [...prev, etiqueta]);
+    // Padronizar: aplicar a nova etiqueta a todos os cartões do quadro
+    const allCardIds = listas.flatMap(l => l.cartoes.map(c => c.id));
+    if (allCardIds.length > 0) {
+      await supabase.from('cartao_etiqueta_rel').insert(
+        allCardIds.map(cartaoId => ({ cartao_id: cartaoId, etiqueta_id: etiqueta.id })),
+      );
+      setListas(prev => prev.map(l => ({
+        ...l,
+        cartoes: l.cartoes.map(c => ({ ...c, etiquetas: [...c.etiquetas, etiqueta] })),
+      })));
+    }
+    return etiqueta;
   };
 
   const updateEtiqueta = async (id: string, updates: Partial<Pick<Etiqueta, 'nome' | 'cor'>>) => {
@@ -439,7 +490,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     addCartao, updateCartao, archiveCartao, persistCartaoOrder,
     addChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem, updateChecklistItem, deleteChecklist,
     fetchFeed, addComentario, updateComentario, deleteComentario, logAtividade,
-    listAnexos, addAnexo, deleteAnexo,
+    listAnexos, addAnexo, uploadAnexo, deleteAnexo,
     duplicarCartao,
     listChecklistModelos, applyChecklistModelo,
     createEtiqueta, updateEtiqueta, toggleEtiquetaOnCartao,

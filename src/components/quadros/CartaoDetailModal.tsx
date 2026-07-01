@@ -1,5 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import * as pdfjsLib from 'pdfjs-dist';
+// Worker empacotado localmente pelo Vite (versão exacta 4.0.379).
+// PROBLEMA: o nginx serve ficheiros .mjs como application/octet-stream, e o browser
+// recusa carregar um module worker sem MIME de JavaScript. SOLUÇÃO: buscar o código
+// do worker e criar o Worker a partir de um Blob com MIME text/javascript definido
+// por nós — 100% no cliente, sem depender da configuração do servidor.
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+let pdfWorkerPromise: Promise<void> | null = null;
+function ensurePdfWorker(): Promise<void> {
+  if (pdfWorkerPromise) return pdfWorkerPromise;
+  pdfWorkerPromise = (async () => {
+    const code = await (await fetch(pdfWorkerUrl)).text();
+    const blobUrl = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+    pdfjsLib.GlobalWorkerOptions.workerPort = new Worker(blobUrl, { type: 'module' });
+  })();
+  pdfWorkerPromise.catch(() => { pdfWorkerPromise = null; }); // permitir nova tentativa
+  return pdfWorkerPromise;
+}
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   AlignLeft, Calendar, CheckSquare, Tag, Archive, Plus, X, Check, Clock,
   MessageSquare, Users, Palette, Trash2, Activity, Pencil, SmilePlus,
-  UserCircle, CornerDownRight, Paperclip, Copy, LayoutTemplate, Link2, ExternalLink,
+  CornerDownRight, Paperclip, Copy, LayoutTemplate, Link2, ExternalLink,
 } from 'lucide-react';
 import { QuadroCartao, ChecklistItem, Etiqueta, Comentario, Utilizador, CartaoAnexo, ChecklistModelo, ChecklistModeloItem } from '@/types/quadros';
 import { initials, avatarColor } from './CartaoCard';
@@ -26,7 +44,12 @@ const fmtDate = (iso: string | null | undefined, fmt: string): string => {
   }
 };
 
-const PALETTE = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#6366f1','#a855f7','#ec4899','#14b8a6','#64748b'];
+const PALETTE = [
+  '#ef4444','#f97316','#f59e0b','#eab308','#84cc16',
+  '#22c55e','#10b981','#14b8a6','#06b6d4','#0ea5e9',
+  '#3b82f6','#6366f1','#8b5cf6','#a855f7','#d946ef',
+  '#ec4899','#f43f5e','#854d0e','#78716c','#64748b',
+];
 
 const EMOJIS = [
   '😀','😂','🥰','😍','🤔','😅','😭','😎','🥳','🤩','😊','😬','🙄','😤','😢','😱',
@@ -67,6 +90,7 @@ interface Props {
   onToggleMembro: (cartaoId: string, util: Utilizador, isActive: boolean) => Promise<void>;
   onListAnexos: (cartaoId: string) => Promise<CartaoAnexo[]>;
   onAddAnexo: (cartaoId: string, nome: string, url: string) => Promise<CartaoAnexo | null>;
+  onUploadAnexo: (cartaoId: string, file: File) => Promise<CartaoAnexo | null>;
   onDeleteAnexo: (id: string, cartaoId: string) => Promise<void>;
   onDuplicarCartao: (cartaoId: string, listaId: string) => Promise<void>;
   onListChecklistModelos: () => Promise<ChecklistModelo[]>;
@@ -74,6 +98,84 @@ interface Props {
 }
 
 type Popover = null | 'membros' | 'etiquetas' | 'capa' | 'anexos' | 'modelos';
+
+// Renderiza um PDF em <canvas> via PDF.js — não usa <embed>/<iframe>/blob, portanto
+// funciona em qualquer browser (incl. Brave com shields) sem depender do viewer nativo.
+function PdfViewer({ url }: { url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [errMsg, setErrMsg] = useState('');
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.innerHTML = '';
+    setStatus('loading');
+    setErrMsg('');
+    let cancelled = false;
+
+    (async () => {
+      let stage = 'worker';
+      try {
+        if (!url) throw new Error('anexo sem caminho de ficheiro (path vazio)');
+        await ensurePdfWorker();
+        stage = 'fetch';
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const buffer = await resp.arrayBuffer();
+        if (cancelled) return;
+        stage = 'parse';
+        const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+        stage = 'render';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          if (cancelled) return;
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          canvas.style.cssText = 'display:block;max-width:100%;height:auto;margin:0 auto 10px;box-shadow:0 1px 8px rgba(0,0,0,.12);background:#fff;border-radius:2px';
+          container.appendChild(canvas);
+          await page.render({ canvasContext: ctx, viewport }).promise;
+        }
+        if (!cancelled) setStatus('ready');
+      } catch (err) {
+        console.error('[PdfViewer] falha na fase', stage, err);
+        if (!cancelled) {
+          setErrMsg(`[${stage}] ` + (err instanceof Error ? `${err.name}: ${err.message}` : String(err)));
+          setStatus('error');
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return (
+    <div className="relative w-full h-full">
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center gap-2 text-muted-foreground text-sm z-10">
+          <span className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full inline-block" />
+          A carregar PDF...
+        </div>
+      )}
+      {status === 'error' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground z-10 px-6 text-center">
+          <Paperclip size={40} className="opacity-20" />
+          <p className="text-sm">Não foi possível renderizar o PDF.</p>
+          {errMsg && <code className="text-[11px] bg-muted rounded px-2 py-1 max-w-full break-all text-destructive">{errMsg}</code>}
+          <code className="text-[10px] bg-muted/60 rounded px-2 py-1 max-w-full break-all opacity-70">url: {url || '(vazio)'}</code>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1.5">
+            <ExternalLink size={14} /> Abrir em nova aba
+          </a>
+        </div>
+      )}
+      <div ref={containerRef} className="w-full h-full overflow-auto bg-neutral-100 p-4" />
+    </div>
+  );
+}
 
 export default function CartaoDetailModal(props: Props) {
   const { cartao, etiquetas, utilizadores, listaNome, isOpen, onClose } = props;
@@ -112,8 +214,9 @@ export default function CartaoDetailModal(props: Props) {
 
   // Anexos
   const [anexos, setAnexos] = useState<CartaoAnexo[]>([]);
-  const [anexoUrl, setAnexoUrl] = useState('');
-  const [anexoNome, setAnexoNome] = useState('');
+  const anexoInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAnexo, setUploadingAnexo] = useState(false);
+  const [previewAnexo, setPreviewAnexo] = useState<CartaoAnexo | null>(null);
 
   // Modelos de checklist
   const [modelos, setModelos] = useState<ChecklistModelo[]>([]);
@@ -133,7 +236,8 @@ export default function CartaoDetailModal(props: Props) {
     setExpandedItem(null);
     setShowAtividade(false);
     setAnexos([]);
-    setAnexoUrl(''); setAnexoNome('');
+    setUploadingAnexo(false);
+    setPreviewAnexo(null);
     setModelos([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartao?.id]);
@@ -264,12 +368,16 @@ export default function CartaoDetailModal(props: Props) {
     requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + emoji.length, start + emoji.length); });
   };
 
-  const handleAddAnexo = async () => {
-    if (!anexoUrl.trim()) return;
-    const nome = anexoNome.trim() || (() => { try { return new URL(anexoUrl).hostname; } catch { return anexoUrl; } })();
-    const novo = await props.onAddAnexo(c.id, nome, anexoUrl.trim());
-    if (novo) { setAnexos(p => [...p, novo]); }
-    setAnexoUrl(''); setAnexoNome(''); setPopover(null);
+  const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ''; // permitir voltar a escolher o mesmo ficheiro
+    if (!files.length) return;
+    setUploadingAnexo(true);
+    for (const file of files) {
+      const novo = await props.onUploadAnexo(c.id, file);
+      if (novo) setAnexos(p => [...p, novo]);
+    }
+    setUploadingAnexo(false);
   };
 
   const handleDeleteAnexo = async (id: string) => {
@@ -289,7 +397,7 @@ export default function CartaoDetailModal(props: Props) {
 
   const handleApplyModelo = async (m: ChecklistModelo) => {
     setPopover(null);
-    await props.onApplyChecklistModelo(c.id, m.nome, m.cartao_checklist_modelo_itens);
+    await props.onApplyChecklistModelo(c.id, m.nome, m.checklist_template_items);
     props.onFetchFeed(c.id).then(setFeed);
   };
 
@@ -318,6 +426,9 @@ export default function CartaoDetailModal(props: Props) {
     setExpandedItem(null);
   };
 
+  const isImageUrl = (url: string, nome = '') => /\.(jpe?g|png|gif|webp|svg|bmp)(\?|#|$)/i.test(url) || /\.(jpe?g|png|gif|webp|svg|bmp)$/i.test(nome);
+  const isPdfUrl   = (url: string, nome = '') => /\.pdf(\?|#|$)/i.test(url) || /\.pdf$/i.test(nome) || url.toLowerCase().includes('.pdf');
+
   const SideBtn = ({ icon: Icon, label, onClick, active }: { icon: any; label: string; onClick: () => void; active?: boolean }) => (
     <Button size="sm" variant="secondary" className={`w-full justify-start gap-2 text-xs h-8 ${active ? 'ring-1 ring-primary' : ''}`} onClick={onClick}>
       <Icon size={13} /> {label}
@@ -326,7 +437,7 @@ export default function CartaoDetailModal(props: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="max-w-[920px] max-h-[92vh] overflow-y-auto p-0 gap-0">
         {c.cor && <div className="h-9" style={{ backgroundColor: c.cor }} />}
 
         <div className="p-5">
@@ -426,6 +537,15 @@ export default function CartaoDetailModal(props: Props) {
                               className="mt-0.5 h-4 w-4 rounded cursor-pointer accent-primary"
                             />
                             <span className={`text-sm flex-1 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}>{item.texto}</span>
+                            {item.responsavel_nome && (
+                              <span
+                                title={item.responsavel_nome}
+                                className="shrink-0 h-5 w-5 rounded-full text-[9px] font-bold text-white flex items-center justify-center ring-1 ring-white/30"
+                                style={{ backgroundColor: item.responsavel_id ? avatarColor(item.responsavel_id) : '#94a3b8' }}
+                              >
+                                {initials(item.responsavel_nome)}
+                              </span>
+                            )}
                             <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100">
                               <button
                                 title="Detalhes (responsável, hora, prazo)"
@@ -438,14 +558,9 @@ export default function CartaoDetailModal(props: Props) {
                             </div>
                           </div>
 
-                          {/* Item meta badges */}
-                          {(item.responsavel_nome || item.hora || item.data_limite) && expandedItem !== item.id && (
+                          {/* Item meta badges (responsável mostrado inline à direita do texto) */}
+                          {(item.hora || item.data_limite) && expandedItem !== item.id && (
                             <div className="flex flex-wrap gap-2 ml-6 mt-0.5">
-                              {item.responsavel_nome && (
-                                <span className="inline-flex items-center gap-1 text-[11px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
-                                  <UserCircle size={11} /> {item.responsavel_nome}
-                                </span>
-                              )}
                               {item.hora && (
                                 <span className="inline-flex items-center gap-1 text-[11px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
                                   <Clock size={11} /> {item.hora.slice(0, 5)}
@@ -534,10 +649,12 @@ export default function CartaoDetailModal(props: Props) {
                     {anexos.map(a => (
                       <div key={a.id} className="flex items-center gap-2 group py-0.5">
                         <Link2 size={13} className="text-primary shrink-0" />
-                        <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex-1 truncate">
+                        <button onClick={() => setPreviewAnexo(a)} className="text-sm text-primary hover:underline flex-1 truncate text-left">
                           {a.nome}
+                        </button>
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" title="Abrir em nova aba" className="text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0 hover:text-foreground">
+                          <ExternalLink size={11} />
                         </a>
-                        <ExternalLink size={11} className="text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
                         <button onClick={() => handleDeleteAnexo(a.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0">
                           <X size={12} />
                         </button>
@@ -824,39 +941,29 @@ export default function CartaoDetailModal(props: Props) {
                         onClick={() => handleApplyModelo(m)}
                       >
                         <span className="font-medium">{m.nome}</span>
-                        <span className="text-xs text-muted-foreground ml-2">({m.cartao_checklist_modelo_itens.length} itens)</span>
+                        <span className="text-xs text-muted-foreground ml-2">({m.checklist_template_items.length} itens)</span>
                       </button>
                     ))}
                   </Pop>
                 )}
               </div>
 
-              {/* Anexos */}
+              {/* Anexos — upload de ficheiros do PC (múltiplos) */}
               <div className="relative">
-                <SideBtn icon={Paperclip} label="Anexo" active={popover === 'anexos'} onClick={() => setPopover(p => p === 'anexos' ? null : 'anexos')} />
-                {popover === 'anexos' && (
-                  <Pop onClose={() => setPopover(null)} title="Adicionar anexo">
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="URL (https://...)"
-                        value={anexoUrl}
-                        onChange={e => setAnexoUrl(e.target.value)}
-                        className="text-xs h-8"
-                        autoFocus
-                      />
-                      <Input
-                        placeholder="Nome (opcional)"
-                        value={anexoNome}
-                        onChange={e => setAnexoNome(e.target.value)}
-                        className="text-xs h-8"
-                        onKeyDown={e => e.key === 'Enter' && handleAddAnexo()}
-                      />
-                      <Button size="sm" className="w-full h-8" onClick={handleAddAnexo} disabled={!anexoUrl.trim()}>
-                        Adicionar
-                      </Button>
-                    </div>
-                  </Pop>
-                )}
+                <input
+                  ref={anexoInputRef}
+                  type="file"
+                  multiple
+                  accept="application/pdf,image/png,image/jpeg,image/*,.pdf,.png,.jpg,.jpeg"
+                  className="hidden"
+                  onChange={handleFilesSelected}
+                />
+                <SideBtn
+                  icon={uploadingAnexo ? Clock : Paperclip}
+                  label={uploadingAnexo ? 'A carregar...' : 'Anexo'}
+                  active={uploadingAnexo}
+                  onClick={() => { if (!uploadingAnexo) anexoInputRef.current?.click(); }}
+                />
               </div>
 
               <Separator className="my-2" />
@@ -870,6 +977,41 @@ export default function CartaoDetailModal(props: Props) {
           </div>
         </div>
       </DialogContent>
+
+      {/* ── Preview de Anexo — Dialog Radix empilhado (gere scroll, cliques e Escape) ── */}
+      <Dialog open={!!previewAnexo} onOpenChange={o => { if (!o) setPreviewAnexo(null); }}>
+        {previewAnexo && (
+          <DialogContent className="max-w-[960px] w-[88vw] h-[86vh] p-0 gap-0 overflow-hidden flex flex-col">
+            <DialogTitle className="sr-only">{previewAnexo.nome}</DialogTitle>
+            {/* Header (pr-12 reserva espaço para o X incorporado do DialogContent) */}
+            <div className="flex items-center gap-3 px-4 py-3 pr-12 border-b shrink-0">
+              <Paperclip size={14} className="text-muted-foreground shrink-0" />
+              <span className="flex-1 text-sm font-medium truncate">{previewAnexo.nome}</span>
+              <a href={previewAnexo.url} target="_blank" rel="noopener noreferrer" title="Abrir em nova aba" className="text-muted-foreground hover:text-foreground shrink-0">
+                <ExternalLink size={16} />
+              </a>
+            </div>
+            {/* Content */}
+            <div className="flex-1 min-h-0 overflow-hidden bg-muted/30">
+              {isPdfUrl(previewAnexo.url, previewAnexo.nome) ? (
+                <PdfViewer url={previewAnexo.url} />
+              ) : isImageUrl(previewAnexo.url, previewAnexo.nome) ? (
+                <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+                  <img src={previewAnexo.url} alt={previewAnexo.nome} className="max-w-full max-h-full object-contain rounded" />
+                </div>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                  <Paperclip size={40} className="opacity-20" />
+                  <p className="text-sm">Pré-visualização não disponível para este tipo de ficheiro.</p>
+                  <a href={previewAnexo.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1.5">
+                    <ExternalLink size={14} /> Abrir ficheiro
+                  </a>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </Dialog>
   );
 }

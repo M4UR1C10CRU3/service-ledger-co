@@ -263,6 +263,7 @@ export default function QuadroDetail() {
           onToggleMembro={d.toggleMembro}
           onListAnexos={d.listAnexos}
           onAddAnexo={d.addAnexo}
+          onUploadAnexo={d.uploadAnexo}
           onDeleteAnexo={d.deleteAnexo}
           onDuplicarCartao={d.duplicarCartao}
           onListChecklistModelos={d.listChecklistModelos}
