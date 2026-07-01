@@ -770,8 +770,8 @@ export default function CartaoDetailModal(props: Props) {
                   </div>
                 </div>
 
-                {/* Feed items */}
-                {feed.filter(f => f.tipo === 'comentario' || showAtividade).map(f => f.tipo === 'atividade' ? (
+                {/* Feed items — mais recentes primeiro (ordem invertida para leitura) */}
+                {feed.filter(f => f.tipo === 'comentario' || showAtividade).slice().reverse().map(f => f.tipo === 'atividade' ? (
                   <div key={f.id} className="flex items-center gap-2 mb-2.5 text-xs text-muted-foreground pl-1">
                     <span className="h-5 w-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ backgroundColor: avatarColor(f.autor_id || f.id) }}>{initials(f.autor_nome)}</span>
                     <span><strong className="text-foreground/70 font-medium">{f.autor_nome}</strong> {f.texto} · {fmtDate(f.criado_em, "d MMM HH:mm")}</span>
