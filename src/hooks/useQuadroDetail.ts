@@ -447,6 +447,39 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     return etiqueta;
   };
 
+  // Backfill: aplicar TODAS as etiquetas do quadro a TODOS os cartões (padronizar).
+  const applyAllEtiquetasToAllCartoes = async (): Promise<number> => {
+    const allCards = listas.flatMap(l => l.cartoes);
+    if (etiquetas.length === 0 || allCards.length === 0) {
+      toast({ title: 'Nada a aplicar', description: 'Não há etiquetas ou cartões neste quadro.' });
+      return 0;
+    }
+    const missing: { cartao_id: string; etiqueta_id: string }[] = [];
+    for (const c of allCards) {
+      const have = new Set(c.etiquetas.map(e => e.id));
+      for (const et of etiquetas) if (!have.has(et.id)) missing.push({ cartao_id: c.id, etiqueta_id: et.id });
+    }
+    if (missing.length === 0) {
+      toast({ title: 'Já está tudo padronizado', description: 'Todos os cartões já têm todas as etiquetas.' });
+      return 0;
+    }
+    const { error } = await supabase.from('cartao_etiqueta_rel').insert(missing);
+    if (error) {
+      toast({ title: 'Erro ao aplicar etiquetas', description: error.message, variant: 'destructive' });
+      return 0;
+    }
+    setListas(prev => prev.map(l => ({
+      ...l,
+      cartoes: l.cartoes.map(c => {
+        const have = new Set(c.etiquetas.map(e => e.id));
+        const added = etiquetas.filter(et => !have.has(et.id));
+        return added.length ? { ...c, etiquetas: [...c.etiquetas, ...added] } : c;
+      }),
+    })));
+    toast({ title: 'Etiquetas aplicadas a todos os cartões', description: `${missing.length} associações criadas.` });
+    return missing.length;
+  };
+
   const updateEtiqueta = async (id: string, updates: Partial<Pick<Etiqueta, 'nome' | 'cor'>>) => {
     await supabase.from('cartao_etiquetas').update(updates).eq('id', id);
     setEtiquetas(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
@@ -493,7 +526,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     listAnexos, addAnexo, uploadAnexo, deleteAnexo,
     duplicarCartao,
     listChecklistModelos, applyChecklistModelo,
-    createEtiqueta, updateEtiqueta, toggleEtiquetaOnCartao,
+    createEtiqueta, updateEtiqueta, toggleEtiquetaOnCartao, applyAllEtiquetasToAllCartoes,
     toggleMembro,
     refresh: fetchAll,
   };

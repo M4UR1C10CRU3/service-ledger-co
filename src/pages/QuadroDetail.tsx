@@ -16,7 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, X, MoreHorizontal, Archive, Pencil, Palette } from 'lucide-react';
+import { ArrowLeft, Plus, X, MoreHorizontal, Archive, Pencil, Palette, Tags } from 'lucide-react';
 import BoardColumn from '@/components/quadros/BoardColumn';
 import CartaoCard from '@/components/quadros/CartaoCard';
 import CartaoDetailModal from '@/components/quadros/CartaoDetailModal';
@@ -178,6 +178,7 @@ export default function QuadroDetail() {
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuLabel>Quadro</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => { setTituloDraft(d.quadro?.nome || ''); setEditingTitulo(true); }}><Pencil size={13} className="mr-2" /> Renomear</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => d.applyAllEtiquetasToAllCartoes()}><Tags size={13} className="mr-2" /> Aplicar etiquetas a todos os cartões</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="flex items-center gap-1.5 font-normal text-xs text-muted-foreground"><Palette size={12} /> Cor do quadro</DropdownMenuLabel>
               <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
