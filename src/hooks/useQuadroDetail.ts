@@ -362,31 +362,85 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
   };
 
   // ── Duplicar cartão ───────────────────────────────────────────────────────
-  const duplicarCartao = async (cartaoId: string, listaId: string): Promise<void> => {
+  // Obrigatório: membros, etiquetas (tal qual), checklist + responsáveis.
+  // Opcional (escolha do utilizador): comentários e anexos.
+  const duplicarCartao = async (
+    cartaoId: string,
+    listaId: string,
+    opts?: { comentarios?: boolean; anexos?: boolean },
+  ): Promise<void> => {
     if (!empresaId) return;
     const srcCard = listas.flatMap(l => l.cartoes).find(c => c.id === cartaoId);
     if (!srcCard) return;
     const lista = listas.find(l => l.id === listaId);
     const maxPos = lista && lista.cartoes.length > 0 ? Math.max(...lista.cartoes.map(c => c.posicao)) + 1 : 0;
+
     const { data: newCard } = await supabase.from('quadro_cartoes')
       .insert({
         lista_id: listaId, empresa_id: empresaId,
         titulo: `${srcCard.titulo} (cópia)`,
         descricao: srcCard.descricao, cor: srcCard.cor,
         posicao: maxPos, criado_por: meRef.current.authId,
-      }).select(CARD_SELECT).single();
+      }).select('id').single();
     if (!newCard) return;
+    const newId = (newCard as any).id;
+
+    // Etiquetas (obrigatório — tal qual estavam)
+    if (srcCard.etiquetas.length > 0) {
+      await supabase.from('cartao_etiqueta_rel').insert(
+        srcCard.etiquetas.map(e => ({ cartao_id: newId, etiqueta_id: e.id })),
+      );
+    }
+    // Membros (obrigatório)
+    if (srcCard.membros.length > 0) {
+      await supabase.from('cartao_membros').insert(
+        srcCard.membros.map(m => ({ cartao_id: newId, utilizador_id: m.utilizador_id, nome: m.nome })),
+      );
+    }
+    // Checklists + itens + responsáveis/hora/prazo (obrigatório)
     for (const cl of srcCard.checklists) {
       const { data: newCl } = await supabase.from('cartao_checklists')
-        .insert({ cartao_id: newCard.id, titulo: cl.titulo, posicao: cl.posicao })
+        .insert({ cartao_id: newId, titulo: cl.titulo, posicao: cl.posicao })
         .select().single();
       if (newCl && cl.items.length > 0) {
         await supabase.from('cartao_checklist_items').insert(
-          cl.items.map(item => ({ checklist_id: newCl.id, texto: item.texto, concluido: false, posicao: item.posicao })),
+          cl.items.map(item => ({
+            checklist_id: newCl.id, texto: item.texto, concluido: false, posicao: item.posicao,
+            responsavel_id: item.responsavel_id ?? null,
+            responsavel_nome: item.responsavel_nome ?? null,
+            hora: item.hora ?? null,
+            data_limite: item.data_limite ?? null,
+          })),
         );
       }
     }
-    const finalCard = await supabase.from('quadro_cartoes').select(CARD_SELECT).eq('id', newCard.id).single();
+    // Comentários (opcional)
+    if (opts?.comentarios) {
+      const feed = await fetchFeed(cartaoId);
+      const coments = feed.filter(f => f.tipo === 'comentario');
+      if (coments.length > 0) {
+        await supabase.from('cartao_comentarios').insert(
+          coments.map(cm => ({
+            cartao_id: newId, texto: cm.texto, tipo: 'comentario',
+            autor_id: cm.autor_id, autor_nome: cm.autor_nome,
+            reply_to_id: null,
+            reply_to_autor_nome: cm.reply_to_autor_nome ?? null,
+            reply_to_texto: cm.reply_to_texto ?? null,
+          })),
+        );
+      }
+    }
+    // Anexos (opcional) — nova linha a apontar para o MESMO ficheiro no Storage (path partilhado)
+    if (opts?.anexos) {
+      const srcAnexos = await listAnexos(cartaoId);
+      if (srcAnexos.length > 0) {
+        await (supabase.from('cartao_anexos' as any) as any).insert(
+          srcAnexos.map(a => ({ cartao_id: newId, nome: a.nome, path: a.path ?? null, tipo: a.tipo ?? null })),
+        );
+      }
+    }
+
+    const finalCard = await supabase.from('quadro_cartoes').select(CARD_SELECT).eq('id', newId).single();
     if (finalCard.data) {
       setListas(prev => prev.map(l => l.id === listaId ? { ...l, cartoes: [...l.cartoes, mapCard(finalCard.data)] } : l));
     }

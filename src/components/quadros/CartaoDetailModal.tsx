@@ -92,7 +92,7 @@ interface Props {
   onAddAnexo: (cartaoId: string, nome: string, url: string) => Promise<CartaoAnexo | null>;
   onUploadAnexo: (cartaoId: string, file: File) => Promise<CartaoAnexo | null>;
   onDeleteAnexo: (id: string, cartaoId: string) => Promise<void>;
-  onDuplicarCartao: (cartaoId: string, listaId: string) => Promise<void>;
+  onDuplicarCartao: (cartaoId: string, listaId: string, opts: { comentarios: boolean; anexos: boolean }) => Promise<void>;
   onListChecklistModelos: () => Promise<ChecklistModelo[]>;
   onApplyChecklistModelo: (cartaoId: string, modeloNome: string, itens: ChecklistModeloItem[]) => Promise<void>;
 }
@@ -195,6 +195,11 @@ export default function CartaoDetailModal(props: Props) {
   const [novaEt, setNovaEt] = useState({ nome: '', cor: '#6366f1' });
   const [showAtividade, setShowAtividade] = useState(false);
 
+  // Duplicação (comentários/anexos são opcionais)
+  const [showDuplicar, setShowDuplicar] = useState(false);
+  const [dupComentarios, setDupComentarios] = useState(false);
+  const [dupAnexos, setDupAnexos] = useState(false);
+
   // Checklist item detail editor (responsável / hora / prazo)
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [itemEdits, setItemEdits] = useState<Record<string, ItemEditState>>({});
@@ -238,6 +243,7 @@ export default function CartaoDetailModal(props: Props) {
     setAnexos([]);
     setUploadingAnexo(false);
     setPreviewAnexo(null);
+    setShowDuplicar(false);
     setModelos([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartao?.id]);
@@ -401,8 +407,10 @@ export default function CartaoDetailModal(props: Props) {
     props.onFetchFeed(c.id).then(setFeed);
   };
 
-  const handleDuplicar = async () => {
-    await props.onDuplicarCartao(c.id, c.lista_id);
+  const handleDuplicar = () => { setDupComentarios(false); setDupAnexos(false); setShowDuplicar(true); };
+  const confirmDuplicar = async () => {
+    setShowDuplicar(false);
+    await props.onDuplicarCartao(c.id, c.lista_id, { comentarios: dupComentarios, anexos: dupAnexos });
     onClose();
   };
 
@@ -1011,6 +1019,31 @@ export default function CartaoDetailModal(props: Props) {
             </div>
           </DialogContent>
         )}
+      </Dialog>
+
+      {/* ── Diálogo: Duplicar cartão (comentários/anexos opcionais) ── */}
+      <Dialog open={showDuplicar} onOpenChange={setShowDuplicar}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Duplicar cartão</DialogTitle>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Serão duplicados automaticamente: <strong className="text-foreground">membros, etiquetas, checklist e responsáveis</strong>.
+            </p>
+            <p className="font-medium">Queres manter também?</p>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded accent-primary" checked={dupComentarios} onChange={e => setDupComentarios(e.target.checked)} />
+              Comentários
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded accent-primary" checked={dupAnexos} onChange={e => setDupAnexos(e.target.checked)} />
+              Anexos
+            </label>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button size="sm" variant="ghost" onClick={() => setShowDuplicar(false)}>Cancelar</Button>
+            <Button size="sm" onClick={confirmDuplicar} className="gap-1.5"><Copy size={13} /> Duplicar</Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </Dialog>
   );
