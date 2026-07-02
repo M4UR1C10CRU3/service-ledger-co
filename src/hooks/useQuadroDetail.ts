@@ -171,6 +171,29 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     setListas(prev => prev.map(l => l.id === listaId ? { ...l, cartoes: l.cartoes.filter(c => c.id !== id) } : l));
   };
 
+  // Cartões arquivados deste quadro (para recuperação)
+  const listArquivados = async (): Promise<{ cartao: QuadroCartao; listaNome: string }[]> => {
+    const listaIds = listas.map(l => l.id);
+    if (!listaIds.length) return [];
+    const nomeDe = new Map(listas.map(l => [l.id, l.nome]));
+    const { data } = await supabase.from('quadro_cartoes').select(CARD_SELECT)
+      .in('lista_id', listaIds).eq('arquivado', true).order('atualizado_em', { ascending: false });
+    return ((data as any[]) || []).map(d => ({ cartao: mapCard(d), listaNome: nomeDe.get(d.lista_id) || '' }));
+  };
+
+  // Restaurar (desarquivar) um cartão — volta à lista de origem
+  const restaurarCartao = async (cartaoId: string): Promise<void> => {
+    await supabase.from('quadro_cartoes').update({ arquivado: false }).eq('id', cartaoId);
+    const { data } = await supabase.from('quadro_cartoes').select(CARD_SELECT).eq('id', cartaoId).single();
+    if (data) {
+      const card = mapCard(data);
+      setListas(prev => prev.map(l => l.id === card.lista_id
+        ? (l.cartoes.some(c => c.id === card.id) ? l : { ...l, cartoes: [...l.cartoes, card] })
+        : l));
+    }
+    toast({ title: 'Cartão restaurado' });
+  };
+
   // ── Checklist ops ─────────────────────────────────────────────────────────
   const addChecklist = async (cartaoId: string, titulo: string) => {
     const { data } = await supabase.from('cartao_checklists').insert({ cartao_id: cartaoId, titulo }).select().single();
@@ -655,7 +678,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     quadro, listas, etiquetas, utilizadores, isLoading, setListas,
     updateQuadro, archiveQuadro,
     addLista, updateLista, archiveLista, persistListaOrder,
-    addCartao, updateCartao, archiveCartao, persistCartaoOrder,
+    addCartao, updateCartao, archiveCartao, persistCartaoOrder, listArquivados, restaurarCartao,
     addChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem, updateChecklistItem, moveChecklistItem, deleteChecklist,
     fetchFeed, addComentario, updateComentario, deleteComentario, logAtividade,
     listAnexos, addAnexo, uploadAnexo, deleteAnexo,

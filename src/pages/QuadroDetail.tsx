@@ -16,11 +16,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, X, MoreHorizontal, Archive, Pencil, Palette, Eraser } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { ArrowLeft, Plus, X, MoreHorizontal, Archive, Pencil, Palette, Eraser, ArchiveRestore } from 'lucide-react';
 import BoardColumn from '@/components/quadros/BoardColumn';
 import CartaoCard from '@/components/quadros/CartaoCard';
 import CartaoDetailModal from '@/components/quadros/CartaoDetailModal';
-import { QuadroLista } from '@/types/quadros';
+import { QuadroLista, QuadroCartao } from '@/types/quadros';
 
 const PALETTE = ['#6366f1','#3b82f6','#22c55e','#f59e0b','#ef4444','#a855f7','#ec4899','#14b8a6','#f97316','#64748b'];
 
@@ -47,6 +48,19 @@ export default function QuadroDetail() {
   const [editingTitulo, setEditingTitulo] = useState(false);
   const [tituloDraft, setTituloDraft] = useState('');
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [showArquivados, setShowArquivados] = useState(false);
+  const [arquivados, setArquivados] = useState<{ cartao: QuadroCartao; listaNome: string }[]>([]);
+  const [loadingArq, setLoadingArq] = useState(false);
+
+  const openArquivados = async () => {
+    setShowArquivados(true); setLoadingArq(true);
+    setArquivados(await d.listArquivados());
+    setLoadingArq(false);
+  };
+  const handleRestaurar = async (cartaoId: string) => {
+    await d.restaurarCartao(cartaoId);
+    setArquivados(prev => prev.filter(a => a.cartao.id !== cartaoId));
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -179,6 +193,7 @@ export default function QuadroDetail() {
               <DropdownMenuLabel>Quadro</DropdownMenuLabel>
               <DropdownMenuItem onClick={() => { setTituloDraft(d.quadro?.nome || ''); setEditingTitulo(true); }}><Pencil size={13} className="mr-2" /> Renomear</DropdownMenuItem>
               <DropdownMenuItem onClick={() => d.clearAllEtiquetasFromAllCartoes()}><Eraser size={13} className="mr-2" /> Limpar etiquetas de todos os cartões</DropdownMenuItem>
+              <DropdownMenuItem onClick={openArquivados}><ArchiveRestore size={13} className="mr-2" /> Cartões arquivados</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="flex items-center gap-1.5 font-normal text-xs text-muted-foreground"><Palette size={12} /> Cor do quadro</DropdownMenuLabel>
               <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
@@ -290,6 +305,31 @@ export default function QuadroDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Cartões arquivados — recuperação */}
+      <Dialog open={showArquivados} onOpenChange={setShowArquivados}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogTitle>Cartões arquivados</DialogTitle>
+          <p className="text-sm text-muted-foreground -mt-1">Restaura um cartão para o devolver à sua lista.</p>
+          <div className="mt-2 space-y-1.5">
+            {loadingArq && <p className="text-sm text-muted-foreground py-6 text-center">A carregar...</p>}
+            {!loadingArq && arquivados.length === 0 && (
+              <p className="text-sm text-muted-foreground py-6 text-center">Não há cartões arquivados neste quadro.</p>
+            )}
+            {arquivados.map(({ cartao, listaNome }) => (
+              <div key={cartao.id} className="flex items-center gap-3 rounded-lg border p-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{cartao.titulo}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Lista: {listaNome || '—'}</p>
+                </div>
+                <Button size="sm" variant="secondary" className="gap-1.5 shrink-0" onClick={() => handleRestaurar(cartao.id)}>
+                  <ArchiveRestore size={13} /> Restaurar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
