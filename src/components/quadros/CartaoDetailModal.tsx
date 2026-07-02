@@ -686,10 +686,12 @@ export default function CartaoDetailModal(props: Props) {
                 </div>
               )}
 
-              <Separator />
+            </div>{/* ── fim da coluna principal (esquerda) ── */}
 
+            {/* ── Coluna direita (estilo Trello): ações + comentários ── */}
+            <div className="w-full md:w-[360px] shrink-0 flex flex-col gap-5 md:border-l md:border-border/60 md:pl-5">
               {/* Feed: atividade + comentários */}
-              <div>
+              <div className="order-2">
                 <div className="flex items-center gap-2 mb-3">
                   <Activity size={15} className="text-muted-foreground" />
                   <p className="text-sm font-semibold">Atividade &amp; Comentários</p>
@@ -874,10 +876,9 @@ export default function CartaoDetailModal(props: Props) {
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* ── Sidebar ── */}
-            <div className="w-full md:w-44 shrink-0 space-y-1.5">
+              {/* ── Adicionar ao cartão (ações) — topo da coluna direita ── */}
+              <div className="order-1 space-y-1.5">
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Adicionar ao cartão</p>
 
               {/* Membros */}
@@ -995,6 +996,7 @@ export default function CartaoDetailModal(props: Props) {
               <Button size="sm" variant="ghost" className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-destructive h-8" onClick={() => { props.onArchiveCartao(c.id, c.lista_id); onClose(); }}>
                 <Archive size={13} /> Arquivar cartão
               </Button>
+              </div>{/* ── fim bloco de ações ── */}
             </div>
           </div>
         </div>
