@@ -469,6 +469,90 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     toast({ title: 'Cartão duplicado com sucesso' });
   };
 
+  // ── Mover cartão para outra empresa/quadro/lista ──────────────────────────
+  // Seletores para o destino (empresas / quadros / listas).
+  const fetchEmpresasMove = async (): Promise<{ id: string; nome: string }[]> => {
+    const { data } = await supabase.from('empresas').select('id, nome').order('nome');
+    return ((data as any) || []);
+  };
+  const fetchQuadrosMove = async (empId: string): Promise<{ id: string; nome: string }[]> => {
+    const { data } = await supabase.from('quadros').select('id, nome').eq('empresa_id', empId).eq('arquivado', false).order('nome');
+    return ((data as any) || []);
+  };
+  const fetchListasMove = async (qId: string): Promise<{ id: string; nome: string }[]> => {
+    const { data } = await supabase.from('quadro_listas').select('id, nome').eq('quadro_id', qId).eq('arquivado', false).order('posicao');
+    return ((data as any) || []);
+  };
+
+  // Move o cartão TAL QUAL (checklist+responsáveis, membros, etiquetas por nome,
+  // comentários/histórico, anexos) para o destino. Arquiva o original (recuperável).
+  const moveCartaoParaEmpresa = async (
+    cartaoId: string, srcListaId: string,
+    target: { empresaId: string; quadroId: string; listaId: string },
+  ): Promise<boolean> => {
+    const src = listas.flatMap(l => l.cartoes).find(c => c.id === cartaoId);
+    if (!src) return false;
+    try {
+      const { data: destCards } = await supabase.from('quadro_cartoes').select('posicao').eq('lista_id', target.listaId).eq('arquivado', false);
+      const maxPos = ((destCards as any[]) || []).reduce((m, x) => Math.max(m, x.posicao), -1) + 1;
+
+      const { data: newCard } = await supabase.from('quadro_cartoes').insert({
+        lista_id: target.listaId, empresa_id: target.empresaId,
+        titulo: src.titulo, descricao: src.descricao, cor: src.cor,
+        data_limite: src.data_limite, data_limite_concluida: src.data_limite_concluida,
+        posicao: maxPos, criado_por: src.criado_por || meRef.current.authId,
+      }).select('id').single();
+      if (!newCard) throw new Error('Falha ao criar o cartão no destino');
+      const newId = (newCard as any).id;
+
+      // Etiquetas — re-mapear por NOME para as etiquetas do quadro destino
+      if (src.etiquetas.length > 0) {
+        const { data: destEt } = await supabase.from('cartao_etiquetas').select('id, nome').eq('quadro_id', target.quadroId);
+        const byName = new Map(((destEt as any[]) || []).map(e => [e.nome, e.id]));
+        const rels = src.etiquetas.map(e => byName.get(e.nome)).filter(Boolean).map(etId => ({ cartao_id: newId, etiqueta_id: etId }));
+        if (rels.length) await supabase.from('cartao_etiqueta_rel').insert(rels);
+      }
+      // Membros
+      if (src.membros.length > 0) {
+        await supabase.from('cartao_membros').insert(src.membros.map(m => ({ cartao_id: newId, utilizador_id: m.utilizador_id, nome: m.nome })));
+      }
+      // Checklists + itens (PRESERVA concluido, responsáveis, hora, prazo)
+      for (const cl of src.checklists) {
+        const { data: newCl } = await supabase.from('cartao_checklists').insert({ cartao_id: newId, titulo: cl.titulo, posicao: cl.posicao }).select().single();
+        if (newCl && cl.items.length) {
+          await supabase.from('cartao_checklist_items').insert(cl.items.map(it => ({
+            checklist_id: newCl.id, texto: it.texto, concluido: it.concluido, posicao: it.posicao,
+            responsavel_id: it.responsavel_id ?? null, responsavel_nome: it.responsavel_nome ?? null,
+            hora: it.hora ?? null, data_limite: it.data_limite ?? null,
+          })));
+        }
+      }
+      // Comentários + atividade (preserva histórico e timestamps)
+      const feed = await fetchFeed(cartaoId);
+      if (feed.length) {
+        await supabase.from('cartao_comentarios').insert(feed.map(f => ({
+          cartao_id: newId, texto: f.texto, tipo: f.tipo,
+          autor_id: f.autor_id, autor_nome: f.autor_nome,
+          reply_to_id: null, reply_to_autor_nome: f.reply_to_autor_nome ?? null, reply_to_texto: f.reply_to_texto ?? null,
+          criado_em: f.criado_em,
+        })));
+      }
+      // Anexos (mesmo ficheiro no Storage)
+      const anexosSrc = await listAnexos(cartaoId);
+      if (anexosSrc.length) {
+        await (supabase.from('cartao_anexos' as any) as any).insert(anexosSrc.map(a => ({ cartao_id: newId, nome: a.nome, path: a.path ?? null, tipo: a.tipo ?? null })));
+      }
+      // Arquivar o original (seguro/recuperável) e remover da vista atual
+      await supabase.from('quadro_cartoes').update({ arquivado: true }).eq('id', cartaoId);
+      setListas(prev => prev.map(l => l.id === srcListaId ? { ...l, cartoes: l.cartoes.filter(c => c.id !== cartaoId) } : l));
+      toast({ title: 'Cartão movido', description: 'Movido tal qual para o destino. O original foi arquivado (recuperável).' });
+      return true;
+    } catch (e: any) {
+      toast({ title: 'Erro ao mover o cartão', description: e?.message, variant: 'destructive' });
+      return false;
+    }
+  };
+
   // ── Modelos de checklist ──────────────────────────────────────────────────
   const listChecklistModelos = async (): Promise<ChecklistModelo[]> => {
     if (!empresaId) return [];
@@ -576,6 +660,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     fetchFeed, addComentario, updateComentario, deleteComentario, logAtividade,
     listAnexos, addAnexo, uploadAnexo, deleteAnexo,
     duplicarCartao,
+    fetchEmpresasMove, fetchQuadrosMove, fetchListasMove, moveCartaoParaEmpresa,
     listChecklistModelos, applyChecklistModelo,
     createEtiqueta, updateEtiqueta, toggleEtiquetaOnCartao, clearAllEtiquetasFromAllCartoes,
     toggleMembro,

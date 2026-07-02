@@ -268,6 +268,10 @@ export default function QuadroDetail() {
           onUploadAnexo={d.uploadAnexo}
           onDeleteAnexo={d.deleteAnexo}
           onDuplicarCartao={d.duplicarCartao}
+          onFetchEmpresasMove={d.fetchEmpresasMove}
+          onFetchQuadrosMove={d.fetchQuadrosMove}
+          onFetchListasMove={d.fetchListasMove}
+          onMoveCartaoParaEmpresa={d.moveCartaoParaEmpresa}
           onListChecklistModelos={d.listChecklistModelos}
           onApplyChecklistModelo={d.applyChecklistModelo}
         />

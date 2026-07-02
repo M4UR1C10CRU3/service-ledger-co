@@ -25,7 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   AlignLeft, Calendar, CheckSquare, Tag, Archive, Plus, X, Check, Clock,
   MessageSquare, Users, Palette, Trash2, Activity, Pencil, SmilePlus,
-  CornerDownRight, Paperclip, Copy, LayoutTemplate, ExternalLink, ChevronUp, ChevronDown,
+  CornerDownRight, Paperclip, Copy, LayoutTemplate, ExternalLink, ChevronUp, ChevronDown, ArrowRightLeft,
 } from 'lucide-react';
 import { QuadroCartao, ChecklistItem, Etiqueta, Comentario, Utilizador, CartaoAnexo, ChecklistModelo, ChecklistModeloItem } from '@/types/quadros';
 import { initials, avatarColor } from './CartaoCard';
@@ -94,6 +94,10 @@ interface Props {
   onUploadAnexo: (cartaoId: string, file: File) => Promise<CartaoAnexo | null>;
   onDeleteAnexo: (id: string, cartaoId: string) => Promise<void>;
   onDuplicarCartao: (cartaoId: string, listaId: string, opts: { comentarios: boolean; anexos: boolean }) => Promise<void>;
+  onFetchEmpresasMove: () => Promise<{ id: string; nome: string }[]>;
+  onFetchQuadrosMove: (empresaId: string) => Promise<{ id: string; nome: string }[]>;
+  onFetchListasMove: (quadroId: string) => Promise<{ id: string; nome: string }[]>;
+  onMoveCartaoParaEmpresa: (cartaoId: string, srcListaId: string, target: { empresaId: string; quadroId: string; listaId: string }) => Promise<boolean>;
   onListChecklistModelos: () => Promise<ChecklistModelo[]>;
   onApplyChecklistModelo: (cartaoId: string, modeloNome: string, itens: ChecklistModeloItem[]) => Promise<void>;
 }
@@ -201,6 +205,16 @@ export default function CartaoDetailModal(props: Props) {
   const [dupComentarios, setDupComentarios] = useState(false);
   const [dupAnexos, setDupAnexos] = useState(false);
 
+  // Mover para outra empresa
+  const [showMover, setShowMover] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [movEmpresas, setMovEmpresas] = useState<{ id: string; nome: string }[]>([]);
+  const [movQuadros, setMovQuadros] = useState<{ id: string; nome: string }[]>([]);
+  const [movListas, setMovListas] = useState<{ id: string; nome: string }[]>([]);
+  const [movEmpresaId, setMovEmpresaId] = useState('');
+  const [movQuadroId, setMovQuadroId] = useState('');
+  const [movListaId, setMovListaId] = useState('');
+
   // Checklist item detail editor (responsável / hora / prazo)
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [itemEdits, setItemEdits] = useState<Record<string, ItemEditState>>({});
@@ -245,6 +259,7 @@ export default function CartaoDetailModal(props: Props) {
     setUploadingAnexo(false);
     setPreviewAnexo(null);
     setShowDuplicar(false);
+    setShowMover(false);
     setModelos([]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cartao?.id]);
@@ -413,6 +428,29 @@ export default function CartaoDetailModal(props: Props) {
     setShowDuplicar(false);
     await props.onDuplicarCartao(c.id, c.lista_id, { comentarios: dupComentarios, anexos: dupAnexos });
     onClose();
+  };
+
+  // ── Mover para outra empresa ──
+  const handleOpenMover = async () => {
+    setMovEmpresaId(''); setMovQuadroId(''); setMovListaId('');
+    setMovQuadros([]); setMovListas([]);
+    setShowMover(true);
+    setMovEmpresas(await props.onFetchEmpresasMove());
+  };
+  const onMovEmpresaChange = async (empId: string) => {
+    setMovEmpresaId(empId); setMovQuadroId(''); setMovListaId(''); setMovListas([]);
+    setMovQuadros(empId ? await props.onFetchQuadrosMove(empId) : []);
+  };
+  const onMovQuadroChange = async (qId: string) => {
+    setMovQuadroId(qId); setMovListaId('');
+    setMovListas(qId ? await props.onFetchListasMove(qId) : []);
+  };
+  const confirmMover = async () => {
+    if (!movEmpresaId || !movQuadroId || !movListaId) return;
+    setMoving(true);
+    const ok = await props.onMoveCartaoParaEmpresa(c.id, c.lista_id, { empresaId: movEmpresaId, quadroId: movQuadroId, listaId: movListaId });
+    setMoving(false);
+    if (ok) { setShowMover(false); onClose(); }
   };
 
   // Checklist item detail helpers
@@ -1023,6 +1061,9 @@ export default function CartaoDetailModal(props: Props) {
               <Button size="sm" variant="ghost" className="w-full justify-start gap-2 text-xs text-muted-foreground h-8" onClick={handleDuplicar}>
                 <Copy size={13} /> Duplicar cartão
               </Button>
+              <Button size="sm" variant="ghost" className="w-full justify-start gap-2 text-xs text-muted-foreground h-8" onClick={handleOpenMover}>
+                <ArrowRightLeft size={13} /> Mover para outra empresa
+              </Button>
               <Button size="sm" variant="ghost" className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-destructive h-8" onClick={() => { props.onArchiveCartao(c.id, c.lista_id); onClose(); }}>
                 <Archive size={13} /> Arquivar cartão
               </Button>
@@ -1088,6 +1129,45 @@ export default function CartaoDetailModal(props: Props) {
           <div className="flex justify-end gap-2 mt-4">
             <Button size="sm" variant="ghost" onClick={() => setShowDuplicar(false)}>Cancelar</Button>
             <Button size="sm" onClick={confirmDuplicar} className="gap-1.5"><Copy size={13} /> Duplicar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Diálogo: Mover cartão para outra empresa ── */}
+      <Dialog open={showMover} onOpenChange={o => { if (!moving) setShowMover(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogTitle>Mover cartão para outra empresa</DialogTitle>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              O cartão é movido <strong className="text-foreground">tal qual está</strong> (checklist e responsáveis, membros, etiquetas, comentários e anexos). O original fica <strong className="text-foreground">arquivado</strong> (recuperável).
+            </p>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Empresa de destino</p>
+              <select className="w-full h-9 text-sm border rounded px-2 bg-background" value={movEmpresaId} onChange={e => onMovEmpresaChange(e.target.value)}>
+                <option value="">— Escolher empresa —</option>
+                {movEmpresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}
+              </select>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Quadro</p>
+              <select className="w-full h-9 text-sm border rounded px-2 bg-background disabled:opacity-50" value={movQuadroId} disabled={!movEmpresaId} onChange={e => onMovQuadroChange(e.target.value)}>
+                <option value="">{movEmpresaId ? '— Escolher quadro —' : '(escolhe a empresa primeiro)'}</option>
+                {movQuadros.map(q => <option key={q.id} value={q.id}>{q.nome}</option>)}
+              </select>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Lista</p>
+              <select className="w-full h-9 text-sm border rounded px-2 bg-background disabled:opacity-50" value={movListaId} disabled={!movQuadroId} onChange={e => setMovListaId(e.target.value)}>
+                <option value="">{movQuadroId ? '— Escolher lista —' : '(escolhe o quadro primeiro)'}</option>
+                {movListas.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button size="sm" variant="ghost" disabled={moving} onClick={() => setShowMover(false)}>Cancelar</Button>
+            <Button size="sm" disabled={moving || !movListaId} onClick={confirmMover} className="gap-1.5">
+              <ArrowRightLeft size={13} /> {moving ? 'A mover...' : 'Mover'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
