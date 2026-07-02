@@ -21,7 +21,6 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import {
   AlignLeft, Calendar, CheckSquare, Tag, Archive, Plus, X, Check, Clock,
@@ -445,7 +444,7 @@ export default function CartaoDetailModal(props: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="max-w-[920px] max-h-[92vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="max-w-[1040px] max-h-[92vh] overflow-y-auto p-0 gap-0">
         {c.cor && <div className="h-9" style={{ backgroundColor: c.cor }} />}
 
         <div className="p-5">
@@ -522,12 +521,16 @@ export default function CartaoDetailModal(props: Props) {
               {/* Checklists */}
               {c.checklists.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <CheckSquare size={15} className="text-muted-foreground" />
-                    <p className="text-sm font-semibold">Checklists</p>
-                    <span className="text-xs text-muted-foreground ml-auto">{pct}%</span>
+                    <p className="text-sm font-semibold">Checklist</p>
                   </div>
-                  <Progress value={pct} className="h-1.5 mb-4" />
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[11px] text-muted-foreground w-9 tabular-nums shrink-0">{pct}%</span>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: pct === 100 ? '#22c55e' : '#3b82f6' }} />
+                    </div>
+                  </div>
                   {c.checklists.map(cl => (
                     <div key={cl.id} className="mb-4 group/cl">
                       <div className="flex items-center justify-between mb-1.5">
@@ -653,21 +656,32 @@ export default function CartaoDetailModal(props: Props) {
                     <Paperclip size={15} className="text-muted-foreground" />
                     <p className="text-sm font-semibold">Anexos</p>
                   </div>
-                  <div className="space-y-1.5">
-                    {anexos.map(a => (
-                      <div key={a.id} className="flex items-center gap-2 group py-0.5">
-                        <Link2 size={13} className="text-primary shrink-0" />
-                        <button onClick={() => setPreviewAnexo(a)} className="text-sm text-primary hover:underline flex-1 truncate text-left">
-                          {a.nome}
-                        </button>
-                        <a href={a.url} target="_blank" rel="noopener noreferrer" title="Abrir em nova aba" className="text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0 hover:text-foreground">
-                          <ExternalLink size={11} />
-                        </a>
-                        <button onClick={() => handleDeleteAnexo(a.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    {anexos.map(a => {
+                      const isPdf = isPdfUrl(a.url, a.nome);
+                      const isImg = isImageUrl(a.url, a.nome);
+                      const ext = (a.nome.split('.').pop() || '').replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 4);
+                      return (
+                        <div key={a.id} className="flex items-stretch gap-3 group rounded-md hover:bg-muted/60 p-1.5">
+                          <button
+                            onClick={() => setPreviewAnexo(a)}
+                            className="h-14 w-[5.5rem] rounded bg-muted border flex items-center justify-center shrink-0 overflow-hidden"
+                          >
+                            {isImg
+                              ? <img src={a.url} alt="" className="h-full w-full object-cover" />
+                              : <span className="text-[11px] font-bold text-muted-foreground tracking-wide">{isPdf ? 'PDF' : (ext || 'FILE')}</span>}
+                          </button>
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <button onClick={() => setPreviewAnexo(a)} className="text-sm font-semibold truncate text-left hover:underline">{a.nome}</button>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Adicionado {fmtDate(a.criado_em, "d MMM yyyy 'às' HH:mm")}</p>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 shrink-0 self-center">
+                            <a href={a.url} target="_blank" rel="noopener noreferrer" title="Abrir em nova aba" className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"><ExternalLink size={14} /></a>
+                            <button onClick={() => handleDeleteAnexo(a.id)} title="Remover" className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-destructive"><X size={14} /></button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
