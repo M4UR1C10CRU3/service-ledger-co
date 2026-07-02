@@ -25,7 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   AlignLeft, Calendar, CheckSquare, Tag, Archive, Plus, X, Check, Clock,
   MessageSquare, Users, Palette, Trash2, Activity, Pencil, SmilePlus,
-  CornerDownRight, Paperclip, Copy, LayoutTemplate, Link2, ExternalLink,
+  CornerDownRight, Paperclip, Copy, LayoutTemplate, ExternalLink, ChevronUp, ChevronDown,
 } from 'lucide-react';
 import { QuadroCartao, ChecklistItem, Etiqueta, Comentario, Utilizador, CartaoAnexo, ChecklistModelo, ChecklistModeloItem } from '@/types/quadros';
 import { initials, avatarColor } from './CartaoCard';
@@ -58,6 +58,7 @@ const EMOJIS = [
 ];
 
 interface ItemEditState {
+  texto: string;
   responsavel_id: string;
   responsavel_nome: string;
   hora: string;
@@ -78,7 +79,8 @@ interface Props {
   onAddChecklistItem: (checklistId: string, cartaoId: string, texto: string) => Promise<void>;
   onToggleChecklistItem: (itemId: string, checklistId: string, cartaoId: string, concluido: boolean) => Promise<void>;
   onDeleteChecklistItem: (itemId: string, checklistId: string, cartaoId: string) => Promise<void>;
-  onUpdateChecklistItem: (itemId: string, checklistId: string, cartaoId: string, updates: Partial<Pick<ChecklistItem, 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>) => Promise<void>;
+  onUpdateChecklistItem: (itemId: string, checklistId: string, cartaoId: string, updates: Partial<Pick<ChecklistItem, 'texto' | 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>) => Promise<void>;
+  onMoveChecklistItem: (itemId: string, checklistId: string, cartaoId: string, direction: 'up' | 'down') => Promise<void>;
   onFetchFeed: (cartaoId: string) => Promise<Comentario[]>;
   onAddComentario: (cartaoId: string, texto: string, replyTo?: { id: string; autor_nome: string | null; texto: string }) => Promise<Comentario | null>;
   onUpdateComentario: (id: string, texto: string) => Promise<void>;
@@ -415,6 +417,7 @@ export default function CartaoDetailModal(props: Props) {
 
   // Checklist item detail helpers
   const getItemEdit = (item: ChecklistItem): ItemEditState => itemEdits[item.id] ?? {
+    texto: item.texto,
     responsavel_id: item.responsavel_id || '',
     responsavel_nome: item.responsavel_nome || '',
     hora: item.hora?.slice(0, 5) || '',
@@ -425,6 +428,7 @@ export default function CartaoDetailModal(props: Props) {
     const e = getItemEdit(item);
     const u = utilizadores.find(u => u.id === e.responsavel_id);
     await props.onUpdateChecklistItem(item.id, clId, c.id, {
+      texto: e.texto.trim() || item.texto,
       responsavel_id: e.responsavel_id || null,
       responsavel_nome: u?.nome || e.responsavel_nome || null,
       hora: e.hora || null,
@@ -537,7 +541,7 @@ export default function CartaoDetailModal(props: Props) {
                         <p className="text-sm font-medium">{cl.titulo}</p>
                         <button onClick={() => props.onDeleteChecklist(cl.id, c.id)} className="opacity-0 group-hover/cl:opacity-100 text-muted-foreground hover:text-destructive"><Trash2 size={13} /></button>
                       </div>
-                      {cl.items.map(item => (
+                      {cl.items.map((item, itemIdx) => (
                         <div key={item.id} className="group/item mb-1">
                           {/* Item row */}
                           <div className="flex items-start gap-2 py-0.5">
@@ -557,9 +561,25 @@ export default function CartaoDetailModal(props: Props) {
                                 {initials(item.responsavel_nome)}
                               </span>
                             )}
-                            <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100">
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100">
                               <button
-                                title="Detalhes (responsável, hora, prazo)"
+                                title="Mover para cima"
+                                disabled={itemIdx === 0}
+                                onClick={() => props.onMoveChecklistItem(item.id, cl.id, c.id, 'up')}
+                                className="text-muted-foreground hover:text-foreground p-0.5 rounded disabled:opacity-30 disabled:pointer-events-none"
+                              >
+                                <ChevronUp size={14} />
+                              </button>
+                              <button
+                                title="Mover para baixo"
+                                disabled={itemIdx === cl.items.length - 1}
+                                onClick={() => props.onMoveChecklistItem(item.id, cl.id, c.id, 'down')}
+                                className="text-muted-foreground hover:text-foreground p-0.5 rounded disabled:opacity-30 disabled:pointer-events-none"
+                              >
+                                <ChevronDown size={14} />
+                              </button>
+                              <button
+                                title="Editar tarefa (texto, responsável, prazo)"
                                 onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}
                                 className="text-muted-foreground hover:text-foreground p-0.5 rounded"
                               >
@@ -588,6 +608,16 @@ export default function CartaoDetailModal(props: Props) {
                           {/* Item detail editor */}
                           {expandedItem === item.id && (
                             <div className="ml-6 mt-2 p-3 bg-muted/50 rounded-lg border space-y-2">
+                              <div>
+                                <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Tarefa</p>
+                                <Textarea
+                                  className="text-sm min-h-[52px]"
+                                  value={getItemEdit(item).texto}
+                                  onChange={e => setItemEdits(p => ({ ...p, [item.id]: { ...getItemEdit(item), texto: e.target.value } }))}
+                                  onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveItemEdit(item, cl.id); }}
+                                  placeholder="Texto da tarefa..."
+                                />
+                              </div>
                               <div>
                                 <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-1">Responsável</p>
                                 <select

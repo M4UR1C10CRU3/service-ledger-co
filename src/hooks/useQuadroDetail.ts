@@ -206,12 +206,34 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
 
   const updateChecklistItem = async (
     itemId: string, checklistId: string, cartaoId: string,
-    updates: Partial<Pick<ChecklistItem, 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>,
+    updates: Partial<Pick<ChecklistItem, 'texto' | 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>,
   ) => {
     await supabase.from('cartao_checklist_items').update(updates).eq('id', itemId);
     setListas(prev => prev.map(l => ({
       ...l, cartoes: l.cartoes.map(c => c.id === cartaoId
         ? { ...c, checklists: c.checklists.map(cl => cl.id === checklistId ? { ...cl, items: cl.items.map(it => it.id === itemId ? { ...it, ...updates } : it) } : cl) } : c),
+    })));
+  };
+
+  // Mover uma tarefa para cima/baixo dentro do checklist (normaliza posicao 0..n)
+  const moveChecklistItem = async (itemId: string, checklistId: string, cartaoId: string, direction: 'up' | 'down') => {
+    const cartao = listas.flatMap(l => l.cartoes).find(c => c.id === cartaoId);
+    const cl = cartao?.checklists.find(x => x.id === checklistId);
+    if (!cl) return;
+    const items = [...cl.items];
+    const idx = items.findIndex(it => it.id === itemId);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= items.length) return;
+    [items[idx], items[swapIdx]] = [items[swapIdx], items[idx]];
+    const reordered = items.map((it, i) => ({ ...it, posicao: i }));
+    await Promise.all(reordered.map((it, i) =>
+      cl.items.find(o => o.id === it.id)?.posicao === i
+        ? Promise.resolve()
+        : supabase.from('cartao_checklist_items').update({ posicao: i }).eq('id', it.id),
+    ));
+    setListas(prev => prev.map(l => ({
+      ...l, cartoes: l.cartoes.map(cc => cc.id !== cartaoId ? cc
+        : { ...cc, checklists: cc.checklists.map(x => x.id !== checklistId ? x : { ...x, items: reordered }) }),
     })));
   };
 
@@ -550,7 +572,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     updateQuadro, archiveQuadro,
     addLista, updateLista, archiveLista, persistListaOrder,
     addCartao, updateCartao, archiveCartao, persistCartaoOrder,
-    addChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem, updateChecklistItem, deleteChecklist,
+    addChecklist, addChecklistItem, toggleChecklistItem, deleteChecklistItem, updateChecklistItem, moveChecklistItem, deleteChecklist,
     fetchFeed, addComentario, updateComentario, deleteComentario, logAtividade,
     listAnexos, addAnexo, uploadAnexo, deleteAnexo,
     duplicarCartao,

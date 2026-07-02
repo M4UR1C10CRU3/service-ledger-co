@@ -138,6 +138,7 @@ export default function SchoolCertificados() {
         ? (curso!.conteudo_programatico as { modulo: string; horas: number }[])
         : [],
       objetivo: curso?.objetivo ?? null,
+      metodologia: (curso as any)?.metodologia ?? null,
       reconhecimento: curso?.reconhecimento ?? null,
       aprovacao_minima: curso?.aprovacao_minima ?? null,
       validade_anos: curso?.validade_meses ? Math.round(curso.validade_meses / 12) : null,
@@ -264,6 +265,7 @@ export default function SchoolCertificados() {
             ? (curso!.conteudo_programatico as { modulo: string; horas: number }[])
             : [],
           objetivo: curso?.objetivo ?? null,
+          metodologia: (curso as any)?.metodologia ?? null,
           reconhecimento: curso?.reconhecimento ?? null,
           aprovacao_minima: curso?.aprovacao_minima ?? null,
           validade_anos: Math.round(validadeMeses / 12),

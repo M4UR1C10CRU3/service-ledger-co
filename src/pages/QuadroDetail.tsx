@@ -254,6 +254,7 @@ export default function QuadroDetail() {
           onToggleChecklistItem={d.toggleChecklistItem}
           onDeleteChecklistItem={d.deleteChecklistItem}
           onUpdateChecklistItem={d.updateChecklistItem}
+          onMoveChecklistItem={d.moveChecklistItem}
           onFetchFeed={d.fetchFeed}
           onAddComentario={d.addComentario}
           onUpdateComentario={d.updateComentario}
