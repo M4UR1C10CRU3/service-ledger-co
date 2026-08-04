@@ -1,11 +1,18 @@
 import { QuadroCartao } from '@/types/quadros';
-import { Calendar, CheckSquare, AlignLeft, MessageSquare } from 'lucide-react';
+import { Calendar, CheckSquare, AlignLeft, MessageSquare, User, Building2, FileText } from 'lucide-react';
 
 interface Props {
   cartao: QuadroCartao;
   comentariosCount?: number;
   onClick?: () => void;
+  /** Nome do cliente ou fornecedor associado, resolvido pelo quadro. */
+  parteNome?: string | null;
+  /** Tipo da parte, para o ícone certo. */
+  parteTipo?: 'cliente' | 'fornecedor' | null;
 }
+
+const fmtEur = (v: number) =>
+  new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(v);
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
@@ -25,7 +32,7 @@ function initials(nome: string | null) {
 const AVATAR_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#14b8a6'];
 const avatarColor = (id: string) => AVATAR_COLORS[id.charCodeAt(0) % AVATAR_COLORS.length];
 
-export default function CartaoCard({ cartao, comentariosCount, onClick }: Props) {
+export default function CartaoCard({ cartao, comentariosCount, onClick, parteNome, parteTipo }: Props) {
   const totalItems = cartao.checklists.reduce((s, cl) => s + cl.items.length, 0);
   const doneItems  = cartao.checklists.reduce((s, cl) => s + cl.items.filter(i => i.concluido).length, 0);
   const done = cartao.data_limite_concluida;
@@ -48,7 +55,32 @@ export default function CartaoCard({ cartao, comentariosCount, onClick }: Props)
         </div>
       )}
 
+      {/* A parte de quem se trata, acima do título — é o primeiro dado que o
+          gestor procura, tal como no Workflow Comercial. Num quadro livre não
+          existe e nada disto aparece. */}
+      {parteNome && (
+        <p className="flex items-center gap-1 text-[11px] font-medium text-gray-500 mb-0.5 truncate">
+          {parteTipo === 'fornecedor' ? <Building2 size={11} /> : <User size={11} />}
+          <span className="truncate">{parteNome}</span>
+        </p>
+      )}
+
       <p className="text-sm text-gray-800 leading-snug break-words">{cartao.titulo}</p>
+
+      {(cartao.valor != null || cartao.doc_tipo) && (
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {cartao.doc_tipo && (
+            <span className="flex items-center gap-1 text-[10px] text-gray-500 bg-gray-100 rounded px-1.5 py-0.5">
+              <FileText size={10} /> {cartao.doc_tipo.replace(/_/g, ' ')}
+            </span>
+          )}
+          {cartao.valor != null && (
+            <span className="text-sm font-semibold text-gray-800 tabular-nums ml-auto">
+              {fmtEur(Number(cartao.valor))}
+            </span>
+          )}
+        </div>
+      )}
 
       {(cartao.data_limite || totalItems > 0 || hasDesc || (comentariosCount ?? 0) > 0 || cartao.membros.length > 0) && (
         <div className="flex items-center gap-2.5 mt-2 flex-wrap">

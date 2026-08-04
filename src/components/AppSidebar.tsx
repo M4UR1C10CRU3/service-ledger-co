@@ -8,9 +8,11 @@ import {
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
   GraduationCap, BookOpen, CalendarDays, Award, UserRound, LayoutGrid, Activity,
+  FolderKanban, ListTodo, Repeat, Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useAgencyPais } from '@/hooks/useAgencyPais';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -97,6 +99,7 @@ const sectionsGeral: NavSection[] = [
     icon: UsersRound,
     items: [
       { title: 'Colaboradores',  url: '/colaboradores',                    icon: HardHat,       permModulo: 'rh_colaboradores' },
+      { title: 'Funções',        url: '/recursos-humanos/funcoes',         icon: ClipboardCheck,permModulo: 'rh_colaboradores' },
       { title: 'Controlo de Ponto', url: '/controle-ponto',               icon: Clock,         permModulo: 'rh_ponto' },
       { title: 'Recrutamento',   url: '/recursos-humanos/recrutamento',    icon: UserSearch,    permModulo: 'rh_recrutamento' },
       { title: 'Avaliações',     url: '/recursos-humanos/avaliacoes',      icon: ClipboardCheck,permModulo: 'rh_avaliacoes' },
@@ -182,12 +185,81 @@ const sectionsITC: NavSection[] = [
   },
 ];
 
+// ── Menu do Clariza Agency (vertical de Agência de Marketing) ────────────────
+// SUBSTITUI o menu genérico — não o complementa. Uma agência não tem stocks,
+// nem ordens de serviço de obra, nem subempreiteiros; ter esses módulos no menu
+// faria o vertical parecer uma cópia do Clariza de construção com uma secção
+// colada por cima. Aqui só entra o que serve o negócio de uma agência.
+//
+// Deliberadamente FORA: Compras/Workflow Compras/Stocks/Produtos (uma agência
+// não gere armazém), Produção/Ordens de Serviço/Workflow Produção (obra),
+// Subempreiteiros, E-commerce (é da Tudo Casa), e o módulo Marketing antigo —
+// que está preso à Tudo Casa por slug e é superado pelos Jobs.
+//
+// Ligado por DADOS (ag_empresas_vertical), não por slug escrito no código como
+// o School: ativar uma agência nova não exige recompilar a aplicação.
+const sectionsAgency: NavSection[] = [
+  {
+    label: 'Agência',
+    icon: FolderKanban,
+    items: [
+      { title: 'Projetos',          url: '/agency/projetos',       icon: FolderKanban },
+      { title: 'Os meus trabalhos', url: '/agency/meus-trabalhos', icon: ListTodo     },
+      { title: 'Rentabilidade',     url: '/agency/rentabilidade',  icon: TrendingUp   },
+      { title: 'Automações',        url: '/agency/automacoes',     icon: Zap          },
+    ],
+  },
+  {
+    label: 'Comercial',
+    icon: Briefcase,
+    items: [
+      { title: 'Clientes',            url: '/clientes',            icon: Users,         permModulo: 'clientes' },
+      { title: 'Pedidos de Orçamento',url: '/pedidos-orcamento',   icon: ClipboardList, permModulo: 'pedidos_orcamento' },
+      { title: 'Propostas',           url: '/agency/propostas',    icon: FileText },
+      { title: 'Avenças',             url: '/agency/avencas',      icon: Repeat },
+      { title: 'Workflow Comercial',  url: '/workflow-comercial',  icon: Target,        permModulo: 'followup' },
+      { title: 'Catálogo e textos',   url: '/agency/catalogo',     icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Fornecedores',
+    icon: Truck,
+    items: [
+      { title: 'Fornecedores',       url: '/fornecedores',    icon: Truck,         permModulo: 'fornecedores' },
+      { title: 'Notas de Encomenda', url: '/notas-encomenda', icon: ClipboardList, permModulo: 'compras' },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    icon: Wallet,
+    items: [
+      { title: 'Receitas',            url: '/receitas',            icon: TrendingUp, permModulo: 'financeiro_receitas' },
+      { title: 'Despesas',            url: '/despesas',            icon: CreditCard, permModulo: 'financeiro_despesas' },
+      { title: 'Contas a Pagar',      url: '/contas-pagar',        icon: Receipt,    permModulo: 'financeiro_despesas' },
+      { title: 'Fluxo de Caixa',      url: '/fluxo-caixa',         icon: Wallet,     permModulo: 'financeiro_fluxo' },
+      { title: 'Relatório Gerencial', url: '/relatorio-gerencial', icon: BarChart3,  permModulo: 'financeiro_receitas' },
+    ],
+  },
+  {
+    label: 'Equipa',
+    icon: UsersRound,
+    items: [
+      { title: 'Funções',           url: '/agency/equipa',                 icon: UsersRound },
+      { title: 'Colaboradores',     url: '/colaboradores',                 icon: UserRound,     permModulo: 'rh_colaboradores' },
+      { title: 'Controlo de Ponto', url: '/controle-ponto',                icon: Clock,         permModulo: 'rh_ponto' },
+      { title: 'Recrutamento',      url: '/recursos-humanos/recrutamento', icon: UserSearch,    permModulo: 'rh_recrutamento' },
+      { title: 'Avaliações',        url: '/recursos-humanos/avaliacoes',   icon: ClipboardCheck,permModulo: 'rh_avaliacoes' },
+    ],
+  },
+];
+
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { empresa, getLogo, setEmpresa } = useEmpresa();
   const { can, isAdmin } = usePermissions();
+  const { verticalAtivo: agencyAtivo } = useAgencyPais();
 
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Obrajusta';
@@ -207,9 +279,13 @@ export function AppSidebar() {
     navigate('/empresa');
   };
 
-  // Seleccionar secções consoante a empresa (ITC = escola, resto = negócio)
+  // Cada vertical tem o SEU menu — não o menu genérico com uma secção colada
+  // por cima. Uma agência não gere stocks nem obras; uma escola não gere
+  // produção. Ordem: Agency (por dados) → School (por slug, legado) → genérico.
   const isITC = empresa?.slug === 'itc' || empresa?.slug === 'itc-educa-pro';
-  const activeSections = isITC ? sectionsITC : sectionsGeral;
+  const activeSections = agencyAtivo
+    ? sectionsAgency
+    : isITC ? sectionsITC : sectionsGeral;
 
   // Filter sections by empresa slug (apenasEmpresas) + filter items by permission
   const visibleSections = activeSections

@@ -15,6 +15,7 @@ import { exportNePdf } from './nePdfExport';
 import { buildNotaEncomendaEmail } from '@/lib/emailTemplates';
 import { SendEmailDialog } from '@/components/SendEmailDialog';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useSuppliers } from '@/hooks/useSuppliers';
 
 interface Props {
   ne: NotaEncomenda | null;
@@ -60,7 +61,8 @@ export function NeDetailDialog({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailData, setEmailData] = useState<{ subject: string; html: string; from: string; tipo: 'compras' } | null>(null);
-  const { empresa } = useEmpresa();
+  const { empresa, getDocConfig } = useEmpresa();
+  const { suppliers } = useSuppliers();
 
   useEffect(() => {
     if (ne) { setTab('detalhes'); setConfirmDelete(false); }
@@ -115,6 +117,11 @@ export function NeDetailDialog({
         pdfItems = await fetchItems(ne.id);
         setItems(pdfItems); // cache for later
       }
+      const fornecedor = suppliers.find(s => s.id === ne.fornecedorId);
+      const fornecedorMorada = fornecedor
+        ? [fornecedor.logradouro, fornecedor.numero].filter(Boolean).join(', ')
+          + (fornecedor.cidade ? ` — ${fornecedor.cidade}` : '')
+        : undefined;
       exportNePdf(
         {
           numeroNe:      ne.numero,
@@ -123,12 +130,18 @@ export function NeDetailDialog({
           observacoes:   ne.observacoes ?? undefined,
           prioridade:    ne.prioridade,
           fornecedorNome: ne.fornecedorNome ?? '—',
+          fornecedorMorada: fornecedorMorada || undefined,
+          fornecedorNif: fornecedor?.cnpjCpf,
+          fornecedorTelefone: fornecedor?.telefone ?? undefined,
+          fornecedorEmail: fornecedor?.email ?? undefined,
           dataCriacao:   ne.dataCriacao,
           dataNecessidade: ne.dataNecessidade ?? undefined,
           items:         pdfItems,
           valorEstimado: ne.valorEstimado,
         },
         empresa,
+        undefined,
+        getDocConfig(),
       );
     } finally {
       setPdfLoading(false);

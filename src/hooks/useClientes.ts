@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { supabase } from '@/integrations/supabase/client';
+import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
 
 export const useClientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { grupoId, isLoading: grupoALoad } = useGrupoEmpresas();
 
+  // Os clientes são partilhados pelo GRUPO — as cinco empresas veem a mesma
+  // carteira de propósito. Sem este filtro, a Elo Giro e a ITC veriam-na
+  // também, que é o que acontecia até aqui.
   const loadClientes = async () => {
+    if (grupoALoad) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .order('nome', { ascending: true });
+      // Grupo por apurar: não mostrar nada é preferível a mostrar tudo.
+      const filtro = grupoId ?? '00000000-0000-0000-0000-000000000000';
+      const { data, error } = await (supabase.from('clientes') as any)
+        .select('*').eq('grupo_id', filtro).order('nome', { ascending: true });
 
       if (error) {
         console.error('Error loading clientes:', error);
@@ -44,15 +50,19 @@ export const useClientes = () => {
     }
   };
 
+  // Recarrega ao trocar de empresa: mudar de grupo tem de mudar a carteira.
   useEffect(() => {
     loadClientes();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grupoId, grupoALoad]);
 
   const addCliente = async (clienteData: ClienteFormData): Promise<Cliente | null> => {
     try {
-      const { data, error } = await supabase
-        .from('clientes')
+      const { data, error } = await (supabase.from('clientes') as any)
         .insert({
+          // O cliente nasce no grupo de quem o cria. A base tem um gatilho
+          // de reserva, mas é aqui que se decide — explícito e visível.
+          grupo_id: grupoId,
           nome: clienteData.nome,
           telefone: clienteData.telefone || null,
           email: clienteData.email || null,

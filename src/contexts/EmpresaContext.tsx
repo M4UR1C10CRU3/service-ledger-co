@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Empresa } from '@/types/empresa';
 import { supabase } from '@/integrations/supabase/client';
+import { resolveEmpresaDocConfig, type EmpresaDocConfig, type LibertyEmpresaConfigRow } from '@/lib/empresaConfig';
 
 // Logos importados
 import logoObrajusta from '@/assets/logo-obrajusta.png';
@@ -14,6 +15,28 @@ interface EmpresaContextType {
   setEmpresaBySlug: (slug: string) => void;
   getLogo: () => string;
   getColors: () => { primary: string; secondary: string; accent: string };
+  getDocConfig: () => EmpresaDocConfig;
+  /** Relê as empresas da BD — usar após gravar logótipo ou cor. */
+  recarregarEmpresas: () => Promise<void>;
+}
+
+/**
+ * Marca de água neutra para empresas sem logótipo: iniciais sobre a cor da
+ * própria empresa. Substitui o antigo recurso final, que devolvia o logótipo
+ * da Obrajusta — ou seja, emprestava a marca de uma empresa concreta a todas
+ * as outras que ainda não tivessem a sua.
+ */
+export function logoPlaceholder(nome: string, cor: string): string {
+  const iniciais = (nome || '?')
+    .trim().split(/\s+/).slice(0, 2)
+    .map(p => p[0]?.toUpperCase() ?? '').join('');
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">` +
+    `<rect width="100" height="100" rx="18" fill="${cor || '#64748b'}"/>` +
+    `<text x="50" y="50" font-family="system-ui,-apple-system,sans-serif" font-size="40"` +
+    ` font-weight="700" fill="#ffffff" text-anchor="middle" dominant-baseline="central">${iniciais}</text>` +
+    `</svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 
 const EmpresaContext = createContext<EmpresaContextType | undefined>(undefined);
@@ -29,18 +52,72 @@ const logoMap: Record<string, string> = {
   'itc-educa-pro': '/logo-itc.png',
 };
 
+/**
+ * Logótipo de UMA empresa qualquer — não necessariamente a selecionada.
+ * Fonte única: o ecrã de escolha de empresa tinha a sua própria cópia desta
+ * lógica (e do mapa de logótipos), o que fez com que a correção do recurso
+ * final só apanhasse metade da aplicação. Agora só existe aqui.
+ */
+export function resolveLogoEmpresa(empresa: Empresa | null): string {
+  if (!empresa) return logoPlaceholder('Clariza', '#64748b');
+  const path = empresa.logoPath?.trim();
+  // URL completa (Supabase Storage ou externa)
+  if (path && path.startsWith('http')) return path;
+  // Caminhos locais legados tipo "/assets/..." → usar bundle local
+  if (path && path.startsWith('/assets/')) {
+    return logoMap[empresa.slug] || logoPlaceholder(empresa.nome, empresa.corPrimaria);
+  }
+  // Caminho relativo no Supabase Storage
+  if (path && path !== '') {
+    const SUPABASE_URL = 'https://qeskzaodgfveidyeghbm.supabase.co';
+    return `${SUPABASE_URL}/storage/v1/object/public/logos/${path}`;
+  }
+  // Sem logótipo: logótipos locais das empresas antigas, senão as iniciais
+  // da própria empresa. NUNCA o logótipo de outra empresa.
+  return logoMap[empresa.slug] || logoPlaceholder(empresa.nome, empresa.corPrimaria);
+}
+
 export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
   const [empresa, setEmpresaState] = useState<Empresa | null>(null);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [docConfigRow, setDocConfigRow] = useState<LibertyEmpresaConfigRow | null>(null);
+
+  // Cadastro real da empresa (Configurações → Dados da Empresa) — fonte de
+  // verdade para os dados que aparecem nos documentos emitidos (Proposta,
+  // Pedido de Orçamento, Nota de Encomenda), não o mapa fixo em código.
+  useEffect(() => {
+    if (!empresa) { setDocConfigRow(null); return; }
+    let cancelled = false;
+    (supabase.from('liberty_empresas_config') as any)
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .maybeSingle()
+      .then(({ data }: any) => { if (!cancelled) setDocConfigRow(data || null); });
+    return () => { cancelled = true; };
+  }, [empresa?.id]);
 
   // Carregar empresas do Supabase
   const loadEmpresasFromDb = async () => {
     try {
-      const { data, error } = await supabase
-        .from('empresas')
-        .select('*')
-        .order('nome');
+      // Com sessão iniciada, a lista passa a ser SÓ das empresas do utilizador.
+      // Antes disso não há identidade nenhuma, por isso o seletor inicial
+      // mostra todas — para saltar esse ecrã existe ?empresa=<slug>, que é como
+      // o link de demonstração leva o visitante direto ao sítio certo sem lhe
+      // mostrar a lista de empresas de outra gente.
+      const { data: { user } } = await supabase.auth.getUser();
+      let permitidas: string[] = [];
+      if (user) {
+        const { data: liga } = await (supabase.from('liberty_utilizador_empresas') as any)
+          .select('empresa_id, liberty_utilizadores!inner(auth_user_id)')
+          .eq('liberty_utilizadores.auth_user_id', user.id);
+        permitidas = (liga || []).map((l: any) => l.empresa_id);
+      }
+
+      const base = supabase.from('empresas').select('*').order('nome');
+      const { data, error } = permitidas.length > 0
+        ? await base.in('id', permitidas)
+        : await base;
 
       if (!error && data && data.length > 0) {
         const empresasFormatted = data.map((e: any) => ({
@@ -56,6 +133,14 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
           updatedAt: new Date(e.updated_at),
         }));
         setEmpresas(empresasFormatted);
+        // A empresa selecionada é uma cópia à parte — sem isto, gravar o
+        // logótipo ou a cor não se refletia no ecrã até trocar de empresa.
+        setEmpresaState(atual => {
+          if (!atual) return atual;
+          const fresca = empresasFormatted.find(e => e.id === atual.id);
+          if (fresca) applyTheme(fresca);
+          return fresca ?? atual;
+        });
       }
     } catch (error) {
       console.error('Error loading empresas:', error);
@@ -134,25 +219,10 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getLogo = (): string => {
-    if (!empresa) return logoObrajusta;
-    const path = empresa.logoPath?.trim();
-    // URL completa (Supabase Storage ou externa)
-    if (path && path.startsWith('http')) {
-      return path;
-    }
-    // Caminhos locais legados tipo "/assets/..." → usar bundle local
-    if (path && path.startsWith('/assets/')) {
-      return logoMap[empresa.slug] || logoObrajusta;
-    }
-    // Caminho relativo no Supabase Storage
-    if (path && path !== '') {
-      const SUPABASE_URL = 'https://qeskzaodgfveidyeghbm.supabase.co';
-      return `${SUPABASE_URL}/storage/v1/object/public/logos/${path}`;
-    }
-    // Fallback: logos locais para empresas existentes
-    return logoMap[empresa.slug] || logoObrajusta;
-  };
+  const getLogo = (): string => resolveLogoEmpresa(empresa);
+
+  const getDocConfig = (): EmpresaDocConfig =>
+    resolveEmpresaDocConfig(empresa?.slug, empresa?.nomeLegal || empresa?.nome, docConfigRow);
 
   const getColors = () => {
     if (!empresa) {
@@ -175,6 +245,8 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
         setEmpresaBySlug,
         getLogo,
         getColors,
+        getDocConfig,
+        recarregarEmpresas: loadEmpresasFromDb,
       }}
     >
       {children}

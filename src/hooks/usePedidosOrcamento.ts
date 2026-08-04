@@ -81,15 +81,29 @@ export function usePedidosOrcamento() {
   const getNextNumber = async (): Promise<{ seq: number; formatted: string }> => {
     if (!empresa) return { seq: 1, formatted: `PO ${new Date().getFullYear()}/1` };
     const ano = new Date().getFullYear();
-    const { data } = await (supabase as any)
-      .from('pedidos_orcamento')
-      .select('numero_sequencial')
-      .eq('empresa_id', empresa.id)
-      .eq('ano', ano)
-      .order('numero_sequencial', { ascending: false })
-      .limit(1);
-    const next = ((data?.[0] as any)?.numero_sequencial ?? 0) + 1;
+    // Só para MOSTRAR no formulário — não reserva nada, senão cada pedido
+    // começado e abandonado deixava um buraco na numeração.
+    const { data } = await (supabase.rpc as any)('doc_numero_previsto', {
+      p_empresa_id: empresa.id, p_tipo: 'pedido_orcamento', p_ano: ano,
+    });
+    const next = (data as number) ?? 1;
     return { seq: next, formatted: formatPoNumber(empresa.slug, ano, next) };
+  };
+
+  /**
+   * O número definitivo, atribuído ao gravar. Antes lia-se o maior do ano e
+   * somava-se um — dois utilizadores a gravar no mesmo segundo ficavam com o
+   * mesmo número. A base resolve isso numa instrução indivisível.
+   */
+  const reservarNumero = async (): Promise<{ seq: number; formatted: string }> => {
+    const ano = new Date().getFullYear();
+    if (!empresa) return { seq: 1, formatted: `PO ${ano}/1` };
+    const { data, error } = await (supabase.rpc as any)('doc_proximo_numero', {
+      p_empresa_id: empresa.id, p_tipo: 'pedido_orcamento', p_ano: ano,
+    });
+    if (error) throw new Error(`Não foi possível reservar o número do pedido: ${error.message}`);
+    const seq = data as number;
+    return { seq, formatted: formatPoNumber(empresa.slug, ano, seq) };
   };
 
   const fetchLinhasPo = async (poId: string): Promise<POLinha[]> => {
@@ -114,6 +128,7 @@ export function usePedidosOrcamento() {
       cliente_nif: formData.clienteNif || null,
       cliente_telefone: formData.clienteTelefone || null,
       cliente_email: formData.clienteEmail || null,
+      vendedor_id: formData.vendedorId || null,
       vendedor_nome: formData.vendedorNome || null,
       data_emissao: dataEmissao,
       titulo: formData.titulo || null,
@@ -135,7 +150,7 @@ export function usePedidosOrcamento() {
       if (error) { console.error(error); return null; }
       await (supabase as any).from('po_linhas').delete().eq('po_id', existingId);
     } else {
-      const { seq, formatted } = await getNextNumber();
+      const { seq, formatted } = await reservarNumero();
       const ano = new Date().getFullYear();
       const now = new Date();
       const horaEmissao = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -151,40 +166,9 @@ export function usePedidosOrcamento() {
       if (error || !row) { console.error(error); return null; }
       poId = row.id;
 
-      // Auto-create Workflow Comercial opportunity SOMENTE para orçamentação (não para intervenção imediata)
-      if ((formData.tipoPedido || 'orcamentacao') !== 'intervencao_imediata') {
-      try {
-        const { data: oppRow } = await (supabase as any).from('followup_oportunidades').insert({
-          empresa_id: empresa.id,
-          cliente_id: formData.clienteId || null,
-          cliente_nome: formData.clienteNome || null,
-          titulo: formData.titulo || `PO ${formatted}`,
-          fase: 'po_recebido',
-          responsavel_nome: formData.vendedorNome || null,
-          probabilidade: 25,
-          po_id: poId,
-          numero_po: formatted,
-        }).select('id').single();
-        if (oppRow?.id) {
-          await (supabase as any).from('followup_historico_fases').insert({
-            oportunidade_id: oppRow.id, empresa_id: empresa.id,
-            fase_nova: 'po_recebido', notas: 'Criada automaticamente a partir do PO',
-          });
-          const defaults = [
-            'Registar e analisar o PO recebido',
-            'Confirmar contacto com o cliente',
-            'Avaliar viabilidade do pedido',
-            'Atribuir responsável pela orçamentação',
-          ];
-          await (supabase as any).from('workflow_checklist_items').insert(
-            defaults.map((texto, i) => ({
-              oportunidade_id: oppRow.id, empresa_id: empresa.id,
-              ordem: i, texto, fase_associada: 'po_recebido',
-            }))
-          );
-        }
-      } catch (e) { console.error('Auto-create oportunidade falhou', e); }
-      }
+      // A oportunidade do Workflow Comercial é criada pelo trigger
+      // fn_po_auto_create_oportunidade (migration 20260730120000_...sql) —
+      // criá-la também aqui duplicava o registo para PDPs de orçamentação.
     }
 
     if (poId && formData.linhas.length > 0) {

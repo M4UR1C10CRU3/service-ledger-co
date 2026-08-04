@@ -39,7 +39,7 @@ const estadoColors: Record<POEstado, string> = {
 };
 
 export default function PedidosOrcamento() {
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, getDocConfig } = useEmpresa();
   const { pedidos, isLoading, fetchLinhasPo, linkProposta, linkOs, deletePedido } = usePedidosOrcamento();
   const { saveProposta } = usePropostas();
   const { createOrdem } = useOrdensServico(empresa?.id);
@@ -96,7 +96,8 @@ export default function PedidosOrcamento() {
     }));
     const doExport = (logoDataUrl?: string) => {
       exportPoPdf({
-        numeroPo: p.numeroPo, clienteNome: p.clienteNome,
+        numeroPo: p.numeroPo, numeroSequencial: p.numeroSequencial, ano: p.ano,
+        clienteNome: p.clienteNome,
         clienteMorada: p.clienteMorada || '', clienteNif: p.clienteNif || '',
         clienteTelefone: p.clienteTelefone || '', clienteEmail: p.clienteEmail || '',
         vendedorNome: p.vendedorNome || '', dataEmissao: p.dataEmissao,
@@ -106,7 +107,7 @@ export default function PedidosOrcamento() {
         linhas: linhasForm,
         validadeTexto: p.validadeTexto || '', condicoesPagamento: p.condicoesPagamento || '',
         condicoesGerais: p.condicoesGerais || '', observacoes: p.observacoes || '',
-      }, empresa, logoDataUrl);
+      }, empresa, logoDataUrl, getDocConfig());
     };
     const img = new Image();
     img.crossOrigin = 'anonymous';

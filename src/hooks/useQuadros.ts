@@ -8,6 +8,16 @@ export function useQuadros(empresaId: string | undefined) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Os quadros são DA EMPRESA SELECIONADA, não do grupo.
+  //
+  // Ao contrário dos dados-mestre (clientes, fornecedores, colaboradores), que
+  // o grupo partilha de propósito, cada empresa tem o seu quadro de trabalho.
+  // Juntá-los mostrava quatro "Administrativo — Planeamento" lado a lado sem
+  // dizer de quem era cada um — e alguém acabaria por arrastar o cartão errado.
+  //
+  // Para trabalhar noutra empresa troca-se de empresa; mover um cartão entre
+  // empresas continua a fazer-se pelo próprio cartão, que é onde a intenção
+  // fica explícita.
   const fetchQuadros = useCallback(async () => {
     if (!empresaId) return;
     setIsLoading(true);

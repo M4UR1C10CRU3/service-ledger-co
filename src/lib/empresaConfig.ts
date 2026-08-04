@@ -22,6 +22,8 @@ export interface EmpresaDocConfig {
   prefixoPo: string;           // Prefixo para numeração de Pedidos de Orçamento
   emailsRodape: string;        // Emails no rodapé do PDF
   emailRemetentes: EmpresaEmailRemetentes;
+  registoComercial?: string;
+  capitalSocial?: string;
 }
 
 // ── Helpers de remetentes ─────────────────────────────────────────────────────
@@ -148,6 +150,60 @@ export function getEmpresaDocConfig(slug?: string): EmpresaDocConfig {
   return configs[slug] || defaultConfig;
 }
 
+// ── Cadastro real da empresa (liberty_empresas_config) ─────────────────────────
+// Fonte de verdade: preenchido pelo próprio utilizador em Configurações → Dados
+// da Empresa. O mapa `configs` acima serve só de base/fallback (prefixos,
+// remetentes de email) para quando ainda não há registo — nunca deve ser a
+// fonte principal dos dados que aparecem nos documentos.
+export interface LibertyEmpresaConfigRow {
+  nome_razao_social?: string | null;
+  nome_fantasia?: string | null;
+  nif?: string | null;
+  registo_comercial?: string | null;
+  capital_social?: string | null;
+  morada?: string | null;
+  codigo_postal?: string | null;
+  localidade?: string | null;
+  telefone?: string | null;
+  email_comercial?: string | null;
+  email_geral?: string | null;
+  email_internacional?: string | null;
+  prefixo_propostas?: string | null;
+  texto_condicoes?: string | null;
+  texto_pagamento?: string | null;
+  texto_validade?: string | null;
+}
+
+export function resolveEmpresaDocConfig(
+  slug: string | undefined,
+  nomeFallback: string | undefined,
+  live: LibertyEmpresaConfigRow | null,
+): EmpresaDocConfig {
+  const base = getEmpresaDocConfig(slug);
+  if (!live) {
+    // Sem cadastro preenchido ainda — usa o nome real da empresa (nunca o de
+    // outra empresa) com o resto dos dados do mapa fixo como ponto de partida.
+    return { ...base, nomeDocumento: nomeFallback || base.nomeDocumento };
+  }
+  const emails = [live.email_comercial, live.email_geral, live.email_internacional]
+    .filter((e, i, arr) => e && arr.indexOf(e) === i);
+  return {
+    ...base,
+    nomeDocumento: live.nome_razao_social || live.nome_fantasia || nomeFallback || base.nomeDocumento,
+    morada: live.morada || base.morada,
+    codigoPostal: live.codigo_postal || base.codigoPostal,
+    localidade: live.localidade || base.localidade,
+    contribuinte: live.nif || base.contribuinte,
+    telefones: live.telefone || base.telefones,
+    emailsRodape: emails.length ? emails.join('  |  ') : base.emailsRodape,
+    // O prefixo de numeração também vem do cadastro. Sem isto, uma empresa nova
+    // (que por definição não está no mapa fixo acima) caía no genérico 'BO'.
+    prefixoProposta: live.prefixo_propostas || base.prefixoProposta,
+    registoComercial: live.registo_comercial || '',
+    capitalSocial: live.capital_social || '',
+  };
+}
+
 export function formatPropostaNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
   const prefix = cfg.prefixoProposta;
@@ -160,4 +216,20 @@ export function formatPropostaNumber(slug: string | undefined, ano: number, seq:
 export function formatPoNumber(slug: string | undefined, ano: number, seq: number): string {
   const cfg = getEmpresaDocConfig(slug);
   return `${cfg.prefixoPo} ${ano}/${seq}`;
+}
+
+// ── Numeração no estilo PHC (clone visual) ─────────────────────────────────────
+// O PHC imprime, no próprio documento, "Nº {sequencial} / {série} -- {ano}BO{série}/{sequencial}".
+// O "série" é o número interno de filial/série do PHC para cada tipo de documento —
+// fixo por tipo de documento, igual para todas as empresas (confirmado com o
+// utilizador: não precisa de corresponder ao série real de cada empresa no PHC,
+// só o formato visual importa).
+export const PHC_SERIE = {
+  proposta: 13,
+  pedidoOrcamento: 16,
+  notaEncomenda: 2,
+} as const;
+
+export function formatPhcNumeroDisplay(seq: number, ano: number, serie: number): string {
+  return `${seq}&nbsp;/&nbsp;${serie}&nbsp;&nbsp;--&nbsp;${ano}BO${serie}/${seq}`;
 }

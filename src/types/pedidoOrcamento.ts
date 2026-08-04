@@ -76,6 +76,8 @@ export interface POFormData {
   clienteNif: string;
   clienteTelefone: string;
   clienteEmail: string;
+  /** Colaborador responsável — base do indicador de desempenho. */
+  vendedorId: string | null;
   vendedorNome: string;
   dataEmissao: string;
   titulo: string;

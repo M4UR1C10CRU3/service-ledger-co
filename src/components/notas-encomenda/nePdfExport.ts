@@ -1,5 +1,5 @@
 import type { NeItem } from '@/types/notaEncomenda';
-import { getEmpresaDocConfig } from '@/lib/empresaConfig';
+import { getEmpresaDocConfig, type EmpresaDocConfig } from '@/lib/empresaConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,9 +46,11 @@ const PRIORIDADE_LABEL: Record<string, string> = {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string) {
+export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string, docConfig?: EmpresaDocConfig) {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
-  const cfg = getEmpresaDocConfig(empresa?.slug);
+  // docConfig vem do cadastro real da empresa (Configurações → Dados da
+  // Empresa); só cai para o mapa fixo em código se não for passado.
+  const cfg = docConfig || getEmpresaDocConfig(empresa?.slug);
 
   // Filename
   const numClean = (data.numeroNe || '').replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
@@ -87,6 +89,20 @@ export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string)
         </tr>`;
       }
     });
+  }
+
+  // Contactos do fornecedor — no PHC aparece como secção dentro da própria
+  // tabela de artigos, não como bloco à parte no cabeçalho.
+  if (data.fornecedorTelefone || data.fornecedorEmail) {
+    linhasHtml += `<tr style="background:#F2F2F2">
+      <td colspan="7" style="padding:6px 8px;font-weight:bold;color:${primaryColor};font-size:11px">CONTACTOS</td>
+    </tr>`;
+    if (data.fornecedorTelefone) {
+      linhasHtml += `<tr><td colspan="7" style="padding:4px 8px;font-size:11px">${data.fornecedorTelefone}</td></tr>`;
+    }
+    if (data.fornecedorEmail) {
+      linhasHtml += `<tr><td colspan="7" style="padding:4px 8px;font-size:11px">${data.fornecedorEmail}</td></tr>`;
+    }
   }
 
   // Refs
@@ -128,7 +144,7 @@ export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string)
     </div>
     <div style="text-align:right">
       <div style="font-size:9px;color:#888">Não entra para SAF-T</div>
-      <div style="font-size:11px">Nota de Encomenda &nbsp;Nº &nbsp;&nbsp;<strong style="font-size:14px">${data.numeroNe}</strong></div>
+      <div style="font-size:11px">Encomenda a &nbsp;Nº&nbsp;&nbsp;<strong style="font-size:14px">${data.numeroNe}</strong></div>
       <div style="font-size:11px;margin-top:2px">ORIGINAL</div>
       ${refsLine}
     </div>
@@ -141,20 +157,18 @@ export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string)
       ${cfg.morada.toUpperCase()}<br/>
       ${cfg.codigoPostal}&nbsp;&nbsp;${cfg.localidade.toUpperCase()}<br/>
       Contribuinte Nº: ${cfg.contribuinte}<br/>
-      Conserv. Registo Comercial:<br/>
-      Capital Social:
+      Conserv. Registo Comercial:${cfg.registoComercial ? ' ' + cfg.registoComercial : ''}<br/>
+      Capital Social:${cfg.capitalSocial ? ' ' + cfg.capitalSocial : ''}
     </div>
     <div style="text-align:right;font-size:12px;line-height:1.6">
       <strong style="font-size:13px">${data.fornecedorNome}</strong><br/>
       ${data.fornecedorMorada ? data.fornecedorMorada + '<br/>' : ''}
-      ${data.fornecedorNif ? 'NIF: ' + data.fornecedorNif + '<br/>' : ''}
-      ${data.fornecedorTelefone ? 'Tel: ' + data.fornecedorTelefone + '<br/>' : ''}
-      ${data.fornecedorEmail ? data.fornecedorEmail : ''}
+      ${data.fornecedorNif ? 'NIF: ' + data.fornecedorNif : ''}
     </div>
   </div>
 
   <!-- Section heading -->
-  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Materiais a encomendar:</p>
+  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Materiais a</p>
 
   <!-- Colored bar -->
   <div style="background:${primaryColor};color:white;padding:6px 12px;display:flex;justify-content:space-between;align-items:flex-start;font-size:10px">
@@ -234,12 +248,12 @@ export function exportNePdf(data: NePdfData, empresa: any, logoDataUrl?: string)
   <!-- Signatures -->
   <div style="margin-top:22px;display:flex;justify-content:space-between;align-items:flex-end">
     <div style="font-size:10px">
-      Fornecedor:<br/>
+      Cliente:<br/>
       <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px">&nbsp;</div>
-      Assinatura e carimbo.
+      Assinatura se aceite.
     </div>
     <div style="font-size:10px;text-align:center">
-      ${cfg.nomeDocumento}<br/>
+      Assinatura e carimbo.<br/>
       <div style="border-top:1px solid #333;margin-top:22px;padding-top:4px;width:190px;display:inline-block">&nbsp;</div>
     </div>
     <div style="font-size:10px;text-align:right;line-height:1.8">

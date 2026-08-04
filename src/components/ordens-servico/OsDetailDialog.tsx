@@ -108,7 +108,7 @@ export function OsDetailDialog({
         descricao: editForm.descricao || null,
         observacoes: editForm.observacoes || null,
         prioridade: editForm.prioridade,
-        data_prevista: editForm.dataPrevista || null,
+        dataPrevista: editForm.dataPrevista || null,   // traduzido em useOrdensServico
         valor_estimado: editForm.valorEstimado === '' ? null : Number(editForm.valorEstimado),
         valor_final: editForm.valorFinal === '' ? null : Number(editForm.valorFinal),
       };

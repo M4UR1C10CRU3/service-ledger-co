@@ -73,6 +73,21 @@ export interface QuadroCartao {
   etiquetas: Etiqueta[];
   checklists: Checklist[];
   membros: CartaoMembro[];
+  // ── Processo (num quadro livre ficam sempre vazios) ──────────────────────
+  /** Cliente a que o cartão diz respeito. */
+  cliente_id?: string | null;
+  /** Fornecedor a que o cartão diz respeito. */
+  supplier_id?: string | null;
+  responsavel_id?: string | null;
+  responsavel_nome?: string | null;
+  /** Para onde a automação envia o email. */
+  contacto_email?: string | null;
+  valor?: number | null;
+  /** Documento gerado a partir deste cartão. */
+  doc_tipo?: string | null;
+  doc_id?: string | null;
+  /** Última vez que mudou de coluna — base dos gatilhos temporais. */
+  movido_em?: string | null;
 }
 
 export interface QuadroLista {
@@ -83,6 +98,18 @@ export interface QuadroLista {
   arquivado: boolean;
   criado_em: string;
   cartoes: QuadroCartao[];
+  // ── Processo (só em quadros tipados; num quadro livre vêm sempre vazios) ──
+  /** Estado de negócio que esta coluna representa (ex.: 'cotacao_recebida'). */
+  estado_codigo?: string | null;
+  /** Campos que o cartão tem de ter preenchidos para poder ENTRAR aqui. */
+  campos_obrigatorios?: string[];
+  /** Coluna terminal do processo. */
+  final?: boolean;
+  /** Não aceita cartões arrastados (ex.: "Cancelada", "Liquidado"). */
+  bloqueada?: boolean;
+  /** Só em colunas finais: se o processo acabou bem ou mal. Base da taxa de conversão. */
+  resultado?: 'ganho' | 'perdido' | null;
+  cor?: string | null;
 }
 
 export interface Quadro {
@@ -121,6 +148,7 @@ export interface ChecklistModelo {
   id: string;
   empresa_id: string;
   nome: string;
+  categoria: string | null;
   criado_em: string;
   checklist_template_items: ChecklistModeloItem[];
 }

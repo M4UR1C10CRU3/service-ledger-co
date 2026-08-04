@@ -4,18 +4,53 @@ import { OrdemServico, OsChecklistItem, OsFormData, OsEstado } from '@/types/ord
 import { useToast } from '@/hooks/use-toast';
 import { inserirNotificacaoInterna } from '@/hooks/useNotificacoesInternas';
 
+// ── Nomes de coluna reais da tabela `ordens_servico` ────────────────────────
+// O código usava responsavel_id / data_abertura / data_prevista / data_inicio /
+// data_conclusao — nenhuma dessas colunas existe. A tabela foi renomeada em
+// algum momento e o código nunca acompanhou, o que partiu a criação de OS e as
+// transições de estado. Confirmado contra a base de dados real (não contra os
+// tipos gerados) e corroborado pela tabela estar vazia: nunca se criou uma OS.
+//
+// Os nomes do lado da aplicação (responsavelId, dataAbertura…) mantêm-se — é
+// vocabulário da app. Só a tradução para a BD é que estava errada.
+const COL = {
+  responsavelId:   'colaborador_id',
+  responsavelNome: 'colaborador_nome',
+  dataAbertura:    'data_criacao',
+  dataPrevista:    'data_prevista_inicio',
+  dataInicio:      'data_inicio_real',
+  dataConclusao:   'data_conclusao_real',
+} as const;
+
 function mapOs(row: any): OrdemServico {
   return {
     id: row.id, empresaId: row.empresa_id, numero: row.numero,
     clienteId: row.cliente_id, clienteNome: row.cliente_nome,
-    propostaId: row.proposta_id, responsavelId: row.responsavel_id,
-    responsavelNome: row.responsavel_nome, estado: row.estado,
+    propostaId: row.proposta_id,
+    responsavelId: row[COL.responsavelId],
+    responsavelNome: row[COL.responsavelNome],
+    estado: row.estado,
     prioridade: row.prioridade, titulo: row.titulo, descricao: row.descricao,
-    observacoes: row.observacoes, dataAbertura: row.data_abertura,
-    dataPrevista: row.data_prevista, dataInicio: row.data_inicio,
-    dataConclusao: row.data_conclusao, valorEstimado: row.valor_estimado,
+    observacoes: row.observacoes,
+    dataAbertura: row[COL.dataAbertura],
+    dataPrevista: row[COL.dataPrevista],
+    dataInicio: row[COL.dataInicio],
+    dataConclusao: row[COL.dataConclusao],
+    valorEstimado: row.valor_estimado,
     valorFinal: row.valor_final, createdAt: row.created_at, updatedAt: row.updated_at,
   };
+}
+
+/**
+ * Traduz um payload em vocabulário da app para os nomes reais das colunas.
+ * Quem chamar updateOrdem passa `dataPrevista`, não `data_prevista_inicio`.
+ */
+export function traduzColunasOs(payload: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [k, v] of Object.entries(payload)) {
+    out[(COL as Record<string, string>)[k] ?? k] = v;
+  }
+  return out;
 }
 
 function mapChecklist(row: any): OsChecklistItem {
@@ -85,15 +120,15 @@ export function useOrdensServico(empresaId: string | undefined) {
         cliente_id: form.clienteId || null,
         cliente_nome: form.clienteNome,
         proposta_id: form.propostaId || null,
-        responsavel_id: form.responsavelId || null,
-        responsavel_nome: form.responsavelNome || null,
+        [COL.responsavelId]: form.responsavelId || null,
+        [COL.responsavelNome]: form.responsavelNome || null,
         estado: form.estado,
         prioridade: form.prioridade,
         titulo: form.titulo,
         descricao: form.descricao || null,
         observacoes: form.observacoes || null,
-        data_abertura: form.dataAbertura,
-        data_prevista: form.dataPrevista || null,
+        [COL.dataAbertura]: form.dataAbertura,
+        [COL.dataPrevista]: form.dataPrevista || null,
         valor_estimado: form.valorEstimado ? parseFloat(form.valorEstimado) : null,
         ...(form.templateId ? { template_id: form.templateId } : {}),
       }).select().single();
@@ -126,7 +161,7 @@ export function useOrdensServico(empresaId: string | undefined) {
   const updateOrdem = async (id: string, payload: Record<string, any>): Promise<boolean> => {
     try {
       const { data, error } = await supabase.from('ordens_servico')
-        .update({ ...payload, updated_at: new Date().toISOString() })
+        .update({ ...traduzColunasOs(payload), updated_at: new Date().toISOString() })
         .eq('id', id).select().single();
       if (error) throw error;
       setOrdens(prev => prev.map(o => o.id === id ? mapOs(data) : o));
@@ -138,9 +173,11 @@ export function useOrdensServico(empresaId: string | undefined) {
   };
 
   const updateEstado = async (id: string, estado: OsEstado): Promise<boolean> => {
+    const hoje = new Date().toISOString().split('T')[0];
+    // Chaves em vocabulário da app — traduzidas por updateOrdem.
     const extra: Record<string, any> = { estado };
-    if (estado === 'em_execucao') extra.data_inicio = new Date().toISOString().split('T')[0];
-    if (estado === 'concluida' || estado === 'faturada') extra.data_conclusao = new Date().toISOString().split('T')[0];
+    if (estado === 'em_execucao') extra.dataInicio = hoje;
+    if (estado === 'concluida' || estado === 'faturada') extra.dataConclusao = hoje;
     return updateOrdem(id, extra);
   };
 

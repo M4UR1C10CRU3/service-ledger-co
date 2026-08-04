@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useNotasEncomenda } from '@/hooks/useNotasEncomenda';
 import { useEmpresa } from '@/contexts/EmpresaContext';
-import { NotaEncomenda, NeEstado, NE_PRIORIDADES } from '@/types/notaEncomenda';
+import { NotaEncomenda, NeEstado, NeItem, NE_PRIORIDADES } from '@/types/notaEncomenda';
 import { KanbanBoard, KanbanColumnDef } from '@/components/shared/KanbanBoard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -129,11 +128,17 @@ interface Props {
   /** Optional search text — filters cards by title or supplier name */
   searchTerm?: string;
   onDetail?: (ne: NotaEncomenda) => void;
+  /** Notas e ação de mudar estado vêm do componente pai (NotasEncomenda.tsx),
+   *  para que o Kanban e os KPIs do cabeçalho partilhem sempre os mesmos dados
+   *  em vez de duas cópias independentes e potencialmente dessincronizadas. */
+  notas: NotaEncomenda[];
+  updateEstado: (id: string, estado: NeEstado) => Promise<boolean>;
+  /** Vem do pai pela mesma razão: uma só cópia dos dados, não duas. */
+  fetchItems: (neId: string) => Promise<NeItem[]>;
 }
 
-export function ComprasKanban({ searchTerm = '', onDetail }: Props) {
+export function ComprasKanban({ searchTerm = '', onDetail, notas, updateEstado, fetchItems }: Props) {
   const { empresa } = useEmpresa();
-  const { notas, updateEstado, isInitialized } = useNotasEncomenda(empresa?.id);
   const { toast } = useToast();
   const [sendingId, setSendingId] = useState<string | null>(null);
 
@@ -152,20 +157,33 @@ export function ComprasKanban({ searchTerm = '', onDetail }: Props) {
     if (!empresa) return;
     setSendingId(ne.id);
     try {
-      // Look up supplier email from the suppliers table
+      // A tabela chama-se `suppliers`. Enquanto isto dizia `fornecedores` — que
+      // nunca existiu — a consulta devolvia sempre nada e a aplicação acusava
+      // "email não encontrado" mesmo com o email preenchido. Na prática, nunca
+      // foi possível enviar uma NE ou um pedido de cotação a partir daqui.
       let supplierEmail = '';
       if (ne.fornecedorId) {
-        const { data: sup } = await (supabase as any)
-          .from('fornecedores')
+        const { data: sup, error } = await (supabase as any)
+          .from('suppliers')
           .select('email')
           .eq('id', ne.fornecedorId)
-          .single();
+          .maybeSingle();
+        if (error) throw error;
         supplierEmail = sup?.email ?? '';
       }
       if (!supplierEmail) {
-        toast({ title: 'Email do fornecedor não encontrado', description: 'Adicione o email ao registo do fornecedor.', variant: 'destructive' });
+        toast({
+          title: 'Email do fornecedor não encontrado',
+          description: ne.fornecedorId
+            ? 'Este fornecedor não tem email no cadastro. Acrescente-o em Fornecedores.'
+            : 'Esta encomenda não tem fornecedor associado.',
+          variant: 'destructive',
+        });
         return;
       }
+
+      // Sem os artigos, o fornecedor recebia um pedido sem dizer o que se pede.
+      const items = await fetchItems(ne.id);
 
       const { subject, html, tipo } = buildNotaEncomendaEmail(
         {
@@ -174,7 +192,12 @@ export function ComprasKanban({ searchTerm = '', onDetail }: Props) {
           fornecedorNome: ne.fornecedorNome,
           dataCriacao: ne.dataCriacao,
           dataNecessidade: ne.dataNecessidade,
-          items: [],
+          items: items.map(it => ({
+            descricao: it.descricao,
+            referencia: it.referencia,
+            quantidade: it.quantidade,
+            unidade: it.unidade,
+          })),
           valorEstimado: ne.valorEstimado,
         },
         { slug: empresa.slug, nome: empresa.nome },
@@ -198,14 +221,6 @@ export function ComprasKanban({ searchTerm = '', onDetail }: Props) {
       setSendingId(null);
     }
   };
-
-  if (!isInitialized) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
 
   return (
     <KanbanBoard<NotaEncomenda>

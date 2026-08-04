@@ -28,6 +28,7 @@ const HistoricoCobrancas = lazy(() => import("./pages/HistoricoCobrancas"));
 const FluxoCaixa = lazy(() => import("./pages/FluxoCaixa"));
 const Receitas = lazy(() => import("./pages/Receitas"));
 const Colaboradores = lazy(() => import("./pages/Colaboradores"));
+const RhFuncoes = lazy(() => import("./pages/rh/Funcoes"));
 const ControlePonto = lazy(() => import("./pages/ControlePonto"));
 const PlaceholderPage = lazy(() => import("./pages/PlaceholderPage"));
 const Propostas = lazy(() => import("./pages/Propostas"));
@@ -50,11 +51,23 @@ const RelatorioGerencial = lazy(() => import("./pages/RelatorioGerencial"));
 const EcommerceInteligencia = lazy(() => import("./pages/EcommerceInteligencia"));
 const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
+
+// Clariza Agency — vertical de Agência de Marketing
+const AgencyProjetos = lazy(() => import("./pages/agency/Projetos"));
+const AgencyProjetoDetail = lazy(() => import("./pages/agency/ProjetoDetail"));
+const AgencyMeusTrabalhos = lazy(() => import("./pages/agency/MeusTrabalhos"));
+const AgencyRentabilidade = lazy(() => import("./pages/agency/RentabilidadeClientes"));
+const AgencyPropostas = lazy(() => import("./pages/agency/PropostasAgencia"));
+const AgencyAvencas = lazy(() => import("./pages/agency/Avencas"));
+const AgencyCatalogo = lazy(() => import("./pages/agency/Catalogo"));
+const AgencyEquipa = lazy(() => import("./pages/agency/Equipa"));
+const AgencyAutomacoes = lazy(() => import("./pages/agency/AutomacoesAgency"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
 const WorkflowComprasPage = lazy(() => import("./pages/WorkflowComprasPage"));
 const WorkflowProducao = lazy(() => import("./pages/WorkflowProducao"));
 const Quadros = lazy(() => import("./pages/Quadros"));
 const QuadroDetail = lazy(() => import("./pages/QuadroDetail"));
+const QuadroAutomacoes = lazy(() => import("./pages/QuadroAutomacoes"));
 
 // Clariza School — ITC
 const SchoolCursos = lazy(() => import("./pages/school/SchoolCursos"));
@@ -142,6 +155,7 @@ const App = () => (
               <Route path="/workflow-producao" element={<ProtectedWithLayout><WorkflowProducao /></ProtectedWithLayout>} />
               <Route path="/fluxo-caixa" element={<ProtectedWithLayout><FluxoCaixa /></ProtectedWithLayout>} />
               <Route path="/colaboradores" element={<ProtectedWithLayout><Colaboradores /></ProtectedWithLayout>} />
+              <Route path="/recursos-humanos/funcoes" element={<ProtectedWithLayout><RhFuncoes /></ProtectedWithLayout>} />
               <Route path="/controle-ponto" element={<ProtectedWithLayout><ControlePonto /></ProtectedWithLayout>} />
               <Route path="/subempreiteiros" element={<ProtectedWithLayout><Subempreiteiros /></ProtectedWithLayout>} />
               <Route path="/recursos-humanos/recrutamento" element={<ProtectedWithLayout><Recrutamento /></ProtectedWithLayout>} />
@@ -163,7 +177,13 @@ const App = () => (
               <Route path="/auditoria" element={<ProtectedWithLayout><Auditoria /></ProtectedWithLayout>} />
 
               {/* Redirects */}
-              <Route path="/" element={<Navigate to="/empresa" replace />} />
+              {/* A query string tem de sobreviver ao salto: sem isto,
+                  clariza.exemplo/?empresa=demo-agencia perdia o parâmetro
+                  antes de chegar ao seletor, e o link de demonstração
+                  mostrava a lista de empresas toda. */}
+              <Route path="/" element={
+                <Navigate to={{ pathname: '/empresa', search: window.location.search }} replace />
+              } />
               <Route path="/relatorio-gerencial" element={<ProtectedWithLayout><RelatorioGerencial /></ProtectedWithLayout>} />
               <Route path="/ecommerce/inteligencia" element={<ProtectedWithLayout><EcommerceInteligencia /></ProtectedWithLayout>} />
               <Route path="/ecommerce/satisfacao" element={<ProtectedWithLayout><PesquisaSatisfacao /></ProtectedWithLayout>} />
@@ -173,6 +193,7 @@ const App = () => (
               {/* Quadros — gestão de tarefas estilo Trello */}
               <Route path="/quadros" element={<ProtectedWithLayout><Quadros /></ProtectedWithLayout>} />
               <Route path="/quadros/:id" element={<ProtectedWithLayout><QuadroDetail /></ProtectedWithLayout>} />
+              <Route path="/quadros/:id/automacoes" element={<ProtectedWithLayout><QuadroAutomacoes /></ProtectedWithLayout>} />
 
               {/* Verificação pública de certificado — sem autenticação */}
               <Route path="/certificado/:codigo" element={<Suspense fallback={<PageLoader />}><CertificadoPublico /></Suspense>} />
@@ -190,6 +211,17 @@ const App = () => (
               <Route path="/portal/aluno" element={<ProtectedWithLayout><PortalAluno /></ProtectedWithLayout>} />
               <Route path="/portal/instrutor" element={<ProtectedWithLayout><PortalInstrutor /></ProtectedWithLayout>} />
               <Route path="/portal/corporativo" element={<ProtectedWithLayout><PortalCorporativo /></ProtectedWithLayout>} />
+
+              {/* Clariza Agency — vertical de Agência de Marketing */}
+              <Route path="/agency/projetos" element={<ProtectedWithLayout><AgencyProjetos /></ProtectedWithLayout>} />
+              <Route path="/agency/projetos/:id" element={<ProtectedWithLayout><AgencyProjetoDetail /></ProtectedWithLayout>} />
+              <Route path="/agency/meus-trabalhos" element={<ProtectedWithLayout><AgencyMeusTrabalhos /></ProtectedWithLayout>} />
+              <Route path="/agency/rentabilidade" element={<ProtectedWithLayout><AgencyRentabilidade /></ProtectedWithLayout>} />
+              <Route path="/agency/propostas" element={<ProtectedWithLayout><AgencyPropostas /></ProtectedWithLayout>} />
+              <Route path="/agency/avencas" element={<ProtectedWithLayout><AgencyAvencas /></ProtectedWithLayout>} />
+              <Route path="/agency/catalogo" element={<ProtectedWithLayout><AgencyCatalogo /></ProtectedWithLayout>} />
+              <Route path="/agency/equipa" element={<ProtectedWithLayout><AgencyEquipa /></ProtectedWithLayout>} />
+              <Route path="/agency/automacoes" element={<ProtectedWithLayout><AgencyAutomacoes /></ProtectedWithLayout>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
