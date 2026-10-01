@@ -1,98 +1,266 @@
-import { useNavigate } from 'react-router-dom';
-import { useEmpresa } from '@/contexts/EmpresaContext';
-import logoObrajusta from '@/assets/logo-obrajusta.png';
-import logoTudocasa from '@/assets/logo-tudocasa.png';
-import logoResiserv from '@/assets/logo-resiserv.jpg';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEmpresa, resolveLogoEmpresa } from '@/contexts/EmpresaContext';
+import { temEntradaPropria, nomeProduto } from '@/lib/verticais';
+import { ArrowRight } from 'lucide-react';
+import { ClarizaMark } from '@/components/ClarizaMark';
+import { supabase } from '@/integrations/supabase/client';
 import webtechLogo from '@/assets/logo-webtech.png';
 
-const logoMap: Record<string, string> = {
-  obrajusta: logoObrajusta,
-  'obrajusta-gestao': logoObrajusta,
-  tudocasa: logoTudocasa,
-  'tudocasa-matrizcharme': logoTudocasa,
-  resiserv: logoResiserv,
-  itc: '/logo-itc.png',
-  'itc-educa-pro': '/logo-itc.png',
-};
+/** Arte do Workspace. Vive em `public/` e é servida sem hash, por isso o nome
+ *  muda sempre que a imagem muda — senão os navegadores servem a antiga. */
+const ARTE_FUNDO = '/assets/workspace/bg-workspace-hero.png';
 
 const SelectEmpresa = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { empresas, isLoading, setEmpresa } = useEmpresa();
+
+  // Com sessão aberta, a lista mostra só as empresas de quem entrou. Sem uma
+  // saída NESTE ecrã, quem estivesse com a conta errada ficava preso a ver uma
+  // empresa só, sem perceber porquê nem como mudar.
+  const [sessao, setSessao] = useState<string | null>(null);
+  /** Primeiro nome, só para a saudação. Sai do que já vem no utilizador
+   *  autenticado — não se acrescentou consulta nenhuma para isto. */
+  const [primeiroNome, setPrimeiroNome] = useState<string>('');
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      setSessao(u?.email ?? null);
+      const nome = (u?.user_metadata?.nome || u?.user_metadata?.full_name || '') as string;
+      const bruto = nome.trim() || (u?.email ?? '').split('@')[0].replace(/[._-]+/g, ' ');
+      const primeiro = bruto.split(/\s+/)[0] || '';
+      setPrimeiroNome(primeiro ? primeiro.charAt(0).toUpperCase() + primeiro.slice(1) : '');
+    });
+  }, []);
+
+  const terminarSessao = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/empresa';   // recarrega para a lista voltar a ser a completa
+  };
 
   const handleSelectEmpresa = (empresa: typeof empresas[0]) => {
     setEmpresa(empresa);
     navigate('/auth');
   };
 
+  // ?empresa=<slug> salta este ecrã e vai direto ao início de sessão daquela
+  // empresa. É assim que um link de demonstração evita mostrar ao visitante a
+  // lista de empresas de outra gente — e serve também para dar a cada cliente
+  // um endereço direto ao sítio dele.
+  const slugPedido = searchParams.get('empresa');
+  useEffect(() => {
+    if (isLoading || !slugPedido) return;
+    const alvo = empresas.find(e => e.slug === slugPedido);
+    if (alvo) handleSelectEmpresa(alvo);
+    // Slug inválido: deixa cair no seletor normal em vez de dar erro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, slugPedido, empresas]);
+
+  // Escondem-se aqui as empresas cujo vertical tem ENTRADA PRÓPRIA — hoje só
+  // o School, que entra por /school. Todas as outras aparecem, tenham ou não
+  // vertical atribuído.
+  //
+  // A condição era antes "tem vertical", o que funcionava enquanto só o ITC
+  // tinha um. No dia em que todas as empresas passassem a ter vertical — que
+  // é identidade visual, não separação de produto — este ecrã ficaria vazio e
+  // ninguém entrava na aplicação.
+  const empresasDoGrupo = empresas.filter(e => !temEntradaPropria(e.vertical));
+  const doVertical = empresas.find(e => temEntradaPropria(e.vertical));
+  useEffect(() => {
+    if (isLoading || slugPedido) return;
+    if (empresasDoGrupo.length === 0 && doVertical) {
+      setEmpresa(doVertical);
+      navigate(`/${doVertical.vertical}`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, slugPedido, empresasDoGrupo.length, doVertical?.id]);
+
+  if (!isLoading && !slugPedido && empresasDoGrupo.length === 0 && doVertical) {
+    return null;   // a redirecionar
+  }
+
+  if (slugPedido && !isLoading && empresas.some(e => e.slug === slugPedido)) {
+    return null;   // evita o seletor piscar antes de redirecionar
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white" />
+      <div className="min-h-screen flex items-center justify-center bg-[hsl(240_5%_8%)]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white/60" />
       </div>
     );
   }
 
+  /* ═══ CLARIZA WORKSPACE ═════════════════════════════════════════════════
+     A escolha do ambiente de trabalho, no desenho aprovado.
+
+     Só mudou a apresentação. O `onClick` continua a chamar exatamente o
+     mesmo `handleSelectEmpresa`, a lista continua a ser a mesma, e o
+     logótipo continua a sair de `resolveLogoEmpresa` — que é a função onde
+     vivem os logótipos reais de cada empresa. O protótipo mostra as iniciais
+     da empresa; aqui usa-se o logótipo verdadeiro, com `object-contain` e
+     margem interior para não perder proporção nem ficar colado às bordas.
+     ═══════════════════════════════════════════════════════════════════════ */
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
-      {/* Main content - centered */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">Bem-vindo</h1>
-          <p className="text-slate-400 text-sm">Selecione a empresa para continuar</p>
-        </div>
+    <div className="relative min-h-screen flex flex-col bg-[hsl(240_5%_8%)] text-foreground overflow-hidden">
 
-        {/* Company Cards - compact grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 max-w-6xl w-full">
-          {empresas.map((empresa) => {
-            const logo = (empresa.logoPath && empresa.logoPath.startsWith('http'))
-              ? empresa.logoPath
-              : (logoMap[empresa.slug] || logoObrajusta);
-            return (
-              <div
-                key={empresa.id}
-                onClick={() => handleSelectEmpresa(empresa)}
-                className="group relative bg-white rounded-xl shadow-lg p-4 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div
-                  className="absolute inset-0 rounded-xl border-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                  style={{ borderColor: empresa.corPrimaria }}
-                />
+      {/* Arte de fundo, encostada à direita.
+          `aria-hidden` porque é ambiente, não informação. */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
 
-                <div className="flex flex-col items-center">
-                  <div className="mb-3 flex items-center justify-center" style={{ width: 80, height: 80 }}>
-                    <img
-                      src={logo}
-                      alt={`${empresa.nome} Logo`}
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  </div>
+        {/* Ecrã estreito: a foto preenche, mostrando a zona ambiente à esquerda
+            do painel — o grande plano do rosto ficava cortado e a competir com
+            o texto. */}
+        <img
+          src={ARTE_FUNDO}
+          alt=""
+          className="md:hidden h-full w-full object-cover object-[58%_center]"
+        />
 
-                  <h3 className="text-base font-bold text-slate-900 mb-0.5 text-center leading-tight">{empresa.nome}</h3>
-                  <p className="text-slate-500 text-[11px] mb-3 text-center leading-tight">{empresa.nomeLegal}</p>
+        {/* Ecrã largo: ALTURA INTEIRA, proporção intacta, colada à direita.
+            Não leva `object-cover` de propósito. A arte é 1,78:1 e há ecrãs
+            bem mais largos do que isso — num 2,5:1 o cover comia perto de 30%
+            da altura, e o que desaparecia era exatamente o rosto em cima e a
+            mão em baixo. Assim a foto nunca é cortada na vertical: quando o
+            ecrã é mais largo do que ela, sobra fundo à esquerda, que é onde o
+            texto vive.
+            A máscara dissolve os primeiros 14% da imagem, para que a aresta
+            esquerda da fotografia não se veja contra esse fundo. */}
+        <img
+          src={ARTE_FUNDO}
+          alt=""
+          className="hidden md:block absolute right-0 top-0 h-full w-auto max-w-none"
+          style={{
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 14%)',
+            maskImage: 'linear-gradient(to right, transparent 0%, #000 14%)',
+          }}
+        />
 
-                  <button
-                    className="w-full px-3 py-2 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 text-sm"
-                    style={{ backgroundColor: empresa.corPrimaria }}
-                  >
-                    Acessar
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Ecrã largo: o véu vem da esquerda, onde vive o texto, e sai de cena
+            aos 52% — que é onde começa o painel a flutuar. Passar daí seria
+            embaciar precisamente o motivo da imagem. */}
+        <div
+          className="absolute inset-0 hidden md:block"
+          style={{
+            background:
+              'linear-gradient(to right,' +
+              ' hsl(240 5% 8% / 0.92) 0%,' +
+              ' hsl(240 5% 8% / 0.78) 26%,' +
+              ' hsl(240 5% 8% / 0.34) 42%,' +
+              ' transparent 52%)',
+          }}
+        />
 
-        <p className="text-slate-500 text-xs mt-6">
-          Clariza — Sistema Híbrido de Gestão Empresarial
-        </p>
+        {/* Ecrã estreito: não há lado livre — o texto empilha por cima de tudo.
+            Aqui o véu desce de cima para baixo, deixando o rosto à vista no
+            topo e fechando por baixo, onde ficam os cartões. */}
+        <div className="absolute inset-0 md:hidden bg-gradient-to-b
+                        from-[hsl(240_5%_8%/0.45)] via-[hsl(240_5%_8%/0.55)]
+                        to-[hsl(240_5%_8%/0.88)]" />
       </div>
 
-      {/* Footer */}
-      <footer className="w-full py-4 border-t border-slate-700/50">
-        <div className="flex items-center justify-center gap-6 text-slate-400 text-xs">
+      {/* O conteúdo encosta à ESQUERDA e ocupa menos de metade da largura.
+          Antes vivia numa caixa de 1100px centrada, o que fazia os cartões da
+          coluna da direita aterrarem em cima do painel e do rosto. */}
+      <div className="relative z-10 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-14 py-8 flex flex-col">
+
+        {/* Marca, no canto — como no protótipo */}
+        <div className="flex items-center gap-2.5 mb-10 md:mb-14">
+          <ClarizaMark />
+          <span className="text-[17px] font-bold tracking-tight text-white">Clariza</span>
+        </div>
+
+        {/* Coluna estreita: os cartões têm de acabar ANTES do painel a flutuar.
+            Medido no browser — a 1350px de largura o painel começa aos 590px e
+            duas colunas chegavam aos 669. Daí a coluna única. */}
+        <div className="max-w-[440px]">
+          <p className="text-[11px] font-extrabold tracking-[0.16em] text-clariza-teal mb-4">
+            CLARIZA WORKSPACE
+          </p>
+          <h1 className="text-[38px] md:text-[54px] font-normal tracking-[-0.05em] text-white leading-[1.05] mb-3">
+            Bem-vindo{primeiroNome ? `, ${primeiroNome}` : ''}.
+          </h1>
+          <p className="text-[15px] text-muted-foreground mb-10">
+            Escolha o ambiente onde deseja trabalhar.
+          </p>
+
+          {/* Ambientes disponíveis */}
+          <div className="grid grid-cols-1 gap-2.5">
+            {empresasDoGrupo.map((empresa) => {
+              const logo = resolveLogoEmpresa(empresa);
+              return (
+                <button
+                  key={empresa.id}
+                  type="button"
+                  onClick={() => handleSelectEmpresa(empresa)}
+                  data-vertical={empresa.vertical ?? undefined}
+                  /* Cartão quase opaco, com desfoque por baixo: os da direita
+                     assentam sobre as torres iluminadas e o nome da empresa
+                     tem de continuar a ler-se sem esforço. */
+                  className="group flex items-center gap-3.5 rounded-[14px] border border-white/10
+                             bg-[hsl(240_5%_10%/0.92)] backdrop-blur-sm p-4 text-left transition-colors
+                             hover:border-vertical-border hover:bg-[hsl(240_6%_13%)]
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vertical"
+                >
+                  {/* Contentor padronizado — o logótipo do cliente entra aqui
+                      inteiro, sem corte e sem distorção. */}
+                  <span className="shrink-0 h-11 w-11 rounded-[10px] bg-vertical-soft
+                                   border border-vertical-border overflow-hidden
+                                   flex items-center justify-center">
+                    <img
+                      src={logo}
+                      alt={empresa.nome}
+                      className="max-h-full max-w-full object-contain p-1.5"
+                    />
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] font-bold text-white truncate">
+                      {empresa.nome}
+                    </span>
+                    <span className="block text-[12px] text-muted-foreground truncate">
+                      {nomeProduto(empresa.vertical)}
+                    </span>
+                  </span>
+
+                  <ArrowRight className="h-4 w-4 shrink-0 text-vertical opacity-70
+                                         transition-transform group-hover:translate-x-0.5" />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Rodapé do bloco */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-6">
+            <span className="text-[12px] text-muted-foreground">
+              {empresasDoGrupo.length} ambiente{empresasDoGrupo.length === 1 ? '' : 's'} disponíve{empresasDoGrupo.length === 1 ? 'l' : 'is'}
+            </span>
+            <span className="text-[12px] text-muted-foreground/70">Protegido por Clariza</span>
+          </div>
+
+          {sessao && (
+            <p className="text-[12px] text-muted-foreground/70 mt-6">
+              A ver os ambientes de <span className="text-foreground/80">{sessao}</span>.{' '}
+              <button
+                onClick={terminarSessao}
+                className="text-foreground/80 underline underline-offset-2 hover:text-white"
+              >
+                Terminar sessão
+              </button>{' '}
+              para escolher outra conta.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Faixa própria: sem ela a assinatura ficava por cima dos rastos de luz
+          que chegam ao fundo da imagem. */}
+      <footer className="relative z-10 w-full border-t border-white/10 py-4
+                         bg-[hsl(240_5%_8%/0.85)] backdrop-blur-sm">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-14 flex items-center justify-center gap-5 text-muted-foreground/70 text-[11px]">
           <span>Desenvolvido por</span>
-          <img src={webtechLogo} alt="WebtechLabs — Technology Studio" className="h-12 object-contain" />
+          <img src={webtechLogo} alt="WebtechLabs — Technology Studio" className="h-8 object-contain opacity-70" />
           <span>© {new Date().getFullYear()}. Todos os direitos reservados.</span>
         </div>
       </footer>

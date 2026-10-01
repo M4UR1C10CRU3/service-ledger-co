@@ -122,7 +122,7 @@ function NotasEncomenda() {
       </div>
 
       {/* Kanban com drag-and-drop e automações de email */}
-      <ComprasKanban searchTerm={searchTerm} onDetail={setSelectedNe} />
+      <ComprasKanban searchTerm={searchTerm} onDetail={setSelectedNe} notas={notas} updateEstado={updateEstado} fetchItems={fetchItems} />
 
       <NeFormDialog
         open={showForm}

@@ -25,6 +25,29 @@ export default {
           light: "hsl(var(--primary-light))",
           lighter: "hsl(var(--primary-lighter))",
         },
+
+        /* Acento do vertical — a cor que identifica o segmento.
+           Usar `text-vertical`, `bg-vertical-soft`, `border-vertical-border`
+           em vez de escrever a cor à mão: assim um vertical novo entra sem
+           tocar em componente nenhum. */
+        vertical: {
+          DEFAULT: "hsl(var(--vertical-accent))",
+          foreground: "hsl(var(--vertical-accent-fg))",
+          soft: "hsl(var(--vertical-accent-soft))",
+          border: "hsl(var(--vertical-accent-border))",
+        },
+
+        /* Paleta institucional, para quando é mesmo a cor da marca que se
+           quer e não o acento do vertical (logótipo, gradiente, rodapés). */
+        clariza: {
+          dark: "hsl(var(--clariza-dark))",
+          surface: "hsl(var(--clariza-dark-surface))",
+          teal: "hsl(var(--clariza-teal))",
+          purple: "hsl(var(--clariza-purple))",
+          orange: "hsl(var(--clariza-orange))",
+          coral: "hsl(var(--clariza-coral))",
+          lavender: "hsl(var(--clariza-lavender))",
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",

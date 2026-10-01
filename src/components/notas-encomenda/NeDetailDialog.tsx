@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { NotaEncomenda, NeItem, NeChecklistItem, NeEstado, NE_ESTADOS, NE_PRIORIDADES } from '@/types/notaEncomenda';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -15,6 +16,7 @@ import { exportNePdf } from './nePdfExport';
 import { buildNotaEncomendaEmail } from '@/lib/emailTemplates';
 import { SendEmailDialog } from '@/components/SendEmailDialog';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useSuppliers } from '@/hooks/useSuppliers';
 
 interface Props {
   ne: NotaEncomenda | null;
@@ -43,7 +45,7 @@ const TRANSITIONS: Record<NeEstado, Transition[]> = {
   cotacao_recebida: [{ label: 'Aprovar Encomenda',    estado: 'aprovada' },         { label: 'Cancelar NE', estado: 'cancelada', variant: 'destructive' }],
   aprovada:         [{ label: 'Realizar Encomenda',   estado: 'encomendada' },      { label: 'Cancelar NE', estado: 'cancelada', variant: 'destructive' }],
   encomendada:      [{ label: 'Marcar como Recebida', estado: 'recebida' },         { label: 'Cancelar NE', estado: 'cancelada', variant: 'destructive' }],
-  recebida:         [{ label: 'Marcar como Faturada', estado: 'faturada' }],
+  recebida:         [{ label: 'Só marcar como faturada', estado: 'faturada', variant: 'outline' }],
   faturada:         [],
   cancelada:        [],
 };
@@ -60,7 +62,9 @@ export function NeDetailDialog({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailData, setEmailData] = useState<{ subject: string; html: string; from: string; tipo: 'compras' } | null>(null);
-  const { empresa } = useEmpresa();
+  const { empresa, getDocConfig } = useEmpresa();
+  const { suppliers } = useSuppliers();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (ne) { setTab('detalhes'); setConfirmDelete(false); }
@@ -115,6 +119,11 @@ export function NeDetailDialog({
         pdfItems = await fetchItems(ne.id);
         setItems(pdfItems); // cache for later
       }
+      const fornecedor = suppliers.find(s => s.id === ne.fornecedorId);
+      const fornecedorMorada = fornecedor
+        ? [fornecedor.logradouro, fornecedor.numero].filter(Boolean).join(', ')
+          + (fornecedor.cidade ? ` — ${fornecedor.cidade}` : '')
+        : undefined;
       exportNePdf(
         {
           numeroNe:      ne.numero,
@@ -123,12 +132,18 @@ export function NeDetailDialog({
           observacoes:   ne.observacoes ?? undefined,
           prioridade:    ne.prioridade,
           fornecedorNome: ne.fornecedorNome ?? '—',
+          fornecedorMorada: fornecedorMorada || undefined,
+          fornecedorNif: fornecedor?.cnpjCpf,
+          fornecedorTelefone: fornecedor?.telefone ?? undefined,
+          fornecedorEmail: fornecedor?.email ?? undefined,
           dataCriacao:   ne.dataCriacao,
           dataNecessidade: ne.dataNecessidade ?? undefined,
           items:         pdfItems,
           valorEstimado: ne.valorEstimado,
         },
         empresa,
+        undefined,
+        getDocConfig(),
       );
     } finally {
       setPdfLoading(false);
@@ -328,6 +343,14 @@ export function NeDetailDialog({
                 <p className="text-sm text-muted-foreground">Sem transições disponíveis</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
+                  {ne.estado === 'recebida' && (
+                    // A fatura do fornecedor entra em Compras já preenchida com
+                    // os artigos desta nota; ao gravar, dá entrada no stock e a
+                    // nota passa a «Faturada». Nada se digita duas vezes.
+                    <Button onClick={() => { navigate(`/compras?ne=${ne.id}`); onClose(); }}>
+                      Registar compra do fornecedor
+                    </Button>
+                  )}
                   {transitions.map(t => (
                     <Button
                       key={t.estado}

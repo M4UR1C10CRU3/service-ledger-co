@@ -5,7 +5,6 @@ import { parseLocalDate, formatDateToISO, getEffectiveStatus } from '@/lib/utils
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
-import { useArticles } from '@/hooks/useArticles';
 import {
   AccountPayable, AccountPayableFormData, AccountPayableItem, emptyAccountPayableForm,
 } from '@/types/accountPayable';
@@ -40,7 +39,7 @@ export default function ContasPagar() {
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount, refreshAccounts } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
-  const { articles, updateArticleStock } = useArticles();
+  // Stock único (produtos + stock_atual): as tabelas antigas articles/stock_movements estavam vazias; ficam na base, sem uso.
 
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
@@ -291,12 +290,6 @@ export default function ContasPagar() {
     } else {
       const newId = await addAccount(submissionData);
       if (newId) {
-        if (submissionData.tipoLancamento === 'compra_revenda' && submissionData.articleId) {
-          const qty = parseFloat(submissionData.quantity) || 0;
-          const bruto = parseFloat(submissionData.valorBruto) || 0;
-          const unitCost = qty > 0 ? bruto / qty : 0;
-          await updateArticleStock(submissionData.articleId, qty, unitCost, submissionData.supplierId, newId);
-        }
         toast({ title: 'Registo guardado', description: 'Operação realizada com sucesso.' });
         setIsFormOpen(false);
         resetForm();
@@ -457,7 +450,6 @@ export default function ContasPagar() {
         isEditing={!!editingAccount}
         suppliers={suppliers}
         costCenters={costCenters}
-        articles={articles}
         onAddCostCenter={addCostCenter}
         onAddSupplier={addSupplier}
       />

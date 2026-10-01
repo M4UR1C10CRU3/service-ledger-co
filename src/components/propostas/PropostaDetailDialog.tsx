@@ -56,7 +56,7 @@ function loadImageAsDataUrl(src: string): Promise<string> {
 
 export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: Props) {
   const { fetchLinhas, updateEstado } = usePropostas();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, getDocConfig } = useEmpresa();
   const { toast } = useToast();
   const [linhas, setLinhas] = useState<PropostaLinha[]>([]);
   const [isAceitando, setIsAceitando] = useState(false);
@@ -74,6 +74,8 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
 
   const buildPdfData = () => ({
     numeroProposta: proposta.numeroProposta,
+    numeroSequencial: proposta.numeroSequencial,
+    ano:            proposta.ano,
     clienteNome:    proposta.clienteNome || '',
     clienteMorada:  proposta.clienteMorada || '',
     clienteNif:     proposta.clienteNif || '',
@@ -116,9 +118,9 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
       canvas.getContext('2d')?.drawImage(img, 0, 0);
-      exportPropostaPdf(buildPdfData(), empresa, canvas.toDataURL('image/png'), mode);
+      exportPropostaPdf(buildPdfData(), empresa, canvas.toDataURL('image/png'), mode, getDocConfig());
     };
-    img.onerror = () => exportPropostaPdf(buildPdfData(), empresa, undefined, mode);
+    img.onerror = () => exportPropostaPdf(buildPdfData(), empresa, undefined, mode, getDocConfig());
     img.src = logoSrc;
   };
 
@@ -134,7 +136,7 @@ export function PropostaDetailDialog({ open, onOpenChange, proposta, onEdit }: P
     catch { /* proceed without logo */ }
 
     // 2. Build HTML blob
-    const { html, filename } = buildPropostaPdfHtml(buildPdfData(), empresa, logoDataUrl, 'unitarios');
+    const { html, filename } = buildPropostaPdfHtml(buildPdfData(), empresa, logoDataUrl, 'unitarios', getDocConfig());
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
 
     // 3. Upload to Supabase Storage (bucket: proposta-pdfs)

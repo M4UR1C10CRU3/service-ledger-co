@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
+import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
 
 export interface Employee {
   id: string;
@@ -77,20 +78,24 @@ export function useEmployees() {
   const { empresa } = useEmpresa();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const grupo = useGrupoEmpresas();
 
+  // Os colaboradores são partilhados pelo GRUPO: uma ficha só, visível em todas
+  // as empresas dele. O `empresa_id` deixa de significar "quem o vê" e passa a
+  // ser a EMPRESA DE CONTRATO — de onde saem salários, encargos e relatórios.
   const employeesQuery = useQuery({
-    queryKey: ['employees', empresa?.id],
+    queryKey: ['employees', grupo.ids.join(',')],
     queryFn: async () => {
-      if (!empresa) return [];
+      if (!empresa || grupo.ids.length === 0) return [];
       const { data, error } = await supabase
         .from('employees')
         .select('*, job_position:job_positions(id, name)')
-        .eq('empresa_id', empresa.id)
+        .in('empresa_id', grupo.ids)
         .order('full_name');
       if (error) throw error;
       return (data || []) as Employee[];
     },
-    enabled: !!empresa,
+    enabled: !!empresa && !grupo.isLoading,
   });
 
   const createEmployee = useMutation({
@@ -167,5 +172,10 @@ export function useEmployees() {
     updateEmployee,
     deleteEmployee,
     createJobPosition,
+    /** Nome da empresa de contrato de cada colaborador, para listas do grupo. */
+    empresaContratoNome: (id: string | null | undefined) =>
+      (id ? grupo.nomePorId.get(id) : undefined) ?? '',
+    /** TRUE quando a lista mistura empresas — aí vale a pena mostrar de qual é. */
+    listaDoGrupo: grupo.partilhado,
   };
 }

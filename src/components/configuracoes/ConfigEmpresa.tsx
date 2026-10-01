@@ -20,8 +20,27 @@ const COLOR_PRESETS = [
   { label: 'Roxo', hex: '#7C3AED' },
 ];
 
+
+/**
+ * O País da morada decide também o país OPERACIONAL da empresa — o que escolhe
+ * o catálogo de documentos legais no módulo Administrativo (alvarás e
+ * certidões não são os mesmos em Lisboa e em Macapá).
+ *
+ * São dois campos com dono diferente: o da morada é texto livre para os PDFs,
+ * este é o código ISO que a aplicação lê. Derivar um do outro evita ter dois
+ * seletores a dizer coisas diferentes.
+ *
+ * "Outro" devolve null de propósito: mais vale a empresa ficar sem catálogo do
+ * que com o catálogo errado.
+ */
+const paisOperacional = (nomePais: string): { pais: string; moeda: string; identificador_tipo: string } | null => {
+  if (nomePais === 'Portugal') return { pais: 'PT', moeda: 'EUR', identificador_tipo: 'NIF' };
+  if (nomePais === 'Brasil')   return { pais: 'BR', moeda: 'BRL', identificador_tipo: 'CNPJ' };
+  return null;
+};
+
 export default function ConfigEmpresa() {
-  const { empresa } = useEmpresa();
+  const { empresa, recarregarEmpresas } = useEmpresa();
   const { toast } = useToast();
   const { logActivity } = useActivityLogger();
   const [loading, setLoading] = useState(false);
@@ -118,11 +137,13 @@ export default function ConfigEmpresa() {
     setLoading(true);
 
     try {
-      // Upload logo if changed
+      // Upload do logótipo, com erro visível (antes falhava em silêncio)
       let logoUrl = empresa.logoPath;
       if (logoFile) {
         const path = logoPath(empresa.id, logoFile.name);
-        await supabase.storage.from('logos').upload(path, logoFile, { upsert: true });
+        const { error: upErr } = await supabase.storage
+          .from('logos').upload(path, logoFile, { upsert: true });
+        if (upErr) throw new Error(`Não foi possível carregar o logótipo: ${upErr.message}`);
         const { data: urlData } = supabase.storage.from('logos').getPublicUrl(path);
         logoUrl = urlData.publicUrl;
       }
@@ -168,10 +189,44 @@ export default function ConfigEmpresa() {
           .insert(configData);
       }
 
-      // Update empresas table cor_primaria if changed
-      if (form.corPrimaria !== empresa.corPrimaria) {
-        // Note: empresas table has no UPDATE RLS for non-admin; this may need service role
-        // For now we log the change
+      // Gravar logótipo e cor na tabela `empresas`.
+      // Isto ANTES não acontecia: o logótipo era carregado para o armazenamento
+      // e o endereço era descartado, e a cor nunca chegava a ser gravada — daí
+      // uma empresa nova ficar sem identidade visual própria por mais vezes que
+      // se carregasse o ficheiro.
+      const mudouLogo = logoUrl !== empresa.logoPath;
+      const mudouCor  = form.corPrimaria !== empresa.corPrimaria;
+      // O país operacional segue o País da morada. É o que permite mudar uma
+      // empresa de catálogo — útil na Agência Demo, que serve de demonstração
+      // ora a Portugal ora ao Brasil.
+      const operacional = paisOperacional(form.pais);
+      const mudouPais = operacional != null && operacional.pais !== empresa.pais;
+      if (mudouLogo || mudouCor || mudouPais) {
+        const patch: Record<string, any> = {};
+        if (mudouLogo) patch.logo_path = logoUrl;
+        if (mudouCor)  patch.cor_primaria = form.corPrimaria;
+        if (mudouPais && operacional) {
+          patch.pais = operacional.pais;
+          patch.moeda = operacional.moeda;
+          patch.identificador_tipo = operacional.identificador_tipo;
+        }
+        // `.select()` é essencial: quando a segurança (RLS) bloqueia uma escrita,
+        // o Supabase NÃO devolve erro — devolve sucesso com zero linhas. Sem
+        // isto, a aplicação dizia "guardado com sucesso" sem ter guardado nada.
+        const { data: linhas, error: empErr } = await (supabase.from('empresas') as any)
+          .update(patch).eq('id', empresa.id).select('id');
+        if (empErr) {
+          throw new Error(`Os dados foram guardados, mas o logótipo/cor não: ${empErr.message}`);
+        }
+        if (!linhas || linhas.length === 0) {
+          throw new Error(
+            'Os restantes dados foram guardados, mas o logótipo e a cor não: a base de dados ' +
+            'não permite alterar a ficha da empresa com esta conta. Falta uma política de ' +
+            'escrita na tabela de empresas.'
+          );
+        }
+        await recarregarEmpresas();
+        setLogoFile(null);
       }
 
       logActivity({
@@ -335,6 +390,9 @@ export default function ConfigEmpresa() {
                   <SelectItem value="Outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Decide também o catálogo de documentos legais em Administrativo › Licenciamentos.
+              </p>
             </div>
           </div>
         </CardContent>

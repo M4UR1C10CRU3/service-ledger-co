@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
-import { schoolCertificadoPath } from '@/lib/storagePaths';
+import { gerarCodigoCertificado, guardarPDF } from '@/lib/certificadoEmissao';
 
 export interface SchoolCertificado {
   id: string;
@@ -24,13 +24,6 @@ export interface SchoolCertificado {
 export type SchoolCertificadoInput = Omit<SchoolCertificado, 'id' | 'empresa_id' | 'created_at' | 'aluno_nome' | 'turma_titulo' | 'curso_nome' | 'docente_nome'>;
 
 const TABLE = 'school_certificados' as any;
-const BUCKET = 'school-certificados';
-
-function gerarCodigo(sigla: string): string {
-  const ano = new Date().getFullYear();
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `${sigla || 'ITC'}-${ano}-${rand}`;
-}
 
 export function useSchoolCertificados() {
   const { empresa } = useEmpresa();
@@ -74,34 +67,47 @@ export function useSchoolCertificados() {
         docentesMap = Object.fromEntries((ds || []).map((d: any) => [d.id, d.nome]));
       }
 
+      // O instantâneo gravado no certificado manda sobre as tabelas ligadas:
+      // se o aluno mudar de nome, o certificado emitido continua a dizer o
+      // nome com que foi emitido.
       return rows.map((r: any) => ({
         ...r,
-        aluno_nome: alunosMap[r.aluno_id] ?? '—',
+        aluno_nome: r.aluno_nome ?? alunosMap[r.aluno_id] ?? '—',
         turma_titulo: turmasMap[r.turma_id]?.titulo ?? '—',
-        curso_nome: cursosMap[turmasMap[r.turma_id]?.curso_id] ?? '—',
-        docente_nome: docentesMap[r.docente_id] ?? null,
+        curso_nome: r.curso_nome ?? cursosMap[turmasMap[r.turma_id]?.curso_id] ?? '—',
+        docente_nome: r.docente_nome ?? docentesMap[r.docente_id] ?? null,
       })) as SchoolCertificado[];
     },
   });
 
+  /**
+   * Grava o certificado já emitido.
+   *
+   * O código vem da base de dados (atómico e não adivinhável) e o PDF tem de
+   * chegar cá: um certificado sem documento não é um certificado. Se o upload
+   * falhar, a emissão falha — antes gravava-se a linha na mesma e ficava a
+   * apontar para um ficheiro inexistente.
+   */
   const emitirCertificado = useMutation({
-    mutationFn: async (input: Omit<SchoolCertificadoInput, 'codigo'> & { sigla?: string; pdfBlob?: Blob }) => {
-      const { pdfBlob, sigla, ...rest } = input;
-      const codigo = gerarCodigo(sigla || 'ITC');
-      let url_pdf: string | null = null;
-
-      if (pdfBlob && empresa) {
-        const ano = new Date().getFullYear();
-        const path = schoolCertificadoPath(empresa.id, ano, codigo);
-        const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, pdfBlob, { contentType: 'application/pdf' });
-        if (!upErr) {
-          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-          url_pdf = urlData?.publicUrl ?? null;
-        }
+    mutationFn: async (
+      input: Omit<SchoolCertificadoInput, 'codigo'> & {
+        codigo: string;
+        pdfBlob: Blob;
+        snapshot?: Record<string, unknown>;
       }
+    ) => {
+      const { pdfBlob, snapshot, codigo, url_pdf: _ignorado, ...rest } = input;
+      if (!empresa) throw new Error('Sem empresa ativa.');
 
-      const { error } = await supabase.from(TABLE).insert({ ...rest, codigo, url_pdf, empresa_id: empresa!.id });
+      const path = await guardarPDF(empresa.id, codigo, pdfBlob);
+
+      const { data, error } = await supabase
+        .from(TABLE)
+        .insert({ ...rest, ...(snapshot ?? {}), codigo, url_pdf: path, empresa_id: empresa.id })
+        .select('id');
+      // RLS a bloquear devolve sucesso com zero linhas, não erro.
       if (error) throw error;
+      if (!data?.length) throw new Error('A gravação não devolveu nenhuma linha — sem permissão sobre esta empresa.');
       return codigo;
     },
     onSuccess: (codigo) => { qc.invalidateQueries({ queryKey: ['school_certificados'] }); toast({ title: `Certificado emitido — ${codigo}` }); },
@@ -117,5 +123,5 @@ export function useSchoolCertificados() {
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
-  return { certificados, isLoading, emitirCertificado, deleteCertificado, gerarCodigo };
+  return { certificados, isLoading, emitirCertificado, deleteCertificado, gerarCodigoCertificado };
 }

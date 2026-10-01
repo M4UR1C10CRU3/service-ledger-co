@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { useServices } from '@/hooks/useServices';
+import { resumoCobrancas } from '@/lib/circuitoReceita';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 
@@ -75,6 +77,8 @@ export function useRelatorioGerencial() {
   const { empresa } = useEmpresa();
   const [data, setData] = useState<RelatorioData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Cobranças: mesma fonte e mesmas regras da página Débitos (Vendas / Serviços).
+  const { services, isInitialized } = useServices(empresa?.id);
 
   const gerar = useCallback(async (periodo: PeriodoRange) => {
     if (!empresa) return;
@@ -83,15 +87,13 @@ export function useRelatorioGerencial() {
     const eid = empresa.id;
     const { inicio, fim } = periodo;
 
-    const [ppRes, osRes, propRes, teRes, neRes] = await Promise.all([
-      supabase.from('plano_pagamentos').select('valor, estado, data_prevista').eq('empresa_id', eid),
+    const [osRes, propRes, teRes, neRes] = await Promise.all([
       supabase.from('ordens_servico').select('id, estado, created_at').eq('empresa_id', eid),
       supabase.from('propostas').select('id, estado, total_com_iva, created_at').eq('empresa_id', eid),
-      supabase.from('trabalhos_extra').select('id, valor, estado, created_at').eq('empresa_id', eid),
+      supabase.from('trabalhos_extra').select('id, valor:total, estado, created_at').eq('empresa_id', eid),
       supabase.from('notas_encomenda').select('id, estado, created_at').eq('empresa_id', eid),
     ]);
 
-    const pp = ppRes.data || [];
     const os = osRes.data || [];
     const prop = propRes.data || [];
     const te = teRes.data || [];
@@ -100,18 +102,17 @@ export function useRelatorioGerencial() {
     const inPeriod = (dateStr: string | null) =>
       dateStr && dateStr >= inicio && dateStr <= fim + 'T23:59:59';
 
-    const today = new Date().toISOString().split('T')[0];
-    const isPending = (r: any) => r.estado === 'pendente' || r.estado === 'aguarda_comprovativo';
+    const cobr = resumoCobrancas(services, inicio, fim);
 
     setData({
       periodo,
       geradoEm: new Date().toLocaleString('pt-PT'),
       empresaNome: empresa.nome,
 
-      cobrancasPagas: pp.filter(r => r.estado === 'pago' && inPeriod(r.data_prevista)).reduce((s, r) => s + Number(r.valor), 0),
-      cobrancasPendentes: pp.filter(r => isPending(r) && (!r.data_prevista || r.data_prevista >= today)).reduce((s, r) => s + Number(r.valor), 0),
-      cobrancasVencidas: pp.filter(r => isPending(r) && r.data_prevista && r.data_prevista < today).reduce((s, r) => s + Number(r.valor), 0),
-      totalCobrancas: pp.reduce((s, r) => s + Number(r.valor), 0),
+      cobrancasPagas: cobr.recebido,
+      cobrancasPendentes: cobr.emDebitoAte30,
+      cobrancasVencidas: cobr.vencido,
+      totalCobrancas: cobr.recebido + cobr.emDebito,
 
       osConcluidas: os.filter(r => r.estado === 'concluida' && inPeriod(r.created_at)).length,
       osFaturadas: os.filter(r => r.estado === 'faturada' && inPeriod(r.created_at)).length,
@@ -132,7 +133,8 @@ export function useRelatorioGerencial() {
     });
 
     setIsLoading(false);
-  }, [empresa]);
+  }, [empresa, services]);
 
-  return { data, isLoading, gerar };
+  // Enquanto Vendas / Serviços carrega, o botão «Gerar» fica à espera (senão as cobranças sairiam a zero).
+  return { data, isLoading: isLoading || !isInitialized, gerar };
 }

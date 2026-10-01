@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { fornecedorComMesmoNif } from '@/lib/nifDuplicado';
+import { useToast } from '@/hooks/use-toast';
 import { Supplier, SupplierFormData } from '@/types/supplier';
+import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
 
 function mapRow(row: any): Supplier {
   return {
@@ -71,23 +74,31 @@ function formToRow(form: SupplierFormData, empresaId: string) {
 
 export function useSuppliers() {
   const { empresa } = useEmpresa();
+  const { toast } = useToast();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const grupo = useGrupoEmpresas();
+  const grupoIds = grupo.ids.join(',');
 
+  // Fornecedores são partilhados pelo GRUPO — as cinco empresas trabalham com
+  // a mesma base de propósito. Até aqui a leitura não filtrava NADA, o que
+  // punha os 162 fornecedores do grupo à vista da Elo Giro e da ITC.
   const fetchSuppliers = useCallback(async () => {
-    if (!empresa) return;
+    if (!empresa || grupo.isLoading) return;
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('suppliers')
+    const { data, error } = await (supabase.from('suppliers') as any)
       .select('*')
+      .in('empresa_id', grupo.ids)
       .is('deleted_at', null)
       .order('razao_social');
 
     if (!error && data) {
       setSuppliers(data.map(mapRow));
+    } else if (error) {
+      toast({ title: 'Erro', description: 'Não foi possível carregar os fornecedores.', variant: 'destructive' });
     }
     setIsLoading(false);
-  }, [empresa]);
+  }, [empresa, grupoIds, grupo.isLoading, toast]);
 
   useEffect(() => {
     fetchSuppliers();
@@ -95,6 +106,16 @@ export function useSuppliers() {
 
   const addSupplier = async (form: SupplierFormData): Promise<Supplier | null> => {
     if (!empresa) return null;
+
+    // Guarda contra cadastros repetidos AQUI, e não só no formulário: esta
+    // função é chamada também das Compras, das Contas a Pagar e das Despesas.
+    // Estando na função, vale para todos os verticais — todos passam por ela.
+    const repetido = await fornecedorComMesmoNif(form.cnpjCpf, grupo.ids);
+    if (repetido) {
+      console.warn(`NIF ${form.cnpjCpf} já pertence ao fornecedor "${repetido.nome}" — cadastro recusado.`);
+      return null;
+    }
+
     const row = formToRow(form, empresa.id);
     const { data, error } = await supabase.from('suppliers').insert(row).select().single();
     if (!error && data) {

@@ -10,6 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAvaliacoes, calcularMedias, getClassificacaoBadge, type Avaliacao } from '@/hooks/useAvaliacoes';
 import { useEmployees } from '@/hooks/useEmployees';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  useAvalCriterios, pontuacaoAval, faltamEvidencias, type RespostasAval,
+} from '@/hooks/useAvalCriterios';
 
 const tiposAvaliacao = [
   { value: 'experimental_1', label: 'Experimental 1 (15 dias)' },
@@ -67,6 +71,34 @@ export function AvaliacaoFormDialog({ open, onOpenChange, avaliacao }: Props) {
   const medias = useMemo(() => calcularMedias(form), [form]);
   const badge = getClassificacaoBadge(medias.classificacao);
 
+  // ── Avaliação por critérios do perfil de atividade ──────────────────────
+  // Uma avaliação antiga (feita com os 13 critérios fixos) abre como foi feita.
+  // Enquanto a biblioteca de critérios não existir na base, usa-se o modelo antigo — nada deixa de funcionar.
+  const { criterios, perfis, isLoading: aCarregarCriterios } = useAvalCriterios();
+  const legado = (!!avaliacao && !avaliacao.perfil_id && !avaliacao.respostas && avaliacao.pontuacao_final != null)
+    || (!aCarregarCriterios && perfis.length === 0);
+  const [perfilId, setPerfilId] = useState<string>('');
+  const [respostas, setRespostas] = useState<RespostasAval>({});
+  useEffect(() => {
+    setPerfilId(avaliacao?.perfil_id ?? '');
+    setRespostas((avaliacao?.respostas as RespostasAval) ?? {});
+  }, [avaliacao, open]);
+  const perfil = perfis.find(p => p.id === perfilId) ?? null;
+  const calc = pontuacaoAval(perfil, respostas);
+  const semEvidencia = faltamEvidencias(perfil, respostas);
+  const badgeNovo = getClassificacaoBadge(calc?.classificacao ?? '');
+  const criterio = (codigo: string) => criterios.find(c => c.codigo === codigo);
+  const setResp = (codigo: string, patch: { nota?: number; evidencia?: string }) =>
+    setRespostas(r => ({ ...r, [codigo]: { ...r[codigo], ...patch } }));
+
+  /** Ao escolher o colaborador, sugere o perfil da sua Função. */
+  const sugerirPerfil = async (employeeId: string) => {
+    const emp: any = employees.find(e => e.id === employeeId);
+    if (!emp?.funcao_id || perfilId) return;
+    const { data } = await (supabase.from('rh_funcoes') as any).select('perfil_avaliacao_id').eq('id', emp.funcao_id).maybeSingle();
+    if (data?.perfil_avaliacao_id) setPerfilId(data.perfil_avaliacao_id);
+  };
+
   const setScore = (key: string, value: number) => {
     setForm(f => ({ ...f, [key]: value }));
   };
@@ -86,8 +118,19 @@ export function AvaliacaoFormDialog({ open, onOpenChange, avaliacao }: Props) {
 
   const handleSubmit = () => {
     if (!form.colaborador_id || !form.tipo_avaliacao) return;
+    if (!legado && semEvidencia.length) return;
     const hasScores = form.qa_qualidade || form.qb_pontualidade || form.qc_proatividade || form.qd_seguranca;
-    const payload = { ...form, estado: hasScores ? 'realizada' : 'pendente' };
+    const payload = legado
+      ? { ...form, estado: hasScores ? 'realizada' : 'pendente' }
+      : {
+          ...form,
+          perfil_id: perfilId || null,
+          respostas,
+          pontuacao_100: calc?.pontuacao_100 ?? null,
+          pontuacao_final: calc?.pontuacao_final ?? null,
+          classificacao: calc?.classificacao ?? null,
+          estado: calc?.pontuacao_100 != null ? 'realizada' : 'pendente',
+        };
 
     if (avaliacao) {
       updateAvaliacao.mutate({ id: avaliacao.id, ...payload } as any, { onSuccess: () => onOpenChange(false) });
@@ -111,13 +154,14 @@ export function AvaliacaoFormDialog({ open, onOpenChange, avaliacao }: Props) {
               <Select value={form.colaborador_id || ''} onValueChange={v => {
                 const emp = employees.find(e => e.id === v);
                 setForm(f => ({ ...f, colaborador_id: v, colaborador_nome: emp?.full_name || '' }));
+                sugerirPerfil(v);
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{employees.filter(e => e.status === 'active').map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Avaliador *</Label>
+              <Label>Avaliador (chefia direta) *</Label>
               <Select value={form.avaliador_id || ''} onValueChange={v => {
                 const emp = employees.find(e => e.id === v);
                 setForm(f => ({ ...f, avaliador_id: v, avaliador_nome: emp?.full_name || '' }));
@@ -145,6 +189,66 @@ export function AvaliacaoFormDialog({ open, onOpenChange, avaliacao }: Props) {
             <div className="space-y-2"><Label>Período Fim</Label><Input type="date" value={form.periodo_fim || ''} onChange={e => setForm(f => ({ ...f, periodo_fim: e.target.value }))} /></div>
           </div>
 
+          {/* ── Questionário por critérios do perfil de atividade ── */}
+          {!legado && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Perfil de atividade *</Label>
+                <Select value={perfilId} onValueChange={setPerfilId}>
+                  <SelectTrigger><SelectValue placeholder={perfis.length ? 'Escolher o tipo de trabalho que a pessoa faz' : 'Sem perfis configurados'} /></SelectTrigger>
+                  <SelectContent>{perfis.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
+                </Select>
+                {perfil?.descricao && <p className="text-xs text-muted-foreground">{perfil.descricao} A Função do colaborador sugere o perfil; pode trocá-lo.</p>}
+              </div>
+
+              {perfil && (
+                <>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted sticky top-0 z-10">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Pontuação ({calc?.avaliados ?? 0}/{calc?.total ?? 0} critérios)</p>
+                      <p className="text-3xl font-bold">{calc?.pontuacao_100 ?? '—'}<span className="text-base font-normal text-muted-foreground">/100</span></p>
+                    </div>
+                    {calc?.classificacao && <Badge className={`text-sm px-3 py-1.5 ${badgeNovo.color}`}>{badgeNovo.emoji} {calc.classificacao}</Badge>}
+                  </div>
+
+                  {perfil.criterios.map(({ codigo, peso }) => {
+                    const c = criterio(codigo);
+                    if (!c) return null;
+                    const r = respostas[codigo] ?? {};
+                    const exigeEvid = r.nota === 1 || r.nota === 5;
+                    return (
+                      <div key={codigo} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm">{c.nome}</p>
+                            {c.descricao && <p className="text-xs text-muted-foreground">{c.descricao}</p>}
+                          </div>
+                          <Badge variant="outline" className="shrink-0">peso {peso}%</Badge>
+                        </div>
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <button key={n} type="button" onClick={() => setResp(codigo, { nota: r.nota === n ? undefined : n })}
+                              className={`rounded-md border px-2 py-1.5 text-left text-[11px] leading-tight transition-colors ${r.nota === n ? 'border-primary bg-primary/10' : 'hover:bg-muted'}`}>
+                              <span className="block text-sm font-semibold">{n}</span>
+                              <span className="text-muted-foreground">{n === 1 ? c.ancora_1 : n === 3 ? c.ancora_3 : n === 5 ? c.ancora_5 : ''}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <Textarea rows={exigeEvid ? 2 : 1} value={r.evidencia ?? ''} onChange={e => setResp(codigo, { evidencia: e.target.value })}
+                          placeholder={exigeEvid ? 'Exemplo concreto (obrigatório para nota 1 ou 5)' : 'Exemplo ou observação (opcional)'}
+                          className={exigeEvid && !r.evidencia?.trim() ? 'border-amber-400' : ''} />
+                      </div>
+                    );
+                  })}
+                  {semEvidencia.length > 0 && (
+                    <p className="text-sm text-amber-700">Falta um exemplo concreto em {semEvidencia.length} critério(s) com nota 1 ou 5. Sem exemplo, uma nota extrema não se consegue justificar ao colaborador.</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {legado && (<>
           {/* Score summary */}
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
             <div>
@@ -190,6 +294,7 @@ export function AvaliacaoFormDialog({ open, onOpenChange, avaliacao }: Props) {
             {renderSlider('qd_seguranca', 'Cumprimento das normas de segurança')}
             {renderSlider('qd_cuidado_equip', 'Cuidado com equipamentos e materiais')}
           </div>
+          </>)}
 
           {/* Qualitativos */}
           <div className="space-y-4">
@@ -250,7 +355,7 @@ export function AvaliacaoFormDialog({ open, onOpenChange, avaliacao }: Props) {
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={!form.colaborador_id || !form.tipo_avaliacao || createAvaliacao.isPending || updateAvaliacao.isPending}>
+            <Button onClick={handleSubmit} disabled={!form.colaborador_id || !form.tipo_avaliacao || (!legado && semEvidencia.length > 0) || createAvaliacao.isPending || updateAvaliacao.isPending}>
               {avaliacao ? 'Guardar' : 'Criar Avaliação'}
             </Button>
           </div>

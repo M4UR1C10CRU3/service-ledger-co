@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useServices } from '@/hooks/useServices';
+import { resumoCobrancas } from '@/lib/circuitoReceita';
 
 export interface ProximaCobranca {
   id: string;
@@ -105,7 +107,7 @@ export function useDashboardExecutivo() {
         .neq('estado', 'cancelada').neq('estado', 'faturada'),
 
       // Trabalhos extra — id + valor apenas para pendentes
-      supabase.from('trabalhos_extra').select('id, valor')
+      supabase.from('trabalhos_extra').select('id, valor:total')
         .eq('empresa_id', eid).eq('estado', 'pendente_aprovacao'),
 
       // Propostas — só contagem
@@ -161,5 +163,21 @@ export function useDashboardExecutivo() {
 
   useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
 
-  return { metrics, isLoading, refetch: fetchMetrics };
+  // Recebido, em débito e vencido vêm de Vendas / Serviços — a mesma fonte da
+  // página Débitos e do Dashboard Geral. O plano de pagamentos fica só para o
+  // calendário (próximos 30 dias e lista de próximas cobranças).
+  const { services, isInitialized } = useServices(empresa?.id);
+  const cobr = useMemo(() => {
+    const hoje = new Date().toISOString().split('T')[0];
+    const ha30 = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    return resumoCobrancas(services, ha30, hoje);
+  }, [services]);
+  const merged = useMemo(() => ({
+    ...metrics,
+    cobrancasPagas30d: cobr.recebido,
+    cobrancasPendentes: cobr.emDebito,
+    cobrancasVencidas: cobr.vencido,
+  }), [metrics, cobr]);
+
+  return { metrics: merged, isLoading: isLoading || !isInitialized, refetch: fetchMetrics };
 }

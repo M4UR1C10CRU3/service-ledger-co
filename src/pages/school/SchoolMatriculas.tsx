@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 const EMPTY: SchoolMatriculaInput = {
   aluno_id: '', turma_id: '', status: 'confirmada',
   data_matricula: new Date().toISOString().split('T')[0],
-  nota_final: null, observacoes: null,
+  nota_final: null, observacao: null,
 };
 
 export default function SchoolMatriculas() {
@@ -172,7 +172,7 @@ export default function SchoolMatriculas() {
             </div>
             <div className="space-y-1">
               <Label>Observações</Label>
-              <Textarea rows={2} value={form.observacoes ?? ''} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value || null }))} />
+              <Textarea rows={2} value={form.observacao ?? ''} onChange={e => setForm(p => ({ ...p, observacao: e.target.value || null }))} />
             </div>
           </div>
           <DialogFooter>

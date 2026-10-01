@@ -26,6 +26,7 @@ import { Handshake, Plus, Trash2, AlertCircle, Loader2, BookmarkPlus, BookmarkCh
 import { formatEUR } from '@/lib/formatters';
 import { useToast } from '@/hooks/use-toast';
 import { emptyOsForm } from '@/types/ordemServico';
+import { registarTrabalhoAdjudicado } from '@/lib/circuitoReceita';
 
 interface AdjudicacaoDialogProps {
   open: boolean;
@@ -166,6 +167,34 @@ export function AdjudicacaoDialog({ open, onOpenChange, proposta, onComplete }: 
         osId = os?.id;
       }
 
+      // Registo único do dinheiro que entra: o trabalho passa a existir em
+      // Vendas / Serviços (Receitas, Débitos, Cobranças, painéis), ligado à OS
+      // e ao plano de pagamentos. Se alguém já o lançou à mão com o número
+      // desta proposta, é esse registo que se liga — não se duplica.
+      const reg = await registarTrabalhoAdjudicado(empresa!.id, {
+        id: proposta.id,
+        numeroProposta: proposta.numeroProposta,
+        titulo: osTitulo.trim() || proposta.titulo,
+        clienteId: proposta.clienteId,
+        clienteNome: proposta.clienteNome,
+        totalComIva: proposta.totalComIva || 0,
+        totalSemIva: proposta.totalSemIva || 0,
+      }, osId ?? null);
+      if (reg.serviceId) {
+        toast({
+          title: reg.reaproveitado ? 'Ligado ao trabalho já registado' : 'Trabalho registado em Vendas / Serviços',
+          description: reg.reaproveitado
+            ? `A proposta ${proposta.numeroProposta} já existia em Vendas / Serviços; ficou ligada à OS.`
+            : 'Aparece em Receitas e Débitos como «Pendente» até ser faturado.',
+        });
+      } else {
+        toast({
+          title: 'Adjudicação gravada, mas sem registo em Vendas / Serviços',
+          description: 'Lance o trabalho à mão em Vendas / Serviços.',
+          variant: 'destructive',
+        });
+      }
+
       // Email automático ao cliente — não bloqueia em caso de falha
       if (proposta.clienteId) {
         try {
@@ -173,8 +202,7 @@ export function AdjudicacaoDialog({ open, onOpenChange, proposta, onComplete }: 
             .from('clientes')
             .select('email')
             .eq('id', proposta.clienteId)
-            .eq('empresa_id', empresa!.id)
-            .single();
+            .maybeSingle();
           if (cliente?.email) {
             const { subject, html, tipo } = buildPropostaAdjudicadaEmail({
               numeroProposta:     proposta.numeroProposta,

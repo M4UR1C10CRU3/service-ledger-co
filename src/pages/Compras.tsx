@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { parseLocalDate, formatDateToISO, getEffectiveStatus } from '@/lib/utils';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCostCenters } from '@/hooks/useCostCenters';
-import { useArticles } from '@/hooks/useArticles';
 import { useProdutos } from '@/hooks/useProdutos';
 import { useStockAtual } from '@/hooks/useStockAtual';
 import {
@@ -42,7 +41,9 @@ export default function Compras() {
   const { accounts, isLoading, addAccount, updateAccount, deleteAccount, liquidarAccount, refreshAccounts } = useAccountsPayable();
   const { suppliers, addSupplier } = useSuppliers();
   const { costCenters, addCostCenter } = useCostCenters();
-  const { articles, updateArticleStock } = useArticles();
+  // Stock único: tudo passa por produtos + stock_atual/stock_movimentos. As
+  // tabelas antigas articles/stock_movements estavam vazias e ficam na base,
+  // intactas, só deixam de ser usadas.
   const { produtos } = useProdutos();
   const { registarEntrada } = useStockAtual();
 
@@ -156,7 +157,54 @@ export default function Compras() {
     else { setSortField(field); setSortDir('asc'); }
   };
 
-  const resetForm = () => { setFormData({ ...emptyAccountPayableForm, tipoLancamento: 'compra_revenda' }); setEditingAccount(null); };
+  const resetForm = () => { setFormData({ ...emptyAccountPayableForm, tipoLancamento: 'compra_revenda' }); setEditingAccount(null); setNeOrigem(null); };
+
+  // «Registar compra do fornecedor» numa Nota de Encomenda recebida abre aqui
+  // (/compras?ne=<id>) o formulário já preenchido com o fornecedor e os artigos.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [neOrigem, setNeOrigem] = useState<{ id: string; numero: string } | null>(null);
+  useEffect(() => {
+    const neId = searchParams.get('ne');
+    if (!neId || !empresa) return;
+    setSearchParams(p => { p.delete('ne'); return p; }, { replace: true });
+    (async () => {
+      const [{ data: ne }, { data: itens }] = await Promise.all([
+        (supabase as any).from('notas_encomenda').select('id, numero, titulo, estado, fornecedor_id').eq('id', neId).eq('empresa_id', empresa.id).maybeSingle(),
+        (supabase as any).from('notas_encomenda_items').select('descricao, referencia, quantidade, preco_unit, ordem').eq('ne_id', neId).order('ordem'),
+      ]);
+      if (!ne) { toast({ title: 'Nota de encomenda não encontrada', variant: 'destructive' }); return; }
+      if (ne.estado !== 'recebida') {
+        toast({ title: `A nota ${ne.numero} não está «Recebida»`, description: 'Só se regista a compra de uma nota recebida e ainda por faturar.', variant: 'destructive' });
+        return;
+      }
+      const items: AccountPayableItem[] = (itens ?? []).map((it: any) => ({
+        id: crypto.randomUUID(),
+        descricao: it.descricao || '',
+        quantidade: String(it.quantidade ?? 1),
+        valorBruto: it.preco_unit != null ? String(it.preco_unit) : '',
+        ivaRate: '23',
+        produtoRef: it.referencia || undefined,
+      }));
+      const vencimento = new Date(); vencimento.setDate(vencimento.getDate() + 30);
+      setEditingAccount(null);
+      setFormData({
+        ...emptyAccountPayableForm,
+        tipoLancamento: 'compra_revenda',
+        categoria: 'artigos_revenda',
+        supplierId: ne.fornecedor_id || '',
+        descricao: `${ne.numero} — ${ne.titulo}`,
+        formaPagamento: 'a_credito',
+        dataPagamento: null,
+        dataVencimento: vencimento,
+        observacoes: `Origem: Nota de Encomenda ${ne.numero}`,
+        items,
+      });
+      setNeOrigem({ id: ne.id, numero: ne.numero });
+      setIsFormOpen(true);
+      toast({ title: `Compra da nota ${ne.numero}`, description: 'Confira os valores, indique o nº da fatura do fornecedor e guarde.' });
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, empresa?.id]);
 
   const handleDuplicate = (account: AccountPayable) => {
     setEditingAccount(null);
@@ -297,13 +345,18 @@ export default function Compras() {
               compraId: newId,
             });
           }
-        } else if (submissionData.articleId) {
-          const qty = parseFloat(submissionData.quantity) || 0;
-          const bruto = parseFloat(submissionData.valorBruto) || 0;
-          const unitCost = qty > 0 ? bruto / qty : 0;
-          await updateArticleStock(submissionData.articleId, qty, unitCost, submissionData.supplierId, newId);
         }
-        toast({ title: 'Compra guardada', description: 'Stock atualizado com sucesso.' });
+        // Compra nascida de uma Nota de Encomenda recebida: a nota fica «Faturada»
+        // e com o valor final, para não se registar a mesma fatura duas vezes.
+        if (neOrigem) {
+          const { data: neGravada } = await (supabase as any).from('notas_encomenda')
+            .update({ estado: 'faturada', valor_final: parseFloat(submissionData.valorLiquido) || null })
+            .eq('id', neOrigem.id).eq('estado', 'recebida').select('id');
+          if (!neGravada?.length) {
+            toast({ title: `Nota ${neOrigem.numero} não foi atualizada`, description: 'A compra ficou gravada; marque a nota como faturada à mão.', variant: 'destructive' });
+          }
+        }
+        toast({ title: 'Compra guardada', description: neOrigem ? `Stock atualizado e nota ${neOrigem.numero} faturada.` : 'Stock atualizado com sucesso.' });
         setIsFormOpen(false);
         resetForm();
       } else {
@@ -423,7 +476,7 @@ export default function Compras() {
         formData={formData} setFormData={setFormData}
         onSubmit={handleSubmit} isEditing={!!editingAccount}
         suppliers={suppliers} costCenters={costCenters}
-        articles={articles} produtos={produtos} onAddCostCenter={addCostCenter}
+        produtos={produtos} onAddCostCenter={addCostCenter}
         onAddSupplier={addSupplier}
         mode="compra"
       />

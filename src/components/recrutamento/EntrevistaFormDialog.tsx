@@ -18,11 +18,12 @@ const proximasFases = ['Segunda Entrevista', 'Proposta de Emprego', 'Admissão D
 function getCriteriaSet(cargo: string) {
   const operacionais = ['Pedreiro', 'Eletricista', 'Servente de Obras', 'Assistente de Limpezas'];
   const tecnicos = ['Técnico Comercial', 'Técnico de Obras', 'Diretor de Obras', 'Engenheiro Civil'];
-  const admin = ['Assistente Administrativo'];
+  const admin = ['Assistente Administrativo', 'Técnico Administrativo', 'Administrativ', 'Secretari', 'Escritório', 'Backoffice', 'Faturação'];
 
+  // administrativo primeiro: «Técnico Administrativo Comercial» é administrativo, não técnico de obra
+  if (admin.some(c => cargo.toLowerCase().includes(c.toLowerCase()))) return 'administrativo';
   if (operacionais.some(c => cargo.toLowerCase().includes(c.toLowerCase()))) return 'operacional';
   if (tecnicos.some(c => cargo.toLowerCase().includes(c.toLowerCase()))) return 'tecnico';
-  if (admin.some(c => cargo.toLowerCase().includes(c.toLowerCase()))) return 'administrativo';
   return 'tecnico'; // default
 }
 

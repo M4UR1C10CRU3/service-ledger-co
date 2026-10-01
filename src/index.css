@@ -2,8 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLARIZA VERTICAL DESIGN SYSTEM — Fundação
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Duas camadas, de propósito:
+
+   1. PALETA INSTITUCIONAL (--clariza-*) — os valores oficiais da marca. Não
+      mudam com a empresa nem com o tema. São a fonte da verdade; nenhum
+      componente deve escrever um hexadecimal da marca à mão.
+
+   2. ACENTO DO VERTICAL (--vertical-accent*) — a cor que identifica o
+      segmento. Muda por vertical, através do atributo data-vertical no <html>,
+      que o EmpresaContext escreve. Sem vertical definido, fica o Teal.
+
+   Os tokens existentes (--primary, --background, …) não foram tocados: são o
+   que a aplicação inteira já consome, e mexer neles mudaria comportamento
+   visual em sítios que ainda não foram revistos. O acento entra a somar, não
+   a substituir.
+
+   Valores em HSL sem vírgulas — é o formato que o Tailwind desta configuração
+   espera para poder aplicar opacidade (bg-vertical/10).
+   ═══════════════════════════════════════════════════════════════════════════ */
 @layer base {
   :root {
+    /* ── Paleta institucional Clariza ───────────────────────────────────── */
+    --clariza-dark:         354 6%  13%;   /* #231F20 */
+    --clariza-dark-surface: 300 1%  21%;   /* #353435 */
+    --clariza-teal:         184 68% 37%;   /* #1E939C */
+    --clariza-purple:       260 37% 44%;   /* #5B4598 */
+    --clariza-orange:       37  88% 62%;   /* #F3B247 */
+    --clariza-coral:        3   48% 56%;   /* #C45E58 */
+    --clariza-lavender:     232 27% 91%;   /* #E0E2EF */
+    --clariza-white:        0   0%  100%;  /* #FFFFFF */
+    --clariza-light-surface:240 8%  96%;   /* #F5F5F7 */
+
+    /* Gradiente institucional: Orange → Coral */
+    --clariza-gradient: linear-gradient(135deg,
+      hsl(var(--clariza-orange)) 0%,
+      hsl(var(--clariza-coral)) 100%);
+
+    /* ── Acento do vertical ─────────────────────────────────────────────
+       Teal por omissão. Cada vertical redefine-o mais abaixo.            */
+    --vertical-accent:        var(--clariza-teal);
+    --vertical-accent-fg:     0 0% 100%;
+    /* Fundo muito subtil, para estados ativos e realces de área. */
+    --vertical-accent-soft:   184 68% 37% / 0.12;
+    /* Borda controlada — nunca a cor cheia, que grita. */
+    --vertical-accent-border: 184 68% 37% / 0.32;
+
+    /* ── Escala de elevação ─────────────────────────────────────────────
+       Sombras discretas: o protótipo faz profundidade por superfície e
+       borda, não por sombra pesada.                                      */
+    --elev-1: 0 1px 2px hsl(0 0% 0% / 0.06);
+    --elev-2: 0 2px 8px hsl(0 0% 0% / 0.08);
+    --elev-3: 0 8px 24px hsl(0 0% 0% / 0.12);
+
+    /* ── Métricas do protótipo ──────────────────────────────────────────
+       Medidas lidas do protótipo aprovado, não estimadas. Ver
+       docs/clariza-design-system.md.                                     */
+    --ds-sidebar-w:   245px;
+    --ds-topbar-h:    65px;
+    --ds-content-max: 1720px;
+    --ds-content-pad: 30px;
+
+    /* Raios, do mais pequeno ao maior */
+    --ds-radius-ico:    6px;
+    --ds-radius-btn:    8px;
+    --ds-radius-nav:    9px;
+    --ds-radius-tenant: 12px;
+    --ds-radius-card:   14px;
+
     /* ── Clariza Brand — Light theme ── */
     --background: 220 20% 97%;
     --foreground: 354 6% 13%;           /* Clariza Dark #231F20 */
@@ -134,9 +203,87 @@
   }
 }
 
+/* ═══ Acento por vertical ═══════════════════════════════════════════════════
+   Accionado pelo atributo data-vertical no <html>. Só CSS: o contexto da
+   empresa limita-se a escrever o atributo, e a cor decide-se aqui.
+
+   Os nomes seguem os verticais do produto. "school" é o valor que já existe
+   na base de dados para o ITC — não se inventou coluna nem se renomeou nada.
+   ═════════════════════════════════════════════════════════════════════════ */
+@layer base {
+  /* Store — Retalho & E-commerce */
+  :root[data-vertical="store"] {
+    --vertical-accent:        var(--clariza-teal);
+    --vertical-accent-soft:   184 68% 37% / 0.12;
+    --vertical-accent-border: 184 68% 37% / 0.32;
+  }
+
+  /* Build — Construção & Obras */
+  :root[data-vertical="build"] {
+    --vertical-accent:        var(--clariza-orange);
+    --vertical-accent-fg:     354 6% 13%;   /* texto escuro sobre âmbar */
+    --vertical-accent-soft:   37 88% 62% / 0.14;
+    --vertical-accent-border: 37 88% 62% / 0.34;
+  }
+
+  /* Flow — Serviços & Operações. Azul-teal complementar, da mesma família. */
+  :root[data-vertical="flow"] {
+    --vertical-accent:        199 72% 45%;
+    --vertical-accent-soft:   199 72% 45% / 0.12;
+    --vertical-accent-border: 199 72% 45% / 0.32;
+  }
+
+  /* Agency — Marketing */
+  :root[data-vertical="agency"] {
+    --vertical-accent:        var(--clariza-purple);
+    --vertical-accent-soft:   260 37% 44% / 0.16;
+    --vertical-accent-border: 260 37% 44% / 0.36;
+  }
+
+  /* Educa Pro — Formação. É o valor "school" que a base de dados já usa.
+     #6960C5, o roxo clareado que o protótipo aplica neste vertical. */
+  :root[data-vertical="school"] {
+    --vertical-accent:        245 47% 57%;
+    --vertical-accent-soft:   245 47% 57% / 0.18;
+    --vertical-accent-border: 245 47% 57% / 0.38;
+  }
+
+  /* ── Superfícies do protótipo, no tema escuro ─────────────────────────
+     O protótipo assenta num fundo NEUTRO (#121214) e não no Clariza Dark
+     quente da identidade impressa. A marca entra pelo acento e pelo
+     símbolo, não pelo fundo. Sobrepõe-se aqui aos valores antigos, que
+     eram mais azulados.                                                  */
+  .dark {
+    --background:      240 5%  8%;    /* #121214 */
+    --card:            240 5%  11%;   /* #1a1a1d */
+    --popover:         240 6%  13%;   /* #202024 */
+    --secondary:       240 6%  13%;
+    --muted:           240 6%  13%;
+    --accent:          240 6%  13%;
+    --border:          240 6%  18%;   /* #2b2b30 */
+    --input:           240 6%  18%;
+    --foreground:      240 6%  97%;   /* #f7f7f8 */
+    --muted-foreground:240 6%  58%;   /* #8e8e9a */
+
+    /* Sidebar e topbar do protótipo */
+    --sidebar-background: 240 4%  9%;    /* #171719 */
+    --sidebar-foreground: 240 5%  70%;
+    --sidebar-border:     240 6%  18%;
+    --sidebar-accent:     240 6%  13%;
+    --topbar-background:  240 5%  8.6%;  /* #151517 */
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
+  }
+
+  /* Números em tabelas e métricas alinham em coluna. Sem isto, um 1 ocupa
+     menos que um 8 e a coluna de valores fica a dançar. */
+  .tabular, .table-cell-currency, [data-metric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
   }
 
   html {
@@ -160,6 +307,67 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* ═══ Vocabulário do design system ═══════════════════════════════════
+     Classes com nome, para os ecrãs deixarem de repetir dez utilitários
+     cada vez que desenham um cartão. Quem quiser mudar o raio dos painéis
+     muda aqui, não em quarenta ficheiros.
+
+     Medidas do protótipo — ver docs/clariza-design-system.md.            */
+
+  /* Área de conteúdo: larga, para aproveitar monitores grandes em vez de
+     deixar meio ecrã vazio à direita. */
+  .ds-page {
+    @apply w-full mx-auto;
+    max-width: var(--ds-content-max);
+    padding: var(--ds-content-pad);
+  }
+
+  /* Etiqueta pequena por cima do título, na cor do vertical. */
+  .ds-eyebrow {
+    @apply text-vertical font-extrabold uppercase;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+  }
+
+  /* Painel — a superfície de base de tudo o que é bloco. */
+  .ds-panel {
+    @apply bg-card border border-border;
+    border-radius: var(--ds-radius-card);
+    padding: 18px;
+  }
+
+  /* Cartão de indicador. */
+  .ds-metric {
+    @apply relative overflow-hidden bg-card border border-border;
+    border-radius: var(--ds-radius-card);
+    padding: 17px;
+    min-height: 142px;
+  }
+
+  /* O indicador em destaque leva o gradiente do vertical. Um por painel:
+     usado em todos, deixa de destacar seja o que for. */
+  .ds-metric-featured {
+    background: linear-gradient(135deg, hsl(var(--vertical-accent)), hsl(var(--card)));
+    border-color: hsl(var(--vertical-accent));
+  }
+
+  .ds-metric-label { @apply text-muted-foreground; font-size: 11px; }
+  .ds-metric-value {
+    @apply text-foreground font-semibold;
+    font-size: 25px;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Grelha de indicadores: quatro em ecrã grande, dois em tablet, um no
+     telemóvel. */
+  .ds-metric-grid {
+    @apply grid gap-3;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  @media (min-width: 640px)  { .ds-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1280px) { .ds-metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
   .table-cell-currency { @apply text-right font-mono; }
   .status-paid    { @apply bg-success-lighter text-success border border-success-light; }

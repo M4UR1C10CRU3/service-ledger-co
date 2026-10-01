@@ -4,10 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, ExternalLink } from 'lucide-react';
+import { useNotasEncomenda } from '@/hooks/useNotasEncomenda';
+import { useEmpresa } from '@/contexts/EmpresaContext';
 
 export default function WorkflowComprasPage() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const { empresa } = useEmpresa();
+  const { notas, updateEstado, isInitialized } = useNotasEncomenda(empresa?.id);
 
   return (
     <div className="p-6 space-y-6">
@@ -42,7 +46,13 @@ export default function WorkflowComprasPage() {
       </div>
 
       {/* Kanban */}
-      <ComprasKanban searchTerm={search} />
+      {isInitialized ? (
+        <ComprasKanban searchTerm={search} notas={notas} updateEstado={updateEstado} />
+      ) : (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      )}
     </div>
   );
 }

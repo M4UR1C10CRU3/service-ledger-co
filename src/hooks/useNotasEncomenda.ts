@@ -69,18 +69,25 @@ export function useNotasEncomenda(empresaId: string | undefined) {
       }).select().single();
       if (error) throw error;
       const ne = mapNe(data);
+
+      // Os artigos e a checklist gravavam-se sem verificar o resultado. Se
+      // falhassem, a NE aparecia criada com sucesso e vazia — e só se
+      // descobria quando alguém a fosse enviar ao fornecedor.
       if (items.length > 0) {
-        await (supabase as any).from('notas_encomenda_items').insert(
+        const { error: itensErr } = await (supabase as any).from('notas_encomenda_items').insert(
           items.map((it, i) => ({
             ne_id: ne.id, descricao: it.descricao, referencia: it.referencia || null,
             quantidade: parseFloat(it.quantidade) || 1, unidade: it.unidade || 'und',
             preco_unit: it.precoUnit ? parseFloat(it.precoUnit) : null, ordem: i,
           }))
         );
+        if (itensErr) throw new Error(`A NE ${ne.numero} foi criada mas os artigos não: ${itensErr.message}`);
       }
-      await (supabase as any).from('notas_encomenda_checklist').insert(
+
+      const { error: checkErr } = await (supabase as any).from('notas_encomenda_checklist').insert(
         NE_CHECKLIST_DEFAULT.map((desc, i) => ({ ne_id: ne.id, descricao: desc, ordem: i }))
       );
+      if (checkErr) throw new Error(`A NE ${ne.numero} foi criada mas a checklist não: ${checkErr.message}`);
       setNotas(prev => [ne, ...prev]);
       toast({ title: `NE criada: ${ne.numero}` });
       return ne;
@@ -92,9 +99,11 @@ export function useNotasEncomenda(empresaId: string | undefined) {
 
   const updateNota = async (id: string, payload: Record<string, any>): Promise<boolean> => {
     try {
+      // O `.eq('empresa_id')` não é redundante: sem ele, quem soubesse um id de
+      // outra empresa alterava-lhe a encomenda.
       const { data, error } = await (supabase as any).from('notas_encomenda')
         .update({ ...payload, updated_at: new Date().toISOString() })
-        .eq('id', id).select().single();
+        .eq('id', id).eq('empresa_id', empresaId).select().single();
       if (error) throw error;
       setNotas(prev => prev.map(n => n.id === id ? mapNe(data) : n));
       return true;
@@ -113,7 +122,8 @@ export function useNotasEncomenda(empresaId: string | undefined) {
 
   const deleteNota = async (id: string): Promise<boolean> => {
     try {
-      const { error } = await (supabase as any).from('notas_encomenda').delete().eq('id', id);
+      const { error } = await (supabase as any).from('notas_encomenda')
+        .delete().eq('id', id).eq('empresa_id', empresaId);
       if (error) throw error;
       setNotas(prev => prev.filter(n => n.id !== id));
       toast({ title: 'NE eliminada' });

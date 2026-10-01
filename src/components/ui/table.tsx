@@ -34,7 +34,13 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn("border-b transition-colors data-[state=selected]:bg-muted hover:bg-muted/50", className)}
+      /* Divisória discreta e hover subtil: numa lista longa, um hover forte
+         cansa e uma borda marcada compete com os dados. */
+      className={cn(
+        "border-b border-border/60 transition-colors",
+        "data-[state=selected]:bg-vertical-soft hover:bg-muted/40",
+        className,
+      )}
       {...props}
     />
   ),
@@ -45,8 +51,11 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
   ({ className, ...props }, ref) => (
     <th
       ref={ref}
+      /* Cabeçalho em maiúsculas pequenas: distingue-se da linha de dados sem
+         precisar de fundo, o que mantém a tabela leve. */
       className={cn(
-        "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-11 px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.06em]",
+        "text-muted-foreground/80 [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

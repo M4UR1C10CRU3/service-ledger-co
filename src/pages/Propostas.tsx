@@ -2,9 +2,6 @@ import { useState, useMemo } from 'react';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
-import { useClientes } from '@/hooks/useClientes';
-import { useProdutos } from '@/hooks/useProdutos';
-import { useEmployees } from '@/hooks/useEmployees';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,10 +38,7 @@ const estadoColor: Record<PropostaEstado, string> = {
 };
 
 export default function Propostas() {
-  const { propostas, isLoading, deleteProposta, duplicateProposta, fetchLinhas } = usePropostas();
-  const { clientes } = useClientes();
-  const { produtos } = useProdutos();
-  const { employees } = useEmployees();
+  const { propostas, isLoading, fetchPropostas, deleteProposta, duplicateProposta, fetchLinhas } = usePropostas();
   const { toast } = useToast();
   const { logActivity } = useActivityLogger();
 
@@ -271,7 +265,7 @@ export default function Propostas() {
       {/* Form Dialog */}
       <PropostaFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(v) => { setFormOpen(v); if (!v) fetchPropostas(); }}
         proposta={editingProposta}
       />
 
@@ -302,6 +296,7 @@ export default function Propostas() {
         proposta={adjudicacaoProposta}
         onComplete={(osId) => {
           setAdjudicacaoProposta(null);
+          fetchPropostas();
           toast({
             title: 'Adjudicação confirmada ✓',
             description: osId ? `OS criada automaticamente` : 'Plano de pagamentos registado',

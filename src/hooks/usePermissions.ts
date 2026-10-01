@@ -15,7 +15,10 @@ export function usePermissions() {
     // Administrador always has access
     if (perfil === 'administrador') return true;
 
-    const moduloPerms = permissoes[modulo];
+    // «Pedidos de Orçamento» estava no menu com uma chave que não existia na
+    // lista de permissões — só administradores o viam. Sem regra própria
+    // gravada, segue as permissões de «Propostas» (01/10/2026).
+    const moduloPerms = permissoes[modulo] ?? (modulo === 'pedidos_orcamento' ? permissoes['propostas'] : undefined);
     if (!moduloPerms) return false;
 
     switch (acao) {

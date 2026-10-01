@@ -56,6 +56,38 @@ const FollowUp = () => {
     }
   };
 
+  const handleCreateOportunidade: typeof createOportunidade = async (data) => {
+    const id = await createOportunidade(data);
+    if (id) {
+      logActivity({ modulo: 'Follow-up', acao: 'criou_oportunidade', descricao: `Criou oportunidade "${data.titulo}"`, entidade_tipo: 'oportunidade', entidade_id: id });
+    }
+    return id;
+  };
+
+  const handleUpdateOportunidade: typeof updateOportunidade = async (id, updates) => {
+    const ok = await updateOportunidade(id, updates);
+    if (ok) {
+      logActivity({ modulo: 'Follow-up', acao: 'editou_oportunidade', descricao: 'Editou dados da oportunidade', entidade_tipo: 'oportunidade', entidade_id: id });
+    }
+    return ok;
+  };
+
+  const handleUpdateFase: typeof updateFase = async (id, novaFase, motivo) => {
+    const ok = await updateFase(id, novaFase, motivo);
+    if (ok) {
+      logActivity({ modulo: 'Follow-up', acao: 'mudou_fase_oportunidade', descricao: `Mudou fase para "${FASES_CONFIG[novaFase].label}"`, entidade_tipo: 'oportunidade', entidade_id: id });
+    }
+    return ok;
+  };
+
+  const handleCreateContacto: typeof createContacto = async (oportunidadeId, contacto) => {
+    const ok = await createContacto(oportunidadeId, contacto);
+    if (ok) {
+      logActivity({ modulo: 'Follow-up', acao: 'registou_contacto', descricao: 'Registou contacto com o cliente', entidade_tipo: 'oportunidade', entidade_id: oportunidadeId });
+    }
+    return ok;
+  };
+
   const handleExport = () => {
     const data = filtered.map(o => ({
       Cliente: o.clienteNome || '',
@@ -125,8 +157,8 @@ const FollowUp = () => {
           </TabsList>
           <TabsContent value="kanban" className="mt-4">
             <FollowupKanban
-              oportunidades={filterFase === 'todos' ? filtered : filtered}
-              onUpdateFase={updateFase}
+              oportunidades={filtered}
+              onUpdateFase={handleUpdateFase}
               onViewDetail={setDetailOpp}
               onRegisterContact={setContactOpp}
               onEdit={setDetailOpp}
@@ -148,7 +180,7 @@ const FollowUp = () => {
       <FollowupNewDialog
         open={newOpen}
         onOpenChange={setNewOpen}
-        onSave={createOportunidade}
+        onSave={handleCreateOportunidade}
         propostas={propostasForSelector}
       />
 
@@ -156,15 +188,15 @@ const FollowUp = () => {
         open={!!contactOpp}
         onOpenChange={(v) => { if (!v) setContactOpp(null); }}
         oportunidade={contactOpp}
-        onSave={createContacto}
+        onSave={handleCreateContacto}
       />
 
       <FollowupDetailDialog
         open={!!detailOpp}
         onOpenChange={(v) => { if (!v) setDetailOpp(null); }}
         oportunidade={detailOpp}
-        onUpdateOportunidade={updateOportunidade}
-        onUpdateFase={updateFase}
+        onUpdateOportunidade={handleUpdateOportunidade}
+        onUpdateFase={handleUpdateFase}
         fetchContactos={fetchContactos}
         fetchHistorico={fetchHistorico}
         onRegisterContact={(o) => { setDetailOpp(null); setContactOpp(o); }}

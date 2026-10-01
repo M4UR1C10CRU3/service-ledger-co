@@ -11,6 +11,7 @@
  *   logos              — logotipos de empresas
  *   proposta-pdfs      — propostas aceites (HTML)
  *   planeamento-anexos — anexos de cards de planeamento
+ *   adm-documentos     — alvarás, licenças e certidões (Administrativo)
  *   marketing-entregas — entregas de tarefas de marketing
  *
  * Buckets School (a criar):
@@ -103,3 +104,11 @@ export const schoolCertificadoPath = (
 
 export const schoolMaterialPath = (empresaId: string, cursoId: string, filename: string) =>
   `${empresaId}/cursos/${cursoId}/materiais/${Date.now()}_${sanitize(filename)}`;
+
+// ── Administrativo — Licenciamentos ───────────────────────────────────────────
+//
+// Bucket privado adm-documentos. A primeira pasta TEM de ser o empresa_id: é
+// dela que a política de storage tira a empresa para verificar o acesso.
+
+export const admDocumentoPath = (empresaId: string, documentoId: string, filename: string) =>
+  `${empresaId}/${documentoId}/${Date.now()}_${sanitize(filename)}`;

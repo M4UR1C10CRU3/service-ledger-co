@@ -25,10 +25,14 @@ import { Separator } from '@/components/ui/separator';
 import {
   AlignLeft, Calendar, CheckSquare, Tag, Archive, Plus, X, Check, Clock,
   MessageSquare, Users, Palette, Trash2, Activity, Pencil, SmilePlus,
-  CornerDownRight, Paperclip, Copy, LayoutTemplate, ExternalLink, ChevronUp, ChevronDown, ArrowRightLeft,
+  CornerDownRight, Paperclip, Copy, LayoutTemplate, ExternalLink, ChevronUp, ChevronDown, ArrowRightLeft, GripVertical,
 } from 'lucide-react';
+import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { QuadroCartao, ChecklistItem, Etiqueta, Comentario, Utilizador, CartaoAnexo, ChecklistModelo, ChecklistModeloItem } from '@/types/quadros';
 import { initials, avatarColor } from './CartaoCard';
+import CartaoDadosProcesso from './CartaoDadosProcesso';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { format, isValid } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -71,16 +75,23 @@ interface Props {
   utilizadores: Utilizador[];
   listaNome: string;
   isOpen: boolean;
+  /** Campos que alguma coluna deste quadro exige. Vazio num quadro livre. */
+  camposDoQuadro?: string[];
+  /** Desses, os que este cartão ainda não tem. */
+  camposEmFalta?: string[];
   onClose: () => void;
   onUpdateCartao: (id: string, updates: Partial<QuadroCartao>, atividade?: string) => Promise<void>;
   onArchiveCartao: (id: string, listaId: string) => Promise<void>;
   onAddChecklist: (cartaoId: string, titulo: string) => Promise<void>;
   onDeleteChecklist: (checklistId: string, cartaoId: string) => Promise<void>;
+  onUpdateChecklistTitulo: (checklistId: string, titulo: string) => Promise<void>;
   onAddChecklistItem: (checklistId: string, cartaoId: string, texto: string) => Promise<void>;
   onToggleChecklistItem: (itemId: string, checklistId: string, cartaoId: string, concluido: boolean) => Promise<void>;
   onDeleteChecklistItem: (itemId: string, checklistId: string, cartaoId: string) => Promise<void>;
   onUpdateChecklistItem: (itemId: string, checklistId: string, cartaoId: string, updates: Partial<Pick<ChecklistItem, 'texto' | 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>) => Promise<void>;
   onMoveChecklistItem: (itemId: string, checklistId: string, cartaoId: string, direction: 'up' | 'down') => Promise<void>;
+  /** Nova ordem das tarefas de uma checklist (arrastar e largar). */
+  onReorderChecklistItems?: (checklistId: string, cartaoId: string, idsPorOrdem: string[]) => Promise<void>;
   onFetchFeed: (cartaoId: string) => Promise<Comentario[]>;
   onAddComentario: (cartaoId: string, texto: string, replyTo?: { id: string; autor_nome: string | null; texto: string }) => Promise<Comentario | null>;
   onUpdateComentario: (id: string, texto: string) => Promise<void>;
@@ -100,6 +111,7 @@ interface Props {
   onMoveCartaoParaEmpresa: (cartaoId: string, srcListaId: string, target: { empresaId: string; quadroId: string; listaId: string }) => Promise<boolean>;
   onListChecklistModelos: () => Promise<ChecklistModelo[]>;
   onApplyChecklistModelo: (cartaoId: string, modeloNome: string, itens: ChecklistModeloItem[]) => Promise<void>;
+  onUpdateChecklistModeloCategoria: (modeloId: string, categoria: string | null) => Promise<boolean>;
 }
 
 type Popover = null | 'membros' | 'etiquetas' | 'capa' | 'anexos' | 'modelos';
@@ -195,6 +207,8 @@ export default function CartaoDetailModal(props: Props) {
   const [novoComentario, setNovoComentario] = useState('');
   const [novaChecklist, setNovaChecklist] = useState('');
   const [addingChecklist, setAddingChecklist] = useState(false);
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [checklistTituloDraft, setChecklistTituloDraft] = useState('');
   const [newItemTexts, setNewItemTexts] = useState<Record<string, string>>({});
   const [popover, setPopover] = useState<Popover>(null);
   const [novaEt, setNovaEt] = useState({ nome: '', cor: '#6366f1' });
@@ -217,6 +231,11 @@ export default function CartaoDetailModal(props: Props) {
 
   // Checklist item detail editor (responsável / hora / prazo)
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  // Arrastar tarefas da checklist: só começa depois de 4 px, para um clique na pega não contar como arrasto.
+  const sensoresChecklist = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const [itemEdits, setItemEdits] = useState<Record<string, ItemEditState>>({});
 
   // Comment: reply
@@ -241,6 +260,8 @@ export default function CartaoDetailModal(props: Props) {
   // Modelos de checklist
   const [modelos, setModelos] = useState<ChecklistModelo[]>([]);
   const [loadingModelos, setLoadingModelos] = useState(false);
+  const [editingCategoriaId, setEditingCategoriaId] = useState<string | null>(null);
+  const [categoriaDraft, setCategoriaDraft] = useState('');
 
   useEffect(() => {
     if (!cartao) return;
@@ -282,7 +303,11 @@ export default function CartaoDetailModal(props: Props) {
   const pct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
   const done = c.data_limite_concluida;
   const overdue = !done && !!c.data_limite && new Date(c.data_limite) < new Date();
-  const etActive = (id: string) => c.etiquetas.some(e => e.id === id);
+  // Uma etiqueta está no cartão se lá estiver com o mesmo NOME, venha de que quadro vier:
+  // a lista de escolha junta as etiquetas de todos os quadros (uma por nome), e o cartão pode
+  // ter a homónima de outro quadro — antes aparecia desmarcada e não havia como a tirar.
+  const nomeEt = (n: string) => n.trim().toLowerCase();
+  const etActive = (e: { id: string; nome: string }) => c.etiquetas.some(x => x.id === e.id || nomeEt(x.nome) === nomeEt(e.nome));
   const memActive = (id: string) => c.membros.some(m => m.utilizador_id === id);
 
   const refreshFeed = () => props.onFetchFeed(c.id).then(setFeed);
@@ -294,6 +319,11 @@ export default function CartaoDetailModal(props: Props) {
   const saveDesc = async () => {
     await props.onUpdateCartao(c.id, { descricao: descricao || null });
     setEditingDesc(false);
+  };
+
+  const saveChecklistTitulo = async (checklistId: string) => {
+    if (checklistTituloDraft.trim()) await props.onUpdateChecklistTitulo(checklistId, checklistTituloDraft.trim());
+    setEditingChecklistId(null);
   };
 
   const setData = async (val: string) => {
@@ -423,6 +453,24 @@ export default function CartaoDetailModal(props: Props) {
     props.onFetchFeed(c.id).then(setFeed);
   };
 
+  const SEM_CATEGORIA = 'Sem categoria';
+  const modelosAgrupados = modelos.reduce((grupos, m) => {
+    const cat = m.categoria?.trim() || SEM_CATEGORIA;
+    (grupos[cat] ||= []).push(m);
+    return grupos;
+  }, {} as Record<string, ChecklistModelo[]>);
+  const categoriasOrdenadas = Object.keys(modelosAgrupados).sort((a, b) =>
+    a === SEM_CATEGORIA ? 1 : b === SEM_CATEGORIA ? -1 : a.localeCompare(b));
+
+  const startEditCategoria = (m: ChecklistModelo) => { setEditingCategoriaId(m.id); setCategoriaDraft(m.categoria || ''); };
+  const saveCategoria = async (m: ChecklistModelo) => {
+    const novaCategoria = categoriaDraft.trim() || null;
+    setEditingCategoriaId(null);
+    if (novaCategoria === m.categoria) return;
+    const ok = await props.onUpdateChecklistModeloCategoria(m.id, novaCategoria);
+    if (ok) setModelos(prev => prev.map(x => x.id === m.id ? { ...x, categoria: novaCategoria } : x));
+  };
+
   const handleDuplicar = () => { setDupComentarios(false); setDupAnexos(false); setShowDuplicar(true); };
   const confirmDuplicar = async () => {
     setShowDuplicar(false);
@@ -459,7 +507,7 @@ export default function CartaoDetailModal(props: Props) {
     responsavel_id: item.responsavel_id || '',
     responsavel_nome: item.responsavel_nome || '',
     hora: item.hora?.slice(0, 5) || '',
-    data_limite: item.data_limite || '',
+    data_limite: item.data_limite ? item.data_limite.slice(0, 10) : '',
   };
 
   const saveItemEdit = async (item: ChecklistItem, clId: string) => {
@@ -486,7 +534,7 @@ export default function CartaoDetailModal(props: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="max-w-[1040px] max-h-[92vh] overflow-y-auto p-0 gap-0">
+      <DialogContent className="max-w-[1200px] w-[95vw] max-h-[92vh] overflow-y-auto overflow-x-hidden p-0 gap-0">
         {c.cor && <div className="h-9" style={{ backgroundColor: c.cor }} />}
 
         <div className="p-5">
@@ -542,6 +590,15 @@ export default function CartaoDetailModal(props: Props) {
                 )}
               </div>
 
+              {/* Dados do processo — só em quadros tipados */}
+              <CartaoDadosProcesso
+                cartao={c}
+                utilizadores={props.utilizadores}
+                camposDoQuadro={props.camposDoQuadro ?? []}
+                emFalta={props.camposEmFalta ?? []}
+                onUpdate={(updates, atividade) => { void props.onUpdateCartao(c.id, updates, atividade); }}
+              />
+
               {/* Description */}
               <div>
                 <div className="flex items-center gap-2 mb-2"><AlignLeft size={15} className="text-muted-foreground" /><p className="text-sm font-semibold">Descrição</p></div>
@@ -576,13 +633,45 @@ export default function CartaoDetailModal(props: Props) {
                   {c.checklists.map(cl => (
                     <div key={cl.id} className="mb-4 group/cl">
                       <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-sm font-medium">{cl.titulo}</p>
+                        {editingChecklistId === cl.id ? (
+                          <Input
+                            value={checklistTituloDraft}
+                            onChange={e => setChecklistTituloDraft(e.target.value)}
+                            className="text-sm font-medium h-7"
+                            autoFocus
+                            onKeyDown={e => e.key === 'Enter' && saveChecklistTitulo(cl.id)}
+                            onBlur={() => saveChecklistTitulo(cl.id)}
+                          />
+                        ) : (
+                          <p
+                            className="text-sm font-medium cursor-pointer hover:bg-muted rounded px-1 py-0.5 -ml-1"
+                            onClick={() => { setEditingChecklistId(cl.id); setChecklistTituloDraft(cl.titulo); }}
+                          >
+                            {cl.titulo}
+                          </p>
+                        )}
                         <button onClick={() => props.onDeleteChecklist(cl.id, c.id)} className="opacity-0 group-hover/cl:opacity-100 text-muted-foreground hover:text-destructive"><Trash2 size={13} /></button>
                       </div>
+                      <DndContext sensors={sensoresChecklist} collisionDetection={closestCenter}
+                        onDragEnd={(e: DragEndEvent) => {
+                          const { active, over } = e;
+                          if (!over || active.id === over.id || !props.onReorderChecklistItems) return;
+                          const ids = cl.items.map(i => i.id);
+                          const nova = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
+                          props.onReorderChecklistItems(cl.id, c.id, nova);
+                        }}>
+                      <SortableContext items={cl.items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                       {cl.items.map((item, itemIdx) => (
-                        <div key={item.id} className="group/item mb-1">
+                        <ItemOrdenavel key={item.id} id={item.id}>{alca => (
+                        <div className="group/item mb-1">
                           {/* Item row */}
                           <div className="flex items-start gap-2 py-0.5">
+                            {props.onReorderChecklistItems && (
+                              <button type="button" {...alca} title="Arrastar para mudar a ordem"
+                                className="-ml-1 mt-0.5 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground touch-none">
+                                <GripVertical size={14} />
+                              </button>
+                            )}
                             <input
                               type="checkbox"
                               checked={item.concluido}
@@ -637,7 +726,7 @@ export default function CartaoDetailModal(props: Props) {
                               )}
                               {item.data_limite && (
                                 <span className="inline-flex items-center gap-1 text-[11px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
-                                  <Calendar size={11} /> {fmtDate(item.data_limite + 'T00:00:00', 'd MMM yyyy')}
+                                  <Calendar size={11} /> {fmtDate(item.data_limite.slice(0, 10) + 'T00:00:00', 'd MMM yyyy')}
                                 </span>
                               )}
                             </div>
@@ -697,7 +786,10 @@ export default function CartaoDetailModal(props: Props) {
                             </div>
                           )}
                         </div>
+                        )}</ItemOrdenavel>
                       ))}
+                      </SortableContext>
+                      </DndContext>
                       <div className="flex gap-2 mt-2 ml-6">
                         <Input className="h-8 text-sm" placeholder="Adicionar item..." value={newItemTexts[cl.id] || ''} onChange={e => setNewItemTexts(p => ({ ...p, [cl.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && handleAddItem(cl.id)} />
                         <Button size="sm" className="h-8" onClick={() => handleAddItem(cl.id)}><Plus size={13} /></Button>
@@ -913,20 +1005,26 @@ export default function CartaoDetailModal(props: Props) {
                             >
                               <MessageSquare size={13} />
                             </button>
-                            <button
-                              title="Editar"
-                              onClick={() => setEditingComment({ id: f.id, texto: f.texto })}
-                              className="text-muted-foreground hover:text-foreground p-0.5"
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              title="Eliminar"
-                              onClick={async () => { await props.onDeleteComentario(f.id); refreshFeed(); }}
-                              className="text-muted-foreground hover:text-destructive p-0.5"
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {/* Editar e eliminar só ao autor. Responder fica
+                                para todos — é disso que vive a conversa. */}
+                            {f.autor_id && me.authId && f.autor_id === me.authId && (
+                              <>
+                                <button
+                                  title="Editar"
+                                  onClick={() => setEditingComment({ id: f.id, texto: f.texto })}
+                                  className="text-muted-foreground hover:text-foreground p-0.5"
+                                >
+                                  <Pencil size={13} />
+                                </button>
+                                <button
+                                  title="Eliminar"
+                                  onClick={async () => { await props.onDeleteComentario(f.id); refreshFeed(); }}
+                                  className="text-muted-foreground hover:text-destructive p-0.5"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
@@ -976,9 +1074,9 @@ export default function CartaoDetailModal(props: Props) {
                     <div className="space-y-1 mb-3 max-h-44 overflow-y-auto">
                       {etiquetas.map(e => (
                         <div key={e.id} className="flex items-center gap-2">
-                          <button onClick={() => props.onToggleEtiqueta(c.id, e.id, etActive(e.id))} className="flex items-center gap-2 flex-1 min-w-0 rounded px-1 py-1 hover:bg-muted">
+                          <button onClick={() => props.onToggleEtiqueta(c.id, e.id, etActive(e))} className="flex items-center gap-2 flex-1 min-w-0 rounded px-1 py-1 hover:bg-muted">
                             <span className="h-6 flex-1 rounded text-white text-[11px] flex items-center px-2 font-medium truncate" style={{ backgroundColor: e.cor }}>{e.nome || '—'}</span>
-                            {etActive(e.id) && <Check size={14} className="text-primary shrink-0" />}
+                            {etActive(e) && <Check size={14} className="text-primary shrink-0" />}
                           </button>
                         </div>
                       ))}
@@ -1025,15 +1123,42 @@ export default function CartaoDetailModal(props: Props) {
                     {!loadingModelos && modelos.length === 0 && (
                       <p className="text-xs text-muted-foreground py-2 text-center">Nenhum modelo disponível.</p>
                     )}
-                    {modelos.map(m => (
-                      <button
-                        key={m.id}
-                        className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
-                        onClick={() => handleApplyModelo(m)}
-                      >
-                        <span className="font-medium">{m.nome}</span>
-                        <span className="text-xs text-muted-foreground ml-2">({m.checklist_template_items.length} itens)</span>
-                      </button>
+                    {!loadingModelos && categoriasOrdenadas.map(cat => (
+                      <div key={cat} className="mb-2 last:mb-0">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-2 pt-1.5 pb-0.5">{cat}</p>
+                        {modelosAgrupados[cat].map(m => (
+                          <div key={m.id} className="group/modelo flex items-center gap-1">
+                            {editingCategoriaId === m.id ? (
+                              <Input
+                                autoFocus
+                                value={categoriaDraft}
+                                placeholder="Categoria (ex: Compras)"
+                                className="h-7 text-xs flex-1"
+                                onChange={e => setCategoriaDraft(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') saveCategoria(m); if (e.key === 'Escape') setEditingCategoriaId(null); }}
+                                onBlur={() => saveCategoria(m)}
+                              />
+                            ) : (
+                              <>
+                                <button
+                                  className="flex-1 text-left text-sm px-2 py-1.5 rounded hover:bg-accent transition-colors"
+                                  onClick={() => handleApplyModelo(m)}
+                                >
+                                  <span className="font-medium">{m.nome}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">({m.checklist_template_items.length} itens)</span>
+                                </button>
+                                <button
+                                  className="opacity-0 group-hover/modelo:opacity-100 p-1 text-muted-foreground hover:text-foreground transition-opacity"
+                                  title="Editar categoria"
+                                  onClick={() => startEditCategoria(m)}
+                                >
+                                  <Pencil size={12} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     ))}
                   </Pop>
                 )}
@@ -1184,5 +1309,19 @@ function Pop({ title, children, onClose }: { title: string; children: React.Reac
         {children}
       </div>
     </>
+  );
+}
+
+
+/**
+ * Uma tarefa da checklist que se pode arrastar. Só a pega (⠿) inicia o
+ * arrasto — o resto da linha continua a marcar, editar e apagar como antes.
+ */
+function ItemOrdenavel({ id, children }: { id: string; children: (alca: Record<string, any>) => React.ReactNode }) {
+  const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, position: 'relative', zIndex: isDragging ? 10 : undefined }}>
+      {children({ ...attributes, ...listeners })}
+    </div>
   );
 }

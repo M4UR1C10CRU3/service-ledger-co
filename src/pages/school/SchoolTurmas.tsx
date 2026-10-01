@@ -26,6 +26,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 const EMPTY: SchoolTurmaInput = {
   titulo: '', curso_id: null, docente_id: null, status: 'aberta',
   modalidade: 'presencial', inicio: null, fim: null, vagas: null, local: null,
+  tipo_treinamento: 'inicial',
 };
 
 export default function SchoolTurmas() {
@@ -172,6 +173,22 @@ export default function SchoolTurmas() {
                   <SelectItem value="presencial">Presencial</SelectItem>
                   <SelectItem value="online">Online</SelectItem>
                   <SelectItem value="hibrido">Híbrido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              {/* Sai impresso no certificado. Sem ele, quem o recebe não sabe
+                  de quando conta o prazo da formação seguinte. */}
+              <Label>Tipo de treinamento</Label>
+              <Select value={form.tipo_treinamento ?? 'inicial'}
+                      onValueChange={v => setForm(p => ({ ...p, tipo_treinamento: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inicial">Inicial</SelectItem>
+                  <SelectItem value="periodico">Periódico</SelectItem>
+                  <SelectItem value="reciclagem">Reciclagem</SelectItem>
+                  <SelectItem value="eventual">Eventual</SelectItem>
+                  <SelectItem value="complementar">Complementar</SelectItem>
                 </SelectContent>
               </Select>
             </div>

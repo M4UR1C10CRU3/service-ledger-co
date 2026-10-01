@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QuadroPadrao, quadrosPadraoEmFalta, criarQuadrosPadrao } from '@/lib/quadrosPadrao';
+import { useToast } from '@/hooks/use-toast';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useQuadros } from '@/hooks/useQuadros';
 import { Button } from '@/components/ui/button';
@@ -7,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { LayoutDashboard, Plus } from 'lucide-react';
+import { LayoutDashboard, Plus, Check } from 'lucide-react';
+import { useQuadroModelos, useCriarQuadroDeModelo, CAMPOS_LABEL } from '@/hooks/useQuadroProcesso';
 
 const BOARD_COLORS = [
   '#6366f1','#3b82f6','#22c55e','#f59e0b',
@@ -18,20 +21,67 @@ const BOARD_COLORS = [
 export default function Quadros() {
   const navigate = useNavigate();
   const { empresa } = useEmpresa();
-  const { quadros, isLoading, createQuadro } = useQuadros(empresa?.id);
+  const { quadros, isLoading, createQuadro, refresh } = useQuadros(empresa?.id);
+  const { toast } = useToast();
 
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ nome: '', descricao: '', cor: '#6366f1' });
+  // Quadros-padrão do grupo: as empresas de negócio (não a escola nem a
+  // agência, que têm processos próprios) trabalham com os mesmos quadros.
+  const usaPadrao = !!empresa && !['agency', 'school'].includes(empresa.vertical ?? '')
+    && !['itc', 'itc-educa-pro'].includes(empresa.slug);
+  const [emFalta, setEmFalta] = useState<QuadroPadrao[]>([]);
+  const [aCriarPadrao, setACriarPadrao] = useState(false);
+  useEffect(() => {
+    if (!usaPadrao || !empresa) { setEmFalta([]); return; }
+    quadrosPadraoEmFalta(empresa.id).then(setEmFalta);
+  }, [usaPadrao, empresa?.id, quadros.length]);
 
-  const handleCreate = async () => {
-    if (!form.nome.trim()) return;
-    const q = await createQuadro(form.nome.trim(), form.cor, form.descricao.trim() || undefined);
-    if (q) {
-      setCreating(false);
-      setForm({ nome: '', descricao: '', cor: '#6366f1' });
-      navigate(`/quadros/${q.id}`);
+  const handleCriarPadrao = async () => {
+    if (!empresa || aCriarPadrao) return;
+    setACriarPadrao(true);
+    try {
+      const r = await criarQuadrosPadrao(empresa.id);
+      if (r.criados.length) toast({ title: `${r.criados.length} quadro(s) criado(s)`, description: r.criados.join(' · ') });
+      if (r.erro) toast({ title: 'Não foi possível criar todos os quadros', description: r.erro, variant: 'destructive' });
+      await refresh();
+      setEmFalta(await quadrosPadraoEmFalta(empresa.id));
+    } finally {
+      setACriarPadrao(false);
     }
   };
+
+  const { modelos } = useQuadroModelos();
+  const criarDeModelo = useCriarQuadroDeModelo();
+
+  const [creating, setCreating] = useState(false);
+  const [modelo, setModelo] = useState('livre');
+  const [form, setForm] = useState({ nome: '', descricao: '', cor: '#6366f1' });
+
+  const fecharDialogo = () => {
+    setCreating(false);
+    setModelo('livre');
+    setForm({ nome: '', descricao: '', cor: '#6366f1' });
+  };
+
+  const handleCreate = async () => {
+    if (!form.nome.trim() || criarDeModelo.isPending) return;
+
+    // 'livre' não tem processo nenhum — continua a criar-se como sempre se criou.
+    if (modelo === 'livre') {
+      const q = await createQuadro(form.nome.trim(), form.cor, form.descricao.trim() || undefined);
+      if (q) { fecharDialogo(); navigate(`/quadros/${q.id}`); }
+      return;
+    }
+
+    const id = await criarDeModelo.mutateAsync({
+      modelo,
+      nome: form.nome.trim(),
+      cor: form.cor,
+      descricao: form.descricao.trim() || undefined,
+    }).catch(() => null);
+    if (id) { fecharDialogo(); navigate(`/quadros/${id}`); }
+  };
+
+  const modeloEscolhido = modelos.find(m => m.codigo === modelo);
 
   return (
     <div className="p-6 space-y-6">
@@ -46,6 +96,20 @@ export default function Quadros() {
           <Plus size={16} /> Novo Quadro
         </Button>
       </div>
+
+      {usaPadrao && emFalta.length > 0 && (
+        <div className="rounded-xl border border-dashed p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Faltam {emFalta.length} quadro(s)-padrão do grupo</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {emFalta.map(q => q.nome).join(' · ')}. Mesmas colunas que a Tudo Casa Warm e a Obrajusta II já usam. Os quadros existentes não são alterados.
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleCriarPadrao} disabled={aCriarPadrao} className="shrink-0">
+            {aCriarPadrao ? 'A criar…' : 'Criar quadros-padrão'}
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-muted-foreground text-sm">A carregar quadros...</div>
@@ -85,13 +149,70 @@ export default function Quadros() {
         </div>
       )}
 
-      <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={creating} onOpenChange={o => (o ? setCreating(true) : fecharDialogo())}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Novo Quadro</DialogTitle></DialogHeader>
           <div className="space-y-4 py-1">
             <div className="h-20 rounded-lg flex items-end p-3 transition-colors" style={{ backgroundColor: form.cor }}>
               <p className="text-white font-semibold text-sm drop-shadow">{form.nome || 'Nome do quadro'}</p>
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Tipo de quadro</Label>
+              <p className="text-xs text-muted-foreground -mt-0.5">
+                Um quadro livre não tem regras nenhumas. Os restantes já vêm com as colunas do processo montadas.
+              </p>
+              <div className="grid gap-1.5 pt-1">
+                {modelos.map(m => {
+                  const sel = modelo === m.codigo;
+                  return (
+                    <button
+                      key={m.codigo}
+                      type="button"
+                      onClick={() => setModelo(m.codigo)}
+                      className={`text-left rounded-lg border p-2.5 transition-colors ${
+                        sel ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{m.nome}</span>
+                        {m.listas.length > 0 && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {m.listas.length} colunas
+                          </span>
+                        )}
+                        {sel && <Check size={14} className="ml-auto text-primary shrink-0" />}
+                      </div>
+                      {m.descricao && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{m.descricao}</p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {modeloEscolhido && modeloEscolhido.listas.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground font-normal">Colunas que vão ser criadas</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {modeloEscolhido.listas.map(l => (
+                    <span
+                      key={l.estadoCodigo}
+                      className="text-[11px] rounded px-1.5 py-0.5 border"
+                      style={{ borderColor: l.cor ?? undefined, color: l.cor ?? undefined }}
+                      title={
+                        l.camposObrigatorios.length
+                          ? `Para entrar aqui: ${l.camposObrigatorios.map(c => CAMPOS_LABEL[c] ?? c).join(', ')}`
+                          : 'Entra sem exigências'
+                      }
+                    >
+                      {l.nome}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="nome">Nome *</Label>
@@ -113,8 +234,10 @@ export default function Quadros() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCreating(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={!form.nome.trim()}>Criar Quadro</Button>
+            <Button variant="ghost" onClick={fecharDialogo}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={!form.nome.trim() || criarDeModelo.isPending}>
+              {criarDeModelo.isPending ? 'A criar...' : 'Criar Quadro'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

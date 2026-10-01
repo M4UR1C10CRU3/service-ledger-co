@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
+import { soColunasEditaveis } from '@/lib/payloadEscrita';
 
 export interface SchoolTurma {
   id: string;
@@ -15,6 +16,12 @@ export interface SchoolTurma {
   fim: string | null;
   vagas: number | null;
   local: string | null;
+  /**
+   * inicial | periodico | reciclagem | eventual | complementar.
+   * Vive na TURMA e não no curso: o mesmo conteúdo pode ser dado como
+   * formação inicial a uns e como reciclagem a outros.
+   */
+  tipo_treinamento: string | null;
   created_at: string;
   updated_at: string;
   curso_nome?: string;
@@ -84,8 +91,19 @@ export function useSchoolTurmas() {
 
   const updateTurma = useMutation({
     mutationFn: async ({ id, ...input }: Partial<SchoolTurmaInput> & { id: string }) => {
-      const { error } = await supabase.from(TABLE).update({ ...input, updated_at: new Date().toISOString() }).eq('id', id);
+      // `.select()` torna visível a escrita que falha em silêncio: a RLS a
+      // bloquear um UPDATE devolve SUCESSO com zero linhas, não erro.
+      const { data, error } = await supabase.from(TABLE)
+        .update({ ...soColunasEditaveis(input, ['curso_nome', 'docente_nome', 'total_matriculas']), updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          'A gravação não alterou nenhuma linha — a base recusou a escrita ' +
+          'nesta turma. Provavelmente falta permissão sobre esta empresa.',
+        );
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['school_turmas'] }); toast({ title: 'Turma actualizada' }); },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),

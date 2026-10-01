@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { NotificationBell } from '@/components/NotificationBell';
 import { MarketingApprovalAlert } from '@/components/marketing/MarketingApprovalAlert';
 import { useNotificacoesAlertas } from '@/hooks/useNotificacoesAlertas';
+import { segmentoVertical } from '@/lib/verticais';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -39,19 +40,33 @@ export function AppLayout({ children }: AppLayoutProps) {
     ? userName.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
     : 'U';
 
+  /** Segmento da empresa ativa. Texto, para dar contexto na barra de topo. */
+  const segmento = segmentoVertical(empresa?.vertical);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Professional top bar */}
-          <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
-            <div className="flex items-center gap-3">
+          {/* Topbar — 65px e fundo próprio, como no protótipo.
+              O conteúdo é o que já existia: recolher a barra lateral, onde se
+              está, notificações, configurações e o utilizador. Não se
+              acrescentou pesquisa global nem "criar novo" — não existem na
+              aplicação, e um botão que não faz nada é pior que nenhum. */}
+          <header className="h-[65px] border-b border-border bg-[hsl(var(--topbar-background,var(--card)))]
+                             flex items-center justify-between px-4 md:px-[30px] shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
               <SidebarTrigger />
-              <div className="hidden sm:block">
-                <span className="text-sm font-semibold text-foreground">
+              <div className="hidden sm:flex items-baseline gap-2 min-w-0">
+                <span className="text-sm font-semibold text-foreground truncate">
                   {empresa?.nome || 'Selecione uma empresa'}
                 </span>
+                {segmento && (
+                  <>
+                    <span className="text-muted-foreground/40">·</span>
+                    <span className="text-[12px] text-muted-foreground truncate">{segmento}</span>
+                  </>
+                )}
               </div>
             </div>
 

@@ -8,8 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 // All modules for permissions
 export const ALL_MODULES = [
   { key: 'clientes', label: 'Clientes', group: 'Comercial' },
+  { key: 'pedidos_orcamento', label: 'Pedidos de Orçamento', group: 'Comercial' },
   { key: 'propostas', label: 'Propostas', group: 'Comercial' },
   { key: 'followup', label: 'Follow-up', group: 'Comercial' },
+  { key: 'concursos', label: 'Concursos Públicos', group: 'Comercial' },
   { key: 'compras', label: 'Compras', group: 'Compras' },
   { key: 'fornecedores', label: 'Fornecedores', group: 'Compras' },
   { key: 'stocks', label: 'Gestão de Stocks', group: 'Compras' },
@@ -25,6 +27,8 @@ export const ALL_MODULES = [
   { key: 'rh_subempreiteiros', label: 'Subempreiteiros', group: 'Recursos Humanos' },
   { key: 'rh_recrutamento', label: 'Recrutamento', group: 'Recursos Humanos' },
   { key: 'rh_avaliacoes', label: 'Avaliações', group: 'Recursos Humanos' },
+  { key: 'rh_acolhimento', label: 'Acolhimento', group: 'Recursos Humanos' },
+  { key: 'administrativo', label: 'Administrativo', group: 'Administrativo' },
   { key: 'relatorios', label: 'Relatórios Gerais', group: 'Relatórios' },
   { key: 'auditoria', label: 'Auditoria', group: 'Relatórios' },
   { key: 'configuracoes', label: 'Configurações Gerais', group: 'Configurações' },
@@ -76,17 +80,35 @@ export function useUtilizadores() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all utilizadores
+  /**
+   * Utilizadores DESTA empresa.
+   *
+   * A consulta não filtrava nada: trazia toda a gente com conta no Clariza,
+   * estivesse-se onde se estivesse. Dentro da Agência Demo ou do ITC — que são
+   * ambientes de cliente — isso mostrava a lista de pessoas do grupo, com
+   * nomes e endereços de correio de outra empresa.
+   *
+   * A regra passa a ser a que já existe para tudo o resto: quem tem linha em
+   * `liberty_utilizador_empresas` para a empresa ativa. Sem empresa escolhida,
+   * a lista é vazia — nunca "todos".
+   *
+   * A chave da consulta inclui a empresa. Sem isso, trocar de ambiente servia
+   * a lista anterior a partir da cache, que é o mesmo furo por outro caminho.
+   */
   const { data: utilizadores = [], isLoading } = useQuery({
-    queryKey: ['liberty-utilizadores'],
+    queryKey: ['liberty-utilizadores', empresa?.id ?? null],
+    enabled: Boolean(empresa),
     queryFn: async () => {
+      if (!empresa) return [] as LibertyUtilizador[];
       const { data, error } = await (supabase
-        .from('liberty_utilizadores') as any)
-        .select('*')
-        .eq('eliminado', false)
-        .order('nome');
+        .from('liberty_utilizador_empresas') as any)
+        .select('liberty_utilizadores!inner(*)')
+        .eq('empresa_id', empresa.id);
       if (error) throw error;
-      return (data || []) as LibertyUtilizador[];
+      return ((data || []) as any[])
+        .map(r => r.liberty_utilizadores)
+        .filter(u => u && u.eliminado !== true)
+        .sort((a, b) => (a.nome || '').localeCompare(b.nome || '')) as LibertyUtilizador[];
     },
   });
 
@@ -196,6 +218,15 @@ export function useUtilizadores() {
     ativo: boolean;
     empresaIds: string[];
     empresaPadrao: string;
+    /**
+     * Empresas que ESTE ecrã gere. Fora desta lista, nada é tocado.
+     *
+     * Sem isto, guardar uma edição apagava todas as ligações do utilizador e
+     * reinseria só as que estavam à vista. A partir de um ambiente de cliente,
+     * onde só se vê uma empresa, isso apagava-lhe o acesso a todas as outras —
+     * silenciosamente, e com ar de ter corrido bem.
+     */
+    empresasGeriveis: string[];
   }>) => {
     const updateData: any = { atualizado_em: new Date().toISOString() };
     if (params.nome !== undefined) updateData.nome = params.nome;
@@ -211,9 +242,14 @@ export function useUtilizadores() {
 
     // Update empresas if provided
     if (params.empresaIds) {
-      await (supabase.from('liberty_utilizador_empresas') as any)
+      let apagar = (supabase.from('liberty_utilizador_empresas') as any)
         .delete()
         .eq('utilizador_id', id);
+      // Só se mexe no que este ecrã gere — ver `empresasGeriveis`.
+      if (params.empresasGeriveis?.length) {
+        apagar = apagar.in('empresa_id', params.empresasGeriveis);
+      }
+      await apagar;
       if (params.empresaIds.length > 0) {
         await (supabase.from('liberty_utilizador_empresas') as any)
           .insert(params.empresaIds.map(eid => ({
@@ -296,3 +332,33 @@ export function useUtilizadores() {
     fetchUtilizadorPermissoes,
   };
 }
+
+// ── Perfis por função (Fase 2, 01/10/2026) ───────────────────────────────────
+// Um ponto de partida para cada área, igual nas cinco empresas: acesso completo
+// (ver, criar, editar — eliminar fica para gestores) aos módulos da área e só
+// leitura ao que a área precisa de consultar. O administrador ajusta depois
+// na grelha antes de gravar; nada é gravado ao carregar no botão.
+const perfilFuncao = (completos: string[], leitura: string[]) =>
+  Object.fromEntries(ALL_MODULES.map(m => {
+    if (completos.includes(m.key)) return [m.key, { ver: true, criar: true, editar: true, eliminar: false }];
+    if (leitura.includes(m.key))   return [m.key, { ver: true, criar: false, editar: false, eliminar: false }];
+    return [m.key, { ver: false, criar: false, editar: false, eliminar: false }];
+  }));
+
+export const PERFIS_FUNCAO: Record<string, { label: string; permissoes: Record<string, { ver: boolean; criar: boolean; editar: boolean; eliminar: boolean }> }> = {
+  comercial: { label: 'Comercial', permissoes: perfilFuncao(
+    ['clientes', 'pedidos_orcamento', 'propostas', 'followup', 'concursos'],
+    ['produtos', 'stocks', 'vendas', 'ordens_servico', 'fornecedores', 'rh_ponto']) },
+  compras: { label: 'Compras', permissoes: perfilFuncao(
+    ['compras', 'fornecedores', 'stocks', 'produtos'],
+    ['clientes', 'propostas', 'ordens_servico', 'rh_ponto']) },
+  producao: { label: 'Produção', permissoes: perfilFuncao(
+    ['ordens_servico', 'vendas'],
+    ['clientes', 'propostas', 'produtos', 'stocks', 'compras', 'fornecedores', 'rh_subempreiteiros', 'rh_ponto']) },
+  financeiro: { label: 'Financeiro', permissoes: perfilFuncao(
+    ['financeiro_receitas', 'financeiro_despesas', 'financeiro_debitos', 'financeiro_fluxo', 'compras', 'vendas'],
+    ['clientes', 'fornecedores', 'propostas', 'ordens_servico', 'relatorios', 'rh_ponto']) },
+  rh: { label: 'Recursos Humanos', permissoes: perfilFuncao(
+    ['rh_colaboradores', 'rh_ponto', 'rh_recrutamento', 'rh_avaliacoes', 'rh_acolhimento', 'rh_subempreiteiros'],
+    ['administrativo']) },
+};

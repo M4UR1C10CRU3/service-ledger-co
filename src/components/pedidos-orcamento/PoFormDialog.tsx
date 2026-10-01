@@ -35,10 +35,12 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   const { savePedido, fetchLinhasPo, getNextNumber } = usePedidosOrcamento();
   const { clientes } = useClientes();
   const { employees } = useEmployees();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, getDocConfig } = useEmpresa();
   const { toast } = useToast();
 
   const [numeroPo, setNumeroPo] = useState('');
+  const [numeroSequencialPo, setNumeroSequencialPo] = useState(0);
+  const [anoPo, setAnoPo] = useState(new Date().getFullYear());
   const [tipoPedido, setTipoPedido] = useState<TipoPedido>('orcamentacao');
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteNome, setClienteNome] = useState('');
@@ -46,7 +48,13 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   const [clienteNif, setClienteNif] = useState('');
   const [clienteTelefone, setClienteTelefone] = useState('');
   const [clienteEmail, setClienteEmail] = useState('');
+  const [vendedorId, setVendedorId] = useState('');
   const [vendedorNome, setVendedorNome] = useState('');
+  /** Guarda os dois: o id para contar, o nome para imprimir no documento. */
+  const escolherVendedor = (id: string) => {
+    setVendedorId(id);
+    setVendedorNome((employees as any[]).find(e => e.id === id)?.full_name || '');
+  };
   const [dataEmissao, setDataEmissao] = useState(new Date().toISOString().split('T')[0]);
   const [titulo, setTitulo] = useState('');
   const [descricaoNecessidade, setDescricaoNecessidade] = useState('');
@@ -67,6 +75,8 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
     if (!open) return;
     if (pedido) {
       setNumeroPo(pedido.numeroPo);
+      setNumeroSequencialPo(pedido.numeroSequencial);
+      setAnoPo(pedido.ano);
       setTipoPedido(pedido.tipoPedido || 'orcamentacao');
       setClienteId(pedido.clienteId);
       setClienteNome(pedido.clienteNome);
@@ -75,6 +85,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
       setClienteTelefone(pedido.clienteTelefone || '');
       setClienteEmail(pedido.clienteEmail || '');
       setVendedorNome(pedido.vendedorNome || '');
+      setVendedorId(pedido.vendedorId || '');
       setDataEmissao(pedido.dataEmissao);
       setTitulo(pedido.titulo || '');
       setDescricaoNecessidade(pedido.descricaoNecessidade || '');
@@ -107,10 +118,24 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
       setCondicoesGerais('O valor acima indicado é acrescido de IVA à taxa legal em vigor.');
       setObservacoes('');
       setLinhas([emptyLinha(0)]);
-      getNextNumber().then(n => setNumeroPo(n.formatted));
+      getNextNumber().then(n => {
+        setNumeroPo(n.formatted);
+        setNumeroSequencialPo(n.seq);
+        setAnoPo(new Date().getFullYear());
+      });
     }
     setClienteSearch('');
   }, [open, pedido]);
+
+  // Pedidos antigos só guardaram o nome do responsável. A recuperação pelo nome
+  // tem de esperar pela lista de colaboradores, que chega depois de o diálogo
+  // abrir — daí o efeito próprio. Sem ele, o seletor ficava vazio e quem
+  // gravasse apagava o responsável sem reparar.
+  useEffect(() => {
+    if (!open || vendedorId || !vendedorNome || employees.length === 0) return;
+    const achado = (employees as any[]).find(e => e.full_name === vendedorNome);
+    if (achado) setVendedorId(achado.id);
+  }, [open, employees, vendedorId, vendedorNome]);
 
   const filteredClientes = useMemo(() => {
     if (!clienteSearch) return clientes.slice(0, 10);
@@ -149,6 +174,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
   const buildFormData = (): POFormData => ({
     tipoPedido,
     clienteId, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
+    vendedorId: vendedorId || null,
     vendedorNome, dataEmissao, titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
     validadeDias, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
     linhas,
@@ -180,11 +206,12 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
     const horaEmissao = pedido?.horaEmissao || new Date().toLocaleTimeString('pt-PT');
     const doExport = (logoDataUrl?: string) => {
       exportPoPdf({
-        numeroPo, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
+        numeroPo, numeroSequencial: numeroSequencialPo, ano: anoPo,
+        clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
         vendedorNome, dataEmissao, horaEmissao,
         titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
         linhas, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
-      }, empresa, logoDataUrl);
+      }, empresa, logoDataUrl, getDocConfig());
     };
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -211,7 +238,7 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
       id, empresaId: empresa?.id || '', numeroPo, numeroSequencial: 0, ano: new Date().getFullYear(),
       tipoPedido,
       clienteId, clienteNome, clienteMorada, clienteNif, clienteTelefone, clienteEmail,
-      vendedorId: null, vendedorNome,
+      vendedorId: vendedorId || null, vendedorNome,
       titulo, descricaoNecessidade, obra, duracaoObra, localExecucao,
       estado: 'recebido', validadeDias, validadeTexto, condicoesPagamento, condicoesGerais, observacoes,
       propostaId: null, numeroProposta: null,
@@ -355,11 +382,13 @@ export function PoFormDialog({ open, onOpenChange, pedido, onConverter }: Props)
               </div>
               <div>
                 <Label>Responsável</Label>
+                {/* Guarda a PESSOA, não o nome escrito — é daqui que sai o
+                    indicador de desempenho. */}
                 <select className="w-full h-10 px-3 border rounded-md bg-background text-sm"
-                  value={vendedorNome} onChange={e => setVendedorNome(e.target.value)}>
+                  value={vendedorId} onChange={e => escolherVendedor(e.target.value)}>
                   <option value="">—</option>
                   {employees.map((emp: any) => (
-                    <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
+                    <option key={emp.id} value={emp.id}>{emp.full_name}</option>
                   ))}
                 </select>
               </div>

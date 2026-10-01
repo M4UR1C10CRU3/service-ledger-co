@@ -14,6 +14,10 @@ export interface SchoolDocumentoDocente {
   tamanho_bytes: number | null;
   mime_type: string | null;
   validade: string | null;
+  /** Formação a que pertence. Null = documento solto. */
+  docente_formacao_id: string | null;
+  /** diploma | carteira | complementar | cv */
+  papel: string | null;
   created_at: string;
   url?: string;
 }
@@ -72,8 +76,32 @@ export function useSchoolDocentes() {
 
   const updateDocente = useMutation({
     mutationFn: async ({ id, ...input }: Partial<SchoolDocenteInput> & { id: string }) => {
-      const { error } = await supabase.from(TABLE).update({ ...input, updated_at: new Date().toISOString() }).eq('id', id);
+      // Só os campos editáveis. A ficha carregava a linha inteira (a consulta
+      // usa `select('*')`) e devolvia-a toda no update — `created_at`,
+      // `empresa_id` e o que mais a tabela tivesse. Uma coluna a mais chega
+      // para o pedido ser recusado.
+      const editaveis: (keyof SchoolDocenteInput)[] = [
+        'nome', 'email', 'telefone', 'foto_path', 'formacao',
+        'area_especializacao', 'tempo_experiencia', 'resumo',
+        'assinatura_path', 'cursos_ids', 'ativo',
+      ];
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      for (const k of editaveis) {
+        if (k in input) patch[k] = (input as any)[k];
+      }
+
+      // `.select()` é o que torna a falha visível: a RLS a bloquear um UPDATE
+      // devolve SUCESSO com zero linhas, não erro. Sem isto, a aplicação dizia
+      // "Instrutor actualizado" sem ter gravado nada.
+      const { data, error } = await supabase.from(TABLE)
+        .update(patch).eq('id', id).select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          'A gravação não alterou nenhuma linha — a base recusou a escrita nesta ficha. ' +
+          'Provavelmente falta permissão sobre esta empresa.',
+        );
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['school_docentes'] }); toast({ title: 'Instrutor actualizado' }); },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
@@ -102,6 +130,8 @@ export function useSchoolDocentes() {
     file: File,
     tipo: string,
     validade?: string,
+    /** A que credencial pertence e que papel faz — ver school_docentes_documentos. */
+    extra?: { docente_formacao_id?: string | null; papel?: string | null },
   ): Promise<boolean> => {
     if (!empresa) return false;
     const path = schoolInstrutorDocPath(empresa.id, docenteId, tipo as any, file.name);
@@ -113,6 +143,8 @@ export function useSchoolDocentes() {
       storage_path: path, tamanho_bytes: file.size,
       mime_type: file.type || null,
       validade: validade || null,
+      docente_formacao_id: extra?.docente_formacao_id ?? null,
+      papel: extra?.papel ?? null,
     });
     if (error) { toast({ title: 'Erro ao registar documento', description: error.message, variant: 'destructive' }); return false; }
     return true;
@@ -129,5 +161,25 @@ export function useSchoolDocentes() {
     return data?.signedUrl ?? null;
   };
 
-  return { docentes, isLoading, createDocente, updateDocente, deleteDocente, fetchDocumentos, uploadDocumento, deleteDocumento, getDocUrl };
+  /**
+   * Assina vários de uma vez.
+   *
+   * Uma ficha com 33 documentos fazia 33 idas ao servidor só para assinar
+   * endereços — mais caro do que desenhar as próprias miniaturas. Numa só, o
+   * mesmo trabalho custa um pedido.
+   */
+  const getDocUrls = async (paths: string[]): Promise<Record<string, string>> => {
+    if (paths.length === 0) return {};
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(paths, 3600);
+    if (error || !data) return {};
+    const out: Record<string, string> = {};
+    data.forEach(r => {
+      // A resposta traz `path` e `signedUrl`; uma entrada pode vir com erro
+      // (ficheiro apagado do bucket mas ainda na tabela) — essa fica de fora.
+      if (r.path && r.signedUrl) out[r.path] = r.signedUrl;
+    });
+    return out;
+  };
+
+  return { docentes, isLoading, createDocente, updateDocente, deleteDocente, fetchDocumentos, uploadDocumento, deleteDocumento, getDocUrl, getDocUrls };
 }

@@ -132,7 +132,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   formData: AccountPayableFormData;
   setFormData: (data: AccountPayableFormData) => void;
-  onSubmit: (data: AccountPayableFormData) => void;
+  onSubmit: (data: AccountPayableFormData) => void | Promise<void>;
   isEditing: boolean;
   suppliers: Supplier[];
   costCenters?: CostCenter[];
@@ -149,6 +149,14 @@ export function AccountPayableFormDialog({
 }: Props) {
   const { toast } = useToast();
   const [articleSearch, setArticleSearch] = useState('');
+  // Trava o «Guardar» enquanto grava: dois cliques seguidos criavam a mesma
+  // compra duas vezes (e o stock em dobro — caso de abril de 2026).
+  const [aGravar, setAGravar] = useState(false);
+  const guardar = async () => {
+    if (aGravar) return;
+    setAGravar(true);
+    try { await onSubmit(getSubmissionData()); } finally { setAGravar(false); }
+  };
   const [showArticleResults, setShowArticleResults] = useState(false);
   const [newCCName, setNewCCName] = useState('');
   const [showNewCC, setShowNewCC] = useState(false);
@@ -788,7 +796,7 @@ export function AccountPayableFormDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={() => onSubmit(getSubmissionData())}>{isEditing ? 'Guardar' : 'Guardar'}</Button>
+            <Button onClick={guardar} disabled={aGravar}>{aGravar ? 'A guardar…' : 'Guardar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

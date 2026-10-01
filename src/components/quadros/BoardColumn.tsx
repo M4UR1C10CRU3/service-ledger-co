@@ -8,8 +8,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, MoreHorizontal, X, Archive, Pencil, GripVertical } from 'lucide-react';
-import { QuadroLista } from '@/types/quadros';
-import SortableCard from './SortableCard';
+import { QuadroLista, QuadroCartao } from '@/types/quadros';
+import SortableCard, { type ParteDoCartao } from './SortableCard';
 
 interface Props {
   lista: QuadroLista;
@@ -17,9 +17,10 @@ interface Props {
   onAddCartao: (listaId: string, titulo: string) => void;
   onRenameLista: (id: string, nome: string) => void;
   onArchiveLista: (id: string) => void;
+  resolveParte?: (c: QuadroCartao) => ParteDoCartao;
 }
 
-export default function BoardColumn({ lista, onOpenCartao, onAddCartao, onRenameLista, onArchiveLista }: Props) {
+export default function BoardColumn({ lista, onOpenCartao, onAddCartao, onRenameLista, onArchiveLista, resolveParte }: Props) {
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
     id: lista.id, data: { type: 'list' },
   });
@@ -29,6 +30,9 @@ export default function BoardColumn({ lista, onOpenCartao, onAddCartao, onRename
   const [nome, setNome] = useState(lista.nome);
 
   const style = { transform: CSS.Transform.toString(transform), transition };
+  // Colunas de fim (concluído, perdido, entregue…) não acusam cartões parados: lá, parado é o normal.
+  const colunaDeFim = !!((lista as any).final || (lista as any).resultado)
+    || /conclu|finaliz|entregue|perdido|arquiv|recebido|publicado|faturad|adjudicad/i.test(lista.nome);
 
   const submitCard = () => { if (titulo.trim()) onAddCartao(lista.id, titulo.trim()); setTitulo(''); setAdding(false); };
   const submitNome = () => { if (nome.trim() && nome !== lista.nome) onRenameLista(lista.id, nome.trim()); setEditing(false); };
@@ -63,7 +67,7 @@ export default function BoardColumn({ lista, onOpenCartao, onAddCartao, onRename
       <div className="flex-1 overflow-y-auto px-2 space-y-2 min-h-[8px]">
         <SortableContext items={lista.cartoes.map(c => c.id)} strategy={verticalListSortingStrategy}>
           {lista.cartoes.map(cartao => (
-            <SortableCard key={cartao.id} cartao={cartao} listaId={lista.id} onOpen={() => onOpenCartao(cartao.id)} />
+            <SortableCard key={cartao.id} cartao={cartao} listaId={lista.id} onOpen={() => onOpenCartao(cartao.id)} resolveParte={resolveParte} vigiarParado={!colunaDeFim} />
           ))}
         </SortableContext>
       </div>

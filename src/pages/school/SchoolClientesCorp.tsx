@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Search, Building2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Building2, Pencil, Trash2, Users } from 'lucide-react';
+import { ContactosCorpDialog } from '@/components/school/ContactosCorpDialog';
 import { useSchoolClientesCorp, SchoolClienteCorp, SchoolClienteCorpInput } from '@/hooks/useSchoolClientesCorp';
 
 const EMPTY: SchoolClienteCorpInput = {
@@ -22,6 +23,7 @@ export default function SchoolClientesCorp() {
   const [editing, setEditing] = useState<SchoolClienteCorp | null>(null);
   const [form, setForm] = useState<SchoolClienteCorpInput>({ ...EMPTY });
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [contactosDe, setContactosDe] = useState<{ id: string; nome: string } | null>(null);
 
   const filtered = useMemo(() =>
     clientes.filter(c =>
@@ -94,6 +96,10 @@ export default function SchoolClientesCorp() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Acesso ao portal"
+                        onClick={() => setContactosDe({ id: c.id, nome: c.nome })}>
+                        <Users className="h-3.5 w-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(c)}><Pencil className="h-3.5 w-3.5" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
@@ -160,6 +166,12 @@ export default function SchoolClientesCorp() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ContactosCorpDialog
+        cliente={contactosDe}
+        aberto={!!contactosDe}
+        onFechar={() => setContactosDe(null)}
+      />
     </div>
   );
 }

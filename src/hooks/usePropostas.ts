@@ -83,15 +83,31 @@ export function usePropostas() {
   const getNextNumber = async (): Promise<{ seq: number; formatted: string }> => {
     if (!empresa) return { seq: 1, formatted: `${new Date().getFullYear()}BO1/1` };
     const ano = new Date().getFullYear();
-    const { data } = await supabase
-      .from('propostas')
-      .select('numero_sequencial')
-      .eq('empresa_id', empresa.id)
-      .eq('ano', ano)
-      .order('numero_sequencial', { ascending: false })
-      .limit(1);
-    const next = ((data?.[0] as any)?.numero_sequencial ?? 0) + 1;
+    // Só para MOSTRAR no formulário. Não reserva nada: se reservasse, cada
+    // proposta começada e abandonada deixava um buraco na numeração.
+    const { data } = await (supabase.rpc as any)('doc_numero_previsto', {
+      p_empresa_id: empresa.id, p_tipo: 'proposta', p_ano: ano,
+    });
+    const next = (data as number) ?? 1;
     return { seq: next, formatted: formatPropostaNumber(empresa.slug, ano, next) };
+  };
+
+  /**
+   * O número definitivo, atribuído no momento de gravar.
+   *
+   * Antes lia-se o maior do ano e somava-se um; entre a leitura e a gravação
+   * outra pessoa podia fazer o mesmo e ficavam dois documentos com o mesmo
+   * número. A base agora resolve isso numa instrução indivisível.
+   */
+  const reservarNumero = async (): Promise<{ seq: number; formatted: string }> => {
+    const ano = new Date().getFullYear();
+    if (!empresa) return { seq: 1, formatted: `${ano}BO1/1` };
+    const { data, error } = await (supabase.rpc as any)('doc_proximo_numero', {
+      p_empresa_id: empresa.id, p_tipo: 'proposta', p_ano: ano,
+    });
+    if (error) throw new Error(`Não foi possível reservar o número da proposta: ${error.message}`);
+    const seq = data as number;
+    return { seq, formatted: formatPropostaNumber(empresa.slug, ano, seq) };
   };
 
   const fetchLinhas = async (propostaId: string): Promise<PropostaLinha[]> => {
@@ -130,6 +146,7 @@ export function usePropostas() {
         cliente_nome: formData.clienteNome,
         cliente_morada: formData.clienteMorada,
         cliente_nif: formData.clienteNif,
+        vendedor_id: formData.vendedorId || null,
         vendedor_nome: formData.vendedorNome,
         data_emissao: dataEmissao,
         validade_dias: validadeDias,
@@ -172,7 +189,7 @@ export function usePropostas() {
       return existingId;
     } else {
       // Create
-      const { seq, formatted } = await getNextNumber();
+      const { seq, formatted } = await reservarNumero();
       const ano = new Date().getFullYear();
       const now = new Date();
       const horaEmissao = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -186,6 +203,7 @@ export function usePropostas() {
         cliente_nome: formData.clienteNome,
         cliente_morada: formData.clienteMorada,
         cliente_nif: formData.clienteNif,
+        vendedor_id: formData.vendedorId || null,
         vendedor_nome: formData.vendedorNome,
         data_emissao: dataEmissao,
         hora_emissao: horaEmissao,
@@ -241,7 +259,7 @@ export function usePropostas() {
     if (!original || !empresa) return null;
 
     const linhas = await fetchLinhas(id);
-    const { seq, formatted } = await getNextNumber();
+    const { seq, formatted } = await reservarNumero();
     const ano = new Date().getFullYear();
     const now = new Date();
     const horaEmissao = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -257,6 +275,7 @@ export function usePropostas() {
       cliente_nome: original.clienteNome,
       cliente_morada: original.clienteMorada,
       cliente_nif: original.clienteNif,
+      vendedor_id: original.vendedorId || null,
       vendedor_nome: original.vendedorNome,
       data_emissao: dataEmissao,
       hora_emissao: horaEmissao,

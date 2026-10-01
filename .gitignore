@@ -25,3 +25,6 @@ dist-ssr
 
 # Scripts with sensitive credentials — never commit
 scripts/seed-smtp-credentials.sql
+
+# Ficheiros com tokens/chaves — nunca no Git (02/10/2026)
+chaves/

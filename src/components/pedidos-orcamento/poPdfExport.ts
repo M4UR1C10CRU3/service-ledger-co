@@ -1,10 +1,12 @@
 import type { POLinhaForm } from '@/types/pedidoOrcamento';
-import { getEmpresaDocConfig } from '@/lib/empresaConfig';
+import { getEmpresaDocConfig, PHC_SERIE, formatPhcNumeroDisplay, type EmpresaDocConfig } from '@/lib/empresaConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface PdfData {
   numeroPo: string;
+  numeroSequencial: number;
+  ano: number;
   clienteNome: string;
   clienteMorada: string;
   clienteNif: string;
@@ -81,9 +83,11 @@ function buildPoFilename(data: {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
+export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string, docConfig?: EmpresaDocConfig) {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
-  const cfg = getEmpresaDocConfig(empresa?.slug);
+  // docConfig vem do cadastro real da empresa (Configurações → Dados da
+  // Empresa); só cai para o mapa fixo em código se não for passado.
+  const cfg = docConfig || getEmpresaDocConfig(empresa?.slug);
 
   const filename = buildPoFilename(data);
 
@@ -120,6 +124,20 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     }
   });
 
+  // Contacto do cliente — no PHC aparece como secção dentro da própria tabela,
+  // não como bloco à parte (mesmo padrão visto na Nota de Encomenda a Fornecedor).
+  if (data.clienteTelefone || data.clienteEmail) {
+    linhasHtml += `<tr style="background:#F2F2F2">
+      <td colspan="5" style="padding:6px 8px;font-weight:bold;color:${primaryColor};font-size:11px">CONTACTO</td>
+    </tr>`;
+    if (data.clienteTelefone) {
+      linhasHtml += `<tr><td colspan="5" style="padding:4px 8px;font-size:11px">${data.clienteNome}${data.clienteNome ? ' - ' : ''}${data.clienteTelefone}</td></tr>`;
+    }
+    if (data.clienteEmail) {
+      linhasHtml += `<tr><td colspan="5" style="padding:4px 8px;font-size:11px">Email - ${data.clienteEmail}</td></tr>`;
+    }
+  }
+
   const th = `background:${primaryColor};color:white;padding:6px 8px;font-size:11px;font-weight:bold;border:none`;
   const showObra = !!(data.obra && data.obra.trim());
 
@@ -154,7 +172,7 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     </div>
     <div style="text-align:right">
       <div style="font-size:9px;color:#888">Não entra para SAF-T</div>
-      <div style="font-size:11px">Pedido de Orçamento &nbsp;Nº &nbsp;&nbsp;<strong style="font-size:14px">${data.numeroPo}</strong></div>
+      <div style="font-size:11px">Encomenda de Cliente &nbsp;Nº&nbsp;&nbsp;<strong style="font-size:14px">${formatPhcNumeroDisplay(data.numeroSequencial, data.ano, PHC_SERIE.pedidoOrcamento)}</strong></div>
       <div style="font-size:11px;margin-top:2px">ORIGINAL</div>
     </div>
   </div>
@@ -166,20 +184,18 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
       ${cfg.morada.toUpperCase()}<br/>
       ${cfg.codigoPostal}&nbsp;&nbsp;${cfg.localidade.toUpperCase()}<br/>
       Contribuinte Nº: ${cfg.contribuinte}<br/>
-      Conserv. Registo Comercial:<br/>
-      Capital Social:
+      Conserv. Registo Comercial:${cfg.registoComercial ? ' ' + cfg.registoComercial : ''}<br/>
+      Capital Social:${cfg.capitalSocial ? ' ' + cfg.capitalSocial : ''}
     </div>
     <div style="text-align:right;font-size:12px;line-height:1.6">
       <strong style="font-size:13px">${data.clienteNome}</strong><br/>
       ${data.clienteMorada ? data.clienteMorada + '<br/>' : ''}
-      ${data.clienteNif ? 'NIF: ' + data.clienteNif + '<br/>' : ''}
-      ${data.clienteTelefone ? 'Tel: ' + data.clienteTelefone + '<br/>' : ''}
-      ${data.clienteEmail ? data.clienteEmail : ''}
+      ${data.clienteNif ? 'NIF: ' + data.clienteNif : ''}
     </div>
   </div>
 
   <!-- Section heading -->
-  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Materiais / Serviços a orçamentar:</p>
+  <p style="font-weight:bold;font-style:italic;margin:8px 0 4px;font-size:12px">Trabalhos a executar:</p>
 
   <!-- Colored bar -->
   <div style="background:${primaryColor};color:white;padding:6px 12px;display:flex;justify-content:space-between;align-items:flex-start;font-size:10px">
@@ -187,8 +203,8 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
       <strong>Data de emissão :</strong>&nbsp;${dataFormatted}<br/>
       Hora de emissão :&nbsp;${data.horaEmissao || ''}
     </div>
-    <span><strong>Responsável:</strong>&nbsp;${data.vendedorNome || '—'}</span>
-    <span><strong>V/Nº Contribuinte:</strong>&nbsp;${data.clienteNif || '—'}</span>
+    <span><strong>Vendedor:</strong>&nbsp;${data.vendedorNome || ''}</span>
+    <span><strong>V/Nº Contribuinte:</strong>&nbsp;${data.clienteNif || ''}</span>
   </div>
 
   <!-- System note -->
@@ -219,7 +235,7 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
     <tbody>${linhasHtml}</tbody>
   </table>
 
-  <!-- Footer: Conditions (left) + Empty box (right, for supplier's quote) -->
+  <!-- Footer: Conditions -->
   <div style="display:flex;gap:14px;margin-top:10px;align-items:flex-start">
 
     <div style="flex:1;background:#F5F5F5;border:1px solid #E0E0E0;padding:8px 12px;font-size:10px;line-height:1.7">
@@ -229,10 +245,6 @@ export function exportPoPdf(data: PdfData, empresa: any, logoDataUrl?: string) {
       ${data.duracaoObra ? `<p style="margin:2px 0"><strong>Duração:</strong><br/>${data.duracaoObra}</p>` : ''}
       <p style="margin:2px 0"><strong>Condições de pagamento:</strong><br/>${condicoesPag}</p>
       ${data.observacoes ? `<p style="margin:2px 0"><strong>Observações:</strong><br/>${data.observacoes.replace(/\n/g, '<br/>')}</p>` : ''}
-    </div>
-
-    <div style="width:230px;border:1px solid #E0E0E0;min-height:80px;padding:8px 12px;font-size:10px;color:#999;font-style:italic">
-      Resposta / Proposta de preço do fornecedor
     </div>
   </div>
 

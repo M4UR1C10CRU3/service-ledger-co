@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Search, Users, Pencil, Trash2, GraduationCap, UserCheck } from 'lucide-react';
 import { useSchoolAlunos, SchoolAluno, SchoolAlunoInput } from '@/hooks/useSchoolAlunos';
+import { AcessoPortalBotao } from '@/components/school/AcessoPortalBotao';
+import { useSchoolClientesCorp } from '@/hooks/useSchoolClientesCorp';
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   ativo:   { label: 'Ativo',   className: 'border-green-500/40 text-green-600 bg-green-500/10' },
@@ -19,11 +21,12 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 
 const EMPTY: SchoolAlunoInput = {
   nome: '', email: null, cpf: null, telefone: null, data_nascimento: null,
-  status: 'ativo', empresa_trabalho: null, foto_url: null, ativo: true,
+  status: 'ativo', empresa_trabalho: null, cliente_corp_id: null, foto_url: null, cnh_renach: null, cnh_categoria: null, ativo: true,
 };
 
 export default function SchoolAlunos() {
   const { alunos, isLoading, createAluno, updateAluno, deleteAluno } = useSchoolAlunos();
+  const { clientes: clientesCorp } = useSchoolClientesCorp();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -112,14 +115,15 @@ export default function SchoolAlunos() {
                 <TableHead>Telefone</TableHead>
                 <TableHead>Empresa</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Portal</TableHead>
                 <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
                   {search ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
                 </TableCell></TableRow>
@@ -133,6 +137,9 @@ export default function SchoolAlunos() {
                     <Badge variant="outline" className={STATUS_CONFIG[a.status]?.className ?? ''}>
                       {STATUS_CONFIG[a.status]?.label ?? a.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <AcessoPortalBotao email={a.email} ligado={!!(a as any).auth_user_id} compacto />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
@@ -182,9 +189,46 @@ export default function SchoolAlunos() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Só interessa na Direção Defensiva — o certificado desse curso tem de trazer
+                o RENACH e a categoria; nos outros cursos estes campos não se imprimem. */}
+            <div className="space-y-1">
+              <Label>RENACH <span className="text-xs text-muted-foreground">(Direção Defensiva)</span></Label>
+              <Input value={form.cnh_renach ?? ''} onChange={e => f('cnh_renach', e.target.value.replace(/\s+/g, '') || null)} placeholder="n.º do registo da CNH" />
+            </div>
+            <div className="space-y-1">
+              <Label>Categoria da CNH</Label>
+              <Select value={form.cnh_categoria ?? 'nenhuma'} onValueChange={v => f('cnh_categoria', v === 'nenhuma' ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhuma">—</SelectItem>
+                  {['ACC','A','B','AB','C','AC','D','AD','E','AE'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="col-span-2 space-y-1">
               <Label>Empresa onde trabalha</Label>
               <Input value={form.empresa_trabalho ?? ''} onChange={e => f('empresa_trabalho', e.target.value)} />
+            </div>
+
+            {/* É esta ligação que faz o formando aparecer no portal da empresa.
+                O campo de texto acima é só descritivo: comparar nomes confundia
+                "Etecon Ltda" com "Etecon Serviços Ltda". */}
+            <div className="col-span-2 space-y-1">
+              <Label>Cliente corporativo que o enviou</Label>
+              <Select
+                value={(form as any).cliente_corp_id ?? 'nenhum'}
+                onValueChange={v => f('cliente_corp_id' as any, v === 'nenhum' ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Formando particular" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Formando particular</SelectItem>
+                  {clientesCorp.filter(c => c.ativo).map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Ao associar, esta empresa passa a ver o percurso e os certificados deste formando no seu portal.
+              </p>
             </div>
           </div>
           <DialogFooter>

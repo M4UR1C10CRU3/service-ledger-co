@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, AlertTriangle, CheckSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OsExtrasTab from './OsExtrasTab';
+import { FaturarOsDialog } from './FaturarOsDialog';
 
 interface Props {
   os: OrdemServico | null;
@@ -63,6 +64,7 @@ export function OsDetailDialog({
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const [faturar, setFaturar] = useState(false);
 
   const [checklist, setChecklist] = useState<OsChecklistItem[]>([]);
   const [newItem, setNewItem] = useState('');
@@ -108,7 +110,7 @@ export function OsDetailDialog({
         descricao: editForm.descricao || null,
         observacoes: editForm.observacoes || null,
         prioridade: editForm.prioridade,
-        data_prevista: editForm.dataPrevista || null,
+        dataPrevista: editForm.dataPrevista || null,   // traduzido em useOrdensServico
         valor_estimado: editForm.valorEstimado === '' ? null : Number(editForm.valorEstimado),
         valor_final: editForm.valorFinal === '' ? null : Number(editForm.valorFinal),
       };
@@ -415,7 +417,7 @@ export function OsDetailDialog({
                     <Button
                       key={t.estado}
                       variant={t.variant ?? 'default'}
-                      onClick={() => onUpdateEstado(os.id, t.estado)}
+                      onClick={() => t.estado === 'faturada' ? setFaturar(true) : onUpdateEstado(os.id, t.estado)}
                     >
                       {t.label}
                     </Button>
@@ -458,6 +460,12 @@ export function OsDetailDialog({
             </div>
           </TabsContent>
         </Tabs>
+
+        <FaturarOsDialog
+          os={faturar ? os : null}
+          onOpenChange={(v) => { if (!v) setFaturar(false); }}
+          onMarcarFaturada={() => onUpdateEstado(os.id, 'faturada')}
+        />
       </DialogContent>
     </Dialog>
   );

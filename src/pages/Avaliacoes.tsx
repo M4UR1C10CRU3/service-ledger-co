@@ -205,6 +205,7 @@ export default function Avaliacoes() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Pontuação</TableHead>
+                  <TableHead>Evolução</TableHead>
                   <TableHead>Classificação</TableHead>
                   <TableHead>Recomendação</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -213,12 +214,23 @@ export default function Avaliacoes() {
               <TableBody>
                 {avaliacoes.filter(a => a.estado === 'realizada').map(av => {
                   const badge = getClassificacaoBadge(av.classificacao || '');
+                  // Tudo em 0–100: as avaliações antigas (0–5) multiplicam por 20.
+                  const p100 = (a: typeof av) => a.pontuacao_100 ?? (a.pontuacao_final != null ? a.pontuacao_final * 20 : null);
+                  const anterior = avaliacoes
+                    .filter(a => a.estado === 'realizada' && a.colaborador_id === av.colaborador_id && a.data_avaliacao < av.data_avaliacao)
+                    .sort((a, b) => b.data_avaliacao.localeCompare(a.data_avaliacao))[0];
+                  const atual = p100(av);
+                  const delta = anterior && atual != null && p100(anterior) != null ? Math.round((atual - p100(anterior)!) * 10) / 10 : null;
                   return (
                     <TableRow key={av.id}>
                       <TableCell className="font-medium">{av.colaborador_nome || '—'}</TableCell>
                       <TableCell><Badge className={tipoBadgeColor[av.tipo_avaliacao] || 'bg-gray-100'}>{tipoLabel[av.tipo_avaliacao] || av.tipo_avaliacao}</Badge></TableCell>
                       <TableCell>{new Date(av.data_avaliacao).toLocaleDateString('pt-PT')}</TableCell>
-                      <TableCell className="font-semibold">{av.pontuacao_final?.toFixed(2) || '—'}</TableCell>
+                      <TableCell className="font-semibold">{atual != null ? `${Math.round(atual)}/100` : '—'}</TableCell>
+                      <TableCell className="text-sm">
+                        {delta == null ? <span className="text-muted-foreground">1.ª avaliação</span>
+                          : <span className={delta > 0 ? 'text-emerald-700' : delta < 0 ? 'text-red-700' : 'text-muted-foreground'}>{delta > 0 ? '▲' : delta < 0 ? '▼' : '='} {Math.abs(delta)}</span>}
+                      </TableCell>
                       <TableCell><Badge className={badge.color}>{badge.emoji} {av.classificacao}</Badge></TableCell>
                       <TableCell className="text-sm">{av.recomendacao || '—'}</TableCell>
                       <TableCell className="text-right">

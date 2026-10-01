@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
 const Colaboradores = () => {
-  const { employees, isLoading, deleteEmployee } = useEmployees();
+  const { employees, isLoading, deleteEmployee, empresaContratoNome, listaDoGrupo } = useEmployees();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formOpen, setFormOpen] = useState(false);
@@ -188,6 +188,7 @@ const Colaboradores = () => {
                     <TableHead className="w-12"></TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Função</TableHead>
+                    {listaDoGrupo && <TableHead>Contrato</TableHead>}
                     <TableHead>Departamento</TableHead>
                     <TableHead>Telefone</TableHead>
                     <TableHead>Admissão</TableHead>
@@ -218,6 +219,11 @@ const Colaboradores = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">{emp.job_position?.name || '—'}</TableCell>
+                        {listaDoGrupo && (
+                          <TableCell className="text-sm text-muted-foreground">
+                            {empresaContratoNome(emp.empresa_id) || '—'}
+                          </TableCell>
+                        )}
                         <TableCell className="text-sm">{emp.department || '—'}</TableCell>
                         <TableCell className="text-sm">{emp.phone || '—'}</TableCell>
                         <TableCell className="text-sm">{formatDate(emp.admission_date)}</TableCell>

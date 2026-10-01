@@ -22,6 +22,9 @@ export interface OrdemServico {
   dataConclusao: string | null;
   valorEstimado: number | null;
   valorFinal: number | null;
+  /** Registo do trabalho em Vendas / Serviços (services.service_id), quando existe. */
+  serviceId?: string | null;
+  propostaNumero?: string | null;
   createdAt: string;
   updatedAt: string;
 }

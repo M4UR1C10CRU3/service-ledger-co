@@ -57,6 +57,9 @@ export interface PropostaFormData {
   clienteNome: string;
   clienteMorada: string;
   clienteNif: string;
+  /** Colaborador que fez a venda — base do indicador de desempenho e da comissão. */
+  vendedorId: string | null;
+  /** Guardado à parte para o documento continuar legível se o colaborador sair. */
   vendedorNome: string;
   dataEmissao: string;
   titulo: string;

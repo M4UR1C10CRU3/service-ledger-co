@@ -81,15 +81,29 @@ export function usePedidosOrcamento() {
   const getNextNumber = async (): Promise<{ seq: number; formatted: string }> => {
     if (!empresa) return { seq: 1, formatted: `PO ${new Date().getFullYear()}/1` };
     const ano = new Date().getFullYear();
-    const { data } = await (supabase as any)
-      .from('pedidos_orcamento')
-      .select('numero_sequencial')
-      .eq('empresa_id', empresa.id)
-      .eq('ano', ano)
-      .order('numero_sequencial', { ascending: false })
-      .limit(1);
-    const next = ((data?.[0] as any)?.numero_sequencial ?? 0) + 1;
+    // Só para MOSTRAR no formulário — não reserva nada, senão cada pedido
+    // começado e abandonado deixava um buraco na numeração.
+    const { data } = await (supabase.rpc as any)('doc_numero_previsto', {
+      p_empresa_id: empresa.id, p_tipo: 'pedido_orcamento', p_ano: ano,
+    });
+    const next = (data as number) ?? 1;
     return { seq: next, formatted: formatPoNumber(empresa.slug, ano, next) };
+  };
+
+  /**
+   * O número definitivo, atribuído ao gravar. Antes lia-se o maior do ano e
+   * somava-se um — dois utilizadores a gravar no mesmo segundo ficavam com o
+   * mesmo número. A base resolve isso numa instrução indivisível.
+   */
+  const reservarNumero = async (): Promise<{ seq: number; formatted: string }> => {
+    const ano = new Date().getFullYear();
+    if (!empresa) return { seq: 1, formatted: `PO ${ano}/1` };
+    const { data, error } = await (supabase.rpc as any)('doc_proximo_numero', {
+      p_empresa_id: empresa.id, p_tipo: 'pedido_orcamento', p_ano: ano,
+    });
+    if (error) throw new Error(`Não foi possível reservar o número do pedido: ${error.message}`);
+    const seq = data as number;
+    return { seq, formatted: formatPoNumber(empresa.slug, ano, seq) };
   };
 
   const fetchLinhasPo = async (poId: string): Promise<POLinha[]> => {
@@ -114,6 +128,7 @@ export function usePedidosOrcamento() {
       cliente_nif: formData.clienteNif || null,
       cliente_telefone: formData.clienteTelefone || null,
       cliente_email: formData.clienteEmail || null,
+      vendedor_id: formData.vendedorId || null,
       vendedor_nome: formData.vendedorNome || null,
       data_emissao: dataEmissao,
       titulo: formData.titulo || null,
@@ -135,7 +150,7 @@ export function usePedidosOrcamento() {
       if (error) { console.error(error); return null; }
       await (supabase as any).from('po_linhas').delete().eq('po_id', existingId);
     } else {
-      const { seq, formatted } = await getNextNumber();
+      const { seq, formatted } = await reservarNumero();
       const ano = new Date().getFullYear();
       const now = new Date();
       const horaEmissao = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
@@ -151,40 +166,9 @@ export function usePedidosOrcamento() {
       if (error || !row) { console.error(error); return null; }
       poId = row.id;
 
-      // Auto-create Workflow Comercial opportunity SOMENTE para orçamentação (não para intervenção imediata)
-      if ((formData.tipoPedido || 'orcamentacao') !== 'intervencao_imediata') {
-      try {
-        const { data: oppRow } = await (supabase as any).from('followup_oportunidades').insert({
-          empresa_id: empresa.id,
-          cliente_id: formData.clienteId || null,
-          cliente_nome: formData.clienteNome || null,
-          titulo: formData.titulo || `PO ${formatted}`,
-          fase: 'po_recebido',
-          responsavel_nome: formData.vendedorNome || null,
-          probabilidade: 25,
-          po_id: poId,
-          numero_po: formatted,
-        }).select('id').single();
-        if (oppRow?.id) {
-          await (supabase as any).from('followup_historico_fases').insert({
-            oportunidade_id: oppRow.id, empresa_id: empresa.id,
-            fase_nova: 'po_recebido', notas: 'Criada automaticamente a partir do PO',
-          });
-          const defaults = [
-            'Registar e analisar o PO recebido',
-            'Confirmar contacto com o cliente',
-            'Avaliar viabilidade do pedido',
-            'Atribuir responsável pela orçamentação',
-          ];
-          await (supabase as any).from('workflow_checklist_items').insert(
-            defaults.map((texto, i) => ({
-              oportunidade_id: oppRow.id, empresa_id: empresa.id,
-              ordem: i, texto, fase_associada: 'po_recebido',
-            }))
-          );
-        }
-      } catch (e) { console.error('Auto-create oportunidade falhou', e); }
-      }
+      // A oportunidade do Workflow Comercial é criada pelo trigger
+      // fn_po_auto_create_oportunidade (migration 20260730120000_...sql) —
+      // criá-la também aqui duplicava o registo para PDPs de orçamentação.
     }
 
     if (poId && formData.linhas.length > 0) {
@@ -270,13 +254,26 @@ export function usePedidosOrcamento() {
     return true;
   };
 
-  const deletePedido = async (poId: string): Promise<boolean> => {
+  // Nenhum PO se conseguia apagar (01/10/2026, RSPO 2026/9): o gatilho
+  // fn_po_auto_create_oportunidade cria uma oportunidade no Workflow Comercial
+  // por cada PO, com chave estrangeira SEM «on delete», e a base recusava. A
+  // oportunidade não se apaga — só perde a ligação ao PO; nada se perde.
+  const deletePedido = async (poId: string): Promise<{ ok: boolean; motivo?: string }> => {
+    const sb = supabase as any;
     const po = pedidos.find(p => p.id === poId);
-    if (po && !['recebido', 'em_analise'].includes(po.estado)) return false;
-    const { error } = await (supabase as any).from('pedidos_orcamento').delete().eq('id', poId);
-    if (error) { console.error(error); return false; }
+    if (po && !['recebido', 'em_analise'].includes(po.estado)) {
+      return { ok: false, motivo: 'Só se eliminam pedidos «Recebido» ou «Em análise».' };
+    }
+    const { data: props } = await sb.from('propostas').select('numero_proposta').eq('po_id', poId);
+    if (props?.length) {
+      return { ok: false, motivo: `Tem a proposta ${props.map((p: any) => p.numero_proposta).join(', ')} ligada. Elimine ou desligue a proposta primeiro.` };
+    }
+    await sb.from('followup_oportunidades').update({ po_id: null }).eq('po_id', poId);
+    const { data, error } = await sb.from('pedidos_orcamento').delete().eq('id', poId).select('id');
+    if (error) { console.error(error); return { ok: false, motivo: error.message }; }
+    if (!data?.length) return { ok: false, motivo: 'Sem permissão para eliminar este pedido.' };
     await fetchPedidos();
-    return true;
+    return { ok: true };
   };
 
   return {

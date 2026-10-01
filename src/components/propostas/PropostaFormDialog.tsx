@@ -51,15 +51,23 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
   const { clientes } = useClientes();
   const { produtos } = useProdutos();
   const { employees } = useEmployees();
-  const { empresa, getLogo } = useEmpresa();
+  const { empresa, getLogo, getDocConfig } = useEmpresa();
   const { toast } = useToast();
 
   const [numeroProposta, setNumeroProposta] = useState('');
+  const [numeroSequencial, setNumeroSequencial] = useState(0);
+  const [anoProposta, setAnoProposta] = useState(new Date().getFullYear());
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteNome, setClienteNome] = useState('');
   const [clienteMorada, setClienteMorada] = useState('');
   const [clienteNif, setClienteNif] = useState('');
+  const [vendedorId, setVendedorId] = useState('');
   const [vendedorNome, setVendedorNome] = useState('');
+  /** Guarda os dois: o id para contar, o nome para imprimir no documento. */
+  const escolherVendedor = (id: string) => {
+    setVendedorId(id);
+    setVendedorNome(employees.find(e => e.id === id)?.full_name || '');
+  };
   const [dataEmissao, setDataEmissao] = useState('');
   const [titulo, setTitulo] = useState('');
   const [descricaoGeral, setDescricaoGeral] = useState('');
@@ -87,11 +95,14 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
     if (!open) return;
     if (proposta) {
       setNumeroProposta(proposta.numeroProposta);
+      setNumeroSequencial(proposta.numeroSequencial);
+      setAnoProposta(proposta.ano);
       setClienteId(proposta.clienteId);
       setClienteNome(proposta.clienteNome || '');
       setClienteMorada(proposta.clienteMorada || '');
       setClienteNif(proposta.clienteNif || '');
       setVendedorNome(proposta.vendedorNome || '');
+      setVendedorId(proposta.vendedorId || '');
       setDataEmissao(proposta.dataEmissao);
       setTitulo(proposta.titulo || '');
       setDescricaoGeral(proposta.descricaoGeral || '');
@@ -125,6 +136,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
       setClienteNome('');
       setClienteMorada('');
       setClienteNif('');
+      setVendedorId('');
       setVendedorNome('');
       setTitulo('');
       setDescricaoGeral('');
@@ -147,9 +159,23 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
         { ordem: 7, tipoLinha: 'artigo', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
         { ordem: 8, tipoLinha: 'subtotal', referencia: '', designacao: '', quantidade: 1, unidade: 'und', precoUnitario: 0, descontoPct: 0, totalLinha: 0, produtoId: null },
       ]);
-      getNextNumber().then(({ formatted }) => setNumeroProposta(formatted));
+      getNextNumber().then(({ formatted, seq }) => {
+        setNumeroProposta(formatted);
+        setNumeroSequencial(seq);
+        setAnoProposta(new Date().getFullYear());
+      });
     }
   }, [open, proposta]);
+
+  // Propostas antigas só guardaram o nome do vendedor. Reencontrar a pessoa a
+  // partir dele tem de esperar pela lista de colaboradores, que chega depois de
+  // o diálogo abrir — por isso vive num efeito próprio. Sem ele, o seletor
+  // ficava vazio e quem gravasse apagava o vendedor sem reparar.
+  useEffect(() => {
+    if (!open || vendedorId || !vendedorNome || employees.length === 0) return;
+    const achado = employees.find(e => e.full_name === vendedorNome);
+    if (achado) setVendedorId(achado.id);
+  }, [open, employees, vendedorId, vendedorNome]);
 
   // Calculations
   const totalSemIva = useMemo(() =>
@@ -311,7 +337,7 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
     setSaving(true);
     const formData: PropostaFormData = {
       clienteId, clienteNome, clienteMorada, clienteNif,
-      vendedorNome, dataEmissao, titulo, descricaoGeral,
+      vendedorId: vendedorId || null, vendedorNome, dataEmissao, titulo, descricaoGeral,
       taxaIva, validadeDias,
       condicoesGerais, validadeTexto, duracao, condicoesPagamento, observacoes,
       linhas: linhas.map((l, i) => ({ ...l, ordem: i })),
@@ -338,23 +364,23 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
       ctx?.drawImage(img, 0, 0);
       const dataUrl = canvas.toDataURL('image/png');
       exportPropostaPdf({
-        numeroProposta, clienteNome, clienteMorada, clienteNif,
+        numeroProposta, numeroSequencial, ano: anoProposta, clienteNome, clienteMorada, clienteNif,
         vendedorNome, dataEmissao,
         horaEmissao: proposta?.horaEmissao || new Date().toLocaleTimeString('pt-PT'),
         titulo, descricaoGeral, linhas, taxaIva,
         totalSemIva, valorIva, totalComIva,
         condicoesGerais, validadeTexto, duracao, condicoesPagamento, observacoes,
-      }, empresa, dataUrl);
+      }, empresa, dataUrl, 'unitarios', getDocConfig());
     };
     img.onerror = () => {
       exportPropostaPdf({
-        numeroProposta, clienteNome, clienteMorada, clienteNif,
+        numeroProposta, numeroSequencial, ano: anoProposta, clienteNome, clienteMorada, clienteNif,
         vendedorNome, dataEmissao,
         horaEmissao: proposta?.horaEmissao || new Date().toLocaleTimeString('pt-PT'),
         titulo, descricaoGeral, linhas, taxaIva,
         totalSemIva, valorIva, totalComIva,
         condicoesGerais, validadeTexto, duracao, condicoesPagamento, observacoes,
-      }, empresa);
+      }, empresa, undefined, 'unitarios', getDocConfig());
     };
     img.src = logoSrc;
   };
@@ -431,11 +457,13 @@ export function PropostaFormDialog({ open, onOpenChange, proposta }: Props) {
                   </div>
                   <div>
                     <Label className="text-xs">Vendedor</Label>
-                    <Select value={vendedorNome} onValueChange={setVendedorNome}>
+                    {/* Guarda a PESSOA, não o nome escrito: é daqui que sai o
+                        indicador de desempenho e a comissão. */}
+                    <Select value={vendedorId} onValueChange={escolherVendedor}>
                       <SelectTrigger className="text-sm"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
                       <SelectContent>
                         {employees.filter(e => e.status === 'active').map(e => (
-                          <SelectItem key={e.id} value={e.full_name}>{e.full_name}</SelectItem>
+                          <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

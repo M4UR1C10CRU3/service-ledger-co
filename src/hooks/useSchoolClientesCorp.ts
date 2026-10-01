@@ -51,8 +51,19 @@ export function useSchoolClientesCorp() {
 
   const updateCliente = useMutation({
     mutationFn: async ({ id, ...input }: SchoolClienteCorpInput & { id: string }) => {
-      const { error } = await supabase.from(TABLE).update({ ...input, updated_at: new Date().toISOString() }).eq('id', id).eq('empresa_id', empresa!.id);
+      // `.select()` torna visível a escrita que falha em silêncio: a RLS a
+      // bloquear um UPDATE devolve SUCESSO com zero linhas, não erro.
+      const { data, error } = await supabase.from(TABLE)
+        .update({ ...input, updated_at: new Date().toISOString() })
+        .eq('id', id).eq('empresa_id', empresa!.id)
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          'A gravação não alterou nenhuma linha — a base recusou a escrita ' +
+          'nesta cliente. Provavelmente falta permissão sobre esta empresa.',
+        );
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['school_clientes_corp'] }); toast({ title: 'Cliente actualizado' }); },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),

@@ -21,6 +21,8 @@ export interface Vaga {
   motivo_encerr: string | null;
   criado_em: string;
   atualizado_em: string;
+  funcao_id?: string | null;
+  competencias?: string | null;
   candidatos_count?: number;
   entrevistas_count?: number;
 }
@@ -52,6 +54,13 @@ export interface Candidato {
   ia_processado_em: string | null;
   ia_erro: string | null;
   pontuacao_media_entrev: number | null;
+  cv_path?: string | null;
+  ia_analise?: any | null;
+  ia_aderencia?: number | null;
+  decisao?: string | null;
+  decisao_nota?: string | null;
+  decisao_por?: string | null;
+  decisao_em?: string | null;
   criado_em: string;
 }
 
@@ -84,8 +93,29 @@ export interface Entrevista {
   notas: string | null;
   recomendacao: string | null;
   proxima_fase: string | null;
+  guiao?: any | null;
+  respostas?: any | null;
+  relatorio?: any | null;
+  pontuacao_100?: number | null;
   criado_em: string;
   candidato_nome?: string;
+}
+
+
+/**
+ * Grava tolerando colunas que a base ainda não tenha (ex.: antes de correr
+ * rh-2-1-estrutura.sql): se o PostgREST disser que a coluna X não existe,
+ * tira-a e tenta outra vez. O que existe grava-se; nada falha por isso.
+ */
+async function gravarTolerante(payload: Record<string, any>, fazer: (p: Record<string, any>) => PromiseLike<{ data: any; error: any }>) {
+  const p = { ...payload };
+  for (let i = 0; i < 15; i++) {
+    const r = await fazer(p);
+    const m = r.error?.message?.match(/'([a-z_0-9]+)' column/);
+    if (r.error && m && m[1] in p) { delete p[m[1]]; continue; }
+    return r;
+  }
+  return fazer(p);
 }
 
 export function useVagas() {
@@ -111,11 +141,8 @@ export function useVagas() {
   const createVaga = useMutation({
     mutationFn: async (vaga: Partial<Vaga>) => {
       if (!empresa) throw new Error('Empresa não selecionada');
-      const { data, error } = await supabase
-        .from('rh_vagas')
-        .insert({ ...vaga, empresa_id: empresa.id } as any)
-        .select()
-        .single();
+      const { data, error } = await gravarTolerante({ ...vaga, empresa_id: empresa.id },
+        p => supabase.from('rh_vagas').insert(p as any).select().single());
       if (error) throw error;
       return data;
     },
@@ -128,7 +155,7 @@ export function useVagas() {
 
   const updateVaga = useMutation({
     mutationFn: async ({ id, ...data }: Partial<Vaga> & { id: string }) => {
-      const { error } = await supabase.from('rh_vagas').update(data as any).eq('id', id);
+      const { error } = await gravarTolerante(data as any, p => supabase.from('rh_vagas').update(p as any).eq('id', id));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -177,11 +204,8 @@ export function useCandidatos(vagaId?: string) {
   const createCandidato = useMutation({
     mutationFn: async (candidato: Partial<Candidato>) => {
       if (!empresa) throw new Error('Empresa não selecionada');
-      const { data, error } = await supabase
-        .from('rh_candidatos')
-        .insert({ ...candidato, empresa_id: empresa.id } as any)
-        .select()
-        .single();
+      const { data, error } = await gravarTolerante({ ...candidato, empresa_id: empresa.id },
+        p => supabase.from('rh_candidatos').insert(p as any).select().single());
       if (error) throw error;
       return data;
     },
@@ -194,7 +218,7 @@ export function useCandidatos(vagaId?: string) {
 
   const updateCandidato = useMutation({
     mutationFn: async ({ id, ...data }: Partial<Candidato> & { id: string }) => {
-      const { error } = await supabase.from('rh_candidatos').update(data as any).eq('id', id);
+      const { error } = await gravarTolerante(data as any, p => supabase.from('rh_candidatos').update(p as any).eq('id', id));
       if (error) throw error;
     },
     onSuccess: () => {
@@ -234,11 +258,8 @@ export function useEntrevistas(vagaId?: string) {
   const createEntrevista = useMutation({
     mutationFn: async (entrevista: Partial<Entrevista>) => {
       if (!empresa) throw new Error('Empresa não selecionada');
-      const { data, error } = await supabase
-        .from('rh_entrevistas')
-        .insert({ ...entrevista, empresa_id: empresa.id } as any)
-        .select()
-        .single();
+      const { data, error } = await gravarTolerante({ ...entrevista, empresa_id: empresa.id },
+        p => supabase.from('rh_entrevistas').insert(p as any).select().single());
       if (error) throw error;
       return data;
     },
@@ -251,7 +272,7 @@ export function useEntrevistas(vagaId?: string) {
 
   const updateEntrevista = useMutation({
     mutationFn: async ({ id, ...data }: Partial<Entrevista> & { id: string }) => {
-      const { error } = await supabase.from('rh_entrevistas').update(data as any).eq('id', id);
+      const { error } = await gravarTolerante(data as any, p => supabase.from('rh_entrevistas').update(p as any).eq('id', id));
       if (error) throw error;
     },
     onSuccess: () => {

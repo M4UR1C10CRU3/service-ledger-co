@@ -1,10 +1,12 @@
 import type { PropostaLinhaForm } from '@/types/proposta';
-import { getEmpresaDocConfig } from '@/lib/empresaConfig';
+import { getEmpresaDocConfig, PHC_SERIE, formatPhcNumeroDisplay, type EmpresaDocConfig } from '@/lib/empresaConfig';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface PdfData {
   numeroProposta: string;
+  numeroSequencial: number;
+  ano: number;
   clienteNome: string;
   clienteMorada: string;
   clienteNif: string;
@@ -58,9 +60,12 @@ export function buildPropostaPdfHtml(
   empresa: any,
   logoDataUrl?: string,
   mode: PropostaPdfMode = 'unitarios',
+  docConfig?: EmpresaDocConfig,
 ): { html: string; filename: string } {
   const primaryColor = empresa?.corPrimaria || '#E8630A';
-  const cfg = getEmpresaDocConfig(empresa?.slug);
+  // docConfig vem do cadastro real da empresa (Configurações → Dados da
+  // Empresa); só cai para o mapa fixo em código se não for passado.
+  const cfg = docConfig || getEmpresaDocConfig(empresa?.slug);
 
   const numClean = (data.numeroProposta || '')
     .replace(/[\\:*?"<>|]/g, '').replace(/\//g, '-').trim();
@@ -137,7 +142,7 @@ export function buildPropostaPdfHtml(
     </div>
     <div style="text-align:right">
       <div style="font-size:9px;color:#888">Não entra para SAF-T</div>
-      <div style="font-size:11px">Pré-Proposta &nbsp;Nº &nbsp;&nbsp;<strong style="font-size:14px">${data.numeroProposta}</strong></div>
+      <div style="font-size:11px">Pré-Proposta &nbsp;Nº&nbsp;&nbsp;<strong style="font-size:14px">${formatPhcNumeroDisplay(data.numeroSequencial, data.ano, PHC_SERIE.proposta)}</strong></div>
       <div style="font-size:11px;margin-top:2px">ORIGINAL</div>
     </div>
   </div>
@@ -148,8 +153,8 @@ export function buildPropostaPdfHtml(
       ${cfg.morada.toUpperCase()}<br/>
       ${cfg.codigoPostal}&nbsp;&nbsp;${cfg.localidade.toUpperCase()}<br/>
       Contribuinte Nº: ${cfg.contribuinte}<br/>
-      Conserv. Registo Comercial:<br/>
-      Capital Social:
+      Conserv. Registo Comercial:${cfg.registoComercial ? ' ' + cfg.registoComercial : ''}<br/>
+      Capital Social:${cfg.capitalSocial ? ' ' + cfg.capitalSocial : ''}
     </div>
     <div style="text-align:right;font-size:12px;line-height:1.6">
       <strong style="font-size:13px">${data.clienteNome}</strong><br/>
@@ -255,8 +260,9 @@ export function exportPropostaPdf(
   empresa: any,
   logoDataUrl?: string,
   mode: PropostaPdfMode = 'unitarios',
+  docConfig?: EmpresaDocConfig,
 ) {
-  const { html, filename } = buildPropostaPdfHtml(data, empresa, logoDataUrl, mode);
+  const { html, filename } = buildPropostaPdfHtml(data, empresa, logoDataUrl, mode, docConfig);
 
   const printScript = `<script>
     document.title = ${JSON.stringify(filename)};

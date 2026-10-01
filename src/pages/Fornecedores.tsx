@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fornecedorComMesmoNif } from '@/lib/nifDuplicado';
+import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useSuppliers } from '@/hooks/useSuppliers';
-import { Supplier, SupplierFormData, emptySupplierForm, GAMAS_OPTIONS } from '@/types/supplier';
+import { Supplier, SupplierFormData, emptySupplierForm, GAMAS_OPTIONS, CATEGORIA_LABELS } from '@/types/supplier';
 import { SupplierFormDialog } from '@/components/SupplierFormDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +34,8 @@ export default function Fornecedores() {
   const { toast } = useToast();
   const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
+  /** Fornecedores são partilhados pelo GRUPO — é esse o âmbito da procura. */
+  const grupo = useGrupoEmpresas();
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -43,6 +47,7 @@ export default function Fornecedores() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGama, setFilterGama] = useState<string>('all');
+  const [filterCategoria, setFilterCategoria] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [page, setPage] = useState(1);
 
@@ -64,14 +69,15 @@ export default function Fornecedores() {
       );
     }
     if (filterGama !== 'all') result = result.filter(s => (s.gamas || []).includes(filterGama));
+    if (filterCategoria !== 'all') result = result.filter(s => s.categoria === filterCategoria);
     if (filterStatus !== 'all') result = result.filter(s => s.status === filterStatus);
     return result;
-  }, [suppliers, searchTerm, filterGama, filterStatus]);
+  }, [suppliers, searchTerm, filterGama, filterCategoria, filterStatus]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [searchTerm, filterGama, filterStatus]);
+  useEffect(() => { setPage(1); }, [searchTerm, filterGama, filterCategoria, filterStatus]);
 
   const resetForm = () => { setFormData({ ...emptySupplierForm }); setEditingSupplier(null); };
 
@@ -118,6 +124,21 @@ export default function Fornecedores() {
     }
     if (!formData.cnpjCpf.trim()) {
       toast({ title: 'Erro', description: 'NIF é obrigatório.', variant: 'destructive' });
+      return;
+    }
+
+    // ── O NIF/NIPC já pertence a outro fornecedor? ──────────────────────
+    // Compara só os dígitos, que é por onde os duplicados passam. Na edição
+    // ignora-se o próprio cadastro, senão acusava-se a si mesmo.
+    const repetido = await fornecedorComMesmoNif(
+      formData.cnpjCpf, grupo.ids, editingSupplier?.id,
+    );
+    if (repetido) {
+      toast({
+        title: 'NIF já registado',
+        description: `O NIF ${formData.cnpjCpf} já pertence ao fornecedor "${repetido.nome}". Verifique se não está a criar um cadastro repetido.`,
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -189,6 +210,15 @@ export default function Fornecedores() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filterCategoria} onValueChange={setFilterCategoria}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Categorias</SelectItem>
+                {Object.entries(CATEGORIA_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-[140px]"><SelectValue placeholder="Estado" /></SelectTrigger>
               <SelectContent>
@@ -214,6 +244,7 @@ export default function Fornecedores() {
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>NIF</TableHead>
+                      <TableHead>Categoria</TableHead>
                       <TableHead>Gamas</TableHead>
                       <TableHead>Telemóvel</TableHead>
                       <TableHead>Estado</TableHead>
@@ -225,6 +256,9 @@ export default function Fornecedores() {
                       <TableRow key={s.id}>
                         <TableCell className="font-medium">{s.razaoSocial}</TableCell>
                         <TableCell className="font-mono text-sm">{s.cnpjCpf}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{CATEGORIA_LABELS[s.categoria] || s.categoria}</Badge>
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1 max-w-[250px]">
                             {(s.gamas || []).slice(0, 3).map(g => (
@@ -337,7 +371,7 @@ export default function Fornecedores() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Fornecedor</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem a certeza que deseja remover <strong>{supplierToDelete?.razaoSocial}</strong>? Esta acção pode ser revertida.
+              Tem a certeza que deseja remover <strong>{supplierToDelete?.razaoSocial}</strong>? O fornecedor deixa de aparecer na lista e nas pesquisas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

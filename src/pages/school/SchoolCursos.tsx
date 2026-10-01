@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,14 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Search, BookOpen, Pencil, Trash2, Globe, Clock } from 'lucide-react';
+import { Plus, Search, BookOpen, Pencil, Trash2, Globe, Clock, Image as ImageIcon, Upload, Loader2, X, ListOrdered } from 'lucide-react';
 import { useSchoolCursos, SchoolCurso, SchoolCursoInput } from '@/hooks/useSchoolCursos';
+import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { resolverImagem } from '@/lib/certificadoEmissao';
 
 const EMPTY: SchoolCursoInput = {
   nome: '', categoria: null, descricao: null, carga_horaria: null,
   sigla_certificado: null, validade_meses: null, horas_teoricas: null, horas_praticas: null,
   conteudo_programatico: [], objetivo: null, metodologia: null, reconhecimento: null,
-  aprovacao_minima: 70, url_site: null, ativo: true,
+  aprovacao_minima: 70, template_cert_path: null, url_site: null, ativo: true,
 };
 
 export default function SchoolCursos() {
@@ -44,6 +48,43 @@ export default function SchoolCursos() {
   };
 
   const f = (field: keyof SchoolCursoInput, value: any) => setForm(p => ({ ...p, [field]: value || null }));
+
+  // ── Fotografia de fundo do certificado ────────────────────────────────────
+  // Cada curso tem a sua imagem. É guardada no Storage para poder ser trocada
+  // aqui mesmo, sem depender de uma publicação da aplicação.
+  const { empresa } = useEmpresa();
+  const { toast } = useToast();
+  const [aCarregar, setACarregar] = useState(false);
+  const [previa, setPrevia] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!form.template_cert_path) { setPrevia(null); return; }
+    resolverImagem(form.template_cert_path, 'school-files')
+      .then(u => { if (!cancelado) setPrevia(u); })
+      .catch(() => { if (!cancelado) setPrevia(null); });
+    return () => { cancelado = true; };
+  }, [form.template_cert_path]);
+
+  const carregarFundo = async (file: File) => {
+    if (!empresa) return;
+    setACarregar(true);
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      // O nome inclui o instante para o browser não servir a imagem antiga.
+      const path = `${empresa.id}/cursos/fundo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from('school-files')
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (error) throw error;
+      f('template_cert_path', path);
+      toast({ title: 'Imagem carregada', description: 'Gravar o curso para a aplicar.' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao carregar a imagem', description: e.message, variant: 'destructive' });
+    } finally {
+      setACarregar(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -174,6 +215,126 @@ export default function SchoolCursos() {
             <div className="col-span-2 space-y-1">
               <Label>Reconhecimento (CEE-AP, IRATA, etc.)</Label>
               <Textarea rows={2} value={form.reconhecimento ?? ''} onChange={e => f('reconhecimento', e.target.value)} />
+            </div>
+
+            {/* Conteúdo programático.
+                É o que sai impresso no VERSO do certificado, módulo a módulo.
+                Estava guardado na base de dados e a alimentar os certificados,
+                mas não havia por onde o ver nem editar: um curso criado por
+                aqui nascia com o verso em branco e ninguém dava por isso até
+                emitir. */}
+            <div className="col-span-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <ListOrdered className="h-4 w-4" /> Conteúdo programático
+                </Label>
+                <Button type="button" variant="outline" size="sm"
+                  onClick={() => f('conteudo_programatico', [...(form.conteudo_programatico ?? []), { modulo: '', horas: 0 }])}>
+                  <Plus className="h-4 w-4 mr-1" /> Módulo
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Sai impresso no verso do certificado. Sem módulos, o verso fica vazio
+                — e o verso é a prova do que foi ensinado.
+              </p>
+
+              {(form.conteudo_programatico ?? []).length === 0 ? (
+                <div className="rounded border border-dashed p-4 text-center text-sm text-muted-foreground">
+                  Nenhum módulo. Os certificados deste curso sairão com o verso em branco.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {(form.conteudo_programatico ?? []).map((m, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-6 text-xs text-muted-foreground text-right">{i + 1}.</span>
+                      <Input
+                        className="flex-1"
+                        placeholder="Nome do módulo"
+                        value={m.modulo}
+                        onChange={e => {
+                          const lista = [...(form.conteudo_programatico ?? [])];
+                          lista[i] = { ...lista[i], modulo: e.target.value };
+                          f('conteudo_programatico', lista);
+                        }}
+                      />
+                      <Input
+                        className="w-24"
+                        type="number" min={0} step={0.5}
+                        placeholder="horas"
+                        value={m.horas ?? 0}
+                        onChange={e => {
+                          const lista = [...(form.conteudo_programatico ?? [])];
+                          lista[i] = { ...lista[i], horas: Number(e.target.value) };
+                          f('conteudo_programatico', lista);
+                        }}
+                      />
+                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0"
+                        onClick={() => f('conteudo_programatico',
+                          (form.conteudo_programatico ?? []).filter((_, j) => j !== i))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {/* A soma das horas dos módulos tem de bater com a carga
+                      horária declarada — é o par de números que um auditor
+                      compara primeiro. */}
+                  {(() => {
+                    const soma = (form.conteudo_programatico ?? []).reduce((s, m) => s + (Number(m.horas) || 0), 0);
+                    const total = Number(form.carga_horaria) || 0;
+                    const bate = !total || soma === total;
+                    return (
+                      <p className={`text-xs pl-8 ${bate ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-500'}`}>
+                        Soma dos módulos: <strong>{soma}h</strong>
+                        {total ? ` · carga horária do curso: ${total}h` : ''}
+                        {bate ? '' : ' — não coincidem'}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div className="col-span-2">
+              <Label className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" /> Fotografia de fundo do certificado
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-2">
+                Aparece esbatida atrás do texto, na frente do certificado. Use uma imagem
+                vertical do tema do curso. Sem imagem, o certificado sai com o fundo branco.
+              </p>
+              <div className="flex items-start gap-4">
+                <div className="h-28 w-20 shrink-0 rounded border bg-muted/40 overflow-hidden flex items-center justify-center">
+                  {previa
+                    ? <img src={previa} alt="Fundo do certificado" className="h-full w-full object-cover" />
+                    : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+                </div>
+                <div className="space-y-2">
+                  <input
+                    id="fundo-curso"
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={e => { const fl = e.target.files?.[0]; if (fl) carregarFundo(fl); e.target.value = ''; }}
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" disabled={aCarregar}
+                      onClick={() => document.getElementById('fundo-curso')?.click()}>
+                      {aCarregar
+                        ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> A carregar...</>
+                        : <><Upload className="h-4 w-4 mr-2" /> {form.template_cert_path ? 'Substituir' : 'Carregar imagem'}</>}
+                    </Button>
+                    {form.template_cert_path && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => f('template_cert_path', null)}>
+                        <X className="h-4 w-4 mr-1" /> Remover
+                      </Button>
+                    )}
+                  </div>
+                  {form.template_cert_path && (
+                    <p className="text-xs text-muted-foreground font-mono break-all">{form.template_cert_path}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>

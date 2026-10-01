@@ -35,10 +35,13 @@ export function useTimeRecords(employeeId?: string, startDate?: string, endDate?
       let query = supabase
         .from('time_records')
         .select('*, employee:employees(id, full_name, photo_url, department, job_position:job_positions(name))')
-        .eq('empresa_id', empresa.id)
         .order('record_date', { ascending: false });
 
+      // O ponto é da PESSOA: há um só registo por colaborador e dia (UNIQUE employee_id+record_date),
+      // mesmo que tenha sido lançado noutra empresa do grupo. Com um colaborador escolhido não se filtra
+      // pela empresa — senão um dia lançado noutra empresa fica invisível (caso 11/09/2026).
       if (employeeId) query = query.eq('employee_id', employeeId);
+      else query = query.eq('empresa_id', empresa.id);
       if (startDate) query = query.gte('record_date', startDate);
       if (endDate) query = query.lte('record_date', endDate);
 
@@ -62,11 +65,15 @@ export function useTimeRecords(employeeId?: string, startDate?: string, endDate?
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        // Passa o registo para a empresa em que se está a trabalhar e confirma que gravou:
+        // uma escrita recusada pela RLS devolve sucesso com 0 linhas.
+        const { data: gravado, error } = await supabase
           .from('time_records')
-          .update(record as any)
-          .eq('id', existing.id);
+          .update({ ...record, empresa_id: empresa.id } as any)
+          .eq('id', existing.id)
+          .select('id');
         if (error) throw error;
+        if (!gravado || gravado.length === 0) throw new Error('O registo deste dia não pôde ser atualizado (sem permissão).');
       } else {
         const { error } = await supabase
           .from('time_records')

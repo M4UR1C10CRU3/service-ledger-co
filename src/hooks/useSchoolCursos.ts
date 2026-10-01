@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
+import { soColunasEditaveis } from '@/lib/payloadEscrita';
 
 export interface SchoolCurso {
   id: string;
@@ -19,6 +20,8 @@ export interface SchoolCurso {
   metodologia: string | null;
   reconhecimento: string | null;
   aprovacao_minima: number | null;
+  /** Fotografia de fundo do curso, marca de água do certificado. */
+  template_cert_path: string | null;
   url_site: string | null;
   ativo: boolean;
   created_at: string;
@@ -52,8 +55,13 @@ export function useSchoolCursos() {
 
   const createCurso = useMutation({
     mutationFn: async (input: SchoolCursoInput) => {
-      const { error } = await supabase.from(TABLE).insert({ ...input, empresa_id: empresa!.id });
+      // `.select()` e contagem de linhas: uma escrita recusada pelas regras da
+      // base de dados devolve sucesso com ZERO linhas, não erro. Sem isto o
+      // ecrã anunciava "Curso criado" sem ter criado nada.
+      const { data, error } = await supabase.from(TABLE)
+        .insert({ ...input, empresa_id: empresa!.id }).select('id');
       if (error) throw error;
+      if (!data?.length) throw new Error('A base de dados recusou a criação do curso.');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['school_cursos'] }); toast({ title: 'Curso criado' }); },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
@@ -61,8 +69,10 @@ export function useSchoolCursos() {
 
   const updateCurso = useMutation({
     mutationFn: async ({ id, ...input }: Partial<SchoolCursoInput> & { id: string }) => {
-      const { error } = await supabase.from(TABLE).update({ ...input, updated_at: new Date().toISOString() }).eq('id', id);
+      const { data, error } = await supabase.from(TABLE)
+        .update({ ...soColunasEditaveis(input, []), updated_at: new Date().toISOString() }).eq('id', id).select('id');
       if (error) throw error;
+      if (!data?.length) throw new Error('A base de dados recusou a alteração do curso.');
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['school_cursos'] }); toast({ title: 'Curso actualizado' }); },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),

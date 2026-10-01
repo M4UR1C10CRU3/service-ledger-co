@@ -3,6 +3,7 @@ import { Service, ServiceWithCalculations, DashboardMetrics, Liquidacao } from '
 import { parseInvoiceEntries, calcTotalFaturado } from '@/components/InvoiceHistoryInput';
 import { supabase } from '@/integrations/supabase/client';
 import { parseDatePT } from '@/lib/formatters';
+import { sincronizarPlanoComRecebimentos } from '@/lib/circuitoReceita';
 
 // Helper functions for database operations
 const saveServiceToDatabase = async (service: Service, empresaId: string) => {
@@ -508,6 +509,8 @@ export const useServices = (empresaId?: string) => {
       ...prev,
       [liquidacao.serviceId]: serviceLiquidacoes
     }));
+    // Prestações do plano de pagamentos acompanham o que se recebe.
+    void sincronizarPlanoComRecebimentos(liquidacao.serviceId);
   };
 
   const removeLiquidacao = async (liquidacaoId: string, serviceId: string) => {
@@ -528,6 +531,7 @@ export const useServices = (empresaId?: string) => {
     } catch (error) {
       console.error('Error deleting liquidacao:', error);
     }
+    void sincronizarPlanoComRecebimentos(serviceId);
   };
 
   const updateLiquidacao = async (liquidacaoId: string, serviceId: string, updates: Partial<Liquidacao>) => {
@@ -557,6 +561,7 @@ export const useServices = (empresaId?: string) => {
     } catch (error) {
       console.error('Error updating liquidacao:', error);
     }
+    void sincronizarPlanoComRecebimentos(serviceId);
   };
 
   return {

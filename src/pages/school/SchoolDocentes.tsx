@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CredenciaisDocente } from '@/components/school/CredenciaisDocente';
+import { GrelhaDocumentos, type DocumentoParaGrelha } from '@/components/ficheiros/GrelhaDocumentos';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,10 +13,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Search, UserRound, Pencil, Trash2, FileText, Upload, Eye, X, Clock, BookOpen, Download } from 'lucide-react';
 import { useSchoolDocentes, SchoolDocente, SchoolDocenteInput, SchoolDocumentoDocente } from '@/hooks/useSchoolDocentes';
 import { useSchoolCursos } from '@/hooks/useSchoolCursos';
+import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { resolverImagem } from '@/lib/certificadoEmissao';
+import { AcessoPortalBotao } from '@/components/school/AcessoPortalBotao';
 
 const EMPTY: SchoolDocenteInput = {
   nome: '', email: null, telefone: null, foto_path: null, formacao: null,
-  area_especializacao: null, tempo_experiencia: null, resumo: null, cursos_ids: [], ativo: true,
+  area_especializacao: null, tempo_experiencia: null, resumo: null,
+  assinatura_path: null, cursos_ids: [], ativo: true,
 };
 
 const TIPO_DOC_LABELS: Record<string, string> = {
@@ -53,6 +61,11 @@ function DocenteCard({ d, cursos, onEdit, onDocs, onDelete }: {
               <p className="text-sm text-muted-foreground mt-1">{d.formacao}</p>
             )}
           </div>
+        </div>
+
+        {/* Acesso ao portal do instrutor */}
+        <div className="flex justify-center">
+          <AcessoPortalBotao email={d.email} ligado={!!(d as any).auth_user_id} compacto />
         </div>
 
         {/* Badges: especialização + experiência */}
@@ -111,7 +124,7 @@ function DocenteCard({ d, cursos, onEdit, onDocs, onDelete }: {
 }
 
 export default function SchoolDocentes() {
-  const { docentes, isLoading, createDocente, updateDocente, deleteDocente, fetchDocumentos, uploadDocumento, deleteDocumento, getDocUrl } = useSchoolDocentes();
+  const { docentes, isLoading, createDocente, updateDocente, deleteDocente, fetchDocumentos, uploadDocumento, deleteDocumento, getDocUrl, getDocUrls } = useSchoolDocentes();
   const { cursos } = useSchoolCursos();
   const [search, setSearch] = useState('');
 
@@ -129,6 +142,17 @@ export default function SchoolDocentes() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Documentos de quem está a ser editado. Lidos à parte dos do modal: são
+  // dois sítios com ciclos de vida diferentes e partilhar o estado fazia a
+  // ficha piscar sempre que o modal abria.
+  const [docsDoEditado, setDocsDoEditado] = useState<SchoolDocumentoDocente[]>([]);
+  useEffect(() => {
+    if (!panelOpen || !editing) { setDocsDoEditado([]); return; }
+    let vivo = true;
+    fetchDocumentos(editing.id).then(d => { if (vivo) setDocsDoEditado(d); });
+    return () => { vivo = false; };
+  }, [panelOpen, editing]);
+
   const filtered = useMemo(() =>
     docentes.filter(d =>
       !search ||
@@ -138,7 +162,30 @@ export default function SchoolDocentes() {
     ), [docentes, search]);
 
   const openNew = () => { setEditing(null); setForm(EMPTY); setPanelOpen(true); };
-  const openEdit = (d: SchoolDocente) => { setEditing(d); setForm({ ...d }); setPanelOpen(true); };
+  /**
+   * Só os campos editáveis entram no formulário.
+   *
+   * `{ ...d }` copiava a linha inteira — `id`, `empresa_id`, `created_at` e o
+   * que mais a consulta trouxesse — e essa cópia era devolvida no update. O
+   * TypeScript não o apanha porque um spread não é verificado contra o tipo.
+   */
+  const openEdit = (d: SchoolDocente) => {
+    setEditing(d);
+    setForm({
+      nome: d.nome,
+      email: d.email,
+      telefone: d.telefone,
+      foto_path: d.foto_path,
+      formacao: d.formacao,
+      area_especializacao: d.area_especializacao,
+      tempo_experiencia: d.tempo_experiencia,
+      resumo: d.resumo,
+      assinatura_path: d.assinatura_path,
+      cursos_ids: d.cursos_ids ?? [],
+      ativo: d.ativo,
+    });
+    setPanelOpen(true);
+  };
 
   const openDocs = async (d: SchoolDocente) => {
     setDocsDocente(d);
@@ -146,11 +193,59 @@ export default function SchoolDocentes() {
     setDocsOpen(true);
   };
 
-  const handleSave = () => {
+  /**
+   * Fecha o painel só DEPOIS de a gravação passar.
+   *
+   * Antes fechava sempre, no mesmo instante em que a mutação arrancava — e se
+   * a gravação falhasse, o aviso aparecia sobre uma ficha já fechada, com as
+   * alterações perdidas e sem se perceber porquê.
+   */
+  const handleSave = async () => {
     if (!form.nome.trim()) return;
-    if (editing) updateDocente.mutate({ id: editing.id, ...form });
-    else createDocente.mutate(form);
-    setPanelOpen(false);
+    try {
+      if (editing) await updateDocente.mutateAsync({ id: editing.id, ...form });
+      else await createDocente.mutateAsync(form);
+      setPanelOpen(false);
+    } catch {
+      // O aviso já é dado pelo `onError` da mutação; aqui só se impede o
+      // painel de fechar, para nada se perder.
+    }
+  };
+
+  /** Documento do instrutor no formato que a grelha entende. */
+  const paraGrelha = (d: SchoolDocumentoDocente): DocumentoParaGrelha => ({
+    id: d.id,
+    nome_ficheiro: d.nome_ficheiro,
+    storage_path: d.storage_path,
+    mime_type: (d as any).mime_type ?? null,
+    tamanho_bytes: d.tamanho_bytes ?? null,
+    etiqueta: TIPO_DOC_LABELS[d.tipo_documento] ?? d.tipo_documento,
+    legenda: [
+      d.tamanho_bytes ? `${(d.tamanho_bytes / 1024 / 1024).toFixed(1)} MB` : null,
+      d.validade ? `válido até ${d.validade}` : null,
+    ].filter(Boolean).join(' · ') || null,
+  });
+
+  /**
+   * Upload feito de dentro da ficha, já com a credencial e o papel a que o
+   * documento pertence. Recarrega a lista a seguir para a miniatura aparecer
+   * sem ser preciso fechar e reabrir.
+   */
+  const carregarDocDaFicha = async (
+    ficheiro: File,
+    tipo: string,
+    extra: { docente_formacao_id?: string | null; papel?: string | null },
+  ): Promise<boolean> => {
+    if (!editing) return false;
+    const ok = await uploadDocumento(editing.id, ficheiro, tipo, undefined, extra);
+    if (ok) setDocsDoEditado(await fetchDocumentos(editing.id));
+    return ok;
+  };
+
+  const removerDocDaFicha = async (doc: SchoolDocumentoDocente) => {
+    await deleteDocumento(doc);
+    setDocsDoEditado(d => d.filter(x => x.id !== doc.id));
+    setDocs(d => d.filter(x => x.id !== doc.id));
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,7 +253,13 @@ export default function SchoolDocentes() {
     if (!file || !docsDocente) return;
     setUploading(true);
     const ok = await uploadDocumento(docsDocente.id, file, uploadTipo);
-    if (ok) setDocs(await fetchDocumentos(docsDocente.id));
+    if (ok) {
+      const lista = await fetchDocumentos(docsDocente.id);
+      setDocs(lista);
+      // A ficha aberta por trás mostra os mesmos documentos: sem isto, o que
+      // se acabou de anexar só aparecia lá depois de fechar e reabrir.
+      if (editing?.id === docsDocente.id) setDocsDoEditado(lista);
+    }
     setUploading(false);
     e.target.value = '';
   };
@@ -166,6 +267,7 @@ export default function SchoolDocentes() {
   const handleDeleteDoc = async (doc: SchoolDocumentoDocente) => {
     await deleteDocumento(doc);
     setDocs(d => d.filter(x => x.id !== doc.id));
+    setDocsDoEditado(d => d.filter(x => x.id !== doc.id));
   };
 
   const handleViewDoc = async (doc: SchoolDocumentoDocente) => {
@@ -180,6 +282,42 @@ export default function SchoolDocentes() {
 
   const f = (field: keyof SchoolDocenteInput, value: any) =>
     setForm(p => ({ ...p, [field]: value || null }));
+
+  // ── Assinatura digitalizada ───────────────────────────────────────────────
+  // É esta imagem que aparece sobre a linha do Instrutor Responsável no
+  // certificado. Sem ela sai só a linha e o nome dactilografado.
+  const { empresa } = useEmpresa();
+  const { toast } = useToast();
+  const [aCarregarAss, setACarregarAss] = useState(false);
+  const [previaAss, setPreviaAss] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!form.assinatura_path) { setPreviaAss(null); return; }
+    resolverImagem(form.assinatura_path)
+      .then(u => { if (!cancelado) setPreviaAss(u); })
+      .catch(() => { if (!cancelado) setPreviaAss(null); });
+    return () => { cancelado = true; };
+  }, [form.assinatura_path]);
+
+  const carregarAssinatura = async (file: File) => {
+    if (!empresa) return;
+    setACarregarAss(true);
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${empresa.id}/assinaturas/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from('school-documentos')
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (error) throw error;
+      f('assinatura_path', path);
+      toast({ title: 'Assinatura carregada', description: 'Gravar o instrutor para a aplicar.' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao carregar a assinatura', description: e.message, variant: 'destructive' });
+    } finally {
+      setACarregarAss(false);
+    }
+  };
 
   // ─── Painel de edição lateral / full ────────────────────────────────────────
   if (panelOpen) {
@@ -248,6 +386,40 @@ export default function SchoolDocentes() {
                   />
                   <p className="text-xs text-right text-muted-foreground">{(form.resumo ?? '').length}/400</p>
                 </div>
+
+                <div className="space-y-1">
+                  <Label>Assinatura digitalizada</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Aparece sobre a linha do Instrutor Responsável nos certificados que
+                    este instrutor assinar. Use PNG com fundo transparente ou branco.
+                  </p>
+                  <div className="flex items-center gap-4 pt-1">
+                    <div className="h-16 w-40 shrink-0 rounded border bg-white overflow-hidden flex items-center justify-center">
+                      {previaAss
+                        ? <img src={previaAss} alt="Assinatura" className="max-h-full max-w-full object-contain" />
+                        : <span className="text-xs text-muted-foreground">sem assinatura</span>}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        id="assinatura-docente"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={e => { const fl = e.target.files?.[0]; if (fl) carregarAssinatura(fl); e.target.value = ''; }}
+                      />
+                      <Button type="button" variant="outline" size="sm" disabled={aCarregarAss}
+                        onClick={() => document.getElementById('assinatura-docente')?.click()}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {aCarregarAss ? 'A carregar...' : form.assinatura_path ? 'Substituir' : 'Carregar'}
+                      </Button>
+                      {form.assinatura_path && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => f('assinatura_path', null)}>
+                          <X className="h-4 w-4 mr-1" /> Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -272,6 +444,26 @@ export default function SchoolDocentes() {
             )}
           </CardContent>
         </Card>
+
+        {/* Só depois de o instrutor existir: as credenciais prendem-se ao id
+            dele, e num cadastro novo esse id ainda não foi atribuído. */}
+        {editing && (
+          <Card>
+            <CardContent className="pt-6">
+              <CredenciaisDocente
+                docenteId={editing.id}
+                documentos={docsDoEditado}
+                urlDoFicheiro={getDocUrl}
+              urlsDosFicheiros={getDocUrls}
+                onCarregarDocumento={carregarDocDaFicha}
+                onRemoverDocumento={removerDocDaFicha}
+                aRecarregarDocumentos={async () => {
+                  if (editing) setDocsDoEditado(await fetchDocumentos(editing.id));
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex gap-3 justify-end">
           <Button variant="outline" onClick={() => setPanelOpen(false)}>Cancelar</Button>
@@ -348,27 +540,15 @@ export default function SchoolDocentes() {
                 <input type="file" className="hidden" onChange={handleUpload} accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
               </label>
             </div>
-            {docs.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-8">Nenhum documento anexado</p>
-            ) : (
-              <div className="space-y-2">
-                {docs.map(doc => (
-                  <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
-                    <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.nome_ficheiro}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {TIPO_DOC_LABELS[doc.tipo_documento] ?? doc.tipo_documento}
-                        {doc.tamanho_bytes ? ` · ${(doc.tamanho_bytes / 1024 / 1024).toFixed(2)} MB` : ''}
-                        {doc.validade ? ` · válido até ${doc.validade}` : ''}
-                      </p>
-                    </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" title="Visualizar" onClick={() => handleViewDoc(doc)}><Eye className="h-3.5 w-3.5" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-destructive hover:text-destructive" onClick={() => handleDeleteDoc(doc)}><X className="h-3.5 w-3.5" /></Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <GrelhaDocumentos
+              documentos={docs.map(paraGrelha)}
+              urlDoFicheiro={getDocUrl}
+              urlsDosFicheiros={getDocUrls}
+              onRemover={d => {
+                const original = docs.find(x => x.id === d.id);
+                if (original) handleDeleteDoc(original);
+              }}
+            />
           </div>
         </DialogContent>
       </Dialog>

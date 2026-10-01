@@ -52,6 +52,9 @@ export interface Avaliacao {
   colaborador_notificado: boolean;
   data_comunicacao: string | null;
   obs_colaborador: string | null;
+  perfil_id?: string | null;
+  respostas?: Record<string, { nota?: number; evidencia?: string }> | null;
+  pontuacao_100?: number | null;
   criado_em: string;
   atualizado_em: string;
 }
@@ -126,7 +129,8 @@ export function useAvaliacoes(colaboradorId?: string) {
   const createAvaliacao = useMutation({
     mutationFn: async (av: Partial<Avaliacao>) => {
       if (!empresa) throw new Error('Empresa não selecionada');
-      const medias = calcularMedias(av);
+      // Avaliação por critérios (respostas): a pontuação já vem calculada pelo formulário.
+      const medias = (av as any).respostas ? {} : calcularMedias(av);
       const { data, error } = await supabase
         .from('rh_avaliacoes')
         .insert({ ...av, ...medias, empresa_id: empresa.id } as any)
@@ -144,7 +148,7 @@ export function useAvaliacoes(colaboradorId?: string) {
 
   const updateAvaliacao = useMutation({
     mutationFn: async ({ id, ...data }: Partial<Avaliacao> & { id: string }) => {
-      const medias = calcularMedias(data);
+      const medias = (data as any).respostas ? {} : calcularMedias(data);
       const { error } = await supabase.from('rh_avaliacoes').update({ ...data, ...medias } as any).eq('id', id);
       if (error) throw error;
     },
