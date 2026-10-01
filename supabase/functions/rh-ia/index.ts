@@ -31,6 +31,15 @@ async function modelosDisponiveis(key: string): Promise<string[]> {
 
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// 02/10/2026: sem a data de hoje, o modelo tomou 03/10/2025 por «data futura» e marcou-o como incoerência no CV
+// de uma candidata. Cada pedido leva a data real, e a regra de que datas anteriores já passaram.
+function comData(base: string): string {
+  const hoje = new Date().toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon", day: "2-digit", month: "2-digit", year: "numeric" });
+  return `${base}
+A data de hoje é ${hoje}. Datas anteriores a hoje já passaram; formações «a decorrer» ou «atual» são situações em curso, não incoerências.
+Calcula durações e anos de experiência em relação a esta data.`;
+}
+
 const BASE = `És um técnico de recursos humanos de um grupo de empresas português (construção e reabilitação,
 loja de bricolage e casa de banho, gestão de resíduos). Escreves em português de Portugal, com frases
 curtas e concretas. Nunca inventas factos: se o CV não diz, escreves que não diz. Não fazes juízos sobre
@@ -144,7 +153,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model, temperature: 0.2,
             response_format: { type: "json_object" },
-            messages: [{ role: "system", content: BASE }, { role: "user", content: prompt(dados) }],
+            messages: [{ role: "system", content: comData(BASE) }, { role: "user", content: prompt(dados) }],
           }),
         });
         if (r.status !== 503) break;
