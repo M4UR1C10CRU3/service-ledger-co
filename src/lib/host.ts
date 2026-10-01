@@ -28,6 +28,7 @@ interface DominioDedicado {
 
 const DOMINIOS: Record<string, DominioDedicado> = {
   'teste.webtechinformatica.com':  { vertical: 'school', entrada: '/school' },
+  'itc.clarizaplatform.com':       { vertical: 'school', entrada: '/school' }, // endereço oficial do ITC (02/10/2026)
   'teste4.webtechinformatica.com': { vertical: 'agency', entrada: '/agency', empresa: 'elo-giro' },
   'teste5.webtechinformatica.com': { vertical: 'agency', entrada: '/agency', empresa: 'demo-agencia' },
 };
