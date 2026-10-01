@@ -142,6 +142,7 @@ serve(async (req) => {
     }
 
     const erros: string[] = [];
+    let limites = 0;
     const disponiveis = await modelosDisponiveis(KEY);
     const MODELOS = [PREFERIDO, ...disponiveis.filter((m) => m !== PREFERIDO)].slice(0, 4);
     for (const model of MODELOS) {
@@ -160,7 +161,8 @@ serve(async (req) => {
         await esperar(1500 * tentativa); // modelo sobrecarregado: espera 1,5 s e 3 s antes de repetir
       }
       if (!r) continue;
-      if (r.status === 429) return resp({ error: "Limite de pedidos à IA atingido. Tente daqui a um minuto." }, 429);
+      // 429 = quota deste modelo esgotada; cada modelo tem a sua quota, por isso tenta o seguinte.
+      if (r.status === 429) { limites++; erros.push(`${model}: 429 limite`); continue; }
       if (!r.ok) { erros.push(`${model}: ${r.status} ${(await r.text()).slice(0, 200)}`); continue; }
       const j = await r.json();
       const texto: string = j.choices?.[0]?.message?.content ?? "";
@@ -171,6 +173,9 @@ serve(async (req) => {
     }
     // Todos os modelos falharam: regista cada motivo e devolve-o (as mensagens da Google não contêm a chave).
     console.error("rh-ia:", erros.join(" | "));
+    if (limites > 0 && limites === erros.length) {
+      return resp({ error: "Limite de pedidos à IA atingido em todos os modelos. Tente daqui a um minuto; se acontecer muitas vezes, a quota gratuita da Google não chega para o uso diário." }, 429);
+    }
     const motivo = erros.map((e) => e.replace(/\s+/g, " ").slice(0, 140)).join(" · ");
     return resp({ error: `A IA não devolveu uma resposta válida. Detalhe técnico: ${motivo}` }, 502);
   } catch (e) {
