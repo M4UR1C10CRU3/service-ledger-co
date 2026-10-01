@@ -10,7 +10,9 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-const MODELOS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+// 02/10/2026: a Google desativou o gemini-2.0-flash (404 «no longer available») e recomenda o 3.0. Ordem: o
+// recomendado, depois o alias «latest» (acompanha sozinho a versão atual), e o 2.5 como último recurso.
+const MODELOS = ["gemini-3.0-flash", "gemini-flash-latest", "gemini-2.5-flash"];
 
 const BASE = `És um técnico de recursos humanos de um grupo de empresas português (construção e reabilitação,
 loja de bricolage e casa de banho, gestão de resíduos). Escreves em português de Portugal, com frases
@@ -113,8 +115,9 @@ serve(async (req) => {
       return resp({ error: "Não consegui ler texto suficiente do PDF. Se o CV for uma imagem digitalizada, peça-o em PDF de texto." }, 400);
     }
 
-    let ultimoErro = "";
+    const erros: string[] = [];
     for (const model of MODELOS) {
+      let ultimoErro = "";
       const r = await fetch(GATEWAY, {
         method: "POST",
         headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
@@ -125,16 +128,18 @@ serve(async (req) => {
         }),
       });
       if (r.status === 429) return resp({ error: "Limite de pedidos à IA atingido. Tente daqui a um minuto." }, 429);
-      if (!r.ok) { ultimoErro = `${model}: ${r.status} ${(await r.text()).slice(0, 200)}`; continue; }
+      if (!r.ok) { ultimoErro = `${model}: ${r.status} ${(await r.text()).slice(0, 200)}`; erros.push(ultimoErro); continue; }
       const j = await r.json();
       const texto: string = j.choices?.[0]?.message?.content ?? "";
       const m = texto.match(/\{[\s\S]*\}/);
-      if (!m) { ultimoErro = `${model}: resposta sem JSON`; continue; }
+      if (!m) { erros.push(`${model}: resposta sem JSON (${texto.slice(0, 80)})`); continue; }
       try { return resp({ resultado: JSON.parse(m[0]), modelo: model }); }
-      catch { ultimoErro = `${model}: JSON inválido`; }
+      catch { erros.push(`${model}: JSON inválido`); }
     }
-    console.error("rh-ia:", ultimoErro);
-    return resp({ error: "A IA não devolveu uma resposta válida. Tente novamente." }, 502);
+    // Todos os modelos falharam: regista cada motivo e devolve-o (as mensagens da Google não contêm a chave).
+    console.error("rh-ia:", erros.join(" | "));
+    const motivo = erros.map((e) => e.replace(/\s+/g, " ").slice(0, 140)).join(" · ");
+    return resp({ error: `A IA não devolveu uma resposta válida. Detalhe técnico: ${motivo}` }, 502);
   } catch (e) {
     console.error("rh-ia erro:", e);
     return resp({ error: e instanceof Error ? e.message : "Erro desconhecido" }, 500);
