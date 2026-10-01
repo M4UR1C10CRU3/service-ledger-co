@@ -10,9 +10,26 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-// 02/10/2026: a Google desativou o gemini-2.0-flash (404 «no longer available») e recomenda o 3.0. Ordem: o
-// recomendado, depois o alias «latest» (acompanha sozinho a versão atual), e o 2.5 como último recurso.
-const MODELOS = ["gemini-3.0-flash", "gemini-flash-latest", "gemini-2.5-flash"];
+// 02/10/2026: a Google desativou o gemini-2.0-flash e fechou o 2.5-flash a chaves novas; nomes escritos à mão
+// partem-se. Agora: o alias «gemini-flash-latest» primeiro, e a seguir os «flash» que a PRÓPRIA chave pode usar
+// (lista pedida à Google em cada arranque da função). 503 «high demand» → até 3 tentativas com espera.
+const PREFERIDO = "gemini-flash-latest";
+const MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/openai/models";
+
+async function modelosDisponiveis(key: string): Promise<string[]> {
+  try {
+    const r = await fetch(MODELS_URL, { headers: { Authorization: `Bearer ${key}` } });
+    if (!r.ok) return [];
+    const j = await r.json();
+    const ids: string[] = (j.data ?? []).map((m: { id: string }) => String(m.id).replace(/^models\//, ""));
+    // Só modelos de texto «flash» (rápidos e baratos); fora: lite, imagem, áudio, tts, live, embeddings.
+    return ids
+      .filter((id) => /^gemini-.*flash/.test(id) && !/lite|image|audio|tts|live|embed|thinking-exp/.test(id))
+      .sort((a, b) => b.localeCompare(a, "en", { numeric: true }));
+  } catch { return []; }
+}
+
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const BASE = `És um técnico de recursos humanos de um grupo de empresas português (construção e reabilitação,
 loja de bricolage e casa de banho, gestão de resíduos). Escreves em português de Portugal, com frases
@@ -116,19 +133,26 @@ serve(async (req) => {
     }
 
     const erros: string[] = [];
+    const disponiveis = await modelosDisponiveis(KEY);
+    const MODELOS = [PREFERIDO, ...disponiveis.filter((m) => m !== PREFERIDO)].slice(0, 4);
     for (const model of MODELOS) {
-      let ultimoErro = "";
-      const r = await fetch(GATEWAY, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model, temperature: 0.2,
-          response_format: { type: "json_object" },
-          messages: [{ role: "system", content: BASE }, { role: "user", content: prompt(dados) }],
-        }),
-      });
+      let r: Response | null = null;
+      for (let tentativa = 1; tentativa <= 3; tentativa++) {
+        r = await fetch(GATEWAY, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model, temperature: 0.2,
+            response_format: { type: "json_object" },
+            messages: [{ role: "system", content: BASE }, { role: "user", content: prompt(dados) }],
+          }),
+        });
+        if (r.status !== 503) break;
+        await esperar(1500 * tentativa); // modelo sobrecarregado: espera 1,5 s e 3 s antes de repetir
+      }
+      if (!r) continue;
       if (r.status === 429) return resp({ error: "Limite de pedidos à IA atingido. Tente daqui a um minuto." }, 429);
-      if (!r.ok) { ultimoErro = `${model}: ${r.status} ${(await r.text()).slice(0, 200)}`; erros.push(ultimoErro); continue; }
+      if (!r.ok) { erros.push(`${model}: ${r.status} ${(await r.text()).slice(0, 200)}`); continue; }
       const j = await r.json();
       const texto: string = j.choices?.[0]?.message?.content ?? "";
       const m = texto.match(/\{[\s\S]*\}/);
