@@ -762,14 +762,16 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
 
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...BLACK);
-      // O texto tem de caber na caixa (34 mm): nos cursos de bombeiros junta-se a frase do alvará e o texto
-      // cresce. Encolhe a letra de 7,5 até 6 pt antes de deixar transbordar (02/10/2026).
+      // O texto tem de caber na caixa (34 mm) e, havendo selo, deixar-lhe pelo menos 7 mm: nos cursos de
+      // bombeiros junta-se a frase do alvará e o texto cresce. Encolhe a letra de 7,5 até 5,5 pt antes de
+      // sacrificar o selo ou transbordar (02/10/2026: «Equatorial normal no reconhecimento»).
+      const SELO_MIN = logoHomologa ? 1 + 1.5 + 7 : 0;
       let recLinhas: string[] = [];
-      for (const tam of [7.5, 7, 6.5, 6]) {
+      for (const tam of [7.5, 7, 6.5, 6, 5.5]) {
         doc.setFontSize(tam);
         recLinhas = doc.splitTextToSize(recText, c3W - 4);
         const alt = (recLinhas.length - 1) * (doc.getLineHeight() / doc.internal.scaleFactor) + 5;
-        if (alt <= bH3 - 2) break;
+        if (alt + SELO_MIN <= bH3 - 2) break;
       }
       doc.text(recLinhas, cols[0] + 2, tY + 5);
 

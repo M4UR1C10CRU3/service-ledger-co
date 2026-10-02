@@ -7,7 +7,7 @@
  *        mas é do grupo Ipiranga.
  *  - clientes do setor elétrico e de engenharia (pelo segmento ou pelo nome)
  *      → o texto do curso tal como está (com a Diretriz do Grupo Equatorial, nos cursos que a têm)
- *        + logótipo Equatorial, só quando o texto a invoca.
+ *        + logótipo Equatorial (sempre, mesmo nos cursos cujo texto não a cita).
  *  - todos os outros clientes e os alunos particulares
  *      → só o reconhecimento do CEE-AP e o alinhamento à norma, sem grupo e sem logótipo.
  *
@@ -91,7 +91,9 @@ export function reconhecimentoParaCertificado(
   const base = (textoCurso || '').trim() || PADRAO;
   const grupo = grupoDoCliente(cliente);
   if (grupo === 'equatorial') {
-    return { texto: base, logo: invocaEquatorial(base) ? 'equatorial' : null, grupo };
+    // Selo da Equatorial SEMPRE para estes clientes (como era antes em todos), mesmo nos cursos cujo texto não
+    // a cita — p. ex. Bombeiro Civil para a Energisa (decisão do utilizador, 02/10/2026).
+    return { texto: base, logo: 'equatorial', grupo };
   }
   const neutro = semGrupo(base);
   if (grupo === 'ipiranga') {
