@@ -3,7 +3,7 @@ import { tituloResponsavelTecnico } from '@/lib/qualificacaoInstrutor';
 import { addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { generateCertificadoPDF, type CertificadoPDFData } from '@/lib/generateCertificadoPDF';
-import { reconhecimentoParaCertificado, arteFrenteParaCurso, type ClienteDoAluno } from '@/lib/reconhecimentoCertificado';
+import { reconhecimentoParaCertificado, arteFrenteParaCurso, eCursoDeBombeiros, fraseAlvaraCbmap, type ClienteDoAluno } from '@/lib/reconhecimentoCertificado';
 
 /**
  * Emissão de certificados do Clariza School.
@@ -154,6 +154,11 @@ export async function montarDadosCertificado(f: FonteCertificado): Promise<Certi
 
   const modulos = Array.isArray(f.curso.conteudo_programatico) ? f.curso.conteudo_programatico : [];
   const reconhecimento = reconhecimentoParaCertificado(f.curso.reconhecimento, f.cliente);
+  // Cursos de bombeiros: cita o alvará do CBMAP (só dentro da validade).
+  if (eCursoDeBombeiros(f.curso.nome)) {
+    const alvara = fraseAlvaraCbmap(f.emitido_em);
+    if (alvara) reconhecimento.texto = `${reconhecimento.texto} ${alvara}`;
+  }
 
   return {
     aluno_nome: f.aluno.nome,

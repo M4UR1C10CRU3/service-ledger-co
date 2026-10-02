@@ -25,6 +25,22 @@ export type GrupoReconhecimento = 'equatorial' | 'ipiranga' | 'nenhum';
 export const eCursoDeBombeiros = (nomeCurso?: string | null) =>
   /bombeiro\s+civil|brigada|prote[cç][aã]o\s+contra\s+inc[eê]ndio/i.test(nomeCurso || '');
 
+/**
+ * Alvará do CBMAP (Certificação de Vistoria de Alvará/Certificação de Funcionamento) — atesta as INSTALAÇÕES do
+ * ITC, não é credenciamento para formar. Por isso o texto diz «estabelecimento certificado», nunca «credenciado».
+ * Documento: «ALVARÁ DO CORPO DE BOMBEIROS - ITC 2026.pdf» (código de autenticidade WA37.S4G1O.7PO9T.ZEVP).
+ * Como o TRT: fora da validade, a frase deixa de ser impressa.
+ */
+export const ALVARA_CBMAP = { numero: '2161/2026', processo: '003772/2026', validoAte: '2027-08-11' } as const;
+
+/** Frase do alvará para os cursos de bombeiros, ou null se a data de emissão estiver fora da validade. */
+export function fraseAlvaraCbmap(emitidoEmISO?: string | null): string | null {
+  const dia = (emitidoEmISO || new Date().toISOString()).slice(0, 10);
+  if (dia > ALVARA_CBMAP.validoAte) return null;
+  const [a, m, d] = ALVARA_CBMAP.validoAte.split('-');
+  return `Estabelecimento certificado pelo CBMAP — Alvará/Certificação de Funcionamento nº ${ALVARA_CBMAP.numero} (Proc. ${ALVARA_CBMAP.processo}), válido até ${d}/${m}/${a}.`;
+}
+
 /** Arte da frente para o curso: a variante «-bombeiros» da arte do ITC nos cursos de bombeiros. */
 export function arteFrenteParaCurso(artePadrao: string | null | undefined, nomeCurso?: string | null): string | null {
   if (!artePadrao) return artePadrao ?? null;

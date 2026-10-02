@@ -761,9 +761,16 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       cols.forEach(c => doc.rect(c, tY, c3W, bH3, 'F'));
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
       doc.setTextColor(...BLACK);
-      const recLinhas = doc.splitTextToSize(recText, c3W - 4);
+      // O texto tem de caber na caixa (34 mm): nos cursos de bombeiros junta-se a frase do alvará e o texto
+      // cresce. Encolhe a letra de 7,5 até 6 pt antes de deixar transbordar (02/10/2026).
+      let recLinhas: string[] = [];
+      for (const tam of [7.5, 7, 6.5, 6]) {
+        doc.setFontSize(tam);
+        recLinhas = doc.splitTextToSize(recText, c3W - 4);
+        const alt = (recLinhas.length - 1) * (doc.getLineHeight() / doc.internal.scaleFactor) + 5;
+        if (alt <= bH3 - 2) break;
+      }
       doc.text(recLinhas, cols[0] + 2, tY + 5);
 
       // Logótipo da entidade homologadora, centrado no espaço que sobra por baixo
