@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { pedirGemini } from "../_shared/gemini.ts"; // escolhe o modelo e sobrevive a desativações (02/10/2026)
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-const MODEL = "gemini-2.5-flash";
+// Modelo escolhido por _shared/gemini.ts (família flash/pro), já não escrito aqui.
 
 const TUDOCASA_CONTEXT = `Loja Tudo Casa, em Mirandela, Trás-os-Montes, Portugal. Vende materiais de construção, casa de banho, cozinha, caixilharia, climatização, jardim, eletrodomésticos, mobiliário, iluminação e pavimentos. Facebook: tudocasa.pt | Instagram: @loja.tudocasa | Site: lojatudocasa.com. Tom próximo e autêntico, linguagem de Trás-os-Montes sem forçar dialecto. Português de Portugal (sempre).`;
 
@@ -65,7 +66,6 @@ serve(async (req) => {
     const { system, user, json } = buildPrompt(body);
 
     const payload: any = {
-      model: MODEL,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -90,11 +90,7 @@ serve(async (req) => {
       payload.tool_choice = { type: "function", function: { name: "sugerir_titulos" } };
     }
 
-    const resp = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${GOOGLE_AI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const resp = await pedirGemini(GOOGLE_AI_API_KEY, payload, "flash");
 
     if (!resp.ok) {
       const txt = await resp.text();

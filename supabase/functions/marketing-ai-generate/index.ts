@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { pedirGemini } from "../_shared/gemini.ts"; // escolhe o modelo e sobrevive a desativações (02/10/2026)
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 const GATEWAY_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-const MODEL = "gemini-2.5-pro";
+// Modelo escolhido por _shared/gemini.ts (família flash/pro), já não escrito aqui.
 
 interface ReqBody {
   briefing: string;
@@ -90,19 +91,14 @@ Requisitos:
       },
     }];
 
-    const resp = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${GOOGLE_AI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
+    const resp = await pedirGemini(GOOGLE_AI_API_KEY, {
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         tools,
         tool_choice: { type: "function", function: { name: "gerar_plano" } },
-      }),
-    });
+      }, "pro");
 
     if (!resp.ok) {
       const txt = await resp.text();

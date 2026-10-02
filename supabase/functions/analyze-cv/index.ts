@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { pedirGemini } from "../_shared/gemini.ts"; // escolhe o modelo e sobrevive a desativações (02/10/2026)
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,21 +37,13 @@ Responde APENAS em JSON válido com a seguinte estrutura, sem texto adicional:
   "idiomas": ["idioma 1", "idioma 2"]
 }`;
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GOOGLE_AI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gemini-2.0-flash",
+    const response = await pedirGemini(GOOGLE_AI_API_KEY, {
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: cvText },
         ],
         temperature: 0.3,
-      }),
-    });
+      }, "flash");
 
     if (!response.ok) {
       if (response.status === 429) {
