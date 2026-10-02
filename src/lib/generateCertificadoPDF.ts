@@ -27,6 +27,11 @@ export interface CertificadoPDFData {
   objetivo?: string | null;
   metodologia?: string | null;
   reconhecimento?: string | null;
+  /**
+   * Selo na caixa RECONHECIMENTO, escolhido pelo cliente do aluno (reconhecimentoCertificado.ts).
+   * undefined = certificado antigo, sem esta escolha: fica como era (Equatorial em todos os da arte do ITC).
+   */
+  logo_reconhecimento?: 'equatorial' | 'ipiranga' | null;
   aprovacao_minima?: number | null;
   validade_anos?: number | null;
   modulos_count?: number | null;
@@ -84,8 +89,12 @@ const ARTE_P2_FAIXA_FIM = 37.4;
 // Grupo Equatorial, que homologa o ITC, e por isso vive na pasta do ITC e só entra
 // nos certificados dessa arte — outra escola não deve levar este selo. Quando
 // houver uma segunda escola, isto passa a campo na ficha da empresa.
-const LOGO_HOMOLOGA_PATH = '/assets/certificado/itc/logo-equatorial.png';
-const LOGO_HOMOLOGA_PROP = 954 / 284;   // proporção do ficheiro já recortado
+// Desde 02/10/2026 o selo depende do cliente do aluno: Equatorial (setor elétrico e engenharia) ou
+// Ipiranga (empresas do grupo). Ver reconhecimentoCertificado.ts.
+const LOGOS_HOMOLOGA = {
+  equatorial: { path: '/assets/certificado/itc/logo-equatorial.png', prop: 954 / 284 },   // já recortado
+  ipiranga:   { path: '/assets/certificado/itc/logo-ipiranga.png',   prop: 880 / 272 },   // retângulo amarelo
+} as const;
 
 const HEALTH_CATS = ['saude', 'resgate', 'saúde', 'emergência', 'emergencia', 'primeiros socorros', 'socorrismo'];
 
@@ -319,15 +328,18 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     loadCursiveFont(doc),
   ]);
 
+  const arteDoItc = /\/certificado\/itc\//.test(data.arte_frente || '');
+  const seloHomologa: 'equatorial' | 'ipiranga' | null = !arteDoItc ? null
+    : data.logo_reconhecimento === undefined ? 'equatorial'   // certificado anterior a esta regra
+    : data.logo_reconhecimento;
   const [sigInstrutor, sigDiretor, qrImg, logoHomologa] = await Promise.all([
     loadImg(urlAbs(data.docente_assinatura_url) || ''),
     loadImg(urlAbs(data.diretor_assinatura_url) || ''),
     data.qr_verificacao ? Promise.resolve(data.qr_verificacao) : Promise.resolve(null),
-    // Só a escola cuja arte vive na pasta do ITC leva o selo do homologador.
-    /\/certificado\/itc\//.test(data.arte_frente || '')
-      ? loadImg(`${base}${LOGO_HOMOLOGA_PATH}`)
-      : Promise.resolve(null),
+    // Só a escola cuja arte vive na pasta do ITC leva selo de homologador, e qual depende do cliente.
+    seloHomologa ? loadImg(`${base}${LOGOS_HOMOLOGA[seloHomologa].path}`) : Promise.resolve(null),
   ]);
+  const LOGO_HOMOLOGA_PROP = seloHomologa ? LOGOS_HOMOLOGA[seloHomologa].prop : 1;
 
   // ════════════════════════════════════════════════════════════
   // PÁGINA 1 — CERTIFICADO

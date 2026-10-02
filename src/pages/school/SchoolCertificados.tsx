@@ -146,6 +146,15 @@ export default function SchoolCertificados() {
     const aluno = (alunoBD ?? alunos.find(a => a.id === alunoId)) as typeof alunos[number] | undefined;
     const config = configFresca ?? certConfig;
     if (!config) throw new Error('Configuração de certificados ainda não carregada.');
+    // Cliente do aluno — decide o reconhecimento (Equatorial / Ipiranga / só CEE-AP). Sem cliente na ficha,
+    // vale a «empresa de aplicação» da turma; sem nenhum, é aluno particular.
+    const clienteId = (aluno as any)?.cliente_corp_id as string | null | undefined;
+    const { data: clienteBD } = clienteId
+      ? await (supabase.from('school_clientes_corp' as any) as any).select('nome, segmento').eq('id', clienteId).maybeSingle()
+      : { data: null };
+    const cliente = clienteBD
+      ? { nome: clienteBD.nome ?? null, segmento: clienteBD.segmento ?? null }
+      : ((turma as any)?.empresa_aplicacao ? { nome: (turma as any).empresa_aplicacao, segmento: null } : null);
     const [{ data: cursoBD }, { data: docenteBD }] = await Promise.all([
       turma?.curso_id ? (supabase.from('school_cursos' as any) as any).select('*').eq('id', turma.curso_id).maybeSingle() : Promise.resolve({ data: null }),
       (docenteId ?? turma?.docente_id) ? (supabase.from('school_docentes' as any) as any).select('*').eq('id', docenteId ?? turma?.docente_id).maybeSingle() : Promise.resolve({ data: null }),
@@ -182,6 +191,7 @@ export default function SchoolCertificados() {
 
     return {
       codigo,
+      cliente,
       aluno: { nome: aluno?.nome ?? '—', cpf: aluno?.cpf ?? null, cnh_renach: (aluno as any)?.cnh_renach ?? null, cnh_categoria: (aluno as any)?.cnh_categoria ?? null },
       curso: {
         nome: curso.nome,

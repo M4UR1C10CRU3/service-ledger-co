@@ -3,6 +3,7 @@ import { tituloResponsavelTecnico } from '@/lib/qualificacaoInstrutor';
 import { addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { generateCertificadoPDF, type CertificadoPDFData } from '@/lib/generateCertificadoPDF';
+import { reconhecimentoParaCertificado, type ClienteDoAluno } from '@/lib/reconhecimentoCertificado';
 
 /**
  * Emissão de certificados do Clariza School.
@@ -137,6 +138,8 @@ export interface FonteCertificado {
   emitido_em: string;
   validade_em?: string | null;
   config: CertConfigEmpresa;
+  /** Cliente corporativo do aluno (ou da turma). Decide o reconhecimento e o selo. Sem cliente = particular. */
+  cliente?: ClienteDoAluno | null;
 }
 
 /** Junta tudo o que vai ser impresso. Uma única definição, sem variantes. */
@@ -150,6 +153,7 @@ export async function montarDadosCertificado(f: FonteCertificado): Promise<Certi
   ]);
 
   const modulos = Array.isArray(f.curso.conteudo_programatico) ? f.curso.conteudo_programatico : [];
+  const reconhecimento = reconhecimentoParaCertificado(f.curso.reconhecimento, f.cliente);
 
   return {
     aluno_nome: f.aluno.nome,
@@ -173,7 +177,9 @@ export async function montarDadosCertificado(f: FonteCertificado): Promise<Certi
     conteudo_programatico: modulos,
     objetivo: f.curso.objetivo ?? null,
     metodologia: f.curso.metodologia ?? null,
-    reconhecimento: f.curso.reconhecimento ?? null,
+    // Texto e selo pelo cliente do aluno: Equatorial (elétrico/engenharia), Ipiranga (grupo) ou só CEE-AP.
+    reconhecimento: reconhecimento.texto,
+    logo_reconhecimento: reconhecimento.logo,
     aprovacao_minima: f.curso.aprovacao_minima ?? null,
     validade_anos: f.curso.validade_meses ? Math.round(f.curso.validade_meses / 12) : null,
     modulos_count: modulos.length || null,
