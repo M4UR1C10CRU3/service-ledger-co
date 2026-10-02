@@ -18,6 +18,22 @@
 
 export type GrupoReconhecimento = 'equatorial' | 'ipiranga' | 'nenhum';
 
+/**
+ * Cursos de bombeiros (02/10/2026): Bombeiro Civil, Brigada de Incêndio/Emergência e Proteção Contra Incêndios.
+ * Nestes, o topo do certificado leva o brasão do Corpo de Bombeiros Militar do Amapá em vez da Mais.com.
+ */
+export const eCursoDeBombeiros = (nomeCurso?: string | null) =>
+  /bombeiro\s+civil|brigada|prote[cç][aã]o\s+contra\s+inc[eê]ndio/i.test(nomeCurso || '');
+
+/** Arte da frente para o curso: a variante «-bombeiros» da arte do ITC nos cursos de bombeiros. */
+export function arteFrenteParaCurso(artePadrao: string | null | undefined, nomeCurso?: string | null): string | null {
+  if (!artePadrao) return artePadrao ?? null;
+  if (eCursoDeBombeiros(nomeCurso) && /\/certificado\/itc\/cert_page_1_branco\.png$/.test(artePadrao)) {
+    return artePadrao.replace(/\.png$/, '-bombeiros.png');
+  }
+  return artePadrao;
+}
+
 export interface ClienteDoAluno { nome?: string | null; segmento?: string | null }
 
 const GRUPO_IPIRANGA = /ipiranga|etecon|bureau|transdourada|caramuru|cianport/i;

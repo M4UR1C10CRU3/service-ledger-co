@@ -3,7 +3,7 @@ import { tituloResponsavelTecnico } from '@/lib/qualificacaoInstrutor';
 import { addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { generateCertificadoPDF, type CertificadoPDFData } from '@/lib/generateCertificadoPDF';
-import { reconhecimentoParaCertificado, type ClienteDoAluno } from '@/lib/reconhecimentoCertificado';
+import { reconhecimentoParaCertificado, arteFrenteParaCurso, type ClienteDoAluno } from '@/lib/reconhecimentoCertificado';
 
 /**
  * Emissão de certificados do Clariza School.
@@ -185,7 +185,8 @@ export async function montarDadosCertificado(f: FonteCertificado): Promise<Certi
     modulos_count: modulos.length || null,
 
     marca_agua: fundoCurso,
-    arte_frente: f.config.cert_arte_frente_path,
+    // Cursos de bombeiros: brasão do CBMAP no topo, no lugar da Mais.com (arte «-bombeiros»).
+    arte_frente: arteFrenteParaCurso(f.config.cert_arte_frente_path, f.curso.nome),
     arte_verso: f.config.cert_arte_verso_path,
     texto_institucional: f.config.cert_texto_institucional,
     rodape: f.config.cert_rodape,
