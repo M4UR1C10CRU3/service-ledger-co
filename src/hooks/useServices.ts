@@ -184,6 +184,18 @@ const loadServicesFromDatabase = async (empresaId?: string): Promise<Service[]> 
   }
 };
 
+/**
+ * Quanto de um registo 'fatura' está de facto faturado.
+ * - com faturas lançadas → valorFaturado;
+ * - adjudicado ainda sem fatura (Fase 1, aRealizar) → 0;
+ * - registo antigo, em que o registo era a própria fatura → valorComIVA.
+ * Verificado a 02/10/2026: todos os registos antigos com valorFaturado 0 têm aRealizar falso.
+ */
+export function faturadoEfetivoDe(s: Pick<Service, 'valorFaturado' | 'valorComIVA' | 'aRealizar'>): number {
+  if ((s.valorFaturado || 0) > 0) return s.valorFaturado || 0;
+  return s.aRealizar ? 0 : (s.valorComIVA || 0);
+}
+
 export const useServices = (empresaId?: string) => {
   const [services, setServices] = useState<Service[]>([]);
   const [liquidacoes, setLiquidacoes] = useState<Record<string, Liquidacao[]>>({});
@@ -339,10 +351,15 @@ export const useServices = (empresaId?: string) => {
     // Desconto / Negociação (deduzido do total a liquidar)
     const descontoNegociacao = service.desconto || 0;
     
-    // Débito: para faturas é baseado no valorComIVA menos notas de crédito menos desconto menos o que foi liquidado
-    // Para contratos o débito é 0 (o débito real está nas faturas vinculadas)
-    const executadoEmDebito = service.tipoServico === 'fatura' 
-      ? Math.max(0, service.valorComIVA - totalNotasCredito - descontoNegociacao - liquidadoCalculated)
+    // Débito = o que foi FATURADO e ainda não foi pago (02/10/2026). Três casos, verificados nos dados reais:
+    //  - há faturas lançadas (valorFaturado > 0): conta só o faturado — o resto do trabalho ainda não é dívida.
+    //    Antes contava o valor total do trabalho, e o «Em débito» ficava maior do que o «Total faturado».
+    //  - trabalho adjudicado ainda sem fatura (Fase 1: valorFaturado 0 e aRealizar): não é dívida.
+    //  - registo antigo, em que o próprio registo era a fatura (valorFaturado 0, aRealizar falso): fica como estava.
+    // Contratos: 0 (o débito real está nas faturas vinculadas).
+    const faturadoEfetivo = faturadoEfetivoDe(service);
+    const executadoEmDebito = service.tipoServico === 'fatura'
+      ? Math.max(0, faturadoEfetivo - totalNotasCredito - descontoNegociacao - liquidadoCalculated)
       : 0;
     
     // Percentual liquidado: para faturas é sobre valorComIVA; para contratos é sobre valorFaturado
@@ -386,8 +403,10 @@ export const useServices = (empresaId?: string) => {
     // Total da proposta (valor acordado)
     const totalContratado = allServices.reduce((sum, service) => sum + service.valorComIVA, 0);
     
-    // Total efetivamente faturado
-    const totalFaturado = allServices.reduce((sum, service) => sum + (service.valorFaturado || 0), 0);
+    // Total efetivamente faturado — inclui as faturas antigas (registo = fatura, sem valorFaturado preenchido),
+    // que antes contavam como zero. Mesma regra do débito (faturadoEfetivoDe).
+    const totalFaturado = allServices.reduce((sum, service) =>
+      sum + (service.tipoServico === 'contrato' ? (service.valorFaturado || 0) : faturadoEfetivoDe(service)), 0);
     
     // Total não faturado (diferença entre proposta e faturado)
     const totalARealizar = allServices.reduce((sum, service) => sum + service.valorARealizar, 0);

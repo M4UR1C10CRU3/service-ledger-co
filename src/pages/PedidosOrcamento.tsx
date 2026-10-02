@@ -190,6 +190,8 @@ export default function PedidosOrcamento() {
       clienteNome: po.clienteNome,
       clienteMorada: po.clienteMorada || '',
       clienteNif: po.clienteNif || '',
+      // Sem o id, a proposta ficava só com o nome e saía das comissões e dos KPI do vendedor.
+      vendedorId: po.vendedorId || null,
       vendedorNome: po.vendedorNome || '',
       dataEmissao: po.dataEmissao,
       titulo: po.titulo || '',
