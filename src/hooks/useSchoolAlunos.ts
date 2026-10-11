@@ -13,6 +13,7 @@ export interface SchoolAluno {
   data_nascimento: string | null;
   status: string;
   empresa_trabalho: string | null;
+  cliente_corp_id: string | null;
   foto_url: string | null;
   ativo: boolean;
   created_at: string;

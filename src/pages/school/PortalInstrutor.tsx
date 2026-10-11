@@ -4,7 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePortalInstrutor } from '@/hooks/usePortalInstrutor';
-import { BookOpen, Users, CheckCircle2, User, GraduationCap } from 'lucide-react';
+import { LancamentoTurma } from '@/components/school/LancamentoTurma';
+import { MateriaisTurma } from '@/components/school/MateriaisTurma';
+import { AgendaSchool } from '@/components/school/AgendaSchool';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Users, CheckCircle2, User, GraduationCap, ClipboardList, FolderOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -24,13 +28,18 @@ const STATUS_MAT: Record<string, { label: string; cls: string }> = {
 };
 
 function fmt(d: string | null) {
-  return d ? format(new Date(d + 'T00:00:00'), 'dd/MM/yyyy', { locale: pt }) : '—';
+  // DATE vem "2026-06-15"; TIMESTAMP vem com hora. Ver a nota em PortalAluno.
+  if (!d) return '—';
+  const dt = new Date(d.length === 10 ? `${d}T00:00:00` : d);
+  return isNaN(dt.getTime()) ? '—' : format(dt, 'dd/MM/yyyy', { locale: pt });
 }
 
 export default function PortalInstrutor() {
   const { data, isLoading } = usePortalInstrutor();
   const [tab, setTab] = useState('turmas');
   const [turmaFiltro, setTurmaFiltro] = useState<string | null>(null);
+  const [lancando, setLancando] = useState<string | null>(null);
+  const [materiaisDe, setMateriaisDe] = useState<string | null>(null);
 
   if (isLoading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -75,31 +84,71 @@ export default function PortalInstrutor() {
       <Tabs value={tab} onValueChange={v => { setTab(v); setTurmaFiltro(null); }}>
         <TabsList>
           <TabsTrigger value="turmas">Minhas Turmas</TabsTrigger>
+          <TabsTrigger value="agenda">Minha Agenda</TabsTrigger>
           <TabsTrigger value="alunos">Alunos</TabsTrigger>
           <TabsTrigger value="perfil">Meu Perfil</TabsTrigger>
         </TabsList>
+
+        {/* A agenda mostra só os compromissos deste instrutor — o filtro está
+            na função school_agenda, não neste ecrã. */}
+        <TabsContent value="agenda" className="mt-4">
+          <AgendaSchool />
+        </TabsContent>
 
         {/* Turmas */}
         <TabsContent value="turmas" className="space-y-3 mt-4">
           {turmas.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground"><BookOpen className="h-8 w-8 mx-auto mb-2 opacity-30" /><p className="text-sm">Nenhuma turma atribuída.</p></div>
-          ) : turmas.map(t => (
-            <Card key={t.id} className="cursor-pointer hover:border-primary/40 transition-colors" onClick={() => { setTurmaFiltro(t.id); setTab('alunos'); }}>
-              <CardContent className="p-4 flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="font-medium">{t.titulo}</p>
-                  <p className="text-sm text-muted-foreground">{t.curso_nome}</p>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                    {t.local && <span>{t.local}</span>}
-                    {t.inicio && <span>Início: {fmt(t.inicio)}</span>}
-                    {t.fim && <span>Fim: {fmt(t.fim)}</span>}
-                    <span>{t.total_matriculas} aluno{t.total_matriculas !== 1 ? 's' : ''}</span>
+          ) : turmas.map(t => {
+            const aberta = lancando === t.id;
+            const comMateriais = materiaisDe === t.id;
+            return (
+              <Card key={t.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="font-medium">{t.titulo}</p>
+                      <p className="text-sm text-muted-foreground">{t.curso_nome}</p>
+                      <div className="flex gap-3 text-xs text-muted-foreground">
+                        {t.local && <span>{t.local}</span>}
+                        {t.inicio && <span>Início: {fmt(t.inicio)}</span>}
+                        {t.fim && <span>Fim: {fmt(t.fim)}</span>}
+                        <span>{t.total_matriculas} aluno{t.total_matriculas !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className={STATUS_TURMA[t.status]?.cls ?? ''}>{STATUS_TURMA[t.status]?.label ?? t.status}</Badge>
+                      {/* Só aparece nas turmas deste instrutor, que são as
+                          únicas que o hook devolve — e as únicas onde as regras
+                          da base de dados o deixam escrever. */}
+                      <Button size="sm" variant={aberta ? 'secondary' : 'outline'}
+                        onClick={() => setLancando(aberta ? null : t.id)}>
+                        <ClipboardList className="h-4 w-4 mr-1.5" />
+                        {aberta ? 'Fechar' : 'Chamada e notas'}
+                      </Button>
+                      {/* O material da aula pertence a este sítio: é onde o
+                          instrutor já está quando pensa nele. */}
+                      <Button size="sm" variant={comMateriais ? 'secondary' : 'outline'}
+                        onClick={() => setMateriaisDe(comMateriais ? null : t.id)}>
+                        <FolderOpen className="h-4 w-4 mr-1.5" />
+                        {comMateriais ? 'Fechar' : 'Materiais'}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <Badge variant="outline" className={STATUS_TURMA[t.status]?.cls ?? ''}>{STATUS_TURMA[t.status]?.label ?? t.status}</Badge>
-              </CardContent>
-            </Card>
-          ))}
+
+                  {aberta && <LancamentoTurma turmaId={t.id} />}
+
+                  {comMateriais && (
+                    <MateriaisTurma
+                      turmaId={t.id}
+                      empresaId={docente.empresa_id}
+                      docenteId={docente.id}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </TabsContent>
 
         {/* Alunos */}

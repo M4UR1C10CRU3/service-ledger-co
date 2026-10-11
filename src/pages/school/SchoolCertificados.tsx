@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Award, Trash2, ExternalLink, Plus, AlertTriangle, CheckCircle2, FileText, Loader2, Download, PackageOpen } from 'lucide-react';
+import { Search, Award, Trash2, ExternalLink, Plus, AlertTriangle, CheckCircle2, FileText, Loader2, Download, PackageOpen, ShieldCheck, Copy, Check } from 'lucide-react';
 import { useSchoolCertificados, SchoolCertificadoInput } from '@/hooks/useSchoolCertificados';
 import { useSchoolAlunos } from '@/hooks/useSchoolAlunos';
 import { useSchoolTurmas } from '@/hooks/useSchoolTurmas';
@@ -19,7 +19,18 @@ import { useSchoolCursos } from '@/hooks/useSchoolCursos';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { format, addMonths, isPast } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { generateCertificadoPDF } from '@/lib/generateCertificadoPDF';
+import {
+  carregarConfigCertificado,
+  produzirPDF,
+  instantaneo,
+  guardarPDF,
+  urlAssinadaPDF,
+  gerarCodigoCertificado,
+  urlVerificacao,
+  calcularValidade,
+  type CertConfigEmpresa,
+  type FonteCertificado,
+} from '@/lib/certificadoEmissao';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import JSZip from 'jszip';
@@ -33,7 +44,7 @@ const EMPTY: Omit<SchoolCertificadoInput, 'codigo'> & { sigla?: string } = {
 export default function SchoolCertificados() {
   const [searchParams] = useSearchParams();
   const turmaFiltro = searchParams.get('turma');
-  const { certificados, isLoading, emitirCertificado, deleteCertificado, gerarCodigo } = useSchoolCertificados();
+  const { certificados, isLoading, emitirCertificado, deleteCertificado } = useSchoolCertificados();
   const { alunos } = useSchoolAlunos();
   const { turmas } = useSchoolTurmas();
   const { docentes } = useSchoolDocentes();
@@ -46,6 +57,8 @@ export default function SchoolCertificados() {
   const [form, setForm] = useState({ ...EMPTY, turma_id: turmaFiltro ?? '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  /** Certificado cujo link acabou de ser copiado — confirma que a cópia deu. */
+  const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
 
   // Emissão em lote
   const [batchOpen, setBatchOpen] = useState(false);
@@ -62,7 +75,9 @@ export default function SchoolCertificados() {
     (supabase as any).from('school_matriculas')
       .select('aluno_id')
       .eq('turma_id', batchTurmaId)
-      .eq('status', 'concluido')
+      // A base de dados grava 'concluida'. Pedir 'concluido' devolvia sempre zero
+      // e a emissao em lote dizia "nenhum aluno concluido nesta turma".
+      .eq('status', 'concluida')
       .then(({ data }: any) => {
         const list = (data || []).map((m: any) => {
           const a = alunos.find(x => x.id === m.aluno_id);
@@ -91,88 +106,129 @@ export default function SchoolCertificados() {
     return turma ? cursos.find(c => c.id === turma.curso_id) : undefined;
   };
 
-  const getDocenteSignedUrl = async (docente_id: string | null): Promise<string | null> => {
-    if (!docente_id) return null;
-    const docente = docentes.find(d => d.id === docente_id);
-    if (!docente?.assinatura_path) return null;
-    const { data } = await supabase.storage.from('school-documentos').createSignedUrl(docente.assinatura_path, 3600);
-    return data?.signedUrl ?? null;
-  };
+  // Configuração de certificados da empresa (artes, diretor, site de
+  // verificação). Lida uma vez; sem ela o PDF sairia sem logótipos.
+  const [certConfig, setCertConfig] = useState<CertConfigEmpresa | null>(null);
+  useEffect(() => {
+    if (!empresa?.id) { setCertConfig(null); return; }
+    let cancelado = false;
+    carregarConfigCertificado(empresa.id)
+      .then(c => { if (!cancelado) setCertConfig(c); })
+      .catch(e => toast({ title: 'Erro ao ler a configuração de certificados', description: e.message, variant: 'destructive' }));
+    return () => { cancelado = true; };
+  }, [empresa?.id]);
 
-  const handleEmitir = () => {
-    if (!form.aluno_id || !form.turma_id) return;
-    const curso = getCurso(form.turma_id);
-    const validadeMeses = curso?.validade_meses ?? null;
-    const validade_em = validadeMeses
-      ? addMonths(new Date(form.emitido_em + 'T00:00:00'), validadeMeses).toISOString().split('T')[0]
-      : form.validade_em;
-    emitirCertificado.mutate({ ...form, validade_em });
-    setFormOpen(false);
-  };
-
-  const buildPDFData = async (cert: typeof certificados[0], docenteId?: string | null) => {
-    const turma = turmas.find(t => t.id === cert.turma_id);
+  /** Junta aluno, turma, curso e docente numa fonte única para o gerador. */
+  const montarFonte = (
+    codigo: string,
+    alunoId: string,
+    turmaId: string,
+    docenteId: string | null,
+    emitido_em: string,
+    validade_em: string | null,
+  ): FonteCertificado => {
+    if (!certConfig) throw new Error('Configuração de certificados ainda não carregada.');
+    const turma = turmas.find(t => t.id === turmaId);
     const curso = cursos.find(cu => cu.id === turma?.curso_id);
-    const docId = docenteId !== undefined ? docenteId : cert.docente_id;
-    const docente = docentes.find(d => d.id === docId);
-    const assinaturaUrl = await getDocenteSignedUrl(docId ?? null);
-    const aluno = alunos.find(a => a.id === cert.aluno_id);
+    const aluno = alunos.find(a => a.id === alunoId);
+    // Sem docente escolhido no certificado, vale o docente da turma.
+    const docente = docentes.find(d => d.id === (docenteId ?? turma?.docente_id));
+
+    if (!curso) throw new Error('A turma não tem curso associado — não é possível emitir.');
 
     return {
-      aluno_nome: cert.aluno_nome ?? cert.aluno_id,
-      aluno_cpf: aluno?.cpf ?? null,
-      curso_nome: cert.curso_nome ?? curso?.nome ?? '—',
-      curso_categoria: curso?.categoria ?? null,
-      carga_horaria: curso?.carga_horaria ?? null,
-      horas_teoricas: curso?.horas_teoricas ?? null,
-      horas_praticas: curso?.horas_praticas ?? null,
-      data_inicio: turma?.inicio ?? null,
-      emitido_em: cert.emitido_em,
-      validade_em: cert.validade_em,
-      docente_nome: docente?.nome ?? cert.docente_nome ?? null,
-      docente_assinatura_url: assinaturaUrl,
-      codigo: cert.codigo,
-      empresa_nome: empresa?.nome ?? 'ITC',
-      empresa_aplicacao: null,
-      conteudo_programatico: Array.isArray(curso?.conteudo_programatico)
-        ? (curso!.conteudo_programatico as { modulo: string; horas: number }[])
-        : [],
-      objetivo: curso?.objetivo ?? null,
-      reconhecimento: curso?.reconhecimento ?? null,
-      aprovacao_minima: curso?.aprovacao_minima ?? null,
-      validade_anos: curso?.validade_meses ? Math.round(curso.validade_meses / 12) : null,
-      modulos_count: Array.isArray(curso?.conteudo_programatico)
-        ? (curso!.conteudo_programatico as any[]).length
-        : null,
+      codigo,
+      aluno: { nome: aluno?.nome ?? '—', cpf: aluno?.cpf ?? null },
+      curso: {
+        nome: curso.nome,
+        categoria: (curso as any).categoria ?? null,
+        carga_horaria: curso.carga_horaria,
+        horas_teoricas: curso.horas_teoricas,
+        horas_praticas: curso.horas_praticas,
+        conteudo_programatico: Array.isArray(curso.conteudo_programatico) ? curso.conteudo_programatico : [],
+        objetivo: (curso as any).objetivo ?? null,
+        metodologia: (curso as any).metodologia ?? null,
+        reconhecimento: (curso as any).reconhecimento ?? null,
+        aprovacao_minima: (curso as any).aprovacao_minima ?? null,
+        validade_meses: curso.validade_meses,
+        template_cert_path: (curso as any).template_cert_path ?? null,
+      },
+      docente: docente ? { nome: docente.nome, assinatura_path: (docente as any).assinatura_path ?? null } : null,
+      turma: turma ? { inicio: turma.inicio, fim: turma.fim, empresa_aplicacao: (turma as any).empresa_aplicacao ?? null } : null,
+      emitido_em,
+      validade_em,
+      config: certConfig,
     };
   };
 
-  const uploadAndSavePDF = async (certId: string, codigo: string, blob: Blob): Promise<string | null> => {
-    const path = `${empresa?.id}/certificados/${new Date().getFullYear()}/${codigo}.pdf`;
-    const { error } = await supabase.storage
-      .from('school-certificados')
-      .upload(path, blob, { contentType: 'application/pdf', upsert: true });
-    if (error) return null;
-    const { data: urlData } = supabase.storage.from('school-certificados').getPublicUrl(path);
-    await (supabase as any).from('school_certificados').update({ url_pdf: urlData.publicUrl }).eq('id', certId);
-    return urlData.publicUrl;
+  const handleEmitir = async () => {
+    if (!form.aluno_id || !form.turma_id || !empresa) return;
+    setFormOpen(false);
+    try {
+      const curso = getCurso(form.turma_id);
+      const validade_em = calcularValidade(form.emitido_em, curso?.validade_meses) ?? form.validade_em;
+
+      // A ordem importa: só reservamos codificação depois de sabermos que
+      // conseguimos montar o certificado, para não queimar códigos.
+      const { codigo } = await gerarCodigoCertificado(empresa.id);
+      const fonte = montarFonte(codigo, form.aluno_id, form.turma_id, form.docente_id, form.emitido_em, validade_em);
+      const { blob, dados } = await produzirPDF(fonte);
+
+      await emitirCertificado.mutateAsync({
+        aluno_id: form.aluno_id,
+        turma_id: form.turma_id,
+        docente_id: form.docente_id,
+        emitido_em: form.emitido_em,
+        validade_em,
+        url_pdf: null,
+        codigo,
+        pdfBlob: blob,
+        snapshot: instantaneo(fonte, dados),
+      } as any);
+
+      descarregar(blob, `${codigo}.pdf`);
+    } catch (e: any) {
+      toast({ title: 'Erro ao emitir', description: e.message, variant: 'destructive' });
+    }
   };
 
+  const descarregar = (blob: Blob, nome: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nome; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /** Regera o PDF de um certificado já emitido, mantendo a mesma codificação. */
   const handleGerarPDF = async (cert: typeof certificados[0]) => {
+    if (!empresa) return;
     setGeneratingPdf(cert.id);
     try {
-      const pdfData = await buildPDFData(cert);
-      const blob = await generateCertificadoPDF(pdfData);
-      await uploadAndSavePDF(cert.id, cert.codigo, blob);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `${cert.codigo}.pdf`; a.click();
-      URL.revokeObjectURL(url);
+      const fonte = montarFonte(cert.codigo, cert.aluno_id, cert.turma_id, cert.docente_id, cert.emitido_em, cert.validade_em);
+      const { blob } = await produzirPDF(fonte);
+      const path = await guardarPDF(empresa.id, cert.codigo, blob);
+      const { data, error } = await (supabase as any)
+        .from('school_certificados').update({ url_pdf: path }).eq('id', cert.id).select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Não foi possível atualizar o certificado.');
+      descarregar(blob, `${cert.codigo}.pdf`);
       toast({ title: 'PDF gerado', description: cert.codigo });
     } catch (e: any) {
       toast({ title: 'Erro ao gerar PDF', description: e.message, variant: 'destructive' });
     } finally {
       setGeneratingPdf(null);
+    }
+  };
+
+  /** Abre o PDF guardado. O bucket é privado, logo precisa de URL assinada. */
+  const handleAbrirPDF = async (cert: typeof certificados[0]) => {
+    if (!cert.url_pdf) return;
+    try {
+      const url = await urlAssinadaPDF(cert.url_pdf);
+      if (url) window.open(url, '_blank', 'noopener');
+      else toast({ title: 'PDF indisponível', description: 'O ficheiro não foi encontrado no arquivo.', variant: 'destructive' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao abrir o PDF', description: e.message, variant: 'destructive' });
     }
   };
 
@@ -188,7 +244,7 @@ export default function SchoolCertificados() {
       .from('school_matriculas')
       .select('aluno_id')
       .eq('turma_id', batchTurmaId)
-      .eq('status', 'concluido');
+      .eq('status', 'concluida');
 
     if (!matriculas?.length) {
       toast({ title: 'Nenhum aluno concluído nesta turma', variant: 'destructive' });
@@ -205,9 +261,9 @@ export default function SchoolCertificados() {
       return;
     }
 
-    const sigla = curso?.sigla_certificado ?? 'CERT';
     const zip = new JSZip();
     setBatchProgress({ done: 0, total: pendentes.length, label: 'A preparar...' });
+    const falhas: string[] = [];
 
     for (let i = 0; i < pendentes.length; i++) {
       const alunoId = pendentes[i].aluno_id;
@@ -218,11 +274,15 @@ export default function SchoolCertificados() {
 
       try {
         const emitido_em = batchDataEmissao;
-        const validade_em = addMonths(new Date(emitido_em + 'T00:00:00'), validadeMeses)
-          .toISOString().split('T')[0];
+        const validade_em = calcularValidade(emitido_em, validadeMeses);
 
-        // Criar registo de certificado
-        const codigo = gerarCodigo(sigla);
+        // Mesmo caminho da emissão individual — um só sítio a decidir o que
+        // vai impresso, para os dois modos não voltarem a divergir.
+        const { codigo } = await gerarCodigoCertificado(empresa!.id);
+        const fonte = montarFonte(codigo, alunoId, batchTurmaId, batchDocenteId || null, emitido_em, validade_em);
+        const { blob, dados } = await produzirPDF(fonte);
+        const path = await guardarPDF(empresa!.id, codigo, blob);
+
         const { data: novoCert, error: insertErr } = await (supabase as any)
           .from('school_certificados')
           .insert({
@@ -233,55 +293,30 @@ export default function SchoolCertificados() {
             codigo,
             emitido_em,
             validade_em,
-            url_pdf: null,
+            url_pdf: path,
+            ...instantaneo(fonte, dados),
           })
-          .select('id')
-          .single();
+          .select('id');
 
-        if (insertErr) continue;
+        if (insertErr) throw insertErr;
+        if (!novoCert?.length) throw new Error('gravação sem linhas devolvidas');
 
-        // Gerar PDF
-        const docente = docentes.find(d => d.id === batchDocenteId);
-        const assinaturaUrl = await getDocenteSignedUrl(batchDocenteId || null);
-
-        const blob = await generateCertificadoPDF({
-          aluno_nome: nomeAluno,
-          aluno_cpf: aluno?.cpf ?? null,
-          curso_nome: curso?.nome ?? '—',
-          curso_categoria: (curso as any)?.categoria ?? null,
-          carga_horaria: curso?.carga_horaria ?? null,
-          horas_teoricas: curso?.horas_teoricas ?? null,
-          horas_praticas: curso?.horas_praticas ?? null,
-          data_inicio: turma?.inicio ?? null,
-          emitido_em,
-          validade_em,
-          docente_nome: docente?.nome ?? null,
-          docente_assinatura_url: assinaturaUrl,
-          codigo,
-          empresa_nome: empresa?.nome ?? 'ITC',
-          empresa_aplicacao: null,
-          conteudo_programatico: Array.isArray(curso?.conteudo_programatico)
-            ? (curso!.conteudo_programatico as { modulo: string; horas: number }[])
-            : [],
-          objetivo: curso?.objetivo ?? null,
-          reconhecimento: curso?.reconhecimento ?? null,
-          aprovacao_minima: curso?.aprovacao_minima ?? null,
-          validade_anos: Math.round(validadeMeses / 12),
-          modulos_count: Array.isArray(curso?.conteudo_programatico)
-            ? (curso!.conteudo_programatico as any[]).length
-            : null,
-        });
-
-        // Upload para Storage
-        await uploadAndSavePDF(novoCert.id, codigo, blob);
-
-        // Adicionar ao ZIP
         const arrayBuf = await blob.arrayBuffer();
         zip.file(`${codigo}_${nomeAluno.replace(/\s+/g, '_')}.pdf`, arrayBuf);
-      } catch (e) {
-        // Continuar com próximo aluno
+      } catch (e: any) {
+        // Um aluno que falhe não trava os restantes, mas fica registado — antes
+        // desaparecia em silêncio e o lote dizia-se completo.
         console.error('Erro ao gerar cert para', alunoId, e);
+        falhas.push(`${nomeAluno}: ${e?.message ?? 'erro desconhecido'}`);
       }
+    }
+
+    if (falhas.length) {
+      toast({
+        title: `${falhas.length} de ${pendentes.length} certificados falharam`,
+        description: falhas.slice(0, 3).join(' · '),
+        variant: 'destructive',
+      });
     }
 
     setBatchProgress({ done: pendentes.length, total: pendentes.length, label: 'A gerar ZIP...' });
@@ -331,6 +366,17 @@ export default function SchoolCertificados() {
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Validar um certificado qualquer, pelo código.
+              Abre a MESMA página pública que uma empresa contratante ou um
+              auditor usa — de propósito. A secretaria vê exatamente o que o
+              outro lado vê, em vez de um ecrã interno que diz "válido" com
+              base noutra coisa. */}
+          <Button variant="outline" asChild>
+            <a href="/verificar" target="_blank" rel="noreferrer"
+               title="Confirmar a autenticidade de um certificado pelo código">
+              <ShieldCheck className="h-4 w-4 mr-2" />Validar Certificado
+            </a>
+          </Button>
           <Button variant="outline" onClick={() => { setBatchTurmaId(turmaFiltro ?? ''); setBatchOpen(true); }}>
             <PackageOpen className="h-4 w-4 mr-2" />Emissão em Lote
           </Button>
@@ -356,14 +402,15 @@ export default function SchoolCertificados() {
                 <TableHead>Emitido em</TableHead>
                 <TableHead>Válido até</TableHead>
                 <TableHead>Validade</TableHead>
+                <TableHead>Verificação online</TableHead>
                 <TableHead className="w-28" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">A carregar...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                   <Award className="h-8 w-8 mx-auto mb-2 opacity-30" />
                   {search ? 'Nenhum certificado encontrado' : 'Nenhum certificado emitido'}
                 </TableCell></TableRow>
@@ -375,13 +422,52 @@ export default function SchoolCertificados() {
                   <TableCell className="text-sm">{fmtDate(c.emitido_em)}</TableCell>
                   <TableCell className="text-sm">{fmtDate(c.validade_em)}</TableCell>
                   <TableCell>{vencimentoBadge(c.validade_em)}</TableCell>
+
+                  {/* Verificação online.
+                      É a coluna que a secretaria mais usa e estava reduzida a
+                      um ícone igual aos outros quatro — ninguém a encontrava.
+                      O botão diz o que faz, e o link fica à vista para se poder
+                      copiar e enviar a quem peça prova: a empresa que pagou a
+                      formação, um auditor, um fiscal.
+
+                      O botão abre no ambiente onde se está — serve para a
+                      secretaria conferir onde está a trabalhar. O que se copia
+                      é sempre o endereço público definitivo, porque esse vai
+                      sair daqui para fora. */}
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <Button size="sm" variant="outline" className="h-8" asChild>
+                        <a href={`/verificar/${encodeURIComponent(c.codigo)}`} target="_blank" rel="noreferrer"
+                           title="Abrir a página pública de autenticidade">
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Verificar
+                        </a>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8"
+                        title={`Copiar ${urlVerificacao(c.codigo)}`}
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(urlVerificacao(c.codigo));
+                            setLinkCopiado(c.id);
+                            setTimeout(() => setLinkCopiado(l => (l === c.id ? null : l)), 2000);
+                            toast({ title: 'Link copiado', description: urlVerificacao(c.codigo) });
+                          } catch {
+                            toast({ title: 'Não foi possível copiar', variant: 'destructive' });
+                          }
+                        }}>
+                        {linkCopiado === c.id
+                          ? <Check className="h-3.5 w-3.5 text-green-600" />
+                          : <Copy className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                  </TableCell>
+
                   <TableCell>
                     <div className="flex gap-1 justify-end">
                       <Button size="icon" variant="ghost" className="h-8 w-8" title="Gerar PDF" onClick={() => handleGerarPDF(c)} disabled={generatingPdf === c.id}>
                         {generatingPdf === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
                       </Button>
                       {c.url_pdf && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver PDF" onClick={() => window.open(c.url_pdf!, '_blank')}>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Ver PDF" onClick={() => handleAbrirPDF(c)}>
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       )}

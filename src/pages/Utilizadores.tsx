@@ -15,6 +15,7 @@ import { Users, ShieldCheck, UserCog, User, Plus, Pencil, Key, RotateCcw, Trash2
 import { usePermissions } from '@/hooks/usePermissions';
 import { useUtilizadores, ALL_MODULES, PROFILE_PRESETS, LibertyUtilizador } from '@/hooks/useUtilizadores';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { temEntradaPropria } from '@/lib/verticais';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
@@ -36,6 +37,17 @@ export default function Utilizadores() {
     utilizadores, isLoading, createUtilizador, updateUtilizador,
     savePermissoes, deleteUtilizador, fetchUtilizadorEmpresas, fetchUtilizadorPermissoes,
   } = useUtilizadores();
+
+  /**
+   * Empresas que se podem atribuir a partir DESTE ecrã.
+   *
+   * Num vertical com entrada própria — o ITC, o Elo Giro, a Agência Demo — o
+   * ambiente é do cliente e não partilha nada com o grupo. Oferecer ali uma
+   * lista com a Obrajusta e a Tudo Casa mostrava-lhe os nomes das outras
+   * empresas, que não são assunto dele.
+   */
+  const soEsteAmbiente = temEntradaPropria(empresa?.vertical);
+  const empresasAtribuiveis = soEsteAmbiente && empresa ? [empresa] : empresas;
 
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -97,7 +109,10 @@ export default function Utilizadores() {
     setFormNome(u.nome); setFormEmail(u.email); setFormTelefone(u.telefone || '');
     setFormCargo(u.cargo || ''); setFormPerfil(u.perfil);
     setFormEmpresaPadrao(u.empresa_padrao || '');
-    const emps = await fetchUtilizadorEmpresas(u.id);
+    // Só as que este ecrã mostra — assinalar caixas invisíveis dava a ideia
+    // errada do que se está a guardar.
+    const geriveis = empresasAtribuiveis.map(e => e.id);
+    const emps = (await fetchUtilizadorEmpresas(u.id)).filter(id => geriveis.includes(id));
     setFormEmpresas(emps);
     if (!u.empresa_padrao && emps.length > 0) setFormEmpresaPadrao(emps[0]);
     setEditingUser(u);
@@ -137,10 +152,15 @@ export default function Utilizadores() {
   const handleUpdate = async () => {
     if (!editingUser) return;
     try {
+      // Só se enviam as empresas que este ecrã gere. As outras ficam como
+      // estão — nem apagadas, nem reinseridas em duplicado.
+      const geriveis = empresasAtribuiveis.map(e => e.id);
+      const selecionadas = formEmpresas.filter(id => geriveis.includes(id));
       await updateUtilizador(editingUser.id, {
         nome: formNome, telefone: formTelefone, cargo: formCargo,
-        perfil: formPerfil, empresaIds: formEmpresas,
-        empresaPadrao: formEmpresaPadrao || formEmpresas[0],
+        perfil: formPerfil, empresaIds: selecionadas,
+        empresaPadrao: formEmpresaPadrao || selecionadas[0],
+        empresasGeriveis: geriveis,
       });
       setEditingUser(null);
     } catch (e: any) {
@@ -253,7 +273,7 @@ export default function Utilizadores() {
         <div>
           <Label>Empresas com acesso *</Label>
           <div className="space-y-2 mt-1">
-            {empresas.map(emp => (
+            {empresasAtribuiveis.map(emp => (
               <label key={emp.id} className="flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={formEmpresas.includes(emp.id)}
@@ -272,7 +292,7 @@ export default function Utilizadores() {
             <Select value={formEmpresaPadrao} onValueChange={setFormEmpresaPadrao}>
               <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
               <SelectContent>
-                {empresas.filter(e => formEmpresas.includes(e.id)).map(e => (
+                {empresasAtribuiveis.filter(e => formEmpresas.includes(e.id)).map(e => (
                   <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                 ))}
               </SelectContent>

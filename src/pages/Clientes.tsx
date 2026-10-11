@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
+import { clienteComMesmoNif } from '@/lib/nifDuplicado';
 import { useClientes } from '@/hooks/useClientes';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
@@ -55,7 +57,9 @@ export default function Clientes() {
   const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { clientes, isLoading, addCliente, updateCliente, deleteCliente, refreshClientes } = useClientes();
   const { logActivity } = useActivityLogger();
-  
+  /** Os clientes pertencem ao GRUPO — é esse o âmbito da procura de NIF repetido. */
+  const { grupoId } = useGrupoEmpresas();
+
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Sistema';
   
@@ -168,6 +172,20 @@ export default function Clientes() {
       toast({
         title: "Erro",
         description: "O nome do cliente é obrigatório.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ── O NIF já pertence a outro cadastro? ─────────────────────────────
+    // Compara só os dígitos: "PT 123 456 789" e "123456789" são o mesmo
+    // contribuinte, e é por aí que os duplicados entram sem dar nas vistas.
+    // Na edição ignora-se o próprio cadastro, senão acusava-se a si mesmo.
+    const repetido = await clienteComMesmoNif(formData.nif, grupoId, editingCliente?.id);
+    if (repetido) {
+      toast({
+        title: "NIF já registado",
+        description: `O NIF ${formData.nif} já pertence ao cliente "${repetido.nome}". Verifique se não está a criar um cadastro repetido.`,
         variant: "destructive",
       });
       return;

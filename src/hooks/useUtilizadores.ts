@@ -76,17 +76,35 @@ export function useUtilizadores() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all utilizadores
+  /**
+   * Utilizadores DESTA empresa.
+   *
+   * A consulta não filtrava nada: trazia toda a gente com conta no Clariza,
+   * estivesse-se onde se estivesse. Dentro da Agência Demo ou do ITC — que são
+   * ambientes de cliente — isso mostrava a lista de pessoas do grupo, com
+   * nomes e endereços de correio de outra empresa.
+   *
+   * A regra passa a ser a que já existe para tudo o resto: quem tem linha em
+   * `liberty_utilizador_empresas` para a empresa ativa. Sem empresa escolhida,
+   * a lista é vazia — nunca "todos".
+   *
+   * A chave da consulta inclui a empresa. Sem isso, trocar de ambiente servia
+   * a lista anterior a partir da cache, que é o mesmo furo por outro caminho.
+   */
   const { data: utilizadores = [], isLoading } = useQuery({
-    queryKey: ['liberty-utilizadores'],
+    queryKey: ['liberty-utilizadores', empresa?.id ?? null],
+    enabled: Boolean(empresa),
     queryFn: async () => {
+      if (!empresa) return [] as LibertyUtilizador[];
       const { data, error } = await (supabase
-        .from('liberty_utilizadores') as any)
-        .select('*')
-        .eq('eliminado', false)
-        .order('nome');
+        .from('liberty_utilizador_empresas') as any)
+        .select('liberty_utilizadores!inner(*)')
+        .eq('empresa_id', empresa.id);
       if (error) throw error;
-      return (data || []) as LibertyUtilizador[];
+      return ((data || []) as any[])
+        .map(r => r.liberty_utilizadores)
+        .filter(u => u && u.eliminado !== true)
+        .sort((a, b) => (a.nome || '').localeCompare(b.nome || '')) as LibertyUtilizador[];
     },
   });
 
@@ -196,6 +214,15 @@ export function useUtilizadores() {
     ativo: boolean;
     empresaIds: string[];
     empresaPadrao: string;
+    /**
+     * Empresas que ESTE ecrã gere. Fora desta lista, nada é tocado.
+     *
+     * Sem isto, guardar uma edição apagava todas as ligações do utilizador e
+     * reinseria só as que estavam à vista. A partir de um ambiente de cliente,
+     * onde só se vê uma empresa, isso apagava-lhe o acesso a todas as outras —
+     * silenciosamente, e com ar de ter corrido bem.
+     */
+    empresasGeriveis: string[];
   }>) => {
     const updateData: any = { atualizado_em: new Date().toISOString() };
     if (params.nome !== undefined) updateData.nome = params.nome;
@@ -211,9 +238,14 @@ export function useUtilizadores() {
 
     // Update empresas if provided
     if (params.empresaIds) {
-      await (supabase.from('liberty_utilizador_empresas') as any)
+      let apagar = (supabase.from('liberty_utilizador_empresas') as any)
         .delete()
         .eq('utilizador_id', id);
+      // Só se mexe no que este ecrã gere — ver `empresasGeriveis`.
+      if (params.empresasGeriveis?.length) {
+        apagar = apagar.in('empresa_id', params.empresasGeriveis);
+      }
+      await apagar;
       if (params.empresaIds.length > 0) {
         await (supabase.from('liberty_utilizador_empresas') as any)
           .insert(params.empresaIds.map(eid => ({

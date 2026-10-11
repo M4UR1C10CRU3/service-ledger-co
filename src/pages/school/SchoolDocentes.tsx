@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,10 +11,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Search, UserRound, Pencil, Trash2, FileText, Upload, Eye, X, Clock, BookOpen, Download } from 'lucide-react';
 import { useSchoolDocentes, SchoolDocente, SchoolDocenteInput, SchoolDocumentoDocente } from '@/hooks/useSchoolDocentes';
 import { useSchoolCursos } from '@/hooks/useSchoolCursos';
+import { useEmpresa } from '@/contexts/EmpresaContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { resolverImagem } from '@/lib/certificadoEmissao';
+import { AcessoPortalBotao } from '@/components/school/AcessoPortalBotao';
 
 const EMPTY: SchoolDocenteInput = {
   nome: '', email: null, telefone: null, foto_path: null, formacao: null,
-  area_especializacao: null, tempo_experiencia: null, resumo: null, cursos_ids: [], ativo: true,
+  area_especializacao: null, tempo_experiencia: null, resumo: null,
+  assinatura_path: null, cursos_ids: [], ativo: true,
 };
 
 const TIPO_DOC_LABELS: Record<string, string> = {
@@ -53,6 +59,11 @@ function DocenteCard({ d, cursos, onEdit, onDocs, onDelete }: {
               <p className="text-sm text-muted-foreground mt-1">{d.formacao}</p>
             )}
           </div>
+        </div>
+
+        {/* Acesso ao portal do instrutor */}
+        <div className="flex justify-center">
+          <AcessoPortalBotao email={d.email} ligado={!!(d as any).auth_user_id} compacto />
         </div>
 
         {/* Badges: especialização + experiência */}
@@ -181,6 +192,42 @@ export default function SchoolDocentes() {
   const f = (field: keyof SchoolDocenteInput, value: any) =>
     setForm(p => ({ ...p, [field]: value || null }));
 
+  // ── Assinatura digitalizada ───────────────────────────────────────────────
+  // É esta imagem que aparece sobre a linha do Instrutor Responsável no
+  // certificado. Sem ela sai só a linha e o nome dactilografado.
+  const { empresa } = useEmpresa();
+  const { toast } = useToast();
+  const [aCarregarAss, setACarregarAss] = useState(false);
+  const [previaAss, setPreviaAss] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!form.assinatura_path) { setPreviaAss(null); return; }
+    resolverImagem(form.assinatura_path)
+      .then(u => { if (!cancelado) setPreviaAss(u); })
+      .catch(() => { if (!cancelado) setPreviaAss(null); });
+    return () => { cancelado = true; };
+  }, [form.assinatura_path]);
+
+  const carregarAssinatura = async (file: File) => {
+    if (!empresa) return;
+    setACarregarAss(true);
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${empresa.id}/assinaturas/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from('school-documentos')
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (error) throw error;
+      f('assinatura_path', path);
+      toast({ title: 'Assinatura carregada', description: 'Gravar o instrutor para a aplicar.' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao carregar a assinatura', description: e.message, variant: 'destructive' });
+    } finally {
+      setACarregarAss(false);
+    }
+  };
+
   // ─── Painel de edição lateral / full ────────────────────────────────────────
   if (panelOpen) {
     return (
@@ -247,6 +294,40 @@ export default function SchoolDocentes() {
                     placeholder="Descreva a experiência, formação e competências do instrutor..."
                   />
                   <p className="text-xs text-right text-muted-foreground">{(form.resumo ?? '').length}/400</p>
+                </div>
+
+                <div className="space-y-1">
+                  <Label>Assinatura digitalizada</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Aparece sobre a linha do Instrutor Responsável nos certificados que
+                    este instrutor assinar. Use PNG com fundo transparente ou branco.
+                  </p>
+                  <div className="flex items-center gap-4 pt-1">
+                    <div className="h-16 w-40 shrink-0 rounded border bg-white overflow-hidden flex items-center justify-center">
+                      {previaAss
+                        ? <img src={previaAss} alt="Assinatura" className="max-h-full max-w-full object-contain" />
+                        : <span className="text-xs text-muted-foreground">sem assinatura</span>}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        id="assinatura-docente"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={e => { const fl = e.target.files?.[0]; if (fl) carregarAssinatura(fl); e.target.value = ''; }}
+                      />
+                      <Button type="button" variant="outline" size="sm" disabled={aCarregarAss}
+                        onClick={() => document.getElementById('assinatura-docente')?.click()}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {aCarregarAss ? 'A carregar...' : form.assinatura_path ? 'Substituir' : 'Carregar'}
+                      </Button>
+                      {form.assinatura_path && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => f('assinatura_path', null)}>
+                          <X className="h-4 w-4 mr-1" /> Remover
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

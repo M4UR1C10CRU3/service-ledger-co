@@ -77,6 +77,34 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
   const meRef = useRef(me);
   meRef.current = me;
 
+  /**
+   * O nome a gravar num comentário.
+   *
+   * Se o nome verdadeiro ainda não chegou, vai-se buscá-lo na hora em vez de
+   * gravar o valor de reserva. O nome fica COPIADO no comentário para sempre,
+   * por isso vale a pena esperar por ele — foi assim que 152 comentários
+   * ficaram assinados por "Utilizador".
+   */
+  const nomeParaGravar = useCallback(async (): Promise<string> => {
+    if (meRef.current.pronto && meRef.current.nome) return meRef.current.nome;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return meRef.current.nome;
+    // Mesma ordem do `useCurrentUser`: a ficha primeiro. Os metadados da conta
+    // podem trazer o nome de um antigo dono — ver a nota lá.
+    const [{ data: f }, { data: p }] = await Promise.all([
+      (supabase.from('liberty_utilizadores') as any)
+        .select('nome').eq('auth_user_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('nome').eq('id', user.id).maybeSingle(),
+    ]);
+    return (
+      (f?.nome as string)?.trim() ||
+      p?.nome?.trim() ||
+      ((user.user_metadata as any)?.nome as string)?.trim() ||
+      user.email ||
+      meRef.current.nome
+    );
+  }, []);
+
   const fetchAll = useCallback(async () => {
     if (!quadroId || !empresaId) return;
     try {
@@ -133,7 +161,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     try {
       await supabase.from('cartao_comentarios').insert({
         cartao_id: cartaoId, texto, tipo: 'atividade',
-        autor_id: meRef.current.authId, autor_nome: meRef.current.nome,
+        autor_id: meRef.current.authId, autor_nome: await nomeParaGravar(),
       });
     } catch { /* não-crítico */ }
   }, []);
@@ -377,7 +405,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     const { data } = await supabase.from('cartao_comentarios')
       .insert({
         cartao_id: cartaoId, texto, tipo: 'comentario',
-        autor_id: meRef.current.authId, autor_nome: meRef.current.nome,
+        autor_id: meRef.current.authId, autor_nome: await nomeParaGravar(),
         reply_to_id: replyTo?.id ?? null,
         reply_to_autor_nome: replyTo?.autor_nome ?? null,
         reply_to_texto: replyTo ? replyTo.texto.slice(0, 300) : null,

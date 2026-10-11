@@ -4,6 +4,7 @@ import { useClientes } from '@/hooks/useClientes';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAccountsPayable } from '@/hooks/useAccountsPayable';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { segmentoVertical } from '@/lib/verticais';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ServiceChart } from '@/components/ServiceChart';
@@ -38,6 +39,8 @@ const CORAL  = '#C45E58';
 const DashboardGeral = () => {
   const navigate          = useNavigate();
   const { empresa, isLoading: empresaLoading } = useEmpresa();
+  /** Segmento da empresa, só para o eyebrow do cabeçalho. */
+  const segmento = segmentoVertical(empresa?.vertical);
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -82,15 +85,18 @@ const DashboardGeral = () => {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1600px]">
+    <div className="ds-page space-y-6">
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Dashboard
+          {/* Eyebrow com o segmento da empresa, na cor do vertical — diz de
+              que negócio se está a falar antes de dizer o número. */}
+          {segmento && <p className="ds-eyebrow mb-2">{segmento}</p>}
+          <h1 className="text-[30px] font-semibold tracking-[-0.03em] text-foreground leading-tight">
+            Visão geral
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground mt-1">
             {empresa?.nome} · Resumo consolidado
           </p>
         </div>
@@ -108,7 +114,7 @@ const DashboardGeral = () => {
       </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="ds-metric-grid">
         <KpiCard
           label="Total Liquidado"
           value={fmtShort(dashboardMetrics.totalLiquidado)}
@@ -334,24 +340,25 @@ function KpiCard({
   onClick: () => void;
 }) {
   return (
+    /* Superfície escura com a cor apenas no ícone.
+       Eram quatro blocos de cor saturada lado a lado — bonito à distância,
+       mas a cor não queria dizer nada e os números, que são o assunto,
+       competiam com o fundo. Agora o dado é que é o protagonista.
+       As cores recebidas em `from` continuam a distinguir cada indicador,
+       agora no ícone e no seu fundo suave. */
     <div
-      className="rounded-2xl p-5 text-white shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all duration-200 select-none"
-      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+      className="ds-metric cursor-pointer select-none transition-colors hover:border-vertical-border group"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between mb-5">
-        <div className="p-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.15)' }}>
-          <Icon className="h-5 w-5" />
+      <div className="flex items-start justify-between">
+        <div className="p-2 rounded-[8px]" style={{ background: `${from}22` }}>
+          <Icon className="h-4 w-4" style={{ color: from }} />
         </div>
-        <ChevronRight className="h-4 w-4" style={{ color: 'rgba(255,255,255,0.45)' }} />
+        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
-      <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.72)' }}>
-        {label}
-      </p>
-      <p className="text-2xl font-bold tracking-tight mt-1">{value}</p>
-      <p className="text-xs mt-1.5 truncate" style={{ color: 'rgba(255,255,255,0.45)' }}>
-        {sub}
-      </p>
+      <p className="ds-metric-label mt-4 mb-1">{label}</p>
+      <p className="ds-metric-value">{value}</p>
+      <p className="text-[11px] text-muted-foreground/70 mt-1.5 truncate">{sub}</p>
     </div>
   );
 }
@@ -366,26 +373,23 @@ function StatMini({
   onClick: () => void;
 }) {
   return (
-    <Card
-      className="cursor-pointer hover:shadow-md transition-all duration-200 border-border/50 group"
+    /* Cartão de indicador no desenho do protótipo: ícone em cima à esquerda,
+       rótulo por baixo e o valor em destaque. A cor do ícone continua a ser a
+       que a página passa em `accent` — não se alterou nenhum indicador nem
+       nenhuma fonte de dados. */
+    <div
+      className="ds-metric cursor-pointer transition-colors hover:border-vertical-border group"
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div
-            className="p-2 rounded-lg"
-            style={{ backgroundColor: `${accent}1A` }}
-          >
-            <Icon className="h-4 w-4" style={{ color: accent }} />
-          </div>
-          <ArrowRight
-            className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-          />
+      <div className="flex items-start justify-between">
+        <div className="p-2 rounded-[8px]" style={{ backgroundColor: `${accent}1A` }}>
+          <Icon className="h-4 w-4" style={{ color: accent }} />
         </div>
-        <p className="text-xl font-bold text-foreground tracking-tight">{value}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-      </CardContent>
-    </Card>
+        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+      <p className="ds-metric-label mt-4 mb-1">{label}</p>
+      <p className="ds-metric-value">{value}</p>
+    </div>
   );
 }
 

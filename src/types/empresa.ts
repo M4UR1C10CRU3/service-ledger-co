@@ -7,6 +7,11 @@ export interface Empresa {
   corPrimaria: string;
   corSecundaria?: string;
   corAccent?: string;
+  /**
+   * Produto a que a empresa pertence quando não é uma empresa do grupo comum.
+   * Ex.: 'school'. Estas não aparecem no seletor geral — têm entrada própria.
+   */
+  vertical?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

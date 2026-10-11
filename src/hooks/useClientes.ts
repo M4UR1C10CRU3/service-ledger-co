@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Cliente, ClienteFormData } from '@/types/cliente';
 import { supabase } from '@/integrations/supabase/client';
 import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
+import { clienteComMesmoNif } from '@/lib/nifDuplicado';
 
 export const useClientes = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -58,6 +59,16 @@ export const useClientes = () => {
 
   const addCliente = async (clienteData: ClienteFormData): Promise<Cliente | null> => {
     try {
+      // Guarda contra cadastros repetidos AQUI, e não só no formulário:
+      // `addCliente` é chamado de mais do que um sítio, e uma validação que
+      // vive num ecrã deixa os outros caminhos por proteger. Estando na
+      // função, vale para todos os verticais — todos passam por ela.
+      const repetido = await clienteComMesmoNif(clienteData.nif, grupoId);
+      if (repetido) {
+        console.warn(`NIF ${clienteData.nif} já pertence ao cliente "${repetido.nome}" — cadastro recusado.`);
+        return null;
+      }
+
       const { data, error } = await (supabase.from('clientes') as any)
         .insert({
           // O cliente nasce no grupo de quem o cria. A base tem um gatilho

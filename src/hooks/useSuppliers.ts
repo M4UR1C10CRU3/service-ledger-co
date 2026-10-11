@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
+import { fornecedorComMesmoNif } from '@/lib/nifDuplicado';
 import { useToast } from '@/hooks/use-toast';
 import { Supplier, SupplierFormData } from '@/types/supplier';
 import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
@@ -105,6 +106,16 @@ export function useSuppliers() {
 
   const addSupplier = async (form: SupplierFormData): Promise<Supplier | null> => {
     if (!empresa) return null;
+
+    // Guarda contra cadastros repetidos AQUI, e não só no formulário: esta
+    // função é chamada também das Compras, das Contas a Pagar e das Despesas.
+    // Estando na função, vale para todos os verticais — todos passam por ela.
+    const repetido = await fornecedorComMesmoNif(form.cnpjCpf, grupo.ids);
+    if (repetido) {
+      console.warn(`NIF ${form.cnpjCpf} já pertence ao fornecedor "${repetido.nome}" — cadastro recusado.`);
+      return null;
+    }
+
     const row = formToRow(form, empresa.id);
     const { data, error } = await supabase.from('suppliers').insert(row).select().single();
     if (!error && data) {

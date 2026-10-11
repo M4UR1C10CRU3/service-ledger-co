@@ -11,6 +11,7 @@ export interface CertificadoPDFData {
   horas_teoricas?: number | null;
   horas_praticas?: number | null;
   data_inicio?: string | null;
+  data_conclusao?: string | null;
   emitido_em: string;
   validade_em?: string | null;
   docente_nome?: string | null;
@@ -25,6 +26,22 @@ export interface CertificadoPDFData {
   aprovacao_minima?: number | null;
   validade_anos?: number | null;
   modulos_count?: number | null;
+
+  // ── Configuração por empresa ────────────────────────────────────────────
+  // Quando a empresa tem arte aprovada, imprimimos SOBRE ela: a arte traz os
+  // logótipos, a moldura e o rodapé já na posição certa, e o código só desenha
+  // os valores. Sem arte configurada mantém-se o desenho por primitivas, que é
+  // o comportamento de sempre — nenhum inquilino fica pior do que estava.
+  arte_frente?: string | null;
+  arte_verso?: string | null;
+  marca_agua?: string | null;
+  texto_institucional?: string | null;
+  rodape?: string | null;
+  diretor_nome?: string | null;
+  diretor_cargo?: string | null;
+  diretor_assinatura_url?: string | null;
+  url_verificacao?: string | null;
+  qr_verificacao?: string | null;
 }
 
 const W = 210;
@@ -35,6 +52,11 @@ const BLACK  = [15,  15,  15] as [number, number, number];
 const DGRAY  = [80,  80,  80] as [number, number, number];
 const LGRAY  = [160, 160, 160] as [number, number, number];
 const WHITE  = [255, 255, 255] as [number, number, number];
+
+// Medido nas artes do ITC (1414x2000 px para A4):
+//  · página 1 — logótipos até 38,6 mm, decoração a partir de 233,4 mm
+//  · página 2 — faixa roxa até 37,4 mm, rodapé a partir de 259 mm
+const ARTE_P2_FAIXA_FIM = 37.4;
 
 const HEALTH_CATS = ['saude', 'resgate', 'saúde', 'emergência', 'emergencia', 'primeiros socorros', 'socorrismo'];
 
@@ -68,6 +90,13 @@ async function loadImg(url: string): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
   } catch { return null; }
+}
+
+/** Absoluta fica como está; relativa passa a apontar para a origem da app. */
+function urlAbs(p?: string | null): string | null {
+  if (!p) return null;
+  if (/^(https?:|data:|blob:)/.test(p)) return p;
+  return `${window.location.origin}${p.startsWith('/') ? '' : '/'}${p}`;
 }
 
 async function loadCursiveFont(doc: jsPDF): Promise<string | null> {
@@ -104,6 +133,7 @@ function renderInlineText(
   });
 }
 
+/** Decoração desenhada — só usada quando a empresa não tem arte configurada. */
 function drawCornerDecorations(doc: jsPDF) {
   const s1 = 50, s2 = 35, s3 = 20;
 
@@ -134,25 +164,72 @@ function drawCornerDecorations(doc: jsPDF) {
   doc.triangle(0, 0, 20, 0, 0, 20, 'F');
 }
 
+/** Nome do signatário em uma ou duas linhas, com o cargo por baixo. */
+function drawSignatario(
+  doc: jsPDF,
+  x: number,
+  lineY: number,
+  nome: string | null | undefined,
+  cargo: string
+) {
+  doc.setDrawColor(...LGRAY);
+  doc.setLineWidth(0.4);
+  doc.line(x - 36, lineY, x + 36, lineY);
+
+  const cargoAbaixo = (dy: number) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...DGRAY);
+    doc.text(cargo, x, lineY + dy, { align: 'center' });
+  };
+
+  if (!nome) { cargoAbaixo(7); return; }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...BLACK);
+
+  const words = nome.split(' ');
+  const mid = Math.ceil(words.length / 2);
+  const l1 = words.slice(0, mid).join(' ');
+  const l2 = words.slice(mid).join(' ');
+
+  if (l2) {
+    doc.text(l1, x, lineY + 6,  { align: 'center' });
+    doc.text(l2, x, lineY + 12, { align: 'center' });
+    cargoAbaixo(19);
+  } else {
+    doc.text(l1, x, lineY + 6, { align: 'center' });
+    cargoAbaixo(13);
+  }
+}
+
 export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<Blob> {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const base = window.location.origin;
 
-  const [bgImg, logoItc, logoCentro, logoCee, logoDir, cursiveFont] = await Promise.all([
-    loadImg(`${base}/assets/certificado/cert-background.jpg`),
-    loadImg(`${base}/assets/certificado/logo-itc.png`),
-    isHealthCategory(data.curso_categoria)
+  const temArte = Boolean(data.arte_frente);
+
+  const [arteFrente, arteVerso, bgImg, logoItc, logoCentro, logoCee, cursiveFont] = await Promise.all([
+    loadImg(urlAbs(data.arte_frente) || ''),
+    loadImg(urlAbs(data.arte_verso) || ''),
+    // Sem imagem de fundo definida no curso não há marca de água. Antes tentava
+    // sempre um ficheiro fixo que deixou de existir, e falhava em silêncio.
+    data.marca_agua ? loadImg(urlAbs(data.marca_agua)!) : Promise.resolve(null),
+    // Só necessários quando não há arte: a arte já traz os logótipos embutidos.
+    temArte ? Promise.resolve(null) : loadImg(`${base}/assets/certificado/logo-itc.png`),
+    temArte ? Promise.resolve(null) : (isHealthCategory(data.curso_categoria)
       ? loadImg(`${base}/assets/certificado/logo-nobre-urgencia.png`)
-      : loadImg(`${base}/assets/certificado/logo-mais-com.png`),
-    loadImg(`${base}/assets/certificado/logo-cee-ap.png`),
-    loadImg(`${base}/assets/certificado/assinatura-diretor.png`),
+      : loadImg(`${base}/assets/certificado/logo-mais-com.png`)),
+    temArte ? Promise.resolve(null) : loadImg(`${base}/assets/certificado/logo-cee-ap.png`),
     loadCursiveFont(doc),
   ]);
 
-  // Assinatura instrutor: URL do docente ou fallback para PNG do director (teste)
-  const logoInst = data.docente_assinatura_url
-    ? await loadImg(data.docente_assinatura_url)
-    : logoDir;
+  const [sigInstrutor, sigDiretor, qrImg] = await Promise.all([
+    loadImg(urlAbs(data.docente_assinatura_url) || ''),
+    loadImg(urlAbs(data.diretor_assinatura_url) || ''),
+    data.qr_verificacao ? Promise.resolve(data.qr_verificacao) : Promise.resolve(null),
+  ]);
 
   // ════════════════════════════════════════════════════════════
   // PÁGINA 1 — CERTIFICADO
@@ -161,20 +238,43 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, W, H, 'F');
 
-  // Watermark
+  if (arteFrente) {
+    // A arte traz logótipos e moldura já posicionados.
+    doc.addImage(arteFrente, 'PNG', 0, 0, W, H, undefined, 'FAST');
+  }
+
+  // Marca de água do curso: ocupa a folha inteira, por baixo do texto e por
+  // cima da arte.
+  //
+  // A proporção da imagem é respeitada — são fotografias de pessoas em contexto
+  // real e esticá-las nota-se logo, mesmo a 16% de opacidade. Preenche-se a
+  // página como uma capa: escala pelo lado que falta cobrir e o excedente do
+  // outro lado sai fora da folha (o PDF corta no limite da página). As imagens
+  // de fundo dos cursos vêm em proporção A4, pelo que na prática não há corte.
   if (bgImg) {
+    let x = 0, y = 0, larg = W, alt = H;
+    try {
+      const p = (doc as any).getImageProperties(bgImg);
+      const escala = Math.max(W / p.width, H / p.height);
+      larg = p.width * escala;
+      alt  = p.height * escala;
+      x = (W - larg) / 2;
+      y = (H - alt) / 2;
+    } catch {
+      // Sem propriedades legíveis, estica para a folha toda.
+    }
     doc.saveGraphicsState();
-    (doc as any).setGState(new (doc as any).GState({ opacity: 0.12 }));
-    doc.addImage(bgImg, 'JPEG', 10, 40, W - 20, 190, undefined, 'FAST');
+    (doc as any).setGState(new (doc as any).GState({ opacity: 0.16 }));
+    doc.addImage(bgImg, x, y, larg, alt, undefined, 'FAST');
     doc.restoreGraphicsState();
   }
 
-  drawCornerDecorations(doc);
-
-  // ── Logos ──────────────────────────────────────────────────
-  if (logoItc)    doc.addImage(logoItc,    'PNG', 12,      7,  30, 26, undefined, 'FAST');
-  if (logoCentro) doc.addImage(logoCentro, 'PNG', W/2-16,  7,  32, 26, undefined, 'FAST');
-  if (logoCee)    doc.addImage(logoCee,    'PNG', W-64,   11,  52, 20, undefined, 'FAST');
+  if (!arteFrente) {
+    drawCornerDecorations(doc);
+    if (logoItc)    doc.addImage(logoItc,    'PNG', 12,      7,  30, 26, undefined, 'FAST');
+    if (logoCentro) doc.addImage(logoCentro, 'PNG', W/2-16,  7,  32, 26, undefined, 'FAST');
+    if (logoCee)    doc.addImage(logoCee,    'PNG', W-64,   11,  52, 20, undefined, 'FAST');
+  }
 
   // ── Título ─────────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
@@ -192,10 +292,11 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
   doc.line(14, 78, W - 14, 78);
 
   // ── Texto introdutório ─────────────────────────────────────
+  const instituicao = data.texto_institucional || data.empresa_nome;
   renderInlineText(doc, [
-    { text: 'O ',                                                      bold: false, color: DGRAY },
-    { text: 'Instituto de Treinamentos e resgate do Amapá - ITC',      bold: true,  color: BLACK },
-    { text: ', confere este',                                           bold: false, color: DGRAY },
+    { text: 'O ',            bold: false, color: DGRAY },
+    { text: instituicao,     bold: true,  color: BLACK },
+    { text: ', confere este', bold: false, color: DGRAY },
   ], 90, 11);
 
   doc.setFont('helvetica', 'normal');
@@ -247,9 +348,12 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     chSegs.push({ text: fmtDate(data.data_inicio), bold: false, color: DGRAY });
     chSegs.push({ text: '   ', bold: false, color: DGRAY });
   }
-  if (data.emitido_em) {
+  // A conclusão é a data em que o curso terminou. Só na falta dela é que se usa
+  // a data de emissão — que pode ser muito posterior, no caso de uma 2.ª via.
+  const conclusao = data.data_conclusao || data.emitido_em;
+  if (conclusao) {
     chSegs.push({ text: 'conclusão: ', bold: true, color: BLACK });
-    chSegs.push({ text: fmtDate(data.emitido_em), bold: false, color: DGRAY });
+    chSegs.push({ text: fmtDate(conclusao), bold: false, color: DGRAY });
   }
   if (chSegs.length) renderInlineText(doc, chSegs, 162, 11);
 
@@ -272,59 +376,15 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
   const leftX    = 52;
   const rightX   = W - 52;
 
-  // Instrutor (esquerda)
-  if (logoInst) {
-    doc.addImage(logoInst, 'PNG', leftX - sigImgW / 2, sigImgY, sigImgW, sigImgH, undefined, 'FAST');
+  if (sigInstrutor) {
+    doc.addImage(sigInstrutor, 'PNG', leftX - sigImgW / 2, sigImgY, sigImgW, sigImgH, undefined, 'FAST');
   }
-  doc.setDrawColor(...LGRAY);
-  doc.setLineWidth(0.4);
-  doc.line(leftX - 36, sigLineY, leftX + 36, sigLineY);
+  drawSignatario(doc, leftX, sigLineY, data.docente_nome, 'Instrutor Responsável');
 
-  const instNome = data.docente_nome || '';
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...BLACK);
-  if (instNome) {
-    const words = instNome.split(' ');
-    const mid = Math.ceil(words.length / 2);
-    const l1 = words.slice(0, mid).join(' ');
-    const l2 = words.slice(mid).join(' ');
-    if (l2) {
-      doc.text(l1, leftX, sigLineY + 6,  { align: 'center' });
-      doc.text(l2, leftX, sigLineY + 12, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...DGRAY);
-      doc.text('Instrutor Responsável', leftX, sigLineY + 19, { align: 'center' });
-    } else {
-      doc.text(l1, leftX, sigLineY + 6, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...DGRAY);
-      doc.text('Instrutor Responsável', leftX, sigLineY + 13, { align: 'center' });
-    }
-  } else {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...DGRAY);
-    doc.text('Instrutor Responsável', leftX, sigLineY + 7, { align: 'center' });
+  if (sigDiretor) {
+    doc.addImage(sigDiretor, 'PNG', rightX - sigImgW / 2, sigImgY, sigImgW, sigImgH, undefined, 'FAST');
   }
-
-  // Director (direita)
-  if (logoDir) {
-    doc.addImage(logoDir, 'PNG', rightX - sigImgW / 2, sigImgY, sigImgW, sigImgH, undefined, 'FAST');
-  }
-  doc.setDrawColor(...LGRAY);
-  doc.line(rightX - 36, sigLineY, rightX + 36, sigLineY);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...BLACK);
-  doc.text('Renevaldo Machado', rightX, sigLineY + 6,  { align: 'center' });
-  doc.text('Cavalcante',        rightX, sigLineY + 12, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...DGRAY);
-  doc.text('Diretor Pedagógico', rightX, sigLineY + 19, { align: 'center' });
+  drawSignatario(doc, rightX, sigLineY, data.diretor_nome, data.diretor_cargo || 'Diretor Pedagógico');
 
   // ════════════════════════════════════════════════════════════
   // PÁGINA 2 — CONTEÚDO PROGRAMÁTICO (sempre gerada)
@@ -333,32 +393,40 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     doc.addPage();
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, W, H, 'F');
-    drawCornerDecorations(doc);
 
-    // Cabeçalho roxo
-    doc.setFillColor(...PURPLE);
-    doc.rect(0, 0, W, 28, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(...WHITE);
-    doc.text('INSTITUTO DE TREINAMENTOS E RESGATE DO AMAPÁ — ITC', W / 2, 12, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('CONTEÚDO PROGRAMÁTICO DO CURSO', W / 2, 21, { align: 'center' });
+    // A arte do verso já traz a faixa roxa de cabeçalho e o rodapé.
+    if (arteVerso) {
+      doc.addImage(arteVerso, 'PNG', 0, 0, W, H, undefined, 'FAST');
+    } else {
+      drawCornerDecorations(doc);
+      doc.setFillColor(...PURPLE);
+      doc.rect(0, 0, W, 28, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(...WHITE);
+      doc.text((data.texto_institucional || data.empresa_nome).toUpperCase(), W / 2, 12, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('CONTEÚDO PROGRAMÁTICO DO CURSO', W / 2, 21, { align: 'center' });
+    }
 
-    // Nome do curso — faixa lavanda (como no template)
+    // O conteúdo começa logo abaixo da faixa — desenhada ou vinda da arte.
+    const topo = arteVerso ? ARTE_P2_FAIXA_FIM + 1 : 30;
+
+    // Nome do curso — faixa lavanda
     doc.setFillColor(230, 218, 245);
-    doc.rect(0, 30, W, 11, 'F');
+    doc.rect(0, topo, W, 11, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(...PURPLE);
-    doc.text(data.curso_nome || '—', 14, 38);
+    doc.text(data.curso_nome || '—', 14, topo + 7.5);
 
     // ── Tabela conteúdo programático ─────────────────────────
-    let tY = 42;
+    // Folga suficiente abaixo da faixa: com 4 mm o cabeçalho da tabela colava
+    // no nome do curso.
+    let tY = topo + 18;
     const temConteudo = (data.conteudo_programatico?.length ?? 0) > 0;
     if (temConteudo && data.conteudo_programatico) {
-      // Cabeçalho da tabela: texto roxo sobre branco
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(...PURPLE);
@@ -385,7 +453,6 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
         tY += 8;
       });
 
-      // Total (roxo bold)
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(...PURPLE);
@@ -397,7 +464,7 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       tY += 10;
     }
 
-    // ── Objetivo + Metodologia (sempre renderizado) ──────────
+    // ── Objetivo + Metodologia ───────────────────────────────
     {
       const colW = (W - 30) / 2;
       const c1 = 12;
@@ -432,7 +499,7 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       tY += bH + 4;
     }
 
-    // ── Barra de estatísticas (sempre renderizada) ────────────
+    // ── Barra de estatísticas ────────────────────────────────
     {
       const statSegs: { text: string; bold: boolean; color: [number, number, number] }[] = [];
       const addStat = (lbl: string, val: string, last: boolean) => {
@@ -455,7 +522,7 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       tY += 13;
     }
 
-    // ── Reconhecimento / Verificação / Válido até (sempre) ───
+    // ── Reconhecimento / Verificação / Válido até ────────────
     {
       const c3W = (W - 30) / 3;
       const cols = [12, 12 + c3W + 3, 12 + (c3W + 3) * 2];
@@ -473,8 +540,6 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
 
       const recText = data.reconhecimento ||
         'Certificado reconhecido pelo Conselho Estadual de Educação do Amapá (CEE-AP) e alinhado às diretrizes da IRATA International e NR 35 (MTE/Brasil).';
-      const verText =
-        'Acesse o site www.itctreinamentos.com para verificar a autenticidade deste certificado através do código de codificação.';
 
       doc.setFillColor(250, 245, 255);
       const bH3 = 34;
@@ -484,9 +549,30 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       doc.setFontSize(7.5);
       doc.setTextColor(...BLACK);
       doc.text(doc.splitTextToSize(recText, c3W - 4), cols[0] + 2, tY + 5);
-      doc.text(doc.splitTextToSize(verText, c3W - 4), cols[1] + 2, tY + 5);
 
-      // Caixa "VÁLIDO ATÉ" em verde escuro (como no template)
+      // Verificação: QR à esquerda, instruções à direita. Sem QR, texto a toda
+      // a largura — como estava antes.
+      const site = data.url_verificacao || 'o site da instituição';
+      if (qrImg) {
+        const qrS = 20;
+        doc.addImage(qrImg, 'PNG', cols[1] + 2, tY + 3, qrS, qrS, undefined, 'FAST');
+        doc.setFontSize(6.5);
+        doc.text(
+          doc.splitTextToSize(`Leia o código ou aceda a ${site} e introduza a codificação para confirmar a autenticidade deste certificado.`, c3W - qrS - 7),
+          cols[1] + qrS + 4, tY + 6
+        );
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(...PURPLE);
+        doc.text(data.codigo, cols[1] + 2 + qrS / 2, tY + qrS + 7, { align: 'center' });
+      } else {
+        doc.text(
+          doc.splitTextToSize(`Acesse o site ${site} para verificar a autenticidade deste certificado através do código de codificação.`, c3W - 4),
+          cols[1] + 2, tY + 5
+        );
+      }
+
+      // Caixa "VÁLIDO ATÉ" em verde escuro
       const GREEN_DARK: [number, number, number] = [20, 120, 60];
       doc.setFillColor(...GREEN_DARK);
       doc.roundedRect(cols[2] + 3, tY + 3, c3W - 6, 26, 3, 3, 'F');
@@ -499,17 +585,16 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       doc.text(data.validade_em ? fmtDate(data.validade_em) : 'Sem validade', cols[2] + c3W / 2, tY + 23, { align: 'center' });
     }
 
-    // Rodapé
-    doc.setDrawColor(...LGRAY);
-    doc.setLineWidth(0.3);
-    doc.line(12, H - 14, W - 12, H - 14);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(...LGRAY);
-    doc.text(
-      'Instituto de Treinamentos e Resgate do Amapá – ITC · CNPJ 53.827.322/0001-75 · Macapá, AP · www.itctreinamentos.com',
-      W / 2, H - 8, { align: 'center' }
-    );
+    // Rodapé — só quando não vem na arte.
+    if (!arteVerso) {
+      doc.setDrawColor(...LGRAY);
+      doc.setLineWidth(0.3);
+      doc.line(12, H - 14, W - 12, H - 14);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...LGRAY);
+      doc.text(data.rodape || data.empresa_nome, W / 2, H - 8, { align: 'center' });
+    }
   }
 
   return doc.output('blob');

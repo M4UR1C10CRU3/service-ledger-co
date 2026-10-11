@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fornecedorComMesmoNif } from '@/lib/nifDuplicado';
+import { useGrupoEmpresas } from '@/hooks/useGrupoEmpresas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { Supplier, SupplierFormData, emptySupplierForm, GAMAS_OPTIONS, CATEGORIA_LABELS } from '@/types/supplier';
@@ -32,6 +34,8 @@ export default function Fornecedores() {
   const { toast } = useToast();
   const { empresa, getLogo, isLoading: empresaLoading } = useEmpresa();
   const { suppliers, isLoading, addSupplier, updateSupplier, deleteSupplier } = useSuppliers();
+  /** Fornecedores são partilhados pelo GRUPO — é esse o âmbito da procura. */
+  const grupo = useGrupoEmpresas();
 
   useEffect(() => {
     if (empresaLoading) return;
@@ -120,6 +124,21 @@ export default function Fornecedores() {
     }
     if (!formData.cnpjCpf.trim()) {
       toast({ title: 'Erro', description: 'NIF é obrigatório.', variant: 'destructive' });
+      return;
+    }
+
+    // ── O NIF/NIPC já pertence a outro fornecedor? ──────────────────────
+    // Compara só os dígitos, que é por onde os duplicados passam. Na edição
+    // ignora-se o próprio cadastro, senão acusava-se a si mesmo.
+    const repetido = await fornecedorComMesmoNif(
+      formData.cnpjCpf, grupo.ids, editingSupplier?.id,
+    );
+    if (repetido) {
+      toast({
+        title: 'NIF já registado',
+        description: `O NIF ${formData.cnpjCpf} já pertence ao fornecedor "${repetido.nome}". Verifique se não está a criar um cadastro repetido.`,
+        variant: 'destructive',
+      });
       return;
     }
 

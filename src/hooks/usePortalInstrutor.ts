@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEmpresa } from '@/contexts/EmpresaContext';
+
 
 export interface DocenteInfo {
   id: string;
@@ -9,6 +9,8 @@ export interface DocenteInfo {
   telefone: string | null;
   formacao: string | null;
   especializacao: string | null;
+  /** Necessário para publicar materiais — a linha de material exige empresa. */
+  empresa_id: string;
 }
 
 export interface TurmaInstrutor {
@@ -42,10 +44,8 @@ export interface PortalInstrutorData {
 }
 
 export function usePortalInstrutor() {
-  const { empresa } = useEmpresa();
-
   return useQuery({
-    queryKey: ['portal_instrutor', empresa?.id],
+    queryKey: ['portal_instrutor'],
     queryFn: async (): Promise<PortalInstrutorData> => {
       const empty: PortalInstrutorData = {
         docente: null, turmas: [], matriculas: [],
@@ -55,23 +55,23 @@ export function usePortalInstrutor() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return empty;
 
-      const { data: lu } = await (supabase as any)
-        .from('liberty_utilizadores').select('email').eq('auth_user_id', user.id).maybeSingle();
-      const email = lu?.email || user.email;
-      if (!email) return empty;
-
+      // Identificação pela conta, não pelo email — ver a nota em usePortalAluno.
       const { data: docente } = await (supabase as any)
         .from('school_docentes')
-        .select('id, nome, email, telefone, formacao, especializacao')
-        .eq('empresa_id', empresa!.id)
-        .eq('email', email)
+        // A coluna chama-se area_especializacao. Pedir 'especializacao' fazia a
+        // consulta inteira falhar, e o portal dizia "instrutor não encontrado"
+        // a toda a gente — nunca chegou a funcionar.
+        .select('id, empresa_id, nome, email, telefone, formacao, area_especializacao')
+        .eq('auth_user_id', user.id)
         .maybeSingle();
       if (!docente) return empty;
+
+      const empresa = { id: docente.empresa_id as string };
 
       const { data: turmasRaw = [] } = await (supabase as any)
         .from('school_turmas')
         .select('id, titulo, status, modalidade, inicio, fim, vagas, local, curso_id')
-        .eq('empresa_id', empresa!.id)
+        .eq('empresa_id', empresa.id)
         .eq('docente_id', docente.id)
         .order('inicio', { ascending: false });
 
@@ -84,12 +84,37 @@ export function usePortalInstrutor() {
 
       const turmaIds = (turmasRaw as any[]).map((t: any) => t.id);
       let matriculasRaw: any[] = [];
+      let notasPorMatricula: Record<string, number> = {};
       if (turmaIds.length) {
-        const { data: mr = [] } = await (supabase as any)
+        // A nota NÃO vive na matrícula: `school_matriculas.nota_final` não
+        // existe. Pedi-la fazia a consulta devolver erro, `data` vinha a null,
+        // o .map() rebentava e o portal inteiro do instrutor caía — era esta a
+        // razão de dizer "instrutor não encontrado" mesmo com a ficha ligada.
+        // As notas estão em school_avaliacoes, uma por avaliação.
+        const { data: mr } = await (supabase as any)
           .from('school_matriculas')
-          .select('id, aluno_id, turma_id, status, nota_final, data_matricula')
+          .select('id, aluno_id, turma_id, status, data_matricula')
           .in('turma_id', turmaIds);
-        matriculasRaw = mr;
+        matriculasRaw = mr ?? [];
+
+        const { data: avals } = await (supabase as any)
+          .from('school_avaliacoes')
+          .select('matricula_id, nota, nota_maxima')
+          .in('turma_id', turmaIds);
+
+        // Média percentual das avaliações de cada matrícula.
+        const soma: Record<string, { n: number; total: number }> = {};
+        (avals ?? []).forEach((a: any) => {
+          if (a.matricula_id == null || a.nota == null) return;
+          const max = a.nota_maxima || 20;
+          const s = soma[a.matricula_id] ?? { n: 0, total: 0 };
+          s.n += 1;
+          s.total += (Number(a.nota) / Number(max)) * 100;
+          soma[a.matricula_id] = s;
+        });
+        notasPorMatricula = Object.fromEntries(
+          Object.entries(soma).map(([id, s]) => [id, Math.round(s.total / s.n)])
+        );
       }
 
       const alunoIds = [...new Set(matriculasRaw.map((m: any) => m.aluno_id).filter(Boolean))];
@@ -113,22 +138,26 @@ export function usePortalInstrutor() {
       const turmasMap2 = Object.fromEntries(turmas.map(t => [t.id, t]));
       const matriculas: MatriculaInstrutor[] = matriculasRaw.map((m: any) => ({
         id: m.id, aluno_nome: alunosMap[m.aluno_id] ?? '—',
-        status: m.status, nota_final: m.nota_final,
+        status: m.status, nota_final: notasPorMatricula[m.id] ?? null,
         data_matricula: m.data_matricula, turma_id: m.turma_id,
         turma_titulo: turmasMap2[m.turma_id]?.titulo ?? '—',
       }));
 
       return {
-        docente,
+        // O ecrã mostra `especializacao`; a base de dados guarda-a como
+        // area_especializacao. A tradução fica aqui, num sítio só.
+        docente: { ...docente, especializacao: docente.area_especializacao ?? null },
         turmas,
         matriculas,
         kpis: {
           turmasActivas: turmas.filter(t => ['aberta', 'em_andamento'].includes(t.status)).length,
           totalAlunos: matriculasRaw.length,
-          turmasConcluidas: turmas.filter(t => t.status === 'concluida').length,
+          // As turmas fecham com 'encerrada'; 'concluida' é o estado das
+          // matrículas. Contar pelo estado errado dava sempre zero.
+          turmasConcluidas: turmas.filter(t => ['encerrada', 'concluida'].includes(t.status)).length,
         },
       };
     },
-    enabled: !!empresa?.id,
+
   });
 }
