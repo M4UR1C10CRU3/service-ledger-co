@@ -1,3 +1,4 @@
+import { ativarTemaLabs } from '@/lib/labsTema';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Empresa } from '@/types/empresa';
 import { supabase } from '@/integrations/supabase/client';
@@ -105,8 +106,18 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
       // mostra todas — para saltar esse ecrã existe ?empresa=<slug>, que é como
       // o link de demonstração leva o visitante direto ao sítio certo sem lhe
       // mostrar a lista de empresas de outra gente.
+      const { data: { session } } = await supabase.auth.getSession();
       const { data: { user } } = await supabase.auth.getUser();
-      let permitidas: string[] = [];
+
+      // `null` = ninguém autenticado. Distingue-se de "autenticado sem empresa
+      // nenhuma atribuída", que é caso MUITO diferente — ver abaixo.
+      let permitidas: string[] | null = null;
+
+      // Há sessão mas não se conseguiu confirmar de quem é (rede, token a
+      // expirar). Não se pode tratar como "visitante" e mostrar tudo: seria a
+      // mesma falha para o lado aberto, só que por outra porta.
+      if (session && !user) permitidas = [];
+
       if (user) {
         const { data: liga } = await (supabase.from('liberty_utilizador_empresas') as any)
           .select('empresa_id, liberty_utilizadores!inner(auth_user_id)')
@@ -115,9 +126,31 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const base = supabase.from('empresas').select('*').order('nome');
-      const { data, error } = permitidas.length > 0
-        ? await base.in('id', permitidas)
-        : await base;
+
+      // A regra fecha para o lado seguro.
+      //
+      // Estava escrito `permitidas.length > 0 ? só essas : TODAS`. Ou seja: um
+      // utilizador autenticado a quem ninguém tivesse atribuído empresa nenhuma
+      // não ficava sem acesso — ficava com acesso a todas, ITC incluído. Uma
+      // regra de acesso que falha para o lado aberto não é uma regra de acesso.
+      //
+      // Agora: sem sessão mostram-se todas (são só nomes e logótipos, e é o que
+      // permite ao ecrã de entrada identificar a escola antes de alguém entrar);
+      // COM sessão mostram-se exatamente as atribuídas, e nenhuma quer dizer
+      // nenhuma.
+      const { data, error } = permitidas === null
+        ? await base
+        : permitidas.length > 0
+          ? await base.in('id', permitidas)
+          : { data: [] as any[], error: null };
+
+      // Lista vazia é um resultado legítimo e tem de ser gravado. Se ficasse de
+      // fora deste `if`, quem não tem acesso continuava a ver a lista anterior.
+      if (!error && data && data.length === 0 && permitidas !== null) {
+        setEmpresas([]);
+        setEmpresaState(null);
+        return;
+      }
 
       if (!error && data && data.length > 0) {
         const empresasFormatted = data.map((e: any) => ({
@@ -129,6 +162,7 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
           corPrimaria: e.cor_primaria,
           corSecundaria: e.cor_secundaria,
           corAccent: e.cor_accent,
+          vertical: e.vertical ?? null,
           createdAt: new Date(e.created_at),
           updatedAt: new Date(e.updated_at),
         }));
@@ -189,15 +223,27 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
       root.style.setProperty('--primary', primaryHsl);
       root.style.setProperty('--primary-foreground', '0 0% 100%');
       root.style.setProperty('--ring', primaryHsl);
-      
+
       // Aplicar classe de tema específica
       root.setAttribute('data-empresa', emp.slug);
+
+      // Vertical da empresa, para o design system escolher o acento. É só um
+      // atributo: a cor decide-se no CSS (ver index.css). Sem vertical
+      // definido remove-se o atributo e fica o acento por omissão — nenhuma
+      // empresa perde o tema que já tinha.
+      if (emp.vertical) root.setAttribute('data-vertical', emp.vertical);
+      else root.removeAttribute('data-vertical');
+
+      // O Labs veste a identidade do estúdio (fontes próprias, só escuro).
+      // O resto é CSS, em src/styles/labs.css.
+      if (emp.vertical === 'labs') ativarTemaLabs();
     } else {
       // Remover customizações
       root.style.removeProperty('--primary');
       root.style.removeProperty('--primary-foreground');
       root.style.removeProperty('--ring');
       root.removeAttribute('data-empresa');
+      root.removeAttribute('data-vertical');
     }
   };
 

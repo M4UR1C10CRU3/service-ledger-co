@@ -9,6 +9,8 @@ import SelectEmpresa from "./pages/SelectEmpresa";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { VerticalRoute } from "./components/VerticalRoute";
+import { entradaDoDominio } from "./lib/host";
 import { EmpresaProvider } from "./contexts/EmpresaContext";
 import { PermissionsProvider } from "./contexts/PermissionsContext";
 import { AppLayout } from "./components/AppLayout";
@@ -53,6 +55,7 @@ const PesquisaSatisfacao = lazy(() => import("./pages/PesquisaSatisfacao"));
 const PedidosOrcamento = lazy(() => import("./pages/PedidosOrcamento"));
 
 // Clariza Agency — vertical de Agência de Marketing
+const AgencyLogin = lazy(() => import("./pages/agency/AgencyLogin"));
 const AgencyProjetos = lazy(() => import("./pages/agency/Projetos"));
 const AgencyProjetoDetail = lazy(() => import("./pages/agency/ProjetoDetail"));
 const AgencyMeusTrabalhos = lazy(() => import("./pages/agency/MeusTrabalhos"));
@@ -62,6 +65,13 @@ const AgencyAvencas = lazy(() => import("./pages/agency/Avencas"));
 const AgencyCatalogo = lazy(() => import("./pages/agency/Catalogo"));
 const AgencyEquipa = lazy(() => import("./pages/agency/Equipa"));
 const AgencyAutomacoes = lazy(() => import("./pages/agency/AutomacoesAgency"));
+// Clariza Labs — o motor do Agency com a identidade da Webtech Labs
+const LabsLogin = lazy(() => import("./pages/labs/LabsLogin"));
+const LabsNucleoPainel = lazy(() => import("./pages/labs/NucleoPainel"));
+const LabsPodcast = lazy(() => import("./pages/labs/LabsPodcast"));
+const LabsPainel = lazy(() => import("./pages/labs/LabsPainel"));
+const LabsAreaCliente = lazy(() => import("./pages/labs/AreaClienteGestao"));
+const ClientePortal = lazy(() => import("./pages/labs/ClientePortal"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
 const WorkflowComprasPage = lazy(() => import("./pages/WorkflowComprasPage"));
 const WorkflowProducao = lazy(() => import("./pages/WorkflowProducao"));
@@ -70,6 +80,8 @@ const QuadroDetail = lazy(() => import("./pages/QuadroDetail"));
 const QuadroAutomacoes = lazy(() => import("./pages/QuadroAutomacoes"));
 
 // Clariza School — ITC
+const SchoolLogin = lazy(() => import("./pages/school/SchoolLogin"));
+const SchoolCalendario = lazy(() => import("./pages/school/SchoolCalendario"));
 const SchoolCursos = lazy(() => import("./pages/school/SchoolCursos"));
 const SchoolAlunos = lazy(() => import("./pages/school/SchoolAlunos"));
 const SchoolDocentes = lazy(() => import("./pages/school/SchoolDocentes"));
@@ -77,9 +89,13 @@ const SchoolTurmas = lazy(() => import("./pages/school/SchoolTurmas"));
 const SchoolMatriculas = lazy(() => import("./pages/school/SchoolMatriculas"));
 const SchoolCertificados = lazy(() => import("./pages/school/SchoolCertificados"));
 const SchoolClientesCorp = lazy(() => import("./pages/school/SchoolClientesCorp"));
+const SchoolPedidos = lazy(() => import("./pages/school/SchoolPedidos"));
 const PortalAluno = lazy(() => import("./pages/school/PortalAluno"));
 const PortalInstrutor = lazy(() => import("./pages/school/PortalInstrutor"));
 const PortalCorporativo = lazy(() => import("./pages/school/PortalCorporativo"));
+const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
+const PortalEntrada = lazy(() => import("./pages/portal/PortalEntrada"));
+const PortalShell = lazy(() => import("./components/portal/PortalShell").then(m => ({ default: m.PortalShell })));
 const CertificadoPublico = lazy(() => import("./pages/CertificadoPublico"));
 
 const queryClient = new QueryClient({
@@ -113,6 +129,73 @@ const ProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
+/**
+ * Entradas do GRUPO — o Workspace e o início de sessão do ERP.
+ *
+ * Nos domínios dedicados a um cliente não existem: quem lá chegar por
+ * navegação interna é mandado para a entrada desse domínio. Quem tentar pelo
+ * endereço nem sequer recebe a página, porque o nginx trava antes. São dois
+ * trincos para a mesma porta, de propósito: o do servidor não vê a navegação
+ * de dentro da aplicação, e o da aplicação não protege quem escreve o endereço
+ * à mão com a página já carregada noutro separador.
+ */
+const SoNoGrupo = ({ children }: { children: React.ReactNode }) => {
+  const entrada = entradaDoDominio();
+  return entrada ? <Navigate to={entrada} replace /> : <>{children}</>;
+};
+
+/**
+ * Igual ao `ProtectedWithLayout`, mais uma porta: só entra quem tiver o ITC
+ * (ou outra escola) atribuído. Ter conta no Clariza não chega — o vertical é
+ * de um cliente. Ver `VerticalRoute`.
+ */
+const SchoolProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <VerticalRoute vertical="school" entrada="/school">
+      <AppLayout>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            {children}
+          </Suspense>
+        </ErrorBoundary>
+      </AppLayout>
+    </VerticalRoute>
+  </ProtectedRoute>
+);
+
+/** O mesmo para o Agency: só entra quem tiver uma agência atribuída. */
+const AgencyProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <VerticalRoute vertical="agency" entrada="/agency">
+      <AppLayout>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            {children}
+          </Suspense>
+        </ErrorBoundary>
+      </AppLayout>
+    </VerticalRoute>
+  </ProtectedRoute>
+);
+
+/**
+ * O mesmo para o Labs. As páginas são as do Agency (o motor é um só); muda a
+ * porta, o menu e a identidade. Ver `useBaseVertical`.
+ */
+const LabsProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <VerticalRoute vertical="labs" entrada="/labs">
+      <AppLayout>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            {children}
+          </Suspense>
+        </ErrorBoundary>
+      </AppLayout>
+    </VerticalRoute>
+  </ProtectedRoute>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <EmpresaProvider>
@@ -124,8 +207,8 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
-              <Route path="/empresa" element={<SelectEmpresa />} />
-              <Route path="/auth" element={<Auth />} />
+              <Route path="/empresa" element={<SoNoGrupo><SelectEmpresa /></SoNoGrupo>} />
+              <Route path="/auth" element={<SoNoGrupo><Auth /></SoNoGrupo>} />
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes with sidebar layout */}
@@ -195,35 +278,75 @@ const App = () => (
               <Route path="/quadros/:id" element={<ProtectedWithLayout><QuadroDetail /></ProtectedWithLayout>} />
               <Route path="/quadros/:id/automacoes" element={<ProtectedWithLayout><QuadroAutomacoes /></ProtectedWithLayout>} />
 
-              {/* Verificação pública de certificado — sem autenticação */}
+              {/* Verificação pública de certificado — sem autenticação.
+                  /verificar é o endereço impresso no certificado e lido pelo QR;
+                  /certificado mantém-se porque já foi distribuído. */}
               <Route path="/certificado/:codigo" element={<Suspense fallback={<PageLoader />}><CertificadoPublico /></Suspense>} />
+              <Route path="/verificar" element={<Suspense fallback={<PageLoader />}><CertificadoPublico /></Suspense>} />
+              <Route path="/verificar/:codigo" element={<Suspense fallback={<PageLoader />}><CertificadoPublico /></Suspense>} />
 
               {/* Clariza School — Admin */}
-              <Route path="/school/cursos" element={<ProtectedWithLayout><SchoolCursos /></ProtectedWithLayout>} />
-              <Route path="/school/alunos" element={<ProtectedWithLayout><SchoolAlunos /></ProtectedWithLayout>} />
-              <Route path="/school/instrutores" element={<ProtectedWithLayout><SchoolDocentes /></ProtectedWithLayout>} />
-              <Route path="/school/turmas" element={<ProtectedWithLayout><SchoolTurmas /></ProtectedWithLayout>} />
-              <Route path="/school/matriculas" element={<ProtectedWithLayout><SchoolMatriculas /></ProtectedWithLayout>} />
-              <Route path="/school/certificados" element={<ProtectedWithLayout><SchoolCertificados /></ProtectedWithLayout>} />
-              <Route path="/school/clientes-corp" element={<ProtectedWithLayout><SchoolClientesCorp /></ProtectedWithLayout>} />
+              {/* Entrada propria do Clariza School — nao passa pelo seletor de empresas */}
+              <Route path="/school" element={<Suspense fallback={<PageLoader />}><SchoolLogin /></Suspense>} />
+              <Route path="/school/calendario" element={<SchoolProtectedWithLayout><SchoolCalendario /></SchoolProtectedWithLayout>} />
+              <Route path="/school/cursos" element={<SchoolProtectedWithLayout><SchoolCursos /></SchoolProtectedWithLayout>} />
+              <Route path="/school/alunos" element={<SchoolProtectedWithLayout><SchoolAlunos /></SchoolProtectedWithLayout>} />
+              <Route path="/school/instrutores" element={<SchoolProtectedWithLayout><SchoolDocentes /></SchoolProtectedWithLayout>} />
+              <Route path="/school/turmas" element={<SchoolProtectedWithLayout><SchoolTurmas /></SchoolProtectedWithLayout>} />
+              <Route path="/school/matriculas" element={<SchoolProtectedWithLayout><SchoolMatriculas /></SchoolProtectedWithLayout>} />
+              <Route path="/school/certificados" element={<SchoolProtectedWithLayout><SchoolCertificados /></SchoolProtectedWithLayout>} />
+              <Route path="/school/clientes-corp" element={<SchoolProtectedWithLayout><SchoolClientesCorp /></SchoolProtectedWithLayout>} />
+              <Route path="/school/pedidos" element={<SchoolProtectedWithLayout><SchoolPedidos /></SchoolProtectedWithLayout>} />
 
               {/* Clariza School — Portais */}
-              <Route path="/portal/aluno" element={<ProtectedWithLayout><PortalAluno /></ProtectedWithLayout>} />
-              <Route path="/portal/instrutor" element={<ProtectedWithLayout><PortalInstrutor /></ProtectedWithLayout>} />
-              <Route path="/portal/corporativo" element={<ProtectedWithLayout><PortalCorporativo /></ProtectedWithLayout>} />
+              {/* Portais — caminho próprio. Não passam pelo guarda do ERP, que
+                  exige linha em liberty_utilizadores e terminaria a sessão de um
+                  aluno, nem pelo layout do ERP, que lhe mostraria o menu todo. */}
+              <Route path="/portal/entrar" element={<Suspense fallback={<PageLoader />}><PortalLogin /></Suspense>} />
+              {/* Uma pagina de acesso por perfil: /portal/entrar/aluno, .../instrutor, .../corporativo */}
+              <Route path="/portal/entrar/:perfil" element={<Suspense fallback={<PageLoader />}><PortalLogin /></Suspense>} />
+              <Route path="/portal" element={<Suspense fallback={<PageLoader />}><PortalEntrada /></Suspense>} />
+              <Route path="/portal/aluno" element={
+                <Suspense fallback={<PageLoader />}><PortalShell exige="aluno"><PortalAluno /></PortalShell></Suspense>} />
+              <Route path="/portal/instrutor" element={
+                <Suspense fallback={<PageLoader />}><PortalShell exige="docente"><PortalInstrutor /></PortalShell></Suspense>} />
+
+              <Route path="/portal/corporativo" element={
+                <Suspense fallback={<PageLoader />}><PortalShell exige="corporativo"><PortalCorporativo /></PortalShell></Suspense>} />
 
               {/* Clariza Agency — vertical de Agência de Marketing */}
-              <Route path="/agency/projetos" element={<ProtectedWithLayout><AgencyProjetos /></ProtectedWithLayout>} />
-              <Route path="/agency/projetos/:id" element={<ProtectedWithLayout><AgencyProjetoDetail /></ProtectedWithLayout>} />
-              <Route path="/agency/meus-trabalhos" element={<ProtectedWithLayout><AgencyMeusTrabalhos /></ProtectedWithLayout>} />
-              <Route path="/agency/rentabilidade" element={<ProtectedWithLayout><AgencyRentabilidade /></ProtectedWithLayout>} />
-              <Route path="/agency/propostas" element={<ProtectedWithLayout><AgencyPropostas /></ProtectedWithLayout>} />
-              <Route path="/agency/avencas" element={<ProtectedWithLayout><AgencyAvencas /></ProtectedWithLayout>} />
-              <Route path="/agency/catalogo" element={<ProtectedWithLayout><AgencyCatalogo /></ProtectedWithLayout>} />
-              <Route path="/agency/equipa" element={<ProtectedWithLayout><AgencyEquipa /></ProtectedWithLayout>} />
-              <Route path="/agency/automacoes" element={<ProtectedWithLayout><AgencyAutomacoes /></ProtectedWithLayout>} />
+              {/* Entrada própria — não passa pelo seletor de empresas.
+                  Link individual de cada agência: /agency?empresa=<slug> */}
+              <Route path="/agency" element={<Suspense fallback={<PageLoader />}><AgencyLogin /></Suspense>} />
+              <Route path="/agency/projetos" element={<AgencyProtectedWithLayout><AgencyProjetos /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/projetos/:id" element={<AgencyProtectedWithLayout><AgencyProjetoDetail /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/meus-trabalhos" element={<AgencyProtectedWithLayout><AgencyMeusTrabalhos /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/rentabilidade" element={<AgencyProtectedWithLayout><AgencyRentabilidade /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/propostas" element={<AgencyProtectedWithLayout><AgencyPropostas /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/avencas" element={<AgencyProtectedWithLayout><AgencyAvencas /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/catalogo" element={<AgencyProtectedWithLayout><AgencyCatalogo /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/equipa" element={<AgencyProtectedWithLayout><AgencyEquipa /></AgencyProtectedWithLayout>} />
+              <Route path="/agency/automacoes" element={<AgencyProtectedWithLayout><AgencyAutomacoes /></AgencyProtectedWithLayout>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              {/* Clariza Labs — Webtech Labs */}
+              <Route path="/labs" element={<Suspense fallback={<PageLoader />}><LabsLogin /></Suspense>} />
+              <Route path="/labs/projetos" element={<LabsProtectedWithLayout><AgencyProjetos /></LabsProtectedWithLayout>} />
+              <Route path="/labs/projetos/:id" element={<LabsProtectedWithLayout><AgencyProjetoDetail /></LabsProtectedWithLayout>} />
+              <Route path="/labs/meus-trabalhos" element={<LabsProtectedWithLayout><AgencyMeusTrabalhos /></LabsProtectedWithLayout>} />
+              <Route path="/labs/rentabilidade" element={<LabsProtectedWithLayout><AgencyRentabilidade /></LabsProtectedWithLayout>} />
+              <Route path="/labs/propostas" element={<LabsProtectedWithLayout><AgencyPropostas /></LabsProtectedWithLayout>} />
+              <Route path="/labs/avencas" element={<LabsProtectedWithLayout><AgencyAvencas /></LabsProtectedWithLayout>} />
+              <Route path="/labs/catalogo" element={<LabsProtectedWithLayout><AgencyCatalogo /></LabsProtectedWithLayout>} />
+              <Route path="/labs/equipa" element={<LabsProtectedWithLayout><AgencyEquipa /></LabsProtectedWithLayout>} />
+              <Route path="/labs/automacoes" element={<LabsProtectedWithLayout><AgencyAutomacoes /></LabsProtectedWithLayout>} />
+              <Route path="/labs/nucleos/:codigo" element={<LabsProtectedWithLayout><LabsNucleoPainel /></LabsProtectedWithLayout>} />
+              <Route path="/labs/podcast" element={<LabsProtectedWithLayout><LabsPodcast /></LabsProtectedWithLayout>} />
+              <Route path="/labs/painel" element={<LabsProtectedWithLayout><LabsPainel /></LabsProtectedWithLayout>} />
+              <Route path="/labs/area-cliente" element={<LabsProtectedWithLayout><LabsAreaCliente /></LabsProtectedWithLayout>} />
+              {/* Área de cliente pública: o link pessoal é a chave (lb_portal_dados). */}
+              <Route path="/cliente/:token" element={<Suspense fallback={<PageLoader />}><ClientePortal /></Suspense>} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

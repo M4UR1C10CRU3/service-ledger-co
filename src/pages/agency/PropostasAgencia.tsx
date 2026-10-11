@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useBaseVertical } from '@/hooks/useBaseVertical';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ const linhaVazia = (ordem: number, tipo: PropostaAgLinha['tipoLinha'] = 'artigo'
 
 export default function PropostasAgencia() {
   const navigate = useNavigate();
+  const base = useBaseVertical();
   const { propostas, isLoading, fetchLinhas, guardar, mudarEstado, lancarJobs, eliminar } = useAgencyPropostas();
   const { projetos } = useProjetos();
   const { clientes } = useClientes();
@@ -135,7 +137,7 @@ export default function PropostasAgencia() {
             Uma proposta pertence sempre a um projeto — é o projeto que junta a proposta,
             os jobs e as horas no mesmo sítio.
           </p>
-          <Button variant="outline" onClick={() => navigate('/agency/projetos')}>
+          <Button variant="outline" onClick={() => navigate(`${base}/projetos`)}>
             <FolderKanban className="h-4 w-4 mr-2" /> Criar o primeiro projeto
           </Button>
         </CardContent></Card>

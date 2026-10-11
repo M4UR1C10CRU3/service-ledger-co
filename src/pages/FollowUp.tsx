@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Download, Search, LayoutGrid, List } from 'lucide-react';
 import { useFollowup } from '@/hooks/useFollowup';
+import { useNucleos } from '@/hooks/useNucleos';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { FollowupCards } from '@/components/followup/FollowupCards';
@@ -32,10 +33,14 @@ const FollowUp = () => {
   const [editOpp, setEditOpp] = useState<Oportunidade | null>(null);
   const [search, setSearch] = useState('');
   const [filterFase, setFilterFase] = useState<string>('todos');
+  // Clariza Labs: filtro por núcleo (as outras empresas não o veem).
+  const { nucleos, eLabs } = useNucleos();
+  const [filterNucleo, setFilterNucleo] = useState<string>('todos');
 
   const filtered = useMemo(() => {
     let list = oportunidades;
     if (filterFase !== 'todos') list = list.filter(o => o.fase === filterFase);
+    if (eLabs && filterNucleo !== 'todos') list = list.filter(o => filterNucleo === 'sem' ? !o.nucleoId : o.nucleoId === filterNucleo);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(o =>
@@ -45,7 +50,7 @@ const FollowUp = () => {
       );
     }
     return list;
-  }, [oportunidades, filterFase, search]);
+  }, [oportunidades, filterFase, search, eLabs, filterNucleo]);
 
   const handleDelete = async (o: Oportunidade) => {
     if (!confirm(`Eliminar oportunidade "${o.titulo}"?`)) return;
@@ -144,6 +149,16 @@ const FollowUp = () => {
             ))}
           </SelectContent>
         </Select>
+        {eLabs && (
+          <Select value={filterNucleo} onValueChange={setFilterNucleo}>
+            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os núcleos</SelectItem>
+              {nucleos.map(n => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}
+              <SelectItem value="sem">Por classificar</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Views */}

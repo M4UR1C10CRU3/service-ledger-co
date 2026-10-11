@@ -13,6 +13,7 @@ import { format, differenceInDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Phone } from 'lucide-react';
 import { WorkflowChecklistTab } from './WorkflowChecklistTab';
+import { useNucleos } from '@/hooks/useNucleos';
 
 interface Props {
   open: boolean;
@@ -29,6 +30,7 @@ export function FollowupDetailDialog({
   open, onOpenChange, oportunidade, onUpdateOportunidade, onUpdateFase,
   fetchContactos, fetchHistorico, onRegisterContact,
 }: Props) {
+  const { nucleos, eLabs } = useNucleos();
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [historico, setHistorico] = useState<HistoricoFase[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
@@ -93,6 +95,19 @@ export function FollowupDetailDialog({
                   <p className="text-xs text-muted-foreground">Proposta Associada</p>
                   <p className="font-medium">{o.numeroProposta || 'Nenhuma'}</p>
                 </div>
+                {eLabs && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Núcleo</p>
+                    <Select value={o.nucleoId ?? 'sem'}
+                            onValueChange={v => onUpdateOportunidade(o.id, { nucleo_id: v === 'sem' ? null : v })}>
+                      <SelectTrigger className="h-8 mt-0.5"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {nucleos.map(n => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}
+                        <SelectItem value="sem">Por classificar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs text-muted-foreground">Responsável</p>
                   <p className="font-medium">{o.responsavelNome || '—'}</p>

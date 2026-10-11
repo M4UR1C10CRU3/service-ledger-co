@@ -91,6 +91,8 @@ export const DEFAULT_CHECKLIST_BY_FASE: Record<FaseFollowup, string[]> = {
 
 export interface Oportunidade {
   id: string;
+  /** Clariza Labs: núcleo de negócio (lb_nucleos). Sempre null fora do Labs. */
+  nucleoId?: string | null;
   empresaId: string;
   clienteId: string | null;
   clienteNome: string | null;

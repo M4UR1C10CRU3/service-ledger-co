@@ -34,6 +34,7 @@ function mapOportunidade(r: any): Oportunidade {
     updatedAt: r.updated_at,
     poId: r.po_id,
     numeroPo: r.numero_po,
+    nucleoId: r.nucleo_id ?? null,
     numeroProposta: r.propostas?.numero_proposta,
     totalComIva: r.propostas?.total_com_iva ? Number(r.propostas.total_com_iva) : undefined,
   };
@@ -254,6 +255,7 @@ export function useFollowup() {
     proximoFollowupData?: string | null;
     proximoFollowupTipo?: string | null;
     proximoFollowupNotas?: string | null;
+    nucleoId?: string | null;
     poId?: string | null;
     numeroPo?: string | null;
   }): Promise<string | null> => {
@@ -275,6 +277,8 @@ export function useFollowup() {
       proximo_followup_notas: data.proximoFollowupNotas || null,
       ...(data.poId ? { po_id: data.poId } : {}),
       ...(data.numeroPo ? { numero_po: data.numeroPo } : {}),
+      // Clariza Labs: só o Labs envia o núcleo; as outras empresas não tocam na coluna.
+      ...(data.nucleoId !== undefined ? { nucleo_id: data.nucleoId } : {}),
     } as any).select('id').single();
     if (error || !row) { console.error(error); return null; }
 

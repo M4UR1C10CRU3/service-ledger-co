@@ -44,6 +44,7 @@ export function useAvencas() {
           dataInicio: r.data_inicio, dataFim: r.data_fim,
           mesesDuracao: r.meses_duracao,
           estado: r.estado, observacoes: r.observacoes,
+          nucleoId: r.nucleo_id ?? null,
           horasConsumidas,
           horasSaldo: horasContratadas != null ? horasContratadas - horasConsumidas : null,
         } as AvencaConsumo;
@@ -69,6 +70,8 @@ export function useAvencas() {
         meses_duracao: a.mesesDuracao ?? null,
         estado: a.estado || 'ativo',
         observacoes: a.observacoes || null,
+        // Só o Labs envia o núcleo; os outros verticais não tocam na coluna.
+        ...(a.nucleoId !== undefined ? { nucleo_id: a.nucleoId } : {}),
       };
       if (a.id) {
         const { data, error } = await (supabase.from(T_AV) as any)

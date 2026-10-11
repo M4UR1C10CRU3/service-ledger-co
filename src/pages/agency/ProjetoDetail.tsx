@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useBaseVertical } from '@/hooks/useBaseVertical';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ import {
 export default function ProjetoDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const base = useBaseVertical();
   const { projeto, isLoading } = useProjeto(id);
   const { etapas, semear } = useJobEtapas();
   const { jobs, criar, moverEtapa, atualizar, eliminar } = useJobs(id);
@@ -88,7 +90,7 @@ export default function ProjetoDetail() {
       {/* Cabeçalho */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-start gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/agency/projetos')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(`${base}/projetos`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

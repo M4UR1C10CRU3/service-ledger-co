@@ -126,6 +126,8 @@ export interface Projeto {
   horasPrevistas: number | null;
   quadroId: string | null;
   criadoEm: string;
+  /** Clariza Labs: núcleo de negócio (lb_nucleos). Sempre null fora do Labs. */
+  nucleoId?: string | null;
 }
 
 /** Vista ag_v_projeto_resumo — previsto vs realizado. */
@@ -217,6 +219,8 @@ export interface ProjetoFormData {
   prazoEstimado: string;
   budget: number | null;
   horasPrevistas: number | null;
+  /** Clariza Labs. Ausente nos outros verticais — e então não se grava. */
+  nucleoId?: string | null;
 }
 
 export const emptyProjetoForm: ProjetoFormData = {
@@ -411,6 +415,8 @@ export interface ContratoAvenca {
   mesesDuracao: number | null;
   estado: AvencaEstado;
   observacoes: string | null;
+  /** Clariza Labs: núcleo de negócio (lb_nucleos). */
+  nucleoId?: string | null;
 }
 
 /** Vista ag_v_avenca_consumo — contratadas vs consumidas. */
