@@ -159,3 +159,35 @@ export const MODELOS_CRIATIVO: { codigo: string; nome: string; resumo: string; f
     ],
   },
 ];
+
+/**
+ * Modelos de projeto do Growth. A gestão de redes é mensal: o projeto leva as
+ * fases de um mês e a avença (Comercial → Avenças) fatura o fee recorrente;
+ * no mês seguinte cria-se outro projeto com o mesmo modelo.
+ */
+export const MODELOS_GROWTH: { codigo: string; nome: string; resumo: string; fases: FaseModelo[] }[] = [
+  {
+    codigo: 'redes', nome: 'Gestão de redes sociais', resumo: 'Um mês de conteúdos e comunidade',
+    fases: [
+      { titulo: 'Planeamento do calendário editorial do mês' },
+      { titulo: 'Criação de conteúdos (posts, reels, stories)' },
+      { titulo: 'Aprovação do cliente' },
+      { titulo: 'Agendamento e publicação' },
+      { titulo: 'Gestão da comunidade (comentários e mensagens)' },
+      { titulo: 'Relatório do mês e próximos passos' },
+    ],
+  },
+  {
+    codigo: 'campanha', nome: 'Campanha promocional e-commerce', resumo: 'Promoção na loja com anúncios',
+    fases: [
+      { titulo: 'Briefing da campanha (produtos, descontos, datas, objetivo)' },
+      { titulo: 'Criativos: banners, posts, email e anúncios' },
+      { titulo: 'Preparar a loja: preços, cupões e página da campanha' },
+      { titulo: 'Configurar anúncios (Meta/Google), públicos e orçamento' },
+      { titulo: 'Aprovação do cliente' },
+      { titulo: 'Lançamento da campanha' },
+      { titulo: 'Acompanhamento e otimização diária' },
+      { titulo: 'Relatório final de resultados (vendas, ROAS, aprendizagens)' },
+    ],
+  },
+];

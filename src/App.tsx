@@ -70,6 +70,7 @@ const LabsLogin = lazy(() => import("./pages/labs/LabsLogin"));
 const LabsNucleoPainel = lazy(() => import("./pages/labs/NucleoPainel"));
 const LabsPodcast = lazy(() => import("./pages/labs/LabsPodcast"));
 const LabsPainel = lazy(() => import("./pages/labs/LabsPainel"));
+const LabsProducao = lazy(() => import("./pages/labs/LabsProducao"));
 const LabsAreaCliente = lazy(() => import("./pages/labs/AreaClienteGestao"));
 const ClientePortal = lazy(() => import("./pages/labs/ClientePortal"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
@@ -343,6 +344,7 @@ const App = () => (
               <Route path="/labs/nucleos/:codigo" element={<LabsProtectedWithLayout><LabsNucleoPainel /></LabsProtectedWithLayout>} />
               <Route path="/labs/podcast" element={<LabsProtectedWithLayout><LabsPodcast /></LabsProtectedWithLayout>} />
               <Route path="/labs/painel" element={<LabsProtectedWithLayout><LabsPainel /></LabsProtectedWithLayout>} />
+              <Route path="/labs/producao" element={<LabsProtectedWithLayout><LabsProducao /></LabsProtectedWithLayout>} />
               <Route path="/labs/area-cliente" element={<LabsProtectedWithLayout><LabsAreaCliente /></LabsProtectedWithLayout>} />
               {/* Área de cliente pública: o link pessoal é a chave (lb_portal_dados). */}
               <Route path="/cliente/:token" element={<Suspense fallback={<PageLoader />}><ClientePortal /></Suspense>} />

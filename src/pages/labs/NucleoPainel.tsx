@@ -15,7 +15,7 @@ import { ArrowRight, FolderKanban, FileText, Repeat, Target, Wrench, Receipt, Bo
 import { EstrategiaFunil } from '@/components/labs/EstrategiaFunil';
 import { ModelosProjeto } from '@/components/labs/ModelosProjeto';
 import { AtivosClientes } from '@/components/labs/AtivosClientes';
-import { MODELOS_PRODUTO, MODELOS_CRIATIVO } from '@/lib/labsProjetos';
+import { MODELOS_PRODUTO, MODELOS_CRIATIVO, MODELOS_GROWTH } from '@/lib/labsProjetos';
 import { AgendaEstudio } from '@/components/labs/AgendaEstudio';
 import { InfraPainel } from '@/components/labs/InfraPainel';
 import { TechCarePainel } from '@/components/labs/TechCarePainel';
@@ -169,7 +169,12 @@ export default function NucleoPainel() {
         <EstrategiaFunil nucleo={nucleo} propostas={extra?.propostas ?? []} />
       )}
 
-      {nucleo.codigo === 'growth' && <GrowthPainel nucleo={nucleo} />}
+      {nucleo.codigo === 'growth' && (
+        <>
+          <ModelosProjeto nucleo={nucleo} modelos={MODELOS_GROWTH} />
+          <GrowthPainel nucleo={nucleo} />
+        </>
+      )}
 
       {nucleo.codigo === 'criativo' && (
         <>

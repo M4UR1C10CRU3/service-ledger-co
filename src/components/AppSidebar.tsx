@@ -306,6 +306,7 @@ const sectionsLabs: NavSection[] = [
     icon: FolderKanban,
     items: [
       { title: 'Painel',            url: '/labs/painel',         icon: LayoutGrid   },
+      { title: 'Workflow de Produção', url: '/labs/producao',    icon: Trello       },
       { title: 'Projetos',          url: '/labs/projetos',       icon: FolderKanban },
       { title: 'Os meus trabalhos', url: '/labs/meus-trabalhos', icon: ListTodo     },
       { title: 'Rentabilidade',     url: '/labs/rentabilidade',  icon: TrendingUp   },
