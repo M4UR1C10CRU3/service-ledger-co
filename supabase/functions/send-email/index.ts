@@ -29,13 +29,28 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
 
-      const { data: cfg, error: cfgErr } = await supabase
+      // Conta de envio: a da própria empresa para este tipo; senão outra conta
+      // ativa da mesma empresa; senão uma conta ativa de outra empresa do mesmo
+      // grupo (as empresas de um grupo partilham utilizadores — um aviso interno
+      // não pode perder-se só porque a empresa do quadro não tem conta própria).
+      const COLS = "empresa_id, tipo, email, nome_exibicao, smtp_host, smtp_port, smtp_user, smtp_pass";
+      const { data: emp } = await supabase.from("empresas").select("grupo_id").eq("id", empresa_id).maybeSingle();
+      let empresasCandidatas = [empresa_id];
+      if (emp?.grupo_id) {
+        const { data: irmas } = await supabase.from("empresas").select("id").eq("grupo_id", emp.grupo_id);
+        empresasCandidatas = [empresa_id, ...(irmas ?? []).map((e: { id: string }) => e.id).filter((id: string) => id !== empresa_id)];
+      }
+      const { data: contas, error: cfgErr } = await supabase
         .from("empresa_smtp_configs")
-        .select("email, nome_exibicao, smtp_host, smtp_port, smtp_user, smtp_pass")
-        .eq("empresa_id", empresa_id)
-        .eq("tipo", tipo)
-        .eq("ativo", true)
-        .single();
+        .select(COLS)
+        .in("empresa_id", empresasCandidatas)
+        .eq("ativo", true);
+      const ordem = (c: { empresa_id: string; tipo: string }) =>
+        (c.empresa_id === empresa_id ? 0 : 2) + (c.tipo === tipo ? 0 : 1);
+      const cfg = (contas ?? []).sort((a, b) => ordem(a) - ordem(b))[0];
+      if (cfg && (cfg.empresa_id !== empresa_id || cfg.tipo !== tipo)) {
+        console.warn(`[send-email] sem conta ${tipo} na empresa ${empresa_id}; a usar ${cfg.email}`);
+      }
 
       if (cfgErr || !cfg) {
         console.error("[send-email] SMTP config não encontrada:", cfgErr?.message);

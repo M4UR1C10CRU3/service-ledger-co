@@ -36,6 +36,35 @@ function mapCard(card: any): QuadroCartao {
   };
 }
 
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Molde comum dos e-mails dos quadros (menções e tarefas de checklist).
+function emailCartaoHtml(o: {
+  titulo: string; quadroNome: string; cartaoTitulo: string; cartaoUrl: string;
+  intro: string; corpoHtml: string;
+}): string {
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <tr><td style="background:#6366f1;padding:24px 32px">
+    <p style="margin:0;color:#fff;font-size:18px;font-weight:700">${o.titulo}</p>
+  </td></tr>
+  <tr><td style="padding:28px 32px">
+    <p style="margin:0 0 4px;color:#71717a;font-size:13px">Quadro</p>
+    <p style="margin:0 0 16px;font-weight:600;font-size:15px">${escHtml(o.quadroNome)}</p>
+    <p style="margin:0 0 4px;color:#71717a;font-size:13px">Cartão</p>
+    <p style="margin:0 0 20px;font-weight:600;font-size:15px"><a href="${o.cartaoUrl}" style="color:#6366f1;text-decoration:none">${escHtml(o.cartaoTitulo)} &rarr;</a></p>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px">${o.intro}</p>
+    <div style="border-left:4px solid #6366f1;background:#f5f3ff;border-radius:0 8px 8px 0;padding:14px 18px;margin:0 0 24px;color:#1f2937;font-size:14px;line-height:1.6">${o.corpoHtml}</div>
+    <p style="margin:0 0 20px"><a href="${o.cartaoUrl}" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:10px 20px;border-radius:8px">Abrir cartão no Clariza</a></p>
+    <p style="margin:0;color:#71717a;font-size:12px">Esta é uma notificação automática do Clariza Manager.</p>
+  </td></tr>
+</table>
+</td></tr></table></body></html>`;
+}
+
+const dataPt = (iso: string) => { const [a, m, d] = iso.slice(0, 10).split('-'); return `${d}/${m}/${a}`; };
+
 // Etiquetas disponíveis para um quadro: para ITC, apenas as do próprio quadro
 // (comportamento original). Para qualquer outra empresa, a união das etiquetas
 // de TODOS os quadros de TODAS as empresas não-ITC, deduplicada por nome —
@@ -365,15 +394,66 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     })));
   };
 
+  // Avisa por e-mail o responsável de uma tarefa de checklist: quando passa a
+  // sê-lo, ou quando a tarefa, a data ou a hora mudam. Não avisa quem atribui
+  // a si próprio.
+  const notificarTarefa = async (
+    antes: ChecklistItem,
+    updates: Partial<Pick<ChecklistItem, 'texto' | 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>,
+    cartaoId: string,
+    cartaoTitulo: string,
+  ) => {
+    const depois = { ...antes, ...updates };
+    if (!depois.responsavel_id) return;
+    const novoResponsavel = depois.responsavel_id !== antes.responsavel_id;
+    const mudou = novoResponsavel
+      || (depois.texto ?? '') !== (antes.texto ?? '')
+      || (depois.hora ?? '').slice(0, 5) !== (antes.hora ?? '').slice(0, 5)
+      || (depois.data_limite ?? '').slice(0, 10) !== (antes.data_limite ?? '').slice(0, 10);
+    if (!mudou) return;
+    const u = utilizadores.find(x => x.id === depois.responsavel_id);
+    const autorNome = meRef.current.nome || 'Alguém';
+    if (!u?.email || u.nome === autorNome) return;
+
+    const quadroNome = quadro?.nome || '';
+    const cartaoUrl = `https://app.clarizaplatform.com/quadros/${quadroId}?cartao=${cartaoId}`;
+    const quando = [
+      depois.data_limite ? dataPt(depois.data_limite) : '',
+      depois.hora ? `às ${depois.hora.slice(0, 5)}` : '',
+    ].filter(Boolean).join(' ') || 'sem data definida';
+    const r = await sendEmail({
+      to: u.email,
+      subject: novoResponsavel
+        ? `[${quadroNome}] Nova tarefa: ${depois.texto}${depois.data_limite ? ` — ${quando}` : ''}`
+        : `[${quadroNome}] Tarefa alterada: ${depois.texto}${depois.data_limite ? ` — ${quando}` : ''}`,
+      html: emailCartaoHtml({
+        titulo: novoResponsavel ? '&#9989; Tem uma nova tarefa' : '&#9999;&#65039; Uma tarefa sua foi alterada',
+        quadroNome, cartaoTitulo, cartaoUrl,
+        intro: `<strong>${escHtml(autorNome)}</strong> ${novoResponsavel ? 'atribuiu-lhe esta tarefa' : 'alterou esta tarefa'}:`,
+        corpoHtml: `<strong>${escHtml(depois.texto)}</strong><br><span style="color:#6366f1">&#128197; ${quando}</span>`,
+      }),
+      empresa_id: empresaId,
+      tipo: 'comercial',
+    });
+    if (!r.ok) toast({
+      title: `Tarefa guardada, mas o e-mail a ${u.nome} não foi enviado.`,
+      description: r.error,
+      variant: 'destructive',
+    });
+  };
+
   const updateChecklistItem = async (
     itemId: string, checklistId: string, cartaoId: string,
     updates: Partial<Pick<ChecklistItem, 'texto' | 'responsavel_id' | 'responsavel_nome' | 'hora' | 'data_limite'>>,
   ) => {
+    const cartao = listas.flatMap(l => l.cartoes).find(c => c.id === cartaoId);
+    const antes = cartao?.checklists.find(cl => cl.id === checklistId)?.items.find(it => it.id === itemId);
     const { error } = await supabase.from('cartao_checklist_items').update(updates).eq('id', itemId);
     if (error) {
       toast({ title: 'Não foi possível guardar. Tente novamente.', variant: 'destructive' });
       return;
     }
+    if (antes && cartao) void notificarTarefa(antes, updates, cartaoId, cartao.titulo);
     setListas(prev => prev.map(l => ({
       ...l, cartoes: l.cartoes.map(c => c.id === cartaoId
         ? { ...c, checklists: c.checklists.map(cl => cl.id === checklistId ? { ...cl, items: cl.items.map(it => it.id === itemId ? { ...it, ...updates } : it) } : cl) } : c),
@@ -484,7 +564,14 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
 </td></tr></table></body></html>`,
           empresa_id: empresaId,
           tipo: 'comercial',
-        }).catch(() => {}); // não-crítico
+        }).then(r => {
+          // O comentário fica gravado na mesma; só se avisa que o e-mail não seguiu.
+          if (!r.ok) toast({
+            title: `Comentário guardado, mas o e-mail a ${u.nome} não foi enviado.`,
+            description: r.error,
+            variant: 'destructive',
+          });
+        });
       }
     }
 
@@ -578,6 +665,37 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
       await (supabase.from('cartao_anexos' as any) as any).delete().eq('id', id);
       await logAtividade(cartaoId, 'removeu um anexo');
     } catch { /* não crítico */ }
+  };
+
+  // Apagar de vez um cartão arquivado. Checklists, comentários, anexos, membros e etiquetas
+  // saem em cascata na base. Os ficheiros dos anexos só saem do Storage se nenhum outro
+  // cartão os usar: um cartão duplicado partilha o mesmo ficheiro (ver duplicarCartao).
+  const apagarCartaoArquivado = async (cartaoId: string): Promise<boolean> => {
+    const { data: anexos } = await (supabase.from('cartao_anexos' as any) as any)
+      .select('path').eq('cartao_id', cartaoId);
+    const paths = [...new Set(((anexos as any[]) || []).map(a => a.path).filter(Boolean))] as string[];
+
+    // .select() para detetar uma recusa da RLS, que no Supabase volta como sucesso com 0 linhas.
+    const { data, error } = await supabase.from('quadro_cartoes').delete()
+      .eq('id', cartaoId).eq('arquivado', true).select('id');
+    if (error || !data?.length) {
+      toast({
+        title: 'Não foi possível apagar o cartão.',
+        description: error?.message ?? 'Sem permissão para apagar este cartão.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    if (paths.length) {
+      const { data: usados } = await (supabase.from('cartao_anexos' as any) as any)
+        .select('path').in('path', paths);
+      const emUso = new Set(((usados as any[]) || []).map(u => u.path));
+      const livres = paths.filter(p => !emUso.has(p));
+      if (livres.length) await supabase.storage.from(ANEXO_BUCKET).remove(livres);
+    }
+    toast({ title: 'Cartão apagado' });
+    return true;
   };
 
   // ── Duplicar cartão ───────────────────────────────────────────────────────
@@ -904,7 +1022,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     validarMovimento, aoMoverCartao,
     addChecklist, updateChecklistTitulo, addChecklistItem, toggleChecklistItem, deleteChecklistItem, updateChecklistItem, moveChecklistItem, reorderChecklistItems, deleteChecklist,
     fetchFeed, addComentario, updateComentario, deleteComentario, logAtividade,
-    listAnexos, addAnexo, uploadAnexo, deleteAnexo,
+    listAnexos, addAnexo, uploadAnexo, deleteAnexo, apagarCartaoArquivado,
     duplicarCartao,
     fetchEmpresasMove, fetchQuadrosMove, fetchListasMove, moveCartaoParaEmpresa,
     listChecklistModelos, applyChecklistModelo, updateChecklistModeloCategoria,

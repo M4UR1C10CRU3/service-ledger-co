@@ -17,7 +17,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, X, MoreHorizontal, Archive, Pencil, Palette, Eraser, ArchiveRestore, Zap } from 'lucide-react';
+import { ArrowLeft, Plus, X, MoreHorizontal, Archive, Pencil, Palette, Eraser, ArchiveRestore, Zap, Trash2 } from 'lucide-react';
 import BoardColumn from '@/components/quadros/BoardColumn';
 import CartaoCard from '@/components/quadros/CartaoCard';
 import CartaoDetailModal from '@/components/quadros/CartaoDetailModal';
@@ -84,6 +84,16 @@ export default function QuadroDetail() {
   const handleRestaurar = async (cartaoId: string) => {
     await d.restaurarCartao(cartaoId);
     setArquivados(prev => prev.filter(a => a.cartao.id !== cartaoId));
+  };
+  // Apagar de vez só se faz a partir dos arquivados, e sempre com confirmação.
+  const [confirmApagar, setConfirmApagar] = useState<{ id: string; titulo: string } | null>(null);
+  const handleApagar = async () => {
+    if (!confirmApagar) return;
+    const id = confirmApagar.id;
+    setConfirmApagar(null);
+    if (await d.apagarCartaoArquivado(id)) {
+      setArquivados(prev => prev.filter(a => a.cartao.id !== id));
+    }
   };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -570,10 +580,16 @@ export default function QuadroDetail() {
                       </div>
                     </div>
 
-                    <Button size="sm" variant="secondary" className="gap-1.5 shrink-0"
-                            onClick={() => handleRestaurar(cartao.id)}>
-                      <ArchiveRestore size={13} /> Restaurar
-                    </Button>
+                    <div className="flex flex-col gap-1.5 shrink-0">
+                      <Button size="sm" variant="secondary" className="gap-1.5"
+                              onClick={() => handleRestaurar(cartao.id)}>
+                        <ArchiveRestore size={13} /> Restaurar
+                      </Button>
+                      <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setConfirmApagar({ id: cartao.id, titulo: cartao.titulo })}>
+                        <Trash2 size={13} /> Excluir
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -581,6 +597,25 @@ export default function QuadroDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmApagar} onOpenChange={o => { if (!o) setConfirmApagar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir este cartão de vez?</AlertDialogTitle>
+            <AlertDialogDescription>
+              «{confirmApagar?.titulo}» será apagado com os comentários, checklists e anexos.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleApagar}
+                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

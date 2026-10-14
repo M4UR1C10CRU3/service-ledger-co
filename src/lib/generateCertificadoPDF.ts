@@ -205,6 +205,19 @@ function renderInlineText(
   });
 }
 
+/**
+ * Limita um texto já partido em linhas a `max` linhas; se cortar, a última termina em «…» e cabe em `larg`.
+ * Usa a letra que estiver definida no documento nesse momento.
+ */
+function limitarLinhas(doc: jsPDF, linhas: string[], max: number, larg: number): string[] {
+  if (linhas.length <= max) return linhas;
+  const out = linhas.slice(0, max);
+  let ult = out[max - 1].replace(/[\s,;:.–—-]+$/, '');
+  while (ult.length > 1 && doc.getTextWidth(ult + '…') > larg) ult = ult.slice(0, -1).replace(/\s+$/, '');
+  out[max - 1] = ult + '…';
+  return out;
+}
+
 /** Decoração desenhada — só usada quando a empresa não tem arte configurada. */
 function drawCornerDecorations(doc: jsPDF) {
   const s1 = 50, s2 = 35, s3 = 20;
@@ -614,6 +627,24 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     doc.setTextColor(...PURPLE);
     doc.text(data.curso_nome || '—', 14, topo + 7.5);
 
+    // ── Espaço disponível, calculado de baixo para cima (15/10/2026) ──────────
+    // Regra do ITC: o texto NUNCA sai da tabela nem toca no rodapé; conteúdo longo
+    // demais é abreviado. Primeiro fixa-se o que vai por baixo da tabela (objetivo
+    // e metodologia com limite de linhas, barra de estatísticas, as três caixas) e
+    // a tabela fica com o espaço que sobra até lá.
+    const RODAPE_Y = arteVerso ? 259 : H - 20;
+    const colWObj = (W - 30) / 2;
+    const MAX_LINHAS_OBJ = 7;
+    const objTextoBase = data.objetivo || 'Capacitar profissionais com conhecimentos teóricos e práticos para exercício seguro e eficiente das atividades do curso.';
+    const metTextoBase = data.metodologia || 'Aulas expositivas, demonstrações práticas, exercícios supervisionados e avaliação de desempenho individual.';
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const objLinhasCap = limitarLinhas(doc, doc.splitTextToSize(objTextoBase, colWObj - 5) as string[], MAX_LINHAS_OBJ, colWObj - 5);
+    const metLinhasCap = limitarLinhas(doc, doc.splitTextToSize(metTextoBase, colWObj - 5) as string[], MAX_LINHAS_OBJ, colWObj - 5);
+    const altObjetivo = 9 + Math.max(objLinhasCap.length, metLinhasCap.length) * 4.5 + 10 + 4;
+    const ALT_ESTAT = 13, ALT_CAIXAS = 8 + 34;
+    const inicioBlocosBaixo = RODAPE_Y - 2 - (altObjetivo + ALT_ESTAT + ALT_CAIXAS);
+
     // ── Tabela conteúdo programático ─────────────────────────
     // Folga suficiente abaixo da faixa: com 4 mm o cabeçalho da tabela colava
     // no nome do curso.
@@ -634,21 +665,43 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       // escritos numa linha só e saíam pela margem fora, por cima das horas. Agora
       // partem-se à largura da coluna; se a tabela ainda assim não couber antes do
       // rodapé da arte, a letra encolhe um degrau em vez de invadir o que vem a seguir.
+      // Encaixe garantido (15/10/2026): letra 9,5 → 7 pt; depois cada tópico abreviado a 2 linhas e a 1
+      // linha com «…»; por fim, os tópicos que não cabem juntam-se numa linha «Outros N tópicos» com a
+      // soma das horas — a carga horária total continua certa e nada passa para baixo de `limite`.
       const largModulo = W - 14 - 14 - 16;                 // margens e coluna das horas
-      const limite = (arteVerso ? 259 : H - 20) - 4 - 100; // 100 mm = objetivo + barra + verificação
-      let fonte = 9.5, altLinha = 4.3, folga = 3.7;
-      const medir = () => {
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(fonte);
-        const linhas = data.conteudo_programatico!.map(i => doc.splitTextToSize(i.modulo, largModulo) as string[]);
-        const alt = linhas.reduce((s, l) => s + l.length * altLinha + folga, 0);
-        return { linhas, alt };
-      };
-      let med = medir();
-      if (tY + med.alt > limite) { fonte = 8.5; altLinha = 3.8; folga = 3.0; med = medir(); }
+      const limite = inicioBlocosBaixo - 10;               // 10 mm = linha «Carga horária total»
+      const itensTodos = data.conteudo_programatico;
+      const NIVEIS = [
+        { fonte: 9.5, altLinha: 4.3, folga: 3.7 },
+        { fonte: 8.5, altLinha: 3.8, folga: 3.0 },
+        { fonte: 7.5, altLinha: 3.4, folga: 2.6 },
+        { fonte: 7,   altLinha: 3.1, folga: 2.3 },
+      ];
+      let escolha: { fonte: number; altLinha: number; folga: number; linhas: string[][]; itens: { modulo: string; horas: number }[] } | null = null;
+      fora: for (const maxL of [Infinity, 2, 1]) {
+        for (const nv of NIVEIS) {
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(nv.fonte);
+          const linhas = itensTodos.map(i => limitarLinhas(doc, doc.splitTextToSize(i.modulo, largModulo) as string[], maxL, largModulo));
+          const alt = linhas.reduce((s, l) => s + l.length * nv.altLinha + nv.folga, 0);
+          if (tY + alt <= limite) { escolha = { ...nv, linhas, itens: itensTodos }; break fora; }
+        }
+      }
+      if (!escolha) {
+        // Nem a 1 linha por tópico cabe: mostram-se os primeiros e agrupam-se os restantes.
+        const nv = NIVEIS[NIVEIS.length - 1];
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(nv.fonte);
+        const passo = nv.altLinha + nv.folga;
+        const cabem = Math.max(1, Math.floor((limite - tY) / passo) - 1);
+        const mostrados = itensTodos.slice(0, cabem);
+        const resto = itensTodos.slice(cabem);
+        const itens = [...mostrados, { modulo: `Outros ${resto.length} tópicos do conteúdo programático`, horas: resto.reduce((s, i) => s + i.horas, 0) }];
+        escolha = { ...nv, itens, linhas: itens.map(i => limitarLinhas(doc, doc.splitTextToSize(i.modulo, largModulo) as string[], 1, largModulo)) };
+      }
+      const { fonte, altLinha, folga } = escolha;
 
       let totalCH = 0;
-      data.conteudo_programatico.forEach((item, idx) => {
-        const linhas = med.linhas[idx];
+      escolha.itens.forEach((item, idx) => {
+        const linhas = escolha!.linhas[idx];
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(fonte);
         doc.setTextColor(...BLACK);
@@ -691,12 +744,9 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       doc.text('METODOLOGIA', c2 + colW / 2, tY + 6, { align: 'center' });
       tY += 9;
 
-      const objText = data.objetivo || 'Capacitar profissionais com conhecimentos teóricos e práticos para exercício seguro e eficiente das atividades do curso.';
-      const metText = data.metodologia || 'Aulas expositivas, demonstrações práticas, exercícios supervisionados e avaliação de desempenho individual.';
-
       doc.setFontSize(8.5);
-      const objLines = doc.splitTextToSize(objText, colW - 5);
-      const metLines = doc.splitTextToSize(metText, colW - 5);
+      const objLines = objLinhasCap;   // já limitadas a MAX_LINHAS_OBJ, com «…» se o texto for maior
+      const metLines = metLinhasCap;
       const maxL = Math.max(objLines.length, metLines.length);
       const bH = maxL * 4.5 + 10;
 

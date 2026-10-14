@@ -61,3 +61,9 @@ verify_jwt = true
 
 [functions.rh-ia]
 verify_jwt = true
+
+[functions.wc-encomenda]
+verify_jwt = false
+
+[functions.ecommerce-agente]
+verify_jwt = false

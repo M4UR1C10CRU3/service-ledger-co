@@ -1,0 +1,6 @@
+{
+  "url": "https://qeskzaodgfveidyeghbm.supabase.co/functions/v1/ecommerce-agente",
+  "token": "COLAR AQUI O TOKEN (o mesmo valor do segredo ECOMMERCE_AGENTE_TOKEN no Supabase)",
+  "pasta_base": "\\\\APPS01\\Documentos$\\WARM\\E-COMMERCE\\DEP. PRODUÇÃO_VENDAS",
+  "dias_a_verificar": 120
+}
