@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Award, Trash2, ExternalLink, Plus, AlertTriangle, CheckCircle2, FileText, Loader2, Download, PackageOpen, ShieldCheck, Copy, Check } from 'lucide-react';
+import { Search, Award, Trash2, ExternalLink, Plus, AlertTriangle, CheckCircle2, FileText, Loader2, Download, PackageOpen, ShieldCheck, Copy, Check, RefreshCw } from 'lucide-react';
 import { useSchoolCertificados, SchoolCertificadoInput } from '@/hooks/useSchoolCertificados';
 import { useSchoolAlunos } from '@/hooks/useSchoolAlunos';
 import { useSchoolTurmas } from '@/hooks/useSchoolTurmas';
@@ -60,6 +60,10 @@ export default function SchoolCertificados() {
   const [form, setForm] = useState({ ...EMPTY, turma_id: turmaFiltro ?? '' });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  // Gerar de novo os PDFs guardados da lista visível (15/10/2026): aplica a versão atual do
+  // certificado a certificados já emitidos, com a mesma codificação e data de emissão.
+  const [regerarOpen, setRegerarOpen] = useState(false);
+  const [regerarProgresso, setRegerarProgresso] = useState<{ feitos: number; total: number; erros: string[] } | null>(null);
   /** Certificado cujo link acabou de ser copiado — confirma que a cópia deu. */
   const [linkCopiado, setLinkCopiado] = useState<string | null>(null);
 
@@ -292,6 +296,34 @@ export default function SchoolCertificados() {
     }
   };
 
+  /** Gera de novo, um a um, os PDFs dos certificados da lista visível (sem descarregar). */
+  const handleRegerarLista = async () => {
+    if (!empresa) return;
+    const lista = [...filtered];
+    const erros: string[] = [];
+    setRegerarProgresso({ feitos: 0, total: lista.length, erros });
+    for (let i = 0; i < lista.length; i++) {
+      const cert = lista[i];
+      try {
+        const fonte = await montarFonte(cert.codigo, cert.aluno_id, cert.turma_id, cert.docente_id, cert.emitido_em, cert.validade_em);
+        const { blob } = await produzirPDF(fonte);
+        const path = await guardarPDF(empresa.id, cert.codigo, blob);
+        const { data, error } = await (supabase as any)
+          .from('school_certificados').update({ url_pdf: path }).eq('id', cert.id).select('id');
+        if (error) throw error;
+        if (!data?.length) throw new Error('sem permissão para atualizar');
+      } catch (e: any) {
+        erros.push(`${cert.codigo}: ${e?.message ?? e}`);
+      }
+      setRegerarProgresso({ feitos: i + 1, total: lista.length, erros: [...erros] });
+    }
+    toast({
+      title: erros.length ? `PDFs gerados de novo, com ${erros.length} erro(s)` : 'PDFs gerados de novo',
+      description: `${lista.length - erros.length} de ${lista.length} certificados atualizados.`,
+      variant: erros.length ? 'destructive' : undefined,
+    });
+  };
+
   /** Abre o PDF guardado. O bucket é privado, logo precisa de URL assinada. */
   const handleAbrirPDF = async (cert: typeof certificados[0]) => {
     if (!cert.url_pdf) return;
@@ -463,6 +495,10 @@ export default function SchoolCertificados() {
                title="Confirmar a autenticidade de um certificado pelo código">
               <ShieldCheck className="h-4 w-4 mr-2" />Validar Certificado
             </a>
+          </Button>
+          <Button variant="outline" onClick={() => { setRegerarProgresso(null); setRegerarOpen(true); }} disabled={filtered.length === 0}
+                  title="Gerar de novo os PDFs da lista visível com a versão atual do certificado">
+            <RefreshCw className="h-4 w-4 mr-2" />Gerar PDFs de novo
           </Button>
           <Button variant="outline" onClick={() => { setBatchTurmaId(turmaFiltro ?? ''); setBatchOpen(true); }}>
             <PackageOpen className="h-4 w-4 mr-2" />Emissão em Lote
@@ -715,6 +751,43 @@ export default function SchoolCertificados() {
       </Dialog>
 
       {/* Confirmar remoção */}
+      <AlertDialog open={regerarOpen} onOpenChange={o => { if (!o && regerarProgresso && regerarProgresso.feitos < regerarProgresso.total) return; setRegerarOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gerar de novo {filtered.length} PDF{filtered.length !== 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os certificados da lista visível são gerados de novo com a versão atual (logótipos, conteúdo
+              programático e rodapé). A codificação, a data de emissão e o QR code não mudam. Para escolher
+              só alguns, filtre a lista antes (pesquisa ou turma).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {regerarProgresso && (
+            <div className="space-y-2">
+              <Progress value={(regerarProgresso.feitos / Math.max(regerarProgresso.total, 1)) * 100} />
+              <p className="text-sm text-muted-foreground">{regerarProgresso.feitos} de {regerarProgresso.total}</p>
+              {regerarProgresso.erros.length > 0 && (
+                <div className="max-h-32 overflow-auto text-xs text-destructive">
+                  {regerarProgresso.erros.map(e => <div key={e}>{e}</div>)}
+                </div>
+              )}
+            </div>
+          )}
+          <AlertDialogFooter>
+            {regerarProgresso && regerarProgresso.feitos === regerarProgresso.total ? (
+              <AlertDialogAction onClick={() => setRegerarOpen(false)}>Fechar</AlertDialogAction>
+            ) : (
+              <>
+                <AlertDialogCancel disabled={!!regerarProgresso}>Cancelar</AlertDialogCancel>
+                <Button onClick={handleRegerarLista} disabled={!!regerarProgresso}>
+                  {regerarProgresso ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  Gerar de novo
+                </Button>
+              </>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!deleteId} onOpenChange={o => !o && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
