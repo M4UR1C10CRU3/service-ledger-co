@@ -456,7 +456,8 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
 
   // Direção Defensiva: o DETRAN exige o RENACH e a categoria da CNH no certificado.
   // Os campos vivem na ficha do aluno e só saem impressos neste curso.
-  if (eDirecaoDefensiva(data.curso_nome) && (data.aluno_cnh_renach || data.aluno_cnh_categoria)) {
+  const temRenach = eDirecaoDefensiva(data.curso_nome) && Boolean(data.aluno_cnh_renach || data.aluno_cnh_categoria);
+  if (temRenach) {
     const partes: string[] = [];
     if (data.aluno_cnh_renach) partes.push(`RENACH: ${data.aluno_cnh_renach}`);
     if (data.aluno_cnh_categoria) partes.push(`Categoria CNH: ${data.aluno_cnh_categoria}`);
@@ -466,11 +467,25 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     doc.text(partes.join('   ·   '), W / 2, 142, { align: 'center' });
   }
 
+  // ── Assinatura do aluno (15/10/2026) ──────────────────────
+  // Logo abaixo do nome (e do CPF/RENACH): linha fina com ~10 mm livres por cima
+  // para o aluno assinar, e a legenda por baixo.
+  const ultimaLinhaAluno = temRenach ? 142 : data.aluno_cpf ? 136 : 128;
+  const assY = ultimaLinhaAluno + 12;
+  doc.setDrawColor(...DGRAY);
+  doc.setLineWidth(0.3);
+  doc.line(W / 2 - 36, assY, W / 2 + 36, assY);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...LGRAY);
+  doc.text('Assinatura do(a) aluno(a)', W / 2, assY + 3.5, { align: 'center' });
+
   // ── Dados do curso ─────────────────────────────────────────
+  const cursoY = assY + 12;
   renderInlineText(doc, [
     { text: 'Curso:  ', bold: true, color: BLACK },
     { text: data.curso_nome || '—', bold: true, color: BLACK },
-  ], 152, 12);
+  ], cursoY, 12);
 
   const chSegs: { text: string; bold: boolean; color: [number, number, number] }[] = [];
   if (data.carga_horaria) {
@@ -490,7 +505,7 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     chSegs.push({ text: 'Conclusão: ', bold: true, color: BLACK });
     chSegs.push({ text: fmtDate(conclusao), bold: false, color: DGRAY });
   }
-  if (chSegs.length) renderInlineText(doc, chSegs, 162, 11);
+  if (chSegs.length) renderInlineText(doc, chSegs, cursoY + 10, 11);
 
   // ── Bloco de dados ─────────────────────────────────────────
   //
@@ -498,12 +513,21 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
   // opcionais (nem toda a turma tem local próprio, nem todo o aluno tem nota) e
   // com posições fixas duas delas sobrepunham-se. O cursor desce só quando algo
   // é mesmo impresso.
-  let y = 162;
+  // As linhas juntam-se primeiro e só se desenham no fim: se não couberem antes
+  // das imagens das assinaturas (LIMITE_DADOS), os saltos encolhem por igual.
+  let y = cursoY + 10;
+  const LIMITE_DADOS = 215;
+  const pendentes: { segs: { text: string; bold: boolean; color: [number, number, number] }[]; salto: number; tamanho: number }[] = [];
   const linha = (
     segs: { text: string; bold: boolean; color: [number, number, number] }[],
     salto: number,
     tamanho = 11,
-  ) => { y += salto; renderInlineText(doc, segs, y, tamanho); };
+  ) => { pendentes.push({ segs, salto, tamanho }); };
+  const desenharLinhas = () => {
+    const soma = pendentes.reduce((s, l) => s + l.salto, 0);
+    const fator = soma > 0 && y + soma > LIMITE_DADOS ? Math.max(0.7, (LIMITE_DADOS - y) / soma) : 1;
+    for (const l of pendentes) { y += l.salto * fator; renderInlineText(doc, l.segs, y, l.tamanho); }
+  };
 
   const TIPO_LABEL: Record<string, string> = {
     inicial: 'Inicial',
@@ -567,6 +591,7 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       if (rt.registo) linha([{ text: rt.registo, bold: true, color: DGRAY }], 5, 8.5);
     }
   }
+  desenharLinhas();
 
   // ── Assinaturas ────────────────────────────────────────────
   const sigLineY = 236;
