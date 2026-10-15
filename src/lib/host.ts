@@ -31,6 +31,7 @@ const DOMINIOS: Record<string, DominioDedicado> = {
   'itc.clarizaplatform.com':       { vertical: 'school', entrada: '/school' }, // endereço oficial do ITC (02/10/2026)
   'teste4.webtechinformatica.com': { vertical: 'agency', entrada: '/agency', empresa: 'elo-giro' },
   'teste5.webtechinformatica.com': { vertical: 'agency', entrada: '/agency', empresa: 'demo-agencia' },
+  'labs.webtechinformatica.com':   { vertical: 'labs',   entrada: '/labs',   empresa: 'webtech-labs' },
 };
 
 const atual = (): DominioDedicado | null =>

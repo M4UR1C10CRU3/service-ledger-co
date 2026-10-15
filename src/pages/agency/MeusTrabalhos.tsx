@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useBaseVertical } from '@/hooks/useBaseVertical';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import { ListTodo, Play, AlertTriangle, CalendarDays, Clock } from 'lucide-react
  */
 export default function MeusTrabalhos() {
   const navigate = useNavigate();
+  const base = useBaseVertical();
   const { jobs } = useJobs();               // todos os jobs da empresa
   const { projetos } = useProjetos();
   const { etapas } = useJobEtapas();
@@ -63,7 +65,7 @@ export default function MeusTrabalhos() {
               <Card key={j.id} className="hover:shadow-sm transition-shadow">
                 <CardContent className="p-3 flex items-center justify-between gap-3">
                   <button className="min-w-0 text-left flex-1"
-                          onClick={() => navigate(`/agency/projetos/${j.projetoId}`)}>
+                          onClick={() => navigate(`${base}/projetos/${j.projetoId}`)}>
                     <div className="flex items-center gap-2 flex-wrap">
                       {p && (
                         <Badge variant="outline" className="font-mono text-xs px-1.5 py-0">

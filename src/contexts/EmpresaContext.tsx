@@ -1,3 +1,4 @@
+import { ativarTemaLabs } from '@/lib/labsTema';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Empresa } from '@/types/empresa';
 import { supabase } from '@/integrations/supabase/client';
@@ -234,6 +235,10 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
       // empresa perde o tema que já tinha.
       if (emp.vertical) root.setAttribute('data-vertical', emp.vertical);
       else root.removeAttribute('data-vertical');
+
+      // O Labs veste a identidade do estúdio (fontes próprias, só escuro).
+      // O resto é CSS, em src/styles/labs.css.
+      if (emp.vertical === 'labs') ativarTemaLabs();
     } else {
       // Remover customizações
       root.style.removeProperty('--primary');

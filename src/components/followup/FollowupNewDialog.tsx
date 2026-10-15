@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { FASES_ORDER, FASES_CONFIG, TIPOS_CONTACTO, type FaseFollowup, type TipoContacto } from '@/types/followup';
 import { useClientes } from '@/hooks/useClientes';
+import { useNucleos } from '@/hooks/useNucleos';
 import { toast } from '@/hooks/use-toast';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -37,6 +38,9 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
   const [proxTipo, setProxTipo] = useState<TipoContacto>('telefone');
   const [proxNotas, setProxNotas] = useState('');
   const [saving, setSaving] = useState(false);
+  // Clariza Labs: a que negócio pertence a oportunidade.
+  const { nucleos, eLabs } = useNucleos();
+  const [nucleoId, setNucleoId] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!titulo.trim()) {
@@ -57,6 +61,7 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
       proximoFollowupData: proxData ? new Date(proxData).toISOString() : null,
       proximoFollowupTipo: proxTipo,
       proximoFollowupNotas: proxNotas || null,
+      ...(eLabs ? { nucleoId } : {}),
     });
     setSaving(false);
     if (result) {
@@ -69,7 +74,7 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
   const resetForm = () => {
     setClienteId(null); setClienteNome(''); setTitulo(''); setPropostaId(null);
     setFase('po_recebido'); setResponsavelNome(''); setProbabilidade(25);
-    setValorEstimado(''); setDataAdj(''); setProxData(''); setProxNotas('');
+    setValorEstimado(''); setDataAdj(''); setProxData(''); setProxNotas(''); setNucleoId(null);
   };
 
   const probColor = probabilidade >= 90 ? 'text-green-600' : probabilidade >= 61 ? 'text-blue-600' : probabilidade >= 31 ? 'text-yellow-600' : 'text-red-600';
@@ -115,6 +120,19 @@ export function FollowupNewDialog({ open, onOpenChange, onSave, propostas = [] }
               </PopoverContent>
             </Popover>
           </div>
+
+          {eLabs && (
+            <div>
+              <Label>Núcleo</Label>
+              <Select value={nucleoId ?? 'sem'} onValueChange={v => setNucleoId(v === 'sem' ? null : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {nucleos.map(n => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}
+                  <SelectItem value="sem">Por classificar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div>
             <Label>Título da Oportunidade *</Label>

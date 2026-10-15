@@ -70,6 +70,14 @@ const AgencyAvencas = lazy(() => import("./pages/agency/Avencas"));
 const AgencyCatalogo = lazy(() => import("./pages/agency/Catalogo"));
 const AgencyEquipa = lazy(() => import("./pages/agency/Equipa"));
 const AgencyAutomacoes = lazy(() => import("./pages/agency/AutomacoesAgency"));
+// Clariza Labs — o motor do Agency com a identidade da Webtech Labs
+const LabsLogin = lazy(() => import("./pages/labs/LabsLogin"));
+const LabsNucleoPainel = lazy(() => import("./pages/labs/NucleoPainel"));
+const LabsPodcast = lazy(() => import("./pages/labs/LabsPodcast"));
+const LabsPainel = lazy(() => import("./pages/labs/LabsPainel"));
+const LabsProducao = lazy(() => import("./pages/labs/LabsProducao"));
+const LabsAreaCliente = lazy(() => import("./pages/labs/AreaClienteGestao"));
+const ClientePortal = lazy(() => import("./pages/labs/ClientePortal"));
 const FinanceiroKanbanPage = lazy(() => import("./pages/FinanceiroKanbanPage"));
 const WorkflowComprasPage = lazy(() => import("./pages/WorkflowComprasPage"));
 const WorkflowProducao = lazy(() => import("./pages/WorkflowProducao"));
@@ -165,6 +173,24 @@ const SchoolProtectedWithLayout = ({ children }: { children: React.ReactNode }) 
 const AgencyProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
     <VerticalRoute vertical="agency" entrada="/agency">
+      <AppLayout>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            {children}
+          </Suspense>
+        </ErrorBoundary>
+      </AppLayout>
+    </VerticalRoute>
+  </ProtectedRoute>
+);
+
+/**
+ * O mesmo para o Labs. As páginas são as do Agency (o motor é um só); muda a
+ * porta, o menu e a identidade. Ver `useBaseVertical`.
+ */
+const LabsProtectedWithLayout = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <VerticalRoute vertical="labs" entrada="/labs">
       <AppLayout>
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
@@ -314,6 +340,25 @@ const App = () => (
               <Route path="/agency/automacoes" element={<AgencyProtectedWithLayout><AgencyAutomacoes /></AgencyProtectedWithLayout>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              {/* Clariza Labs — Webtech Labs */}
+              <Route path="/labs" element={<Suspense fallback={<PageLoader />}><LabsLogin /></Suspense>} />
+              <Route path="/labs/projetos" element={<LabsProtectedWithLayout><AgencyProjetos /></LabsProtectedWithLayout>} />
+              <Route path="/labs/projetos/:id" element={<LabsProtectedWithLayout><AgencyProjetoDetail /></LabsProtectedWithLayout>} />
+              <Route path="/labs/meus-trabalhos" element={<LabsProtectedWithLayout><AgencyMeusTrabalhos /></LabsProtectedWithLayout>} />
+              <Route path="/labs/rentabilidade" element={<LabsProtectedWithLayout><AgencyRentabilidade /></LabsProtectedWithLayout>} />
+              <Route path="/labs/propostas" element={<LabsProtectedWithLayout><AgencyPropostas /></LabsProtectedWithLayout>} />
+              <Route path="/labs/avencas" element={<LabsProtectedWithLayout><AgencyAvencas /></LabsProtectedWithLayout>} />
+              <Route path="/labs/catalogo" element={<LabsProtectedWithLayout><AgencyCatalogo /></LabsProtectedWithLayout>} />
+              <Route path="/labs/equipa" element={<LabsProtectedWithLayout><AgencyEquipa /></LabsProtectedWithLayout>} />
+              <Route path="/labs/automacoes" element={<LabsProtectedWithLayout><AgencyAutomacoes /></LabsProtectedWithLayout>} />
+              <Route path="/labs/nucleos/:codigo" element={<LabsProtectedWithLayout><LabsNucleoPainel /></LabsProtectedWithLayout>} />
+              <Route path="/labs/podcast" element={<LabsProtectedWithLayout><LabsPodcast /></LabsProtectedWithLayout>} />
+              <Route path="/labs/painel" element={<LabsProtectedWithLayout><LabsPainel /></LabsProtectedWithLayout>} />
+              <Route path="/labs/producao" element={<LabsProtectedWithLayout><LabsProducao /></LabsProtectedWithLayout>} />
+              <Route path="/labs/area-cliente" element={<LabsProtectedWithLayout><LabsAreaCliente /></LabsProtectedWithLayout>} />
+              {/* Área de cliente pública: o link pessoal é a chave (lb_portal_dados). */}
+              <Route path="/cliente/:token" element={<Suspense fallback={<PageLoader />}><ClientePortal /></Suspense>} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

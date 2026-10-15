@@ -8,12 +8,12 @@ import {
   Settings, LogOut, Building2, ChevronDown, History, ScrollText,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
   GraduationCap, BookOpen, CalendarDays, Award, UserRound, LayoutGrid, Activity,
-  FolderKanban, ListTodo, Repeat, Zap, Inbox, ShieldCheck,
-  Landmark, DoorOpen,
+  FolderKanban, ListTodo, Repeat, Zap, Inbox, ShieldCheck, Landmark, DoorOpen, Wrench, Code, Rocket, Camera, Server, Mic,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useAgencyPais } from '@/hooks/useAgencyPais';
+import { useNucleos } from '@/hooks/useNucleos';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -313,6 +313,87 @@ const sectionsAgency: NavSection[] = [
   SECCAO_ADMINISTRATIVO,
 ];
 
+// ── Menu do Clariza Labs (estúdio de tecnologia: Webtech Labs) ───────────────
+// O motor é o do Agency (Projetos, Jobs, Propostas, Avenças) e entra por
+// /labs/*. A diferença está no que um estúdio de tecnologia vende além do
+// trabalho criativo: assistência e venda de hardware (Tech Care), material e
+// instalações (Infra), por isso Produtos e Stocks voltam ao menu — que o
+// Agency deixou de fora de propósito — e cada núcleo tem a sua página com os
+// atalhos do seu dia a dia (ver NucleoPainel).
+// Os módulos novos (ativos dos clientes, SLA, renovações, podcast, painel por
+// núcleo) entram aqui à medida que as fases forem feitas.
+const sectionsLabs: NavSection[] = [
+  {
+    label: 'Labs',
+    icon: FolderKanban,
+    items: [
+      { title: 'Painel',            url: '/labs/painel',         icon: LayoutGrid   },
+      { title: 'Workflow de Produção', url: '/labs/producao',    icon: Trello       },
+      { title: 'Projetos',          url: '/labs/projetos',       icon: FolderKanban },
+      { title: 'Os meus trabalhos', url: '/labs/meus-trabalhos', icon: ListTodo     },
+      { title: 'Rentabilidade',     url: '/labs/rentabilidade',  icon: TrendingUp   },
+      { title: 'Automações',        url: '/labs/automacoes',     icon: Zap          },
+    ],
+  },
+  {
+    label: 'Comercial',
+    icon: Briefcase,
+    items: [
+      { title: 'Clientes',             url: '/clientes',           icon: Users,         permModulo: 'clientes' },
+      { title: 'Pedidos de Orçamento', url: '/pedidos-orcamento',  icon: ClipboardList, permModulo: 'pedidos_orcamento' },
+      { title: 'Propostas',            url: '/labs/propostas',     icon: FileText },
+      { title: 'Avenças',              url: '/labs/avencas',       icon: Repeat },
+      { title: 'Workflow Comercial',   url: '/workflow-comercial', icon: Target,        permModulo: 'followup' },
+      { title: 'Área de cliente',      url: '/labs/area-cliente',  icon: KeyRound },
+      { title: 'Catálogo e textos',    url: '/labs/catalogo',      icon: BookOpen },
+    ],
+  },
+  // Sem secção «Tech Care» aqui: o Tech Care é um NÚCLEO e tem a sua entrada
+  // na secção Núcleos (montada no componente). As Assistências e as Vendas
+  // abrem-se a partir da página desse núcleo, para não haver duas portas para
+  // o mesmo negócio. Produtos e Stocks servem também a Infra, por isso ficam
+  // aqui, junto das compras.
+  {
+    label: 'Compras e stock',
+    icon: Truck,
+    items: [
+      { title: 'Fornecedores',       url: '/fornecedores',    icon: Truck,         permModulo: 'fornecedores' },
+      { title: 'Notas de Encomenda', url: '/notas-encomenda', icon: ClipboardList, permModulo: 'compras' },
+      { title: 'Produtos',           url: '/produtos',        icon: BoxSelect,     permModulo: 'produtos' },
+      { title: 'Gestão de Stocks',   url: '/stocks',          icon: Package,       permModulo: 'stocks' },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    icon: Wallet,
+    items: [
+      { title: 'Receitas',            url: '/receitas',            icon: TrendingUp, permModulo: 'financeiro_receitas' },
+      { title: 'Despesas',            url: '/despesas',            icon: CreditCard, permModulo: 'financeiro_despesas' },
+      { title: 'Contas a Pagar',      url: '/contas-pagar',        icon: Receipt,    permModulo: 'financeiro_despesas' },
+      { title: 'Fluxo de Caixa',      url: '/fluxo-caixa',         icon: Wallet,     permModulo: 'financeiro_fluxo' },
+      { title: 'Relatório Gerencial', url: '/relatorio-gerencial', icon: BarChart3,  permModulo: 'financeiro_receitas' },
+    ],
+  },
+  {
+    label: 'Equipa',
+    icon: UsersRound,
+    items: [
+      { title: 'Funções',           url: '/labs/equipa',                   icon: UsersRound },
+      { title: 'Colaboradores',     url: '/colaboradores',                 icon: UserRound,     permModulo: 'rh_colaboradores' },
+      { title: 'Controlo de Ponto', url: '/controle-ponto',                icon: Clock,         permModulo: 'rh_ponto' },
+      { title: 'Recrutamento',      url: '/recursos-humanos/recrutamento', icon: UserSearch,    permModulo: 'rh_recrutamento' },
+      { title: 'Avaliações',        url: '/recursos-humanos/avaliacoes',   icon: ClipboardCheck,permModulo: 'rh_avaliacoes' },
+    ],
+  },
+];
+
+// Ícone de cada núcleo do Labs, pelo código (lb_nucleos.codigo). Um núcleo
+// novo sem ícone aqui aparece com o ícone genérico.
+const ICONE_NUCLEO: Record<string, React.ElementType> = {
+  estrategia: Lightbulb, produto: Code, growth: Rocket,
+  criativo: Camera, infra: Server, techcare: Wrench,
+};
+
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -320,6 +401,7 @@ export function AppSidebar() {
   const { empresa, empresas, getLogo, setEmpresa } = useEmpresa();
   const { can, isAdmin } = usePermissions();
   const { verticalAtivo: agencyAtivo } = useAgencyPais();
+  const { nucleos } = useNucleos();
 
   const logo = getLogo();
   const empresaNome = empresa?.nome || 'Obrajusta';
@@ -348,11 +430,25 @@ export function AppSidebar() {
 
   // Cada vertical tem o SEU menu — não o menu genérico com uma secção colada
   // por cima. Uma agência não gere stocks nem obras; uma escola não gere
-  // produção. Ordem: Agency (por dados) → School (por slug, legado) → genérico.
+  // produção. Ordem: Labs → Agency (por dados) → School (por slug, legado) →
+  // genérico. O Labs vem primeiro porque também tem o Agency ativo (é o mesmo
+  // motor) e, sem isto, apanhava o menu da agência.
   const isITC = empresa?.slug === 'itc' || empresa?.slug === 'itc-educa-pro';
-  const activeSections = agencyAtivo
-    ? sectionsAgency
-    : isITC ? sectionsITC : sectionsGeral;
+  // No Labs, a segunda secção é feita dos núcleos da empresa (vêm da base de
+  // dados), mais o podcast — cada negócio com a sua entrada no menu.
+  const seccaoNucleos: NavSection = {
+    label: 'Núcleos',
+    icon: LayoutGrid,
+    items: [
+      ...nucleos.map(n => ({ title: n.nome, url: `/labs/nucleos/${n.codigo}`, icon: ICONE_NUCLEO[n.codigo] ?? LayoutGrid })),
+      { title: 'Podcast Zeros e Uns', url: '/labs/podcast', icon: Mic },
+    ],
+  };
+  const activeSections = empresa?.vertical === 'labs'
+    ? [sectionsLabs[0], seccaoNucleos, ...sectionsLabs.slice(1)]
+    : agencyAtivo
+      ? sectionsAgency
+      : isITC ? sectionsITC : sectionsGeral;
 
   // Filter sections by empresa slug (apenasEmpresas) + filter items by permission
   const visibleSections = activeSections

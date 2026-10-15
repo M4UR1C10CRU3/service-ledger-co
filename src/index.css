@@ -51,6 +51,12 @@
     /* Borda controlada — nunca a cor cheia, que grita. */
     --vertical-accent-border: 184 68% 37% / 0.32;
 
+    /* Ecrã de entrada de um vertical (EntradaVertical). Os valores são os que
+       estavam escritos à mão no componente; o Labs troca-os em styles/labs.css. */
+    --entrada-bg:         240 5% 8%;
+    --entrada-card:       240 5% 10%;
+    --entrada-card-hover: 240 6% 13%;
+
     /* ── Escala de elevação ─────────────────────────────────────────────
        Sombras discretas: o protótipo faz profundidade por superfície e
        borda, não por sombra pesada.                                      */

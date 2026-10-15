@@ -90,6 +90,10 @@ export function applyTema(tema: string) {
   const root = document.documentElement;
   let effective: 'dark' | 'light' = 'dark';
 
+  // O Clariza Labs é só escuro, como o site da Webtech: a preferência de tema
+  // não se aplica dentro dele.
+  if (root.getAttribute('data-vertical') === 'labs') tema = 'escuro';
+
   if (tema === 'claro') effective = 'light';
   else if (tema === 'escuro') effective = 'dark';
   else if (tema === 'sistema') {

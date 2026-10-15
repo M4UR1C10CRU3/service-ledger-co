@@ -1,0 +1,141 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLARIZA LABS — o design system da Webtech Labs, dentro da Clariza
+   ═══════════════════════════════════════════════════════════════════════════
+
+   O Labs não tem um "acento" por cima do tema da Clariza, como os outros
+   verticais: veste a identidade da Webtech Labs por inteiro, a mesma do site
+   webtechinformatica.com. Fonte dos valores: nova-versao/styles.css do site e
+   clariza/webtech-labs-design-system.md (Redesign Webtech Claude).
+
+   Porque !important nos tokens: a Clariza escreve variáveis INLINE no <html>
+   (a cor primária da empresa, as cores da sidebar escolhidas nas Preferências)
+   e o inline ganha a qualquer regra normal. No Labs a identidade não muda com
+   preferências — é a da marca — por isso estas variáveis têm de ganhar.
+
+   Só tema escuro: o site da Webtech é escuro e o Labs também.
+   Nada aqui sai de :root[data-vertical="labs"] — os outros verticais não veem
+   uma linha deste ficheiro.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root[data-vertical="labs"] {
+  /* Tokens do site, com os nomes do site, para componentes próprios do Labs */
+  --wt-bg: #060708;
+  --wt-bg2: #0b0c0f;
+  --wt-bg3: #111318;
+  --wt-ink: #f3f3ee;
+  --wt-mute: #a6a69f;
+  --wt-dim: #85857e;
+  --wt-line: rgba(255, 255, 255, .08);
+  --wt-line2: rgba(255, 255, 255, .15);
+  --wt-y: #ffd60a;
+  --wt-y-ink: #0a0a0a;
+  --wt-b: #2e6bff;
+  --wt-red: #ff5a4f;
+  --wt-ease: cubic-bezier(.2, .8, .2, 1);
+  --wt-display: 'Cabinet Grotesk', 'Inter', system-ui, sans-serif;
+  --wt-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --wt-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  /* Tokens da Clariza (shadcn), traduzidos para os valores da Webtech (HSL) */
+  --background:            210 14% 3%   !important;  /* #060708 */
+  --foreground:            60 17% 94%   !important;  /* #f3f3ee */
+  --card:                  225 15% 5%   !important;  /* #0b0c0f */
+  --card-foreground:       60 17% 94%   !important;
+  --popover:               223 17% 8%   !important;  /* #111318 */
+  --popover-foreground:    60 17% 94%   !important;
+  --primary:               50 100% 52%  !important;  /* #ffd60a */
+  --primary-foreground:    0 0% 4%      !important;  /* #0a0a0a */
+  --primary-light:         50 100% 62%  !important;
+  --primary-lighter:       50 60% 12%   !important;
+  --secondary:             223 17% 8%   !important;
+  --secondary-foreground:  60 17% 94%   !important;
+  --muted:                 223 17% 8%   !important;
+  --muted-foreground:      60 4% 64%    !important;  /* #a6a69f */
+  --accent:                223 17% 8%   !important;
+  --accent-foreground:     60 17% 94%   !important;
+  --destructive:           4 100% 65%   !important;  /* #ff5a4f */
+  --destructive-foreground: 0 0% 4%     !important;
+  --border:                210 3% 12%   !important;  /* ≈ rgba(255,255,255,.08) sobre o preto */
+  --input:                 210 2% 17%   !important;  /* ≈ rgba(255,255,255,.15) sobre o preto */
+  --ring:                  50 100% 52%  !important;
+  --radius:                0.875rem     !important;  /* 14px: botões e cartões-escolha do site */
+
+  --sidebar-background:         220 14% 4%   !important;
+  --sidebar-foreground:         60 4% 64%    !important;
+  --sidebar-primary:            50 100% 52%  !important;
+  --sidebar-primary-foreground: 0 0% 4%      !important;
+  --sidebar-accent:             223 17% 8%   !important;
+  --sidebar-accent-foreground:  60 17% 94%   !important;
+  --sidebar-border:             210 3% 11%   !important;
+  --sidebar-ring:               50 100% 52%  !important;
+  --topbar-background:          210 14% 3%   !important;
+
+  /* O acento do vertical é o amarelo da marca, com texto escuro por cima */
+  --vertical-accent:        50 100% 52%        !important;
+  --vertical-accent-fg:     0 0% 4%            !important;
+  --vertical-accent-soft:   50 100% 52% / 0.10 !important;
+  --vertical-accent-border: 50 100% 52% / 0.35 !important;
+
+  /* Ecrã de entrada (EntradaVertical) */
+  --entrada-bg:         210 14% 3%  !important;
+  --entrada-card:       225 15% 5%  !important;
+  --entrada-card-hover: 223 17% 8%  !important;
+
+  --ds-radius-card: 18px !important;
+
+  color-scheme: dark !important;
+}
+
+/* ── Tipografia: Inter no corpo, Cabinet Grotesk nos títulos, JetBrains Mono
+      nas etiquetas e nos códigos ─────────────────────────────────────────── */
+:root[data-vertical="labs"] body {
+  font-family: var(--wt-body);
+  background: var(--wt-bg);
+  color: var(--wt-ink);
+}
+:root[data-vertical="labs"] :is(h1, h2, h3, .ds-metric-value, .entrada-titulo) {
+  font-family: var(--wt-display);
+  letter-spacing: -.03em;
+}
+:root[data-vertical="labs"] :is(h1, .entrada-titulo) { font-weight: 900; letter-spacing: -.045em; }
+:root[data-vertical="labs"] :is(h2, h3) { font-weight: 800; }
+:root[data-vertical="labs"] :is(.ds-eyebrow, kbd, code, .font-mono, .tabular) {
+  font-family: var(--wt-mono);
+  letter-spacing: .06em;
+}
+
+/* ── A grelha de fundo do site: linhas de 80px que se desvanecem a partir do
+      topo. Fixa, por trás de tudo, nunca recebe cliques. ─────────────────── */
+:root[data-vertical="labs"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(var(--wt-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--wt-line) 1px, transparent 1px);
+  background-size: 80px 80px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 0%, #000 0%, transparent 70%);
+  opacity: .35;
+}
+:root[data-vertical="labs"] #root { position: relative; z-index: 1; }
+
+/* ── Detalhes da marca ────────────────────────────────────────────────── */
+:root[data-vertical="labs"] ::selection { background: var(--wt-y); color: var(--wt-y-ink); }
+:root[data-vertical="labs"] :focus-visible { outline: 2px solid var(--wt-y); outline-offset: 3px; }
+:root[data-vertical="labs"] { scrollbar-color: #2a2b2e var(--wt-bg); }
+
+/* Botão principal: o do site sobe 2px e ganha brilho amarelo */
+:root[data-vertical="labs"] button.bg-primary:not(:disabled),
+:root[data-vertical="labs"] button.bg-vertical:not(:disabled) {
+  font-weight: 600;
+  transition: transform .25s var(--wt-ease), box-shadow .25s, background-color .2s;
+}
+:root[data-vertical="labs"] button.bg-primary:not(:disabled):hover,
+:root[data-vertical="labs"] button.bg-vertical:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px -10px var(--wt-y);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-vertical="labs"] button.bg-primary:hover,
+  :root[data-vertical="labs"] button.bg-vertical:hover { transform: none; }
+}

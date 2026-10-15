@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useBaseVertical } from '@/hooks/useBaseVertical';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,30 +14,46 @@ import { Progress } from '@/components/ui/progress';
 import { useProjetos } from '@/hooks/useProjetos';
 import { useClientes } from '@/hooks/useClientes';
 import { useAgencyPais } from '@/hooks/useAgencyPais';
+import { useNucleos } from '@/hooks/useNucleos';
 import { PROJETO_ESTADOS, emptyProjetoForm, type ProjetoFormData, type ProjetoEstado } from '@/types/agency';
 import { FolderKanban, Plus, Search, Archive, Clock, Euro, TrendingUp } from 'lucide-react';
 
 export default function Projetos() {
   const navigate = useNavigate();
+  const base = useBaseVertical();
   const { projetos, isLoading, criar, atualizar } = useProjetos();
   const { clientes } = useClientes();
   const { eur, isLoading: loadingPais } = useAgencyPais();
 
   const [search, setSearch] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<string>('todos');
+
+  // Clariza Labs: filtro por núcleo, que o menu passa em ?nucleo=<codigo>.
+  const { nucleos, eLabs, porId, porCodigo } = useNucleos();
+  const [params, setParams] = useSearchParams();
+  const nucleoFiltro = params.get('nucleo') ?? 'todos';
+  const nucleoAtivo = porCodigo(nucleoFiltro);
+  const setNucleoFiltro = (v: string) => {
+    const p = new URLSearchParams(params);
+    if (v === 'todos') p.delete('nucleo'); else p.set('nucleo', v);
+    setParams(p, { replace: true });
+  };
   const [aberto, setAberto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState<ProjetoFormData>({ ...emptyProjetoForm });
 
   const filtrados = useMemo(() => projetos.filter(p => {
     if (estadoFiltro !== 'todos' && p.estado !== estadoFiltro) return false;
+    if (eLabs && nucleoFiltro !== 'todos') {
+      if (nucleoFiltro === 'sem' ? p.nucleoId : p.nucleoId !== nucleoAtivo?.id) return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       const alvo = `${p.numero} ${p.nome} ${p.clienteNome ?? ''}`.toLowerCase();
       if (!alvo.includes(q)) return false;
     }
     return true;
-  }), [projetos, search, estadoFiltro]);
+  }), [projetos, search, estadoFiltro, eLabs, nucleoFiltro, nucleoAtivo?.id]);
 
   const kpis = useMemo(() => ({
     ativos: projetos.filter(p => p.estado === 'ativo').length,
@@ -47,7 +64,8 @@ export default function Projetos() {
 
   const abrirNovo = () => {
     setEditandoId(null);
-    setForm({ ...emptyProjetoForm });
+    // No Labs, um projeto novo nasce no núcleo que se está a ver.
+    setForm({ ...emptyProjetoForm, ...(eLabs ? { nucleoId: nucleoAtivo?.id ?? null } : {}) });
     setAberto(true);
   };
 
@@ -67,6 +85,7 @@ export default function Projetos() {
       prazoEstimado: p.prazoEstimado ?? '',
       budget: p.budget,
       horasPrevistas: p.horasPrevistas,
+      ...(eLabs ? { nucleoId: p.nucleoId ?? null } : {}),
     });
     setAberto(true);
   };
@@ -92,7 +111,7 @@ export default function Projetos() {
             <FolderKanban className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Projetos</h1>
+            <h1 className="text-2xl font-bold">{nucleoAtivo ? `Projetos · ${nucleoAtivo.nome}` : 'Projetos'}</h1>
             <p className="text-sm text-muted-foreground">
               O centro do trabalho da agência — cada projeto agrega jobs, horas e custo
             </p>
@@ -137,6 +156,16 @@ export default function Projetos() {
             ))}
           </SelectContent>
         </Select>
+        {eLabs && (
+          <Select value={nucleoFiltro} onValueChange={setNucleoFiltro}>
+            <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os núcleos</SelectItem>
+              {nucleos.map(n => <SelectItem key={n.id} value={n.codigo}>{n.nome}</SelectItem>)}
+              <SelectItem value="sem">Sem núcleo</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Tabela */}
@@ -164,6 +193,7 @@ export default function Projetos() {
                     <TableHead className="w-[70px]">Nº</TableHead>
                     <TableHead>Projeto</TableHead>
                     <TableHead>Cliente</TableHead>
+                    {eLabs && <TableHead>Núcleo</TableHead>}
                     <TableHead>Estado</TableHead>
                     <TableHead className="w-[150px]">Jobs</TableHead>
                     <TableHead className="text-right">Horas</TableHead>
@@ -177,10 +207,13 @@ export default function Projetos() {
                     const estouro = p.budget != null && p.custoReal > p.budget;
                     return (
                       <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40"
-                                onClick={() => navigate(`/agency/projetos/${p.id}`)}>
+                                onClick={() => navigate(`${base}/projetos/${p.id}`)}>
                         <TableCell className="font-mono text-sm text-muted-foreground">{p.numero}</TableCell>
                         <TableCell className="font-medium">{p.nome}</TableCell>
                         <TableCell className="text-sm">{p.clienteNome || '—'}</TableCell>
+                        {eLabs && (
+                          <TableCell className="text-sm text-muted-foreground">{porId(p.nucleoId)?.nome ?? '—'}</TableCell>
+                        )}
                         <TableCell>
                           <Badge variant="outline" className={PROJETO_ESTADOS[p.estado].cor}>
                             {PROJETO_ESTADOS[p.estado].label}
@@ -254,6 +287,19 @@ export default function Projetos() {
                 </Select>
               </div>
             </div>
+            {eLabs && (
+              <div>
+                <Label>Núcleo</Label>
+                <Select value={form.nucleoId ?? 'sem'}
+                        onValueChange={v => setForm(f => ({ ...f, nucleoId: v === 'sem' ? null : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Escolher núcleo" /></SelectTrigger>
+                  <SelectContent>
+                    {nucleos.map(n => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}
+                    <SelectItem value="sem">Sem núcleo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Descrição / briefing inicial</Label>
               <Textarea rows={3} value={form.descricao}

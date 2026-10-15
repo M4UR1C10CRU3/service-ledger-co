@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useBaseVertical } from '@/hooks/useBaseVertical';
 import { useJobEtapas } from '@/hooks/useJobs';
 import AutomacoesPainel from '@/components/automacoes/AutomacoesPainel';
 
@@ -9,6 +10,7 @@ import AutomacoesPainel from '@/components/automacoes/AutomacoesPainel';
 export default function AutomacoesAgency() {
   const navigate = useNavigate();
   const { etapas } = useJobEtapas();
+  const base = useBaseVertical();
 
   return (
     <AutomacoesPainel
@@ -17,7 +19,7 @@ export default function AutomacoesAgency() {
       subtitulo="O que acontece sozinho quando um job muda de etapa."
       colunas={etapas.map(e => ({ id: e.id, nome: e.nome, estadoCodigo: e.estadoCodigo ?? null }))}
       voltarLabel="Voltar aos projetos"
-      onVoltar={() => navigate('/agency/projetos')}
+      onVoltar={() => navigate(`${base}/projetos`)}
       vazioSemProcesso={
         'As etapas dos jobs ainda não estão criadas. Abra um projeto e crie as etapas iniciais — '
         + 'as automações reagem à entrada e saída delas.'

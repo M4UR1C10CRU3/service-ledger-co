@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAvencas } from '@/hooks/useAvencas';
 import { useClientes } from '@/hooks/useClientes';
 import { useAgencyPais } from '@/hooks/useAgencyPais';
+import { useNucleos } from '@/hooks/useNucleos';
 import { AVENCA_ESTADOS, type ContratoAvenca } from '@/types/agency';
 import { Repeat, Plus, AlertTriangle, CalendarClock, Euro } from 'lucide-react';
 
@@ -21,12 +22,15 @@ const vazio = {
   periodicidade: 'mensal' as ContratoAvenca['periodicidade'],
   dataInicio: new Date().toISOString().split('T')[0],
   mesesDuracao: 12 as number | null, observacoes: '',
+  nucleoId: undefined as string | null | undefined,
 };
 
 export default function Avencas() {
   const { avencas, isLoading, guardar, gerarPeriodos } = useAvencas();
   const { clientes } = useClientes();
   const { eur, t } = useAgencyPais();
+  // Clariza Labs: cada avença pertence a um núcleo (Growth, Infra, Produto…).
+  const { nucleos, eLabs, porId } = useNucleos();
 
   const [aberto, setAberto] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export default function Avencas() {
     };
   }, [avencas]);
 
-  const abrirNovo = () => { setEditId(null); setForm({ ...vazio }); setAberto(true); };
+  const abrirNovo = () => { setEditId(null); setForm({ ...vazio, ...(eLabs ? { nucleoId: null } : {}) }); setAberto(true); };
   const abrirEdicao = (a: typeof avencas[number]) => {
     setEditId(a.id);
     setForm({
@@ -49,6 +53,7 @@ export default function Avencas() {
       valorMensal: a.valorMensal, horasContratadas: a.horasContratadas,
       periodicidade: a.periodicidade, dataInicio: a.dataInicio,
       mesesDuracao: a.mesesDuracao, observacoes: a.observacoes ?? '',
+      nucleoId: eLabs ? (a.nucleoId ?? null) : undefined,
     });
     setAberto(true);
   };
@@ -116,6 +121,7 @@ export default function Avencas() {
                   <TableRow>
                     <TableHead>Contrato</TableHead>
                     <TableHead>Cliente</TableHead>
+                    {eLabs && <TableHead>Núcleo</TableHead>}
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Valor / mês</TableHead>
                     <TableHead className="w-[200px]">Horas consumidas</TableHead>
@@ -133,6 +139,7 @@ export default function Avencas() {
                       <TableRow key={a.id} className="cursor-pointer hover:bg-muted/40" onClick={() => abrirEdicao(a)}>
                         <TableCell className="font-medium">{a.designacao}</TableCell>
                         <TableCell className="text-sm">{a.clienteNome || '—'}</TableCell>
+                        {eLabs && <TableCell className="text-sm text-muted-foreground">{porId(a.nucleoId)?.nome ?? '—'}</TableCell>}
                         <TableCell>
                           <Badge variant="outline" className={AVENCA_ESTADOS[a.estado].cor}>
                             {AVENCA_ESTADOS[a.estado].label}
@@ -184,6 +191,19 @@ export default function Avencas() {
               <Input value={form.designacao} placeholder="Ex.: Gestão de redes sociais 2026"
                      onChange={e => setForm(f => ({ ...f, designacao: e.target.value }))} />
             </div>
+            {eLabs && (
+              <div>
+                <Label>Núcleo</Label>
+                <Select value={form.nucleoId ?? 'sem'}
+                        onValueChange={v => setForm(f => ({ ...f, nucleoId: v === 'sem' ? null : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Escolher núcleo" /></SelectTrigger>
+                  <SelectContent>
+                    {nucleos.map(n => <SelectItem key={n.id} value={n.id}>{n.nome}</SelectItem>)}
+                    <SelectItem value="sem">Sem núcleo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Cliente</Label>
               <Select value={form.clienteId ?? ''} onValueChange={v => {

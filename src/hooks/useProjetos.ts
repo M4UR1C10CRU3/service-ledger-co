@@ -58,7 +58,16 @@ export function useProjetos(incluirArquivados = false) {
         .order('numero', { ascending: false });
       const { data, error } = await q;
       if (error) throw error;
-      const linhas = (data || []).map(mapResumo);
+      const linhas: ProjetoResumo[] = (data || []).map(mapResumo);
+
+      // O núcleo (Clariza Labs) vive em ag_projetos e não na vista de resumo;
+      // junta-se aqui para não ter de recriar a vista.
+      if (empresa!.vertical === 'labs' && linhas.length) {
+        const { data: nuc } = await (supabase.from(TABLE) as any)
+          .select('id, nucleo_id').eq('empresa_id', empresa!.id);
+        const mapa = Object.fromEntries((nuc || []).map((r: any) => [r.id, r.nucleo_id]));
+        linhas.forEach(p => { p.nucleoId = mapa[p.id] ?? null; });
+      }
       return incluirArquivados ? linhas : linhas.filter((p: ProjetoResumo) => !p.arquivado);
     },
   });
@@ -90,6 +99,7 @@ export function useProjetos(incluirArquivados = false) {
         prazo_estimado: form.prazoEstimado || null,
         budget: form.budget,
         horas_previstas: form.horasPrevistas,
+        ...(form.nucleoId !== undefined ? { nucleo_id: form.nucleoId } : {}),
       }).select('id').single();
       if (error) throw error;
       return data.id as string;
@@ -113,6 +123,7 @@ export function useProjetos(incluirArquivados = false) {
       if (form.prazoEstimado !== undefined)   patch.prazo_estimado = form.prazoEstimado || null;
       if (form.budget !== undefined)          patch.budget = form.budget;
       if (form.horasPrevistas !== undefined)  patch.horas_previstas = form.horasPrevistas;
+      if (form.nucleoId !== undefined)        patch.nucleo_id = form.nucleoId;
       patch.atualizado_em = new Date().toISOString();
 
       // empresa_id no filtro = defesa em profundidade, além da RLS.

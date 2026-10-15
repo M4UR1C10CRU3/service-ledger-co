@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa, resolveLogoEmpresa } from '@/contexts/EmpresaContext';
@@ -32,8 +32,17 @@ import webtechLogo from '@/assets/logo-webtech.png';
  */
 export interface EntradaVerticalProps {
   vertical: Vertical;
-  /** Imagem de fundo, em `public/assets/workspace/`. */
-  arte: string;
+  /** Imagem de fundo, em `public/assets/workspace/`. Ignorada se houver `fundo`. */
+  arte?: string;
+  /**
+   * Fundo desenhado pelo próprio vertical, em vez de uma imagem. O Labs usa-o
+   * para o painel LED da Webtech.
+   */
+  fundo?: ReactNode;
+  /** Marca no canto superior esquerdo. Por omissão, a da Clariza. */
+  marca?: ReactNode;
+  /** Título grande. Por omissão, «Bem-vindo.». */
+  titulo?: string;
   /** Texto pequeno por cima do título. */
   eyebrow: string;
   /** Para onde se segue depois de entrar. */
@@ -65,11 +74,11 @@ async function temAcesso(authUserId?: string, empresaId?: string): Promise<boole
 }
 
 export default function EntradaVertical({
-  vertical, arte, eyebrow, destino, ligacaoPortal = false,
+  vertical, arte, fundo, marca, titulo = 'Bem-vindo.', eyebrow, destino, ligacaoPortal = false,
 }: EntradaVerticalProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { empresas, isLoading, setEmpresa } = useEmpresa();
+  const { empresa: empresaGuardada, empresas, isLoading, setEmpresa } = useEmpresa();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [aEntrar, setAEntrar] = useState(false);
@@ -90,6 +99,15 @@ export default function EntradaVertical({
    */
   const [escolhaAdmin, setEscolhaAdmin] = useState(false);
   const mostrarCredenciais = !ligacaoPortal || escolhaAdmin;
+
+  // O ecrã de entrada veste o SEU vertical, mesmo que a última empresa
+  // guardada seja de outro. Sem isto, quem esteve no Labs e abre /agency via a
+  // entrada da agência com a identidade da Webtech até escolher uma empresa.
+  // Repete-se sempre que o EmpresaContext repõe a empresa guardada, porque ele
+  // reescreve o tema dessa empresa nesse momento.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-vertical', vertical);
+  }, [vertical, empresas, empresaGuardada]);
 
   const [comSessao, setComSessao] = useState<boolean | null>(null);
   useEffect(() => {
@@ -164,19 +182,24 @@ export default function EntradaVertical({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(240_5%_8%)]">
+      <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--entrada-bg))]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white/60" />
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[hsl(240_5%_8%)] text-foreground overflow-hidden">
+    <div className="relative min-h-screen flex flex-col bg-[hsl(var(--entrada-bg))] text-foreground overflow-hidden">
 
       {/* Arte de fundo, encostada à direita. Mesmas regras do Workspace:
           altura inteira e proporção intacta, porque `object-cover` corta a foto
           em cima e em baixo nos ecrãs largos e baixos.
           `aria-hidden` porque é ambiente, não informação. */}
+      {fundo ? (
+        // Sem pointer-events-none: o fundo de um vertical pode reagir ao rato
+        // (a lanterna do painel LED do Labs). O conteúdo está por cima (z-10).
+        <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">{fundo}</div>
+      ) : (
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
         <img src={arte} alt=""
           className="md:hidden h-full w-full object-cover object-[70%_center]" />
@@ -190,29 +213,34 @@ export default function EntradaVertical({
           style={{
             background:
               'linear-gradient(to right,' +
-              ' hsl(240 5% 8% / 0.95) 0%,' +
-              ' hsl(240 5% 8% / 0.88) 26%,' +
-              ' hsl(240 5% 8% / 0.52) 40%,' +
+              ' hsl(var(--entrada-bg) / 0.95) 0%,' +
+              ' hsl(var(--entrada-bg) / 0.88) 26%,' +
+              ' hsl(var(--entrada-bg) / 0.52) 40%,' +
               ' transparent 48%)',
           }} />
         <div className="absolute inset-0 md:hidden bg-gradient-to-b
-                        from-[hsl(240_5%_8%/0.55)] via-[hsl(240_5%_8%/0.62)]
-                        to-[hsl(240_5%_8%/0.90)]" />
+                        from-[hsl(var(--entrada-bg)/0.55)] via-[hsl(var(--entrada-bg)/0.62)]
+                        to-[hsl(var(--entrada-bg)/0.90)]" />
       </div>
+      )}
 
       <div className="relative z-10 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-14 py-8 flex flex-col">
 
         <div className="flex items-center gap-2.5 mb-10 md:mb-14">
-          <ClarizaMark />
-          <span className="text-[17px] font-bold tracking-tight text-white">Clariza</span>
+          {marca ?? (
+            <>
+              <ClarizaMark />
+              <span className="text-[17px] font-bold tracking-tight text-white">Clariza</span>
+            </>
+          )}
         </div>
 
         <div className="max-w-[440px]">
           <p className="text-[11px] font-extrabold tracking-[0.16em] text-vertical mb-4">
             {eyebrow}
           </p>
-          <h1 className="text-[38px] md:text-[54px] font-normal tracking-[-0.05em] text-white leading-[1.05] mb-3">
-            Bem-vindo.
+          <h1 className="entrada-titulo text-[38px] md:text-[54px] font-normal tracking-[-0.05em] text-white leading-[1.05] mb-3">
+            {titulo}
           </h1>
           <p className="text-[15px] text-muted-foreground mb-8">
             {ligacaoPortal && !mostrarCredenciais
@@ -232,8 +260,8 @@ export default function EntradaVertical({
                   type="button"
                   onClick={() => setEscolhidaId(e.id)}
                   className="group flex items-center gap-3.5 rounded-[14px] border border-white/10
-                             bg-[hsl(240_5%_10%/0.92)] backdrop-blur-sm p-4 text-left transition-colors
-                             hover:border-vertical-border hover:bg-[hsl(240_6%_13%)]
+                             bg-[hsl(var(--entrada-card)/0.92)] backdrop-blur-sm p-4 text-left transition-colors
+                             hover:border-vertical-border hover:bg-[hsl(var(--entrada-card-hover))]
                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vertical"
                 >
                   <Identidade empresa={e} />
@@ -250,7 +278,7 @@ export default function EntradaVertical({
               ambiente configurado" mandava a pessoa procurar um problema que
               não existe. */}
           {!empresaAtual && doVertical.length === 0 && comSessao !== null && (
-            <div className="rounded-[14px] border border-white/10 bg-[hsl(240_5%_10%/0.92)]
+            <div className="rounded-[14px] border border-white/10 bg-[hsl(var(--entrada-card)/0.92)]
                             backdrop-blur-sm p-5">
               {comSessao ? (
                 <>
@@ -277,7 +305,7 @@ export default function EntradaVertical({
           )}
 
           {empresaAtual && mostrarCredenciais && (
-            <div className="rounded-[14px] border border-white/10 bg-[hsl(240_5%_10%/0.92)]
+            <div className="rounded-[14px] border border-white/10 bg-[hsl(var(--entrada-card)/0.92)]
                             backdrop-blur-sm p-5">
 
               <div className="flex items-center gap-3.5 pb-4 mb-4 border-b border-white/10">
@@ -302,20 +330,20 @@ export default function EntradaVertical({
                   <Label htmlFor="email" className="text-[12px] text-muted-foreground">Email</Label>
                   <Input id="email" type="email" autoComplete="email" required
                     value={email} onChange={e => setEmail(e.target.value)}
-                    className="bg-[hsl(240_5%_8%)] border-white/10 text-white placeholder:text-muted-foreground/60" />
+                    className="bg-[hsl(var(--entrada-bg))] border-white/10 text-white placeholder:text-muted-foreground/60" />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-[12px] text-muted-foreground">Palavra-passe</Label>
                   <Input id="password" type="password" autoComplete="current-password" required
                     value={password} onChange={e => setPassword(e.target.value)}
-                    className="bg-[hsl(240_5%_8%)] border-white/10 text-white" />
+                    className="bg-[hsl(var(--entrada-bg))] border-white/10 text-white" />
                 </div>
 
                 {erro && <p className="text-[13px] text-destructive">{erro}</p>}
 
                 <Button type="submit" disabled={aEntrar}
-                  className="w-full bg-vertical text-white hover:bg-vertical/90">
+                  className="w-full bg-vertical text-vertical-foreground hover:bg-vertical/90">
                   {aEntrar
                     ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A entrar...</>
                     : <>Entrar<ArrowRight className="h-4 w-4 ml-2" /></>}
@@ -366,7 +394,7 @@ export default function EntradaVertical({
       </div>
 
       <footer className="relative z-10 w-full border-t border-white/10 py-4
-                         bg-[hsl(240_5%_8%/0.85)] backdrop-blur-sm">
+                         bg-[hsl(var(--entrada-bg)/0.85)] backdrop-blur-sm">
         <div className="max-w-[1600px] mx-auto px-6 md:px-14 flex items-center justify-center gap-5 text-muted-foreground/70 text-[11px]">
           <span>Desenvolvido por</span>
           <img src={webtechLogo} alt="WebtechLabs — Technology Studio" className="h-8 object-contain opacity-70" />
@@ -386,8 +414,8 @@ function Porta({
       type="button"
       onClick={onClick}
       className="group flex items-center gap-3.5 rounded-[14px] border border-white/10
-                 bg-[hsl(240_5%_10%/0.92)] backdrop-blur-sm p-3.5 text-left transition-colors
-                 hover:border-vertical-border hover:bg-[hsl(240_6%_13%)]
+                 bg-[hsl(var(--entrada-card)/0.92)] backdrop-blur-sm p-3.5 text-left transition-colors
+                 hover:border-vertical-border hover:bg-[hsl(var(--entrada-card-hover))]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vertical"
     >
       <span className="shrink-0 h-9 w-9 rounded-[10px] bg-vertical-soft
