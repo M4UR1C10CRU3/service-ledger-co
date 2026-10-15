@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
  * Serve os modelos de cada núcleo — o Plano 48h da Estratégia, o site, a loja
  * ou a automação do Produto Digital, e os que vierem. Usa a mesma numeração da
  * app (ag_proximo_numero), por isso os números não colidem com os projetos e
- * jobs criados à mão. Os jobs entram na etapa Briefing.
+ * jobs criados à mão. Os jobs entram na etapa «Entrada de pedido» (ou Briefing).
  */
 export interface FaseModelo {
   titulo: string;
@@ -24,6 +24,10 @@ export async function criarProjetoComFases(opts: {
   descricao?: string | null;
   prazo?: Date | null;
   fases: FaseModelo[];
+  /** Oportunidade do Workflow Comercial que deu origem ao projeto (adjudicação). */
+  oportunidadeId?: string | null;
+  /** Valor adjudicado (orçamento do projeto). */
+  budget?: number | null;
 }): Promise<string> {
   const { empresaId: eid } = opts;
   const agora = new Date();
@@ -43,11 +47,16 @@ export async function criarProjetoComFases(opts: {
     descricao: opts.descricao ?? null,
     prazo_estimado: opts.prazo ? dia(opts.prazo) : null,
     prazo_desejado: opts.prazo ? dia(opts.prazo) : null,
+    ...(opts.oportunidadeId ? { oportunidade_id: opts.oportunidadeId } : {}),
+    ...(opts.budget != null ? { budget: opts.budget } : {}),
   }).select('id').single();
   if (eProj) throw eProj;
 
-  const { data: etapa } = await (supabase.from('ag_job_etapas' as any) as any)
-    .select('id').eq('empresa_id', eid).eq('estado_codigo', 'briefing').maybeSingle();
+  // Os jobs novos entram em «Entrada de pedido» (por triar); empresas sem essa etapa usam o Briefing.
+  const { data: etapas } = await (supabase.from('ag_job_etapas' as any) as any)
+    .select('id, estado_codigo').eq('empresa_id', eid).in('estado_codigo', ['entrada', 'briefing']).eq('ativo', true);
+  const etapa = (etapas || []).find((e: any) => e.estado_codigo === 'entrada')
+    ?? (etapas || []).find((e: any) => e.estado_codigo === 'briefing') ?? null;
 
   for (const f of opts.fases) {
     const { data: seq, error: eSeq } = await (supabase.rpc as any)('ag_proximo_numero', {
@@ -63,6 +72,13 @@ export async function criarProjetoComFases(opts: {
     if (eJob) throw eJob;
   }
   return proj.id as string;
+}
+
+/** Projeto da produção ligado a uma oportunidade do Workflow Comercial (ou null). */
+export async function projetoDaOportunidade(oportunidadeId: string): Promise<{ id: string; numero: number; nome: string } | null> {
+  const { data } = await (supabase.from('ag_projetos' as any) as any)
+    .select('id, numero, nome').eq('oportunidade_id', oportunidadeId).maybeSingle();
+  return data ?? null;
 }
 
 /** Modelos de projeto do Produto Digital. A última fase é sempre a aceitação do cliente. */

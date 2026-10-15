@@ -344,6 +344,8 @@ const sectionsLabs: NavSection[] = [
       { title: 'Propostas',            url: '/labs/propostas',     icon: FileText },
       { title: 'Avenças',              url: '/labs/avencas',       icon: Repeat },
       { title: 'Workflow Comercial',   url: '/workflow-comercial', icon: Target,        permModulo: 'followup' },
+      // Ao lado do comercial de propósito: o que é adjudicado continua aqui (15/10/2026).
+      { title: 'Workflow de Produção', url: '/labs/producao',      icon: Trello },
       { title: 'Área de cliente',      url: '/labs/area-cliente',  icon: KeyRound },
       { title: 'Catálogo e textos',    url: '/labs/catalogo',      icon: BookOpen },
     ],
@@ -483,8 +485,16 @@ export function AppSidebar() {
           className="flex items-baseline gap-1.5 px-1 pb-3 cursor-pointer"
           onClick={() => navigate('/dashboard')}
         >
-          <span className="text-[15px] font-bold tracking-tight text-white">Clariza</span>
-          {segmento.produto && (
+          {empresa?.vertical === 'labs' ? (
+            // Clariza Labs veste a marca do estúdio (15/10/2026): logótipo da Webtech Labs.
+            <span className="flex items-center gap-2 min-w-0">
+              <img src="/assets/labs/logo-webtech-labs.png" alt="Webtech Labs" className="h-7 w-auto max-w-[150px] object-contain" />
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Clariza</span>
+            </span>
+          ) : (
+            <span className="text-[15px] font-bold tracking-tight text-white">Clariza</span>
+          )}
+          {segmento.produto && empresa?.vertical !== 'labs' && (
             <span className="text-[13px] font-semibold text-vertical truncate">
               {segmento.produto.replace(/^Clariza\s*/, '')}
             </span>

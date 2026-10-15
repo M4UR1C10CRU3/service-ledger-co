@@ -14,6 +14,8 @@ import { FollowupTable } from '@/components/followup/FollowupTable';
 import { FollowupNewDialog } from '@/components/followup/FollowupNewDialog';
 import { FollowupContactDialog } from '@/components/followup/FollowupContactDialog';
 import { FollowupDetailDialog } from '@/components/followup/FollowupDetailDialog';
+import { AbrirProducaoDialog } from '@/components/labs/AbrirProducaoDialog';
+import { projetoDaOportunidade } from '@/lib/labsProjetos';
 import { FASES_ORDER, FASES_CONFIG, type FaseFollowup } from '@/types/followup';
 import type { Oportunidade } from '@/types/followup';
 import { toast } from '@/hooks/use-toast';
@@ -36,6 +38,8 @@ const FollowUp = () => {
   // Clariza Labs: filtro por núcleo (as outras empresas não o veem).
   const { nucleos, eLabs } = useNucleos();
   const [filterNucleo, setFilterNucleo] = useState<string>('todos');
+  // Clariza Labs: ao adjudicar, abrir o projeto na produção (Workflow de Produção).
+  const [abrirProducaoOpp, setAbrirProducaoOpp] = useState<Oportunidade | null>(null);
 
   const filtered = useMemo(() => {
     let list = oportunidades;
@@ -81,6 +85,14 @@ const FollowUp = () => {
     const ok = await updateFase(id, novaFase, motivo);
     if (ok) {
       logActivity({ modulo: 'Follow-up', acao: 'mudou_fase_oportunidade', descricao: `Mudou fase para "${FASES_CONFIG[novaFase].label}"`, entidade_tipo: 'oportunidade', entidade_id: id });
+      // Labs: a adjudicação abre o trabalho na produção (se ainda não tiver projeto).
+      if (eLabs && novaFase === 'adjudicado') {
+        const opp = oportunidades.find(o => o.id === id);
+        if (opp && !(await projetoDaOportunidade(id))) {
+          setDetailOpp(null);
+          setAbrirProducaoOpp({ ...opp, fase: 'adjudicado' });
+        }
+      }
     }
     return ok;
   };
@@ -215,7 +227,12 @@ const FollowUp = () => {
         fetchContactos={fetchContactos}
         fetchHistorico={fetchHistorico}
         onRegisterContact={(o) => { setDetailOpp(null); setContactOpp(o); }}
+        onAbrirProducao={eLabs ? (o) => { setDetailOpp(null); setAbrirProducaoOpp(o); } : undefined}
       />
+
+      {eLabs && (
+        <AbrirProducaoDialog oportunidade={abrirProducaoOpp} onClose={() => setAbrirProducaoOpp(null)} />
+      )}
     </div>
   );
 };

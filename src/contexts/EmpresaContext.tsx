@@ -8,6 +8,7 @@ import { resolveEmpresaDocConfig, type EmpresaDocConfig, type LibertyEmpresaConf
 import logoObrajusta from '@/assets/logo-obrajusta.png';
 import logoTudocasa from '@/assets/logo-tudocasa.png';
 import logoResiserv from '@/assets/logo-resiserv.jpg';
+import logoWebtechLabs from '@/assets/logo-webtech-labs-icone.png';
 interface EmpresaContextType {
   empresa: Empresa | null;
   empresas: Empresa[];
@@ -51,6 +52,7 @@ const logoMap: Record<string, string> = {
   resiserv: logoResiserv,
   itc: '/logo-itc.png',
   'itc-educa-pro': '/logo-itc.png',
+  'webtech-labs': logoWebtechLabs,
 };
 
 /**

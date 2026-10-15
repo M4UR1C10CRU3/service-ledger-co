@@ -11,7 +11,9 @@ import { FASES_CONFIG, TIPOS_CONTACTO, SENTIMENTOS, type FaseFollowup } from '@/
 import type { Oportunidade, Contacto, HistoricoFase } from '@/types/followup';
 import { format, differenceInDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Phone } from 'lucide-react';
+import { Phone, Rocket } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { projetoDaOportunidade } from '@/lib/labsProjetos';
 import { WorkflowChecklistTab } from './WorkflowChecklistTab';
 import { useNucleos } from '@/hooks/useNucleos';
 
@@ -24,16 +26,28 @@ interface Props {
   fetchContactos: (id: string) => Promise<Contacto[]>;
   fetchHistorico: (id: string) => Promise<HistoricoFase[]>;
   onRegisterContact: (o: Oportunidade) => void;
+  /** Clariza Labs: abrir a oportunidade adjudicada na produção. */
+  onAbrirProducao?: (o: Oportunidade) => void;
 }
 
 export function FollowupDetailDialog({
   open, onOpenChange, oportunidade, onUpdateOportunidade, onUpdateFase,
-  fetchContactos, fetchHistorico, onRegisterContact,
+  fetchContactos, fetchHistorico, onRegisterContact, onAbrirProducao,
 }: Props) {
   const { nucleos, eLabs } = useNucleos();
+  const navigate = useNavigate();
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [historico, setHistorico] = useState<HistoricoFase[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  // Labs: projeto da produção ligado a esta oportunidade (undefined = a carregar).
+  const [projeto, setProjeto] = useState<{ id: string; numero: number; nome: string } | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!open || !oportunidade || !eLabs) { setProjeto(undefined); return; }
+    let vivo = true;
+    projetoDaOportunidade(oportunidade.id).then(p => { if (vivo) setProjeto(p); });
+    return () => { vivo = false; };
+  }, [open, oportunidade?.id, eLabs]);
 
   useEffect(() => {
     if (open && oportunidade) {
@@ -69,6 +83,24 @@ export function FollowupDetailDialog({
           </div>
           <p className="text-sm text-muted-foreground">{o.clienteNome || 'Sem cliente'}</p>
         </DialogHeader>
+
+        {/* Labs: ligação à produção */}
+        {eLabs && projeto && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-green-600/40 bg-green-600/10 px-3 py-2">
+            <p className="text-sm"><span className="font-semibold">Na produção:</span> projeto nº {projeto.numero} · {projeto.nome}</p>
+            <Button size="sm" variant="outline" onClick={() => { onOpenChange(false); navigate(`/labs/projetos/${projeto.id}`); }}>
+              <Rocket className="h-4 w-4 mr-1.5" />Ver na produção
+            </Button>
+          </div>
+        )}
+        {eLabs && projeto === null && o.fase === 'adjudicado' && onAbrirProducao && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+            <p className="text-sm">Adjudicada, mas ainda sem projeto na produção.</p>
+            <Button size="sm" onClick={() => onAbrirProducao(o)}>
+              <Rocket className="h-4 w-4 mr-1.5" />Abrir na produção
+            </Button>
+          </div>
+        )}
 
         <Tabs defaultValue="resumo">
           <TabsList className="grid grid-cols-5 w-full">
