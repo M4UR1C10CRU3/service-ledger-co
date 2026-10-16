@@ -139,6 +139,7 @@ O texto e o selo do campo **Reconhecimento** dependem do **cliente corporativo**
 - O ITC é atendido por **App Clariza** (app.clarizaplatform.com / **itc.clarizaplatform.com**) e **teste.webtechinformatica.com** — ambos com a mesma versão.
 - O Clariza é publicado **somente a partir da pasta `clariza-app-dev`**. Em 11/10 e 14/10/2026 uma publicação feita a partir da cópia antiga (`clariza-app`) trouxe de volta o gerador e a arte antigos (logotipo em inglês, tabela transbordando, rodapé coberto); corrigido em 15/10/2026.
 - Antes de publicar, conferir a arte da frente: `cert_page_1_branco.png` correta tem MD5 começando por `de01c490`.
+- **Cache do navegador (16/10/2026):** a arte tem sempre o mesmo nome de arquivo. Antes, o servidor a entregava como «válida por 1 ano, imutável», e quem tinha aberto o sistema quando a arte ainda era a antiga continuava gerando certificados com o logotipo da Mais.com em inglês, mesmo depois da correção. Agora: (1) o gerador pede a arte com `cache: no-cache` (sempre confere com o servidor); (2) o nginx dos quatro endereços entrega `/assets/certificado/` com `Cache-Control: no-cache`. **Nunca remover nenhuma das duas proteções.** A data em que um PDF foi gravado não diz com qual arte ele saiu.
 
 ---
 
@@ -154,3 +155,4 @@ O texto e o selo do campo **Reconhecimento** dependem do **cliente corporativo**
 | 15/10/2026 | Conteúdo programático nunca transborda; abreviação automática |
 | 15/10/2026 | Campo de assinatura do aluno abaixo do nome/CPF |
 | 15/10/2026 | Botão «Gerar PDFs de novo» para aplicar a versão atual aos certificados já emitidos |
+| 16/10/2026 | Arte do certificado sem cache (gerador e servidor), para o logotipo antigo não voltar |
