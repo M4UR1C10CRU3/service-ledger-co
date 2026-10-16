@@ -84,6 +84,8 @@ const WHITE  = [255, 255, 255] as [number, number, number];
 //  · página 1 — logótipos até 38,6 mm, decoração a partir de 233,4 mm
 //  · página 2 — faixa roxa até 37,4 mm, rodapé a partir de 259 mm
 const ARTE_P2_FAIXA_FIM = 37.4;
+/** Página 1: a marca de água do curso nunca entra acima disto (logótipos até 38,6 mm + folga). */
+const FAIXA_LOGOS_MM = 40;
 
 // Logótipo da entidade homologadora, na caixa RECONHECIMENTO do verso. Hoje é o
 // Grupo Equatorial, que homologa o ITC, e por isso vive na pasta do ITC e só entra
@@ -387,6 +389,14 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
       // Sem propriedades legíveis, estica para a folha toda.
     }
     doc.saveGraphicsState();
+    // A faixa dos logótipos é intocável (16/10/2026): várias imagens de fundo dos cursos foram feitas
+    // sobre o certificado antigo e traziam o logótipo antigo da Mais.com, que ficava por cima do
+    // aprovado. Com arte, a marca de água só é desenhada abaixo da faixa — seja qual for a imagem.
+    if (arteFrente) {
+      (doc as any).rect(0, FAIXA_LOGOS_MM, W, H - FAIXA_LOGOS_MM, null);
+      (doc as any).clip();
+      (doc as any).discardPath();
+    }
     (doc as any).setGState(new (doc as any).GState({ opacity: await opacidadeMarcaAgua(bgImg) }));
     doc.addImage(bgImg, x, y, larg, alt, undefined, 'FAST');
     doc.restoreGraphicsState();
