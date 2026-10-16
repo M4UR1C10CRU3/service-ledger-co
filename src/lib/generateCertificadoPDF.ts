@@ -151,7 +151,10 @@ async function loadImg(url: string): Promise<string | null> {
   // (Op. de Roçadeira, 28/09/2026).
   if (!url) return null;
   try {
-    const res = await fetch(url);
+    // «no-cache» obriga o navegador a confirmar com o servidor (16/10/2026). O nginx serve /assets com
+    // cache de 1 ano «immutable» e a arte tem sempre o mesmo nome: quem a tinha carregado quando estava
+    // com o logótipo antigo da Mais.com (em inglês) continuava a gerar certificados com ela.
+    const res = await fetch(url, /^(data:|blob:)/.test(url) ? undefined : { cache: 'no-cache' });
     if (!res.ok) return null;
     const blob = await res.blob();
     // Mesma armadilha com um caminho que já não existe: o servidor devolve o
