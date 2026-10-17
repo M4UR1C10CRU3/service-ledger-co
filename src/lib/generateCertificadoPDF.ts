@@ -84,10 +84,6 @@ const WHITE  = [255, 255, 255] as [number, number, number];
 //  · página 1 — logótipos até 38,6 mm, decoração a partir de 233,4 mm
 //  · página 2 — faixa roxa até 37,4 mm, rodapé a partir de 259 mm
 const ARTE_P2_FAIXA_FIM = 37.4;
-/** Página 1: a marca de água do curso nunca entra acima disto (logótipos até 38,6 mm + folga). */
-const FAIXA_LOGOS_MM = 40;
-/** …e aparece aos poucos daí para baixo, ao longo desta altura (esbatimento em vez de corte reto). */
-const ESBATER_MM = 30;
 /** Largura máxima de qualquer linha de texto centrada (15 mm de margem de cada lado). */
 const LARG_MAX_TEXTO = 180;
 
@@ -146,34 +142,6 @@ async function opacidadeMarcaAgua(dataUrl: string): Promise<number> {
     if (lum <= 0.5) return 0.16;
     return Math.min(0.40, 0.16 + ((lum - 0.5) / 0.45) * 0.24);
   } catch { return 0.16; }
-}
-
-/**
- * Prepara a imagem de fundo do curso: transparente na faixa dos logótipos (até FAIXA_LOGOS_MM) e a
- * aparecer gradualmente nos ESBATER_MM seguintes. `yMm`/`altMm` = onde a imagem cai na página.
- * Devolve PNG com transparência (largura limitada a 1240 px para o PDF não engordar), ou null.
- */
-async function esbaterTopo(dataUrl: string, yMm: number, altMm: number): Promise<string | null> {
-  try {
-    const img = new Image();
-    await new Promise<void>((ok, err) => { img.onload = () => ok(); img.onerror = () => err(new Error('img')); img.src = dataUrl; });
-    const esc = Math.min(1, 1240 / img.width);
-    const c = document.createElement('canvas');
-    c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
-    const ctx = c.getContext('2d'); if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    const pxPorMm = c.height / altMm;
-    const corte = (FAIXA_LOGOS_MM - yMm) * pxPorMm;
-    const fim = corte + ESBATER_MM * pxPorMm;
-    ctx.globalCompositeOperation = 'destination-out';
-    if (corte > 0) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, corte); }
-    const g = ctx.createLinearGradient(0, Math.max(0, corte), 0, fim);
-    g.addColorStop(0, 'rgba(0,0,0,1)');
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, Math.max(0, corte), c.width, fim - Math.max(0, corte));
-    return c.toDataURL('image/png');
-  } catch { return null; }
 }
 
 async function loadImg(url: string): Promise<string | null> {
@@ -429,25 +397,13 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     } catch {
       // Sem propriedades legíveis, estica para a folha toda.
     }
-    const opacidade = await opacidadeMarcaAgua(bgImg);
+    // Página inteira, também por trás dos logótipos (decisão do utilizador, 17/10/2026: «é um charme no
+    // design», como no certificado da Brigada). O recorte de 16/10 e o esbatimento de 17/10 foram
+    // retirados: nenhuma das imagens de fundo traz logótipos (verificado nas 16) — o logótipo antigo
+    // da Mais.com vinha da cache do navegador, já resolvida no loadImg e no nginx.
     doc.saveGraphicsState();
-    // A faixa dos logótipos é intocável (16/10/2026): várias imagens de fundo dos cursos foram feitas
-    // sobre o certificado antigo e traziam o logótipo antigo da Mais.com, que ficava por cima do
-    // aprovado. Com arte, a imagem fica transparente na faixa e vai aparecendo aos poucos por baixo
-    // dela (17/10/2026 — o corte reto deixava a fotografia «cortada» em cima). Se o esbatimento
-    // falhar, volta ao recorte reto: os logótipos nunca ficam tapados.
-    let imagem: string = bgImg;
-    if (arteFrente) {
-      const esbatida = await esbaterTopo(bgImg, y, alt);
-      if (esbatida) imagem = esbatida;
-      else {
-        (doc as any).rect(0, FAIXA_LOGOS_MM, W, H - FAIXA_LOGOS_MM, null);
-        (doc as any).clip();
-        (doc as any).discardPath();
-      }
-    }
-    (doc as any).setGState(new (doc as any).GState({ opacity: opacidade }));
-    doc.addImage(imagem, x, y, larg, alt, undefined, 'FAST');
+    (doc as any).setGState(new (doc as any).GState({ opacity: await opacidadeMarcaAgua(bgImg) }));
+    doc.addImage(bgImg, x, y, larg, alt, undefined, 'FAST');
     doc.restoreGraphicsState();
   }
 

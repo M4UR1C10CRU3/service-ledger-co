@@ -44,8 +44,8 @@ Este documento reúne todas as regras aplicadas pelo Clariza na emissão dos cer
 - **Margens laterais (17/10/2026):** nenhuma linha da frente passa de 180 mm (15 mm de margem de cada lado). Se passar, a letra encolhe até caber. O **nome do curso** que não caiba numa linha a 10 pt é partido em **duas linhas** (pela palavra, a 11 pt) e o resto desce. Vale para todas as linhas centradas — curso, datas, empresa, codificação, responsabilidade técnica.
 
 ### 2.3.1 Imagem de fundo do curso
-- A imagem de fundo (marca de água) **nunca passa por cima dos logotipos**: fica transparente até 40 mm do topo e **aparece gradualmente** nos 30 mm seguintes — sem corte reto. (16/10 havia um corte reto que deixava a fotografia «cortada»; substituído a 17/10.)
-- Se o navegador não conseguir preparar a imagem, volta-se ao corte reto — os logotipos ficam sempre protegidos.
+- A imagem de fundo do curso ocupa a **página inteira, também por trás dos logotipos** — como no certificado da Brigada (decisão de 17/10/2026: «é um charme no design»). Não há faixa branca no topo, nem corte, nem esbatimento.
+- Nenhuma das imagens de fundo traz logotipos (as 16 foram verificadas a 16/10); o logotipo antigo da Mais.com que chegou a aparecer vinha da cache do navegador, já resolvida.
 
 ### 2.4 Qualificação do instrutor
 - Abaixo do nome do instrutor aparece **só a formação que credencia a norma do curso** (ex.: num NR-10, «Engenheiro Eletricista — CREA/AP …»; «Bombeiro Civil» não entra). O mapa formação × norma é feito **pela NR**, não pelo curso.
@@ -161,4 +161,4 @@ O texto e o selo do campo **Reconhecimento** dependem do **cliente corporativo**
 | 15/10/2026 | Campo de assinatura do aluno abaixo do nome/CPF |
 | 15/10/2026 | Botão «Gerar PDFs de novo» para aplicar a versão atual aos certificados já emitidos |
 | 16/10/2026 | Arte do certificado sem cache (gerador e servidor), para o logotipo antigo não voltar |
-| 17/10/2026 | Nenhuma linha passa das margens (nome de curso longo em 2 linhas); imagem de fundo esbatida sob os logotipos em vez de cortada |
+| 17/10/2026 | Nenhuma linha passa das margens (nome de curso longo em 2 linhas); imagem de fundo na página inteira, também por trás dos logotipos (como na Brigada) |
