@@ -86,6 +86,10 @@ const WHITE  = [255, 255, 255] as [number, number, number];
 const ARTE_P2_FAIXA_FIM = 37.4;
 /** Página 1: a marca de água do curso nunca entra acima disto (logótipos até 38,6 mm + folga). */
 const FAIXA_LOGOS_MM = 40;
+/** …e aparece aos poucos daí para baixo, ao longo desta altura (esbatimento em vez de corte reto). */
+const ESBATER_MM = 30;
+/** Largura máxima de qualquer linha de texto centrada (15 mm de margem de cada lado). */
+const LARG_MAX_TEXTO = 180;
 
 // Logótipo da entidade homologadora, na caixa RECONHECIMENTO do verso. Hoje é o
 // Grupo Equatorial, que homologa o ITC, e por isso vive na pasta do ITC e só entra
@@ -144,6 +148,34 @@ async function opacidadeMarcaAgua(dataUrl: string): Promise<number> {
   } catch { return 0.16; }
 }
 
+/**
+ * Prepara a imagem de fundo do curso: transparente na faixa dos logótipos (até FAIXA_LOGOS_MM) e a
+ * aparecer gradualmente nos ESBATER_MM seguintes. `yMm`/`altMm` = onde a imagem cai na página.
+ * Devolve PNG com transparência (largura limitada a 1240 px para o PDF não engordar), ou null.
+ */
+async function esbaterTopo(dataUrl: string, yMm: number, altMm: number): Promise<string | null> {
+  try {
+    const img = new Image();
+    await new Promise<void>((ok, err) => { img.onload = () => ok(); img.onerror = () => err(new Error('img')); img.src = dataUrl; });
+    const esc = Math.min(1, 1240 / img.width);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
+    const ctx = c.getContext('2d'); if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    const pxPorMm = c.height / altMm;
+    const corte = (FAIXA_LOGOS_MM - yMm) * pxPorMm;
+    const fim = corte + ESBATER_MM * pxPorMm;
+    ctx.globalCompositeOperation = 'destination-out';
+    if (corte > 0) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, c.width, corte); }
+    const g = ctx.createLinearGradient(0, Math.max(0, corte), 0, fim);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, Math.max(0, corte), c.width, fim - Math.max(0, corte));
+    return c.toDataURL('image/png');
+  } catch { return null; }
+}
+
 async function loadImg(url: string): Promise<string | null> {
   // Sem endereço não há imagem. Antes, fetch('') pedia a própria página da
   // aplicação (HTML, 200 OK), que seguia como «PNG» e rebentava o addImage —
@@ -195,12 +227,18 @@ function renderInlineText(
   y: number,
   fontSize: number
 ) {
-  doc.setFontSize(fontSize);
-  let totalW = 0;
-  segments.forEach(s => {
+  const medir = () => segments.reduce((t, s) => {
     doc.setFont('helvetica', s.bold ? 'bold' : 'normal');
-    totalW += doc.getTextWidth(s.text);
-  });
+    return t + doc.getTextWidth(s.text);
+  }, 0);
+  doc.setFontSize(fontSize);
+  let totalW = medir();
+  // Nenhuma linha passa das margens (17/10/2026 — o nome longo do NR-10 SEP saía da folha pelos dois
+  // lados): se não couber, a letra encolhe na proporção, até 7 pt.
+  if (totalW > LARG_MAX_TEXTO) {
+    doc.setFontSize(Math.max(7, fontSize * LARG_MAX_TEXTO / totalW));
+    totalW = medir();
+  }
   let x = W / 2 - totalW / 2;
   segments.forEach(s => {
     doc.setFont('helvetica', s.bold ? 'bold' : 'normal');
@@ -391,17 +429,25 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
     } catch {
       // Sem propriedades legíveis, estica para a folha toda.
     }
+    const opacidade = await opacidadeMarcaAgua(bgImg);
     doc.saveGraphicsState();
     // A faixa dos logótipos é intocável (16/10/2026): várias imagens de fundo dos cursos foram feitas
     // sobre o certificado antigo e traziam o logótipo antigo da Mais.com, que ficava por cima do
-    // aprovado. Com arte, a marca de água só é desenhada abaixo da faixa — seja qual for a imagem.
+    // aprovado. Com arte, a imagem fica transparente na faixa e vai aparecendo aos poucos por baixo
+    // dela (17/10/2026 — o corte reto deixava a fotografia «cortada» em cima). Se o esbatimento
+    // falhar, volta ao recorte reto: os logótipos nunca ficam tapados.
+    let imagem: string = bgImg;
     if (arteFrente) {
-      (doc as any).rect(0, FAIXA_LOGOS_MM, W, H - FAIXA_LOGOS_MM, null);
-      (doc as any).clip();
-      (doc as any).discardPath();
+      const esbatida = await esbaterTopo(bgImg, y, alt);
+      if (esbatida) imagem = esbatida;
+      else {
+        (doc as any).rect(0, FAIXA_LOGOS_MM, W, H - FAIXA_LOGOS_MM, null);
+        (doc as any).clip();
+        (doc as any).discardPath();
+      }
     }
-    (doc as any).setGState(new (doc as any).GState({ opacity: await opacidadeMarcaAgua(bgImg) }));
-    doc.addImage(bgImg, x, y, larg, alt, undefined, 'FAST');
+    (doc as any).setGState(new (doc as any).GState({ opacity: opacidade }));
+    doc.addImage(imagem, x, y, larg, alt, undefined, 'FAST');
     doc.restoreGraphicsState();
   }
 
@@ -494,11 +540,32 @@ export async function generateCertificadoPDF(data: CertificadoPDFData): Promise<
   doc.text('Assinatura do(a) aluno(a)', W / 2, assY + 3.5, { align: 'center' });
 
   // ── Dados do curso ─────────────────────────────────────────
-  const cursoY = assY + 12;
-  renderInlineText(doc, [
-    { text: 'Curso:  ', bold: true, color: BLACK },
-    { text: data.curso_nome || '—', bold: true, color: BLACK },
-  ], cursoY, 12);
+  // Nome do curso: numa linha a 12 pt; se não couber nem a 10 pt, parte-se em duas linhas (pela palavra)
+  // a 11 pt e o resto do certificado desce o que for preciso (17/10/2026 — NR-10 SEP saía da folha).
+  let cursoY = assY + 12;
+  {
+    const nome = data.curso_nome || '—';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    if (doc.getTextWidth('Curso:  ' + nome) <= LARG_MAX_TEXTO) {
+      renderInlineText(doc, [
+        { text: 'Curso:  ', bold: true, color: BLACK },
+        { text: nome, bold: true, color: BLACK },
+      ], cursoY, 12);
+    } else {
+      doc.setFontSize(11);
+      const prefixo = doc.getTextWidth('Curso:  ');
+      const palavras = nome.split(/\s+/);
+      let l1 = '';
+      while (palavras.length && doc.getTextWidth(`${l1} ${palavras[0]}`.trim()) + prefixo <= LARG_MAX_TEXTO) l1 = `${l1} ${palavras.shift()}`.trim();
+      renderInlineText(doc, [
+        { text: 'Curso:  ', bold: true, color: BLACK },
+        { text: l1, bold: true, color: BLACK },
+      ], cursoY, 11);
+      cursoY += 5.5;
+      renderInlineText(doc, [{ text: palavras.join(' '), bold: true, color: BLACK }], cursoY, 11);
+    }
+  }
 
   const chSegs: { text: string; bold: boolean; color: [number, number, number] }[] = [];
   if (data.carga_horaria) {
