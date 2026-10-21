@@ -378,12 +378,29 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     })));
   };
 
+  // Marcar/desmarcar uma tarefa. O ecrã só muda depois de a base confirmar: uma
+  // escrita recusada (sessão terminada, sem acesso) chega como «sucesso» com 0
+  // linhas, e antes a checkbox ficava marcada no ecrã e voltava desmarcada ao
+  // recarregar (21/10/2026, cartão José Carvas). Cada mudança fica no feed do
+  // cartão, para se saber quem marcou ou desmarcou e quando.
   const toggleChecklistItem = async (itemId: string, checklistId: string, cartaoId: string, concluido: boolean) => {
-    await supabase.from('cartao_checklist_items').update({ concluido }).eq('id', itemId);
+    const { data, error } = await supabase.from('cartao_checklist_items')
+      .update({ concluido }).eq('id', itemId).select('id');
+    if (error || !data?.length) {
+      toast({
+        title: concluido ? 'A tarefa não ficou marcada' : 'A tarefa não ficou desmarcada',
+        description: 'A alteração não foi gravada (sessão terminada ou falha de ligação). Recarregue a página e tente de novo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const texto = listas.flatMap(l => l.cartoes).find(c => c.id === cartaoId)
+      ?.checklists.find(cl => cl.id === checklistId)?.items.find(it => it.id === itemId)?.texto;
     setListas(prev => prev.map(l => ({
       ...l, cartoes: l.cartoes.map(c => c.id === cartaoId
         ? { ...c, checklists: c.checklists.map(cl => cl.id === checklistId ? { ...cl, items: cl.items.map(it => it.id === itemId ? { ...it, concluido } : it) } : cl) } : c),
     })));
+    if (texto) await logAtividade(cartaoId, concluido ? `marcou "${texto}" como concluída` : `desmarcou "${texto}"`);
   };
 
   const deleteChecklistItem = async (itemId: string, checklistId: string, cartaoId: string) => {

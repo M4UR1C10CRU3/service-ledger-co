@@ -231,6 +231,8 @@ export default function CartaoDetailModal(props: Props) {
 
   // Checklist item detail editor (responsável / hora / prazo)
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  // Tarefas cuja marcação está a ser gravada: a checkbox fica bloqueada até a base responder.
+  const [itensAGravar, setItensAGravar] = useState<string[]>([]);
   // Arrastar tarefas da checklist: só começa depois de 4 px, para um clique na pega não contar como arrasto.
   const sensoresChecklist = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -319,6 +321,17 @@ export default function CartaoDetailModal(props: Props) {
   const saveDesc = async () => {
     await props.onUpdateCartao(c.id, { descricao: descricao || null });
     setEditingDesc(false);
+  };
+
+  const toggleItem = async (itemId: string, clId: string, concluido: boolean) => {
+    if (itensAGravar.includes(itemId)) return;
+    setItensAGravar(p => [...p, itemId]);
+    try {
+      await props.onToggleChecklistItem(itemId, clId, c.id, concluido);
+    } finally {
+      setItensAGravar(p => p.filter(id => id !== itemId));
+    }
+    refreshFeed();
   };
 
   const saveChecklistTitulo = async (checklistId: string) => {
@@ -675,8 +688,9 @@ export default function CartaoDetailModal(props: Props) {
                             <input
                               type="checkbox"
                               checked={item.concluido}
-                              onChange={() => props.onToggleChecklistItem(item.id, cl.id, c.id, !item.concluido)}
-                              className="mt-0.5 h-4 w-4 rounded cursor-pointer accent-primary"
+                              disabled={itensAGravar.includes(item.id)}
+                              onChange={() => toggleItem(item.id, cl.id, !item.concluido)}
+                              className="mt-0.5 h-4 w-4 rounded cursor-pointer accent-primary disabled:cursor-wait disabled:opacity-60"
                             />
                             <span className={`text-sm flex-1 ${item.concluido ? 'line-through text-muted-foreground' : ''}`}>{item.texto}</span>
                             {item.responsavel_nome && (
