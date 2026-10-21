@@ -26,6 +26,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isToday, getDay, eachDayOfInterval } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import { nomeDaSessao } from '@/lib/nomeDaSessao';
 
 const DAY_TYPES = [
   { value: 'normal', label: 'Normal' },
@@ -234,12 +235,7 @@ const ControlePonto = () => {
     if (!selectedEmployee || !empresa) return;
 
     // Get current user name
-    const { data: { user } } = await supabase.auth.getUser();
-    let emitterName = 'Utilizador';
-    if (user) {
-      const { data: profile } = await supabase.from('profiles').select('nome').eq('id', user.id).maybeSingle();
-      if (profile?.nome) emitterName = profile.nome;
-    }
+    const emitterName = (await nomeDaSessao()).nome;   // a ficha primeiro — ver lib/nomeDaSessao
 
     const now = new Date();
     const periodLabel = viewMode === 'week'

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { admDocumentoPath } from '@/lib/storagePaths';
 import { useToast } from '@/hooks/use-toast';
+import { nomeDaSessao } from '@/lib/nomeDaSessao';
 import type {
   AdmPais, TipoDocumento, DocumentoLegal, DocumentoVersao, DocumentoHistorico,
 } from '@/types/administrativo';
@@ -17,9 +18,7 @@ const T_PAISES    = 'adm_paises' as any;
 const BUCKET      = 'adm-documentos';
 
 async function utilizadorAtual(): Promise<{ id: string | null; nome: string }> {
-  const { data } = await supabase.auth.getUser();
-  const u = data?.user;
-  return { id: u?.id ?? null, nome: (u?.user_metadata as any)?.nome || u?.email || 'Utilizador' };
+  return nomeDaSessao();   // a ficha primeiro — ver lib/nomeDaSessao
 }
 
 export function useDocumentosLegais() {

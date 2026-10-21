@@ -10,6 +10,15 @@ interface CurrentUser {
 
 let cached: CurrentUser | null = null;
 
+// A cópia em memória pertence a UMA sessão. Ao sair (ou ao entrar outra conta
+// no mesmo separador, sem recarregar), quem entrasse a seguir herdava o nome de
+// quem saiu e assinava comentários e checklists com ele.
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT' || (cached && session?.user?.id !== cached.authId)) {
+    cached = null;
+  }
+});
+
 /**
  * O utilizador autenticado e o seu nome.
  *

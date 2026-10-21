@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { planeamentoAnexoPath } from '@/lib/storagePaths';
 import { useToast } from '@/hooks/use-toast';
+import { nomeDaSessao } from '@/lib/nomeDaSessao';
 import type {
   PlaneamentoCard, PlaneamentoColuna, PlaneamentoConsulta,
   PlaneamentoChecklistItem, PlaneamentoAnexo, PlaneamentoHistorico,
@@ -16,9 +17,7 @@ const TABLE_HISTORICO = 'planeamento_historico' as any;
 const BUCKET = 'planeamento-anexos';
 
 async function currentUserName(): Promise<{ id: string | null; nome: string }> {
-  const { data } = await supabase.auth.getUser();
-  const u = data?.user;
-  return { id: u?.id ?? null, nome: (u?.user_metadata as any)?.nome || u?.email || 'Utilizador' };
+  return nomeDaSessao();   // a ficha primeiro — ver lib/nomeDaSessao
 }
 
 export function usePlaneamento() {

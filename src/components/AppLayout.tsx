@@ -21,18 +21,20 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [userName, setUserName] = useState('');
   const navigate = useNavigate();
 
+  // O nome do topo vem da FICHA (`liberty_utilizadores`), como em useCurrentUser.
+  // O `profiles` e os metadados da conta são escritos na criação e nunca mais
+  // mudam: numa conta reaproveitada (comercial4@… passou da Cristiana Batista
+  // para o André Tiago a 20/10/2026) o topo continuava a mostrar quem já saiu.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        supabase
-          .from('profiles')
-          .select('nome')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data) setUserName(data.nome);
-          });
-      }
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      const [{ data: ficha }, { data: perfil }] = await Promise.all([
+        (supabase.from('liberty_utilizadores') as any)
+          .select('nome').eq('auth_user_id', session.user.id).maybeSingle(),
+        supabase.from('profiles').select('nome').eq('id', session.user.id).maybeSingle(),
+      ]);
+      const nome = (ficha?.nome as string)?.trim() || perfil?.nome?.trim() || '';
+      if (nome) setUserName(nome);
     });
   }, []);
 

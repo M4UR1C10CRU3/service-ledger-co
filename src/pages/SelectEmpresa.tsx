@@ -24,10 +24,16 @@ const SelectEmpresa = () => {
    *  autenticado — não se acrescentou consulta nenhuma para isto. */
   const [primeiroNome, setPrimeiroNome] = useState<string>('');
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const u = data.user;
       setSessao(u?.email ?? null);
-      const nome = (u?.user_metadata?.nome || u?.user_metadata?.full_name || '') as string;
+      // A ficha primeiro: os metadados da conta guardam o nome de quem a criou
+      // e não mudam quando a conta passa para outra pessoa.
+      const { data: ficha } = u
+        ? await (supabase.from('liberty_utilizadores') as any)
+            .select('nome').eq('auth_user_id', u.id).maybeSingle()
+        : { data: null };
+      const nome = ((ficha?.nome as string) || u?.user_metadata?.nome || u?.user_metadata?.full_name || '') as string;
       const bruto = nome.trim() || (u?.email ?? '').split('@')[0].replace(/[._-]+/g, ' ');
       const primeiro = bruto.split(/\s+/)[0] || '';
       setPrimeiroNome(primeiro ? primeiro.charAt(0).toUpperCase() + primeiro.slice(1) : '');

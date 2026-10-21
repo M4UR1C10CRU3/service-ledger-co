@@ -4,6 +4,7 @@ import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Concurso, MapaItem, DocumentoConcurso, EstadoDoc, EstadoConcurso, AnexoConcurso } from '@/types/concursos';
 import type { Emparelhamento } from '@/lib/concursos/lerProposta';
+import { nomeDaSessao } from '@/lib/nomeDaSessao';
 
 const T_CONC = 'cp_concursos' as any;
 const T_MAPA = 'cp_mapa_itens' as any;
@@ -12,9 +13,7 @@ const T_ANEXOS = 'cartao_anexos' as any;
 const BUCKET = 'cartao-anexos';
 
 async function nomeUtilizador(): Promise<string> {
-  const { data } = await supabase.auth.getUser();
-  const u = data?.user;
-  return (u?.user_metadata as any)?.nome || u?.email || 'Utilizador';
+  return (await nomeDaSessao()).nome;   // a ficha primeiro — ver lib/nomeDaSessao
 }
 
 /** Lista dos concursos da empresa. */
