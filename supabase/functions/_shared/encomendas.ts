@@ -3,7 +3,9 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 export const BUCKET = "cartao-anexos";
-export const APP_URL = "https://app.clarizaplatform.com";
+// As encomendas são da Tudo Casa - Warm, que entra por clariza.lojatudocasa.com (o
+// Workspace geral deixou de a mostrar). Publicar esta função só com esse endereço no ar.
+export const APP_URL = "https://clariza.lojatudocasa.com";
 
 export const admin = (): SupabaseClient =>
   createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });

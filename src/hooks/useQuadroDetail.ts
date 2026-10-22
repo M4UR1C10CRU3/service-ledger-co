@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { sendEmail } from '@/lib/sendEmail';
 import { camposEmFalta, descreveFalta, dispararAutomacoes } from '@/hooks/useQuadroProcesso';
+import { enderecoDoWorkspace } from '@/lib/host';
 
 // ITC mantém etiquetas/checklists isolados por empresa; todas as outras empresas
 // partilham o mesmo conjunto (o utilizador pediu que não haja distinção entre elas).
@@ -433,7 +434,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     if (!u?.email || u.nome === autorNome) return;
 
     const quadroNome = quadro?.nome || '';
-    const cartaoUrl = `https://app.clarizaplatform.com/quadros/${quadroId}?cartao=${cartaoId}`;
+    const cartaoUrl = `${enderecoDoWorkspace()}/quadros/${quadroId}?cartao=${cartaoId}`;
     const quando = [
       depois.data_limite ? dataPt(depois.data_limite) : '',
       depois.hora ? `às ${depois.hora.slice(0, 5)}` : '',
@@ -552,7 +553,7 @@ export function useQuadroDetail(quadroId: string | undefined, empresaId: string 
     if (mencionados.length > 0) {
       const cartaoTitulo = listas.flatMap(l => l.cartoes).find(c => c.id === cartaoId)?.titulo || '';
       const quadroNome = quadro?.nome || '';
-      const cartaoUrl = `https://app.clarizaplatform.com/quadros/${quadroId}?cartao=${cartaoId}`;
+      const cartaoUrl = `${enderecoDoWorkspace()}/quadros/${quadroId}?cartao=${cartaoId}`;
       const textoHtml = texto
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/\n/g, '<br>')

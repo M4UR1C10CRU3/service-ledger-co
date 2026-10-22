@@ -2,17 +2,37 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEmpresa, resolveLogoEmpresa } from '@/contexts/EmpresaContext';
 import { temEntradaPropria, nomeProduto } from '@/lib/verticais';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { ClarizaMark } from '@/components/ClarizaMark';
 import { supabase } from '@/integrations/supabase/client';
 import webtechLogo from '@/assets/logo-webtech.png';
+import logoTudocasa from '@/assets/logo-tudocasa.png';
+import { workspaceDoDominio } from '@/lib/host';
 
 /** Arte do Workspace. Vive em `public/` e é servida sem hash, por isso o nome
  *  muda sempre que a imagem muda — senão os navegadores servem a antiga. */
 const ARTE_FUNDO = '/assets/workspace/bg-workspace-hero.png';
 
+/** Marca de cada workspace de grupo (ver `WORKSPACES` em lib/host.ts). O
+ *  desenho é o mesmo do Workspace geral; mudam a arte, o logótipo, a cor de
+ *  acento (HSL, como as variáveis do tema) e o rodapé. */
+const TEMAS_WORKSPACE = {
+  'tudo-casa': {
+    nome: 'Tudo Casa',
+    logo: logoTudocasa,
+    arte: '/assets/workspace/bg-workspace-tudocasa.jpg',
+    acento: '27 100% 50%',   // o laranja do logótipo, #FF7300
+    loja: 'https://www.lojatudocasa.com',
+    assinatura: 'Grupo Tudo Casa',
+    lema: 'Tudo para a sua casa',
+  },
+} as const;
+
 const SelectEmpresa = () => {
   const navigate = useNavigate();
+  const ws = workspaceDoDominio();
+  const tema = ws ? TEMAS_WORKSPACE[ws.marca] : null;
+  const arte = tema?.arte ?? ARTE_FUNDO;
   const [searchParams] = useSearchParams();
   const { empresas, isLoading, setEmpresa } = useEmpresa();
 
@@ -109,7 +129,15 @@ const SelectEmpresa = () => {
      margem interior para não perder proporção nem ficar colado às bordas.
      ═══════════════════════════════════════════════════════════════════════ */
   return (
-    <div className="relative min-h-screen flex flex-col bg-[hsl(240_5%_8%)] text-foreground overflow-hidden">
+    <div
+      className="relative min-h-screen flex flex-col bg-[hsl(240_5%_8%)] text-foreground overflow-hidden"
+      /* Num workspace de grupo, o acento (cartões, setas) passa a ser a cor da marca. */
+      style={tema ? {
+        ['--vertical-accent' as string]: tema.acento,
+        ['--vertical-accent-soft' as string]: `${tema.acento} / 0.12`,
+        ['--vertical-accent-border' as string]: `${tema.acento} / 0.4`,
+      } : undefined}
+    >
 
       {/* Arte de fundo, encostada à direita.
           `aria-hidden` porque é ambiente, não informação. */}
@@ -119,7 +147,7 @@ const SelectEmpresa = () => {
             do painel — o grande plano do rosto ficava cortado e a competir com
             o texto. */}
         <img
-          src={ARTE_FUNDO}
+          src={arte}
           alt=""
           className="md:hidden h-full w-full object-cover object-[58%_center]"
         />
@@ -134,7 +162,7 @@ const SelectEmpresa = () => {
             A máscara dissolve os primeiros 14% da imagem, para que a aresta
             esquerda da fotografia não se veja contra esse fundo. */}
         <img
-          src={ARTE_FUNDO}
+          src={arte}
           alt=""
           className="hidden md:block absolute right-0 top-0 h-full w-auto max-w-none"
           style={{
@@ -172,20 +200,42 @@ const SelectEmpresa = () => {
       <div className="relative z-10 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-14 py-8 flex flex-col">
 
         {/* Marca, no canto — como no protótipo */}
-        <div className="flex items-center gap-2.5 mb-10 md:mb-14">
-          <ClarizaMark />
-          <span className="text-[17px] font-bold tracking-tight text-white">Clariza</span>
+        <div className="flex items-center justify-between gap-4 mb-10 md:mb-14">
+          <div className="flex items-center gap-4">
+            {tema && (
+              <>
+                <img src={tema.logo} alt={tema.nome} className="h-11 md:h-14 w-auto object-contain" />
+                <span className="h-8 w-px bg-white/15" aria-hidden="true" />
+              </>
+            )}
+            <div className="flex items-center gap-2.5">
+              <ClarizaMark />
+              <span className="text-[17px] font-bold tracking-tight text-white">Clariza</span>
+            </div>
+          </div>
+          {tema && (
+            <a
+              href={tema.loja}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-[10px] border border-white/10 bg-[hsl(240_5%_10%/0.75)]
+                         backdrop-blur-sm px-3.5 py-2 text-[13px] text-white/90 hover:text-white hover:border-vertical-border"
+            >
+              Loja online <ArrowUpRight className="h-3.5 w-3.5 text-vertical" />
+            </a>
+          )}
         </div>
 
         {/* Coluna estreita: os cartões têm de acabar ANTES do painel a flutuar.
             Medido no browser — a 1350px de largura o painel começa aos 590px e
             duas colunas chegavam aos 669. Daí a coluna única. */}
         <div className="max-w-[440px]">
-          <p className="text-[11px] font-extrabold tracking-[0.16em] text-clariza-teal mb-4">
+          <p className={`text-[11px] font-extrabold tracking-[0.16em] mb-4 ${tema ? 'text-vertical' : 'text-clariza-teal'}`}>
             CLARIZA WORKSPACE
+            {tema && <><span className="opacity-60">{'  /  '}</span>{tema.nome.toUpperCase()}</>}
           </p>
           <h1 className="text-[38px] md:text-[54px] font-normal tracking-[-0.05em] text-white leading-[1.05] mb-3">
-            Bem-vindo{primeiroNome ? `, ${primeiroNome}` : ''}.
+            Bem-vindo{primeiroNome ? `, ${primeiroNome}` : ''}<span className={tema ? 'text-vertical' : undefined}>.</span>
           </h1>
           <p className="text-[15px] text-muted-foreground mb-10">
             Escolha o ambiente onde deseja trabalhar.
@@ -264,11 +314,23 @@ const SelectEmpresa = () => {
           que chegam ao fundo da imagem. */}
       <footer className="relative z-10 w-full border-t border-white/10 py-4
                          bg-[hsl(240_5%_8%/0.85)] backdrop-blur-sm">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-14 flex items-center justify-center gap-5 text-muted-foreground/70 text-[11px]">
-          <span>Desenvolvido por</span>
-          <img src={webtechLogo} alt="WebtechLabs — Technology Studio" className="h-8 object-contain opacity-70" />
-          <span>© {new Date().getFullYear()}. Todos os direitos reservados.</span>
-        </div>
+        {tema ? (
+          <div className="max-w-[1600px] mx-auto px-6 md:px-14 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-muted-foreground/70 text-[11px]">
+            <span>© {new Date().getFullYear()} {tema.assinatura}</span>
+            <span className="flex items-center gap-2">
+              {tema.lema}
+              <span className="text-vertical" aria-hidden="true">·</span>
+              <span>Tecnologia <strong className="font-semibold text-white/85">Clariza</strong></span>
+            </span>
+            <span>Todos os direitos reservados.</span>
+          </div>
+        ) : (
+          <div className="max-w-[1600px] mx-auto px-6 md:px-14 flex items-center justify-center gap-5 text-muted-foreground/70 text-[11px]">
+            <span>Desenvolvido por</span>
+            <img src={webtechLogo} alt="WebtechLabs — Technology Studio" className="h-8 object-contain opacity-70" />
+            <span>© {new Date().getFullYear()}. Todos os direitos reservados.</span>
+          </div>
+        )}
       </footer>
     </div>
   );

@@ -2,6 +2,7 @@ import { ativarTemaLabs } from '@/lib/labsTema';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Empresa } from '@/types/empresa';
 import { supabase } from '@/integrations/supabase/client';
+import { empresaVisivelNoEndereco } from '@/lib/host';
 import { resolveEmpresaDocConfig, type EmpresaDocConfig, type LibertyEmpresaConfigRow } from '@/lib/empresaConfig';
 
 // Logos importados
@@ -140,11 +141,16 @@ export const EmpresaProvider = ({ children }: { children: ReactNode }) => {
       // permite ao ecrã de entrada identificar a escola antes de alguém entrar);
       // COM sessão mostram-se exatamente as atribuídas, e nenhuma quer dizer
       // nenhuma.
-      const { data, error } = permitidas === null
+      const { data: todas, error } = permitidas === null
         ? await base
         : permitidas.length > 0
           ? await base.in('id', permitidas)
           : { data: [] as any[], error: null };
+
+      // Cada endereço mostra só as suas empresas — na lista de entrada e no
+      // "Trocar Empresa": as da Tudo Casa em clariza.lojatudocasa.com, as
+      // restantes no Workspace geral (ver lib/host.ts).
+      const data = todas ? todas.filter((e: any) => empresaVisivelNoEndereco(e.slug)) : todas;
 
       // Lista vazia é um resultado legítimo e tem de ser gravado. Se ficasse de
       // fora deste `if`, quem não tem acesso continuava a ver a lista anterior.
