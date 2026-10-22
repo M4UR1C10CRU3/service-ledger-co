@@ -49,7 +49,15 @@ export const usePermissionsContext = () => useContext(PermissionsContext);
  * base de dados uma escrita recusada devolve sucesso com zero linhas, e sem
  * o `.select()` o erro passava despercebido outra vez.
  */
+/** Quem já ficou carimbado neste carregamento da página. As permissões
+ *  recarregam várias vezes ao entrar (sessão, empresa restaurada, troca de
+ *  empresa) e cada vez gravava um acesso novo — duas a quatro linhas na
+ *  auditoria por cada entrada. Terminar sessão limpa, para a próxima contar. */
+let acessoRegistado: string | null = null;
+
 function registarAcesso(utilizadorId: string) {
+  if (acessoRegistado === utilizadorId) return;
+  acessoRegistado = utilizadorId;
   void (async () => {
     const { data, error } = await (supabase.from('liberty_utilizadores') as any)
       .update({ ultimo_acesso: new Date().toISOString() })
@@ -169,6 +177,7 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT') acessoRegistado = null;
         loadPermissions();
       }
     });

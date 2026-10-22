@@ -41,7 +41,7 @@ const FollowUp = lazy(() => import("./pages/FollowUp"));
 const Recrutamento = lazy(() => import("./pages/Recrutamento"));
 const Avaliacoes = lazy(() => import("./pages/Avaliacoes"));
 const Acolhimento = lazy(() => import("./pages/rh/Acolhimento"));
-const Auditoria = lazy(() => import("./pages/Auditoria"));
+const AtividadeUtilizadores = lazy(() => import("./pages/AtividadeUtilizadores"));
 const Utilizadores = lazy(() => import("./pages/Utilizadores"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const Marketing = lazy(() => import("./pages/Marketing"));
@@ -268,7 +268,9 @@ const App = () => (
               <Route path="/configuracoes/dados" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
               <Route path="/configuracoes/sobre" element={<ProtectedWithLayout><Configuracoes /></ProtectedWithLayout>} />
               <Route path="/utilizadores" element={<Navigate to="/configuracoes/utilizadores" replace />} />
-              <Route path="/auditoria" element={<ProtectedWithLayout><Auditoria /></ProtectedWithLayout>} />
+              {/* A página antiga (registo da app) juntou-se à auditoria da base em 22/10/2026. */}
+              <Route path="/auditoria" element={<Navigate to="/atividade-utilizadores" replace />} />
+              <Route path="/atividade-utilizadores" element={<ProtectedWithLayout><AtividadeUtilizadores /></ProtectedWithLayout>} />
 
               {/* Redirects */}
               {/* A query string tem de sobreviver ao salto: sem isto,

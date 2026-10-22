@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissionsContext } from '@/contexts/PermissionsContext';
 import { Save, Bell, Mail } from 'lucide-react';
@@ -27,7 +26,6 @@ const ALERT_TYPES = [
 
 export default function ConfigNotificacoes({ activeTab }: { activeTab: string }) {
   const { toast } = useToast();
-  const { logActivity } = useActivityLogger();
   const { utilizador } = usePermissionsContext();
   const [loading, setLoading] = useState(false);
 
@@ -88,13 +86,6 @@ export default function ConfigNotificacoes({ activeTab }: { activeTab: string })
         await (supabase.from('liberty_configuracoes_utilizador') as any)
           .insert(configData);
       }
-
-      logActivity({
-        modulo: 'Configurações',
-        acao: 'atualizou_notificacoes',
-        descricao: 'Atualizou preferências de notificação',
-        entidade_tipo: 'configuracao',
-      });
 
       toast({ title: 'Preferências de notificação guardadas' });
     } catch (error: any) {

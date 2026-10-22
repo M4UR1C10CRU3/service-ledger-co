@@ -5,7 +5,7 @@ import {
   Factory, Receipt, ClipboardList,
   Wallet, TrendingUp, CreditCard, AlertTriangle, BarChart3, PieChart,
   UsersRound, HardHat, Handshake, UserSearch, ClipboardCheck,
-  Settings, LogOut, Building2, ChevronDown, History, ScrollText,
+  Settings, LogOut, Building2, ChevronDown, History,
   UserCog, Megaphone, Trello, KeyRound, Building, Lightbulb, ShoppingBag, Star,
   GraduationCap, BookOpen, CalendarDays, Award, UserRound, LayoutGrid, Activity,
   FolderKanban, ListTodo, Repeat, Zap, Inbox, ShieldCheck, Landmark, DoorOpen, Wrench, Code, Rocket, Camera, Server, Mic,
@@ -611,16 +611,16 @@ export function AppSidebar() {
             <span>Trocar Empresa</span>
           </SidebarMenuButton>
         )}
-        {can('auditoria', 'ver') && (
+        {isAdmin && (
           <SidebarMenuButton
-            onClick={() => navigate('/auditoria')}
+            onClick={() => navigate('/atividade-utilizadores')}
             className={cn(
               'w-full justify-start gap-3 px-3 py-2 rounded-xl text-[13px] text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all',
-              isActive('/auditoria') && 'bg-vertical-soft text-white font-semibold ring-1 ring-inset ring-vertical-border'
+              isActive('/atividade-utilizadores') && 'bg-vertical-soft text-white font-semibold ring-1 ring-inset ring-vertical-border'
             )}
           >
-            <ScrollText className="h-4 w-4 shrink-0" />
-            <span>Auditoria</span>
+            <History className="h-4 w-4 shrink-0" />
+            <span>Atividade dos utilizadores</span>
           </SidebarMenuButton>
         )}
         <SidebarMenuButton

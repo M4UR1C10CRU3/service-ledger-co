@@ -17,7 +17,6 @@ const EXPORT_MODULES = [
   { key: 'suppliers', label: 'Fornecedores', table: 'suppliers' },
   { key: 'employees', label: 'Colaboradores', table: 'employees' },
   { key: 'cash_flows', label: 'Financeiro (Fluxo de Caixa)', table: 'cash_flows' },
-  { key: 'liberty_atividades', label: 'Atividades / Auditoria', table: 'liberty_atividades' },
 ];
 
 export default function ConfigDados({ activeTab }: { activeTab: string }) {
@@ -48,6 +47,7 @@ export default function ConfigDados({ activeTab }: { activeTab: string }) {
         acao: 'exportou_dados',
         descricao: `Exportou dados de ${mod.label}`,
         entidade_tipo: 'exportacao',
+        tabela: mod.table,
       });
 
       toast({ title: 'Exportação concluída', description: `${(data || []).length} registos exportados` });

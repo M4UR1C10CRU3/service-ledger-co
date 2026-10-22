@@ -2,14 +2,26 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 
+/**
+ * Regista na AUDITORIA (tabela `auditoria`) uma ação que não escreve em tabela
+ * nenhuma — exportar dados, por exemplo. Substitui o registo antigo
+ * `liberty_atividades` (21/10/2026).
+ *
+ * Criar, alterar e apagar já ficam registados pela própria base (gatilho em
+ * cada tabela): NÃO chamar isto para essas ações, senão aparecem duas vezes.
+ * Quem fez vem sempre da sessão, do lado da base (`auditoria_evento`).
+ */
 interface ActivityLogParams {
-  modulo: string;
   acao: string;
   descricao: string;
-  entidade_tipo?: string;
+  /** Tabela a que o evento se refere (decide o módulo no relatório). */
+  tabela?: string;
   entidade_id?: string;
   entidade_ref?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+  /** Mantidos por compatibilidade com as chamadas antigas; o módulo vem da tabela. */
+  modulo?: string;
+  entidade_tipo?: string;
 }
 
 export function useActivityLogger() {
@@ -17,35 +29,19 @@ export function useActivityLogger() {
 
   const logActivity = useCallback(async (params: ActivityLogParams) => {
     try {
-      if (!empresa) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      let utilizadorNome = 'Utilizador';
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('nome')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (profile?.nome) utilizadorNome = profile.nome;
-
-      await (supabase.from('liberty_atividades') as any).insert({
-        empresa_id: empresa.id,
-        utilizador_id: user.id,
-        utilizador_nome: utilizadorNome,
-        data_hora: new Date().toISOString(),
-        modulo: params.modulo,
-        acao: params.acao,
-        descricao: params.descricao,
-        entidade_tipo: params.entidade_tipo || null,
-        entidade_id: params.entidade_id || null,
-        entidade_ref: params.entidade_ref || null,
-        metadata: params.metadata || null,
+      const { error } = await (supabase.rpc as any)('auditoria_evento', {
+        p_acao: params.acao,
+        p_descricao: params.descricao,
+        p_tabela: params.tabela ?? null,
+        p_registo_id: params.entidade_id ?? null,
+        p_rotulo: params.entidade_ref ?? null,
+        p_empresa_id: empresa?.id ?? null,
+        p_dados: params.metadata ?? null,
       });
+      if (error) console.warn('Registo de atividade falhou (não crítico):', error.message);
     } catch (e) {
       // Silencioso — nunca bloqueia a ação principal
-      console.warn('Activity log failed (non-critical):', e);
+      console.warn('Registo de atividade falhou (não crítico):', e);
     }
   }, [empresa]);
 

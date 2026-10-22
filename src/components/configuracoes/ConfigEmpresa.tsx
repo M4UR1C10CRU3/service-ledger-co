@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEmpresa } from '@/contexts/EmpresaContext';
 import { useToast } from '@/hooks/use-toast';
-import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { logoPath } from '@/lib/storagePaths';
 import { Save, Upload, Trash2 } from 'lucide-react';
@@ -19,7 +18,6 @@ const COLOR_PRESETS = [
   { label: 'Vermelho', hex: '#DC2626' },
   { label: 'Roxo', hex: '#7C3AED' },
 ];
-
 
 /**
  * O País da morada decide também o país OPERACIONAL da empresa — o que escolhe
@@ -42,7 +40,6 @@ const paisOperacional = (nomePais: string): { pais: string; moeda: string; ident
 export default function ConfigEmpresa() {
   const { empresa, recarregarEmpresas } = useEmpresa();
   const { toast } = useToast();
-  const { logActivity } = useActivityLogger();
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -228,14 +225,6 @@ export default function ConfigEmpresa() {
         await recarregarEmpresas();
         setLogoFile(null);
       }
-
-      logActivity({
-        modulo: 'Configurações',
-        acao: 'atualizou_dados_empresa',
-        descricao: `Atualizou dados da empresa ${form.nomeRazaoSocial}`,
-        entidade_tipo: 'empresa',
-        entidade_id: empresa.id,
-      });
 
       toast({ title: 'Dados guardados com sucesso' });
     } catch (error: any) {

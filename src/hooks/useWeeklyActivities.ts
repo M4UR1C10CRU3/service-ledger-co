@@ -1,6 +1,15 @@
 import { useState, useCallback } from 'react';
+import { format, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { useEmpresa } from '@/contexts/EmpresaContext';
+import { fraseDaAuditoria, moduloDe, tipoDeAcao, type RegistoAuditoria } from '@/lib/auditoriaFrases';
+
+/**
+ * Atividades de uma pessoa numa semana (Controlo de Ponto), lidas da AUDITORIA
+ * (substitui `liberty_atividades`, 21/10/2026). `utilizadorId` é o id da conta
+ * (`employees.utilizador_id` = auth user id = `auditoria.auth_uid`).
+ * Só administradores leem a auditoria (regra na base); para os outros vem vazio.
+ * Sem filtro de empresa: é tudo o que a pessoa fez e quem consulta pode ver.
+ */
 
 export interface ActivityRecord {
   id: string;
@@ -19,8 +28,10 @@ export interface WeeklyActivitySummary {
   activitiesByDay: Record<string, ActivityRecord[]>;
 }
 
+const inicioDoDia = (d: string) => { const [a, m, dia] = d.split('-').map(Number); return new Date(a, m - 1, dia).toISOString(); };
+const fimDoDia = (d: string) => { const [a, m, dia] = d.split('-').map(Number); return new Date(a, m - 1, dia, 23, 59, 59, 999).toISOString(); };
+
 export function useWeeklyActivities() {
-  const { empresa } = useEmpresa();
   const [activities, setActivities] = useState<ActivityRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,21 +40,19 @@ export function useWeeklyActivities() {
     startDate: string,
     endDate: string
   ): Promise<WeeklyActivitySummary | null> => {
-    if (!empresa || !utilizadorId) return null;
+    if (!utilizadorId) return null;
     setIsLoading(true);
 
     try {
-      const startISO = `${startDate}T00:00:00.000Z`;
-      const endISO = `${endDate}T23:59:59.999Z`;
-
-      const { data, error } = await (supabase.from('liberty_atividades') as any)
-        .select('id, data_hora, modulo, acao, descricao, entidade_tipo, entidade_ref')
-        .eq('empresa_id', empresa.id)
-        .eq('utilizador_id', utilizadorId)
-        .gte('data_hora', startISO)
-        .lte('data_hora', endISO)
-        .order('data_hora', { ascending: true })
-        .limit(500);
+      const { data, error } = await (supabase.from('auditoria' as any) as any)
+        .select('*')
+        .eq('auth_uid', utilizadorId)
+        .eq('automatica', false)
+        .or('campos.is.null,campos.neq.{ultimo_acesso}') // sem as entradas na aplicação
+        .gte('quando', inicioDoDia(startDate))
+        .lte('quando', fimDoDia(endDate))
+        .order('quando', { ascending: true })
+        .limit(1000);
 
       if (error) {
         console.error('Error fetching activities:', error);
@@ -51,26 +60,29 @@ export function useWeeklyActivities() {
         return null;
       }
 
-      const records: ActivityRecord[] = data || [];
+      const records: ActivityRecord[] = ((data ?? []) as RegistoAuditoria[]).map(r => ({
+        id: String(r.id),
+        data_hora: r.quando,
+        modulo: moduloDe(r.tabela),
+        acao: tipoDeAcao(r),
+        descricao: fraseDaAuditoria(r),
+        entidade_tipo: r.tabela,
+        entidade_ref: r.rotulo,
+      }));
       setActivities(records);
 
-      // Aggregate
       const moduleBreakdown: Record<string, number> = {};
       const activitiesByDay: Record<string, ActivityRecord[]> = {};
-      const activeDaysSet = new Set<string>();
-
       for (const r of records) {
         moduleBreakdown[r.modulo] = (moduleBreakdown[r.modulo] || 0) + 1;
-        const dayKey = r.data_hora.split('T')[0];
-        activeDaysSet.add(dayKey);
-        if (!activitiesByDay[dayKey]) activitiesByDay[dayKey] = [];
-        activitiesByDay[dayKey].push(r);
+        const dayKey = format(parseISO(r.data_hora), 'yyyy-MM-dd'); // dia local, não UTC
+        (activitiesByDay[dayKey] ??= []).push(r);
       }
 
       return {
         totalActions: records.length,
         moduleBreakdown,
-        activeDays: Array.from(activeDaysSet).sort(),
+        activeDays: Object.keys(activitiesByDay).sort(),
         activitiesByDay,
       };
     } catch (e) {
@@ -79,7 +91,7 @@ export function useWeeklyActivities() {
     } finally {
       setIsLoading(false);
     }
-  }, [empresa]);
+  }, []);
 
   return { activities, isLoading, fetchActivities };
 }

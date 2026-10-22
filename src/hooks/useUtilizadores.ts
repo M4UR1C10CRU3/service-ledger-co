@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmpresa } from '@/contexts/EmpresaContext';
-import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { useToast } from '@/hooks/use-toast';
 
 // All modules for permissions
@@ -76,7 +75,6 @@ export interface UtilizadorPermissao {
 
 export function useUtilizadores() {
   const { empresa } = useEmpresa();
-  const { logActivity } = useActivityLogger();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -196,18 +194,10 @@ export function useUtilizadores() {
       await (supabase.from('liberty_utilizador_permissoes') as any).insert(permsToInsert);
     }
 
-    logActivity({
-      modulo: 'Configurações',
-      acao: 'criou_utilizador',
-      descricao: `Criou o utilizador ${params.nome} com perfil ${params.perfil}`,
-      entidade_tipo: 'utilizador',
-      entidade_id: lutilizador.id,
-    });
-
     queryClient.invalidateQueries({ queryKey: ['liberty-utilizadores'] });
     toast({ title: 'Utilizador criado', description: `${params.nome} foi adicionado ao sistema.` });
     return lutilizador;
-  }, [logActivity, queryClient, toast]);
+  }, [queryClient, toast]);
 
   // Update utilizador
   const updateUtilizador = useCallback(async (id: string, params: Partial<{
@@ -259,17 +249,9 @@ export function useUtilizadores() {
       }
     }
 
-    logActivity({
-      modulo: 'Configurações',
-      acao: 'editou_utilizador',
-      descricao: `Atualizou o utilizador ${params.nome || id}`,
-      entidade_tipo: 'utilizador',
-      entidade_id: id,
-    });
-
     queryClient.invalidateQueries({ queryKey: ['liberty-utilizadores'] });
     toast({ title: 'Utilizador atualizado' });
-  }, [logActivity, queryClient, toast]);
+  }, [queryClient, toast]);
 
   // Save permissions
   const savePermissoes = useCallback(async (utilizadorId: string, empresaId: string, perms: Record<string, { ver: boolean; criar: boolean; editar: boolean; eliminar: boolean }>) => {
@@ -292,16 +274,8 @@ export function useUtilizadores() {
 
     await (supabase.from('liberty_utilizador_permissoes') as any).insert(rows);
 
-    logActivity({
-      modulo: 'Configurações',
-      acao: 'atualizou_permissoes',
-      descricao: `Atualizou permissões do utilizador`,
-      entidade_tipo: 'utilizador',
-      entidade_id: utilizadorId,
-    });
-
     toast({ title: 'Permissões guardadas' });
-  }, [logActivity, toast]);
+  }, [toast]);
 
   // Soft delete
   const deleteUtilizador = useCallback(async (id: string, nome: string) => {
@@ -309,17 +283,9 @@ export function useUtilizadores() {
       .update({ eliminado: true, ativo: false })
       .eq('id', id);
 
-    logActivity({
-      modulo: 'Configurações',
-      acao: 'eliminou_utilizador',
-      descricao: `Eliminou o utilizador ${nome}`,
-      entidade_tipo: 'utilizador',
-      entidade_id: id,
-    });
-
     queryClient.invalidateQueries({ queryKey: ['liberty-utilizadores'] });
     toast({ title: 'Utilizador eliminado' });
-  }, [logActivity, queryClient, toast]);
+  }, [queryClient, toast]);
 
   return {
     utilizadores,

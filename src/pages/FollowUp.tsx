@@ -7,7 +7,6 @@ import { Plus, Download, Search, LayoutGrid, List } from 'lucide-react';
 import { useFollowup } from '@/hooks/useFollowup';
 import { useNucleos } from '@/hooks/useNucleos';
 import { usePropostas } from '@/hooks/usePropostas';
-import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { FollowupCards } from '@/components/followup/FollowupCards';
 import { FollowupKanban } from '@/components/followup/FollowupKanban';
 import { FollowupTable } from '@/components/followup/FollowupTable';
@@ -27,7 +26,6 @@ const FollowUp = () => {
     updateFase, deleteOportunidade, fetchContactos, createContacto, fetchHistorico,
   } = useFollowup();
   const { propostas } = usePropostas();
-  const { logActivity } = useActivityLogger();
 
   const [newOpen, setNewOpen] = useState(false);
   const [contactOpp, setContactOpp] = useState<Oportunidade | null>(null);
@@ -61,30 +59,16 @@ const FollowUp = () => {
     const ok = await deleteOportunidade(o.id);
     if (ok) {
       toast({ title: 'Oportunidade eliminada' });
-      logActivity({ modulo: 'Follow-up', acao: 'eliminou_oportunidade', descricao: `Eliminou oportunidade "${o.titulo}"`, entidade_tipo: 'oportunidade', entidade_id: o.id });
     }
   };
 
-  const handleCreateOportunidade: typeof createOportunidade = async (data) => {
-    const id = await createOportunidade(data);
-    if (id) {
-      logActivity({ modulo: 'Follow-up', acao: 'criou_oportunidade', descricao: `Criou oportunidade "${data.titulo}"`, entidade_tipo: 'oportunidade', entidade_id: id });
-    }
-    return id;
-  };
-
-  const handleUpdateOportunidade: typeof updateOportunidade = async (id, updates) => {
-    const ok = await updateOportunidade(id, updates);
-    if (ok) {
-      logActivity({ modulo: 'Follow-up', acao: 'editou_oportunidade', descricao: 'Editou dados da oportunidade', entidade_tipo: 'oportunidade', entidade_id: id });
-    }
-    return ok;
-  };
+  // Criar, editar e registar contactos ficam na auditoria pela própria base.
+  const handleCreateOportunidade = createOportunidade;
+  const handleUpdateOportunidade = updateOportunidade;
 
   const handleUpdateFase: typeof updateFase = async (id, novaFase, motivo) => {
     const ok = await updateFase(id, novaFase, motivo);
     if (ok) {
-      logActivity({ modulo: 'Follow-up', acao: 'mudou_fase_oportunidade', descricao: `Mudou fase para "${FASES_CONFIG[novaFase].label}"`, entidade_tipo: 'oportunidade', entidade_id: id });
       // Labs: a adjudicação abre o trabalho na produção (se ainda não tiver projeto).
       if (eLabs && novaFase === 'adjudicado') {
         const opp = oportunidades.find(o => o.id === id);
@@ -97,13 +81,7 @@ const FollowUp = () => {
     return ok;
   };
 
-  const handleCreateContacto: typeof createContacto = async (oportunidadeId, contacto) => {
-    const ok = await createContacto(oportunidadeId, contacto);
-    if (ok) {
-      logActivity({ modulo: 'Follow-up', acao: 'registou_contacto', descricao: 'Registou contacto com o cliente', entidade_tipo: 'oportunidade', entidade_id: oportunidadeId });
-    }
-    return ok;
-  };
+  const handleCreateContacto = createContacto;
 
   const handleExport = () => {
     const data = filtered.map(o => ({

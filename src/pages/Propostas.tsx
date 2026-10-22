@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { usePropostas } from '@/hooks/usePropostas';
 import { useEmpresa } from '@/contexts/EmpresaContext';
-import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,7 +39,6 @@ const estadoColor: Record<PropostaEstado, string> = {
 export default function Propostas() {
   const { propostas, isLoading, fetchPropostas, deleteProposta, duplicateProposta, fetchLinhas } = usePropostas();
   const { toast } = useToast();
-  const { logActivity } = useActivityLogger();
 
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('todos');
@@ -90,7 +88,6 @@ export default function Propostas() {
     const ok = await deleteProposta(deleteId);
     if (ok) {
       toast({ title: 'Proposta eliminada com sucesso' });
-      if (p) logActivity({ modulo: 'Propostas', acao: 'eliminou_proposta', descricao: `Eliminou a proposta ${p.numeroProposta}`, entidade_tipo: 'proposta', entidade_id: deleteId, entidade_ref: p.numeroProposta });
     } else toast({ title: 'Erro ao eliminar proposta', variant: 'destructive' });
     setDeleteId(null);
   };
@@ -100,7 +97,6 @@ export default function Propostas() {
     const newId = await duplicateProposta(id);
     if (newId) {
       toast({ title: 'Proposta duplicada com sucesso' });
-      if (orig) logActivity({ modulo: 'Propostas', acao: 'duplicou_proposta', descricao: `Duplicou a proposta ${orig.numeroProposta}`, entidade_tipo: 'proposta', entidade_id: newId, entidade_ref: orig.numeroProposta });
     } else toast({ title: 'Erro ao duplicar', variant: 'destructive' });
   };
 

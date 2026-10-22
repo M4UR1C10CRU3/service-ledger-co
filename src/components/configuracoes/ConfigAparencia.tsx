@@ -6,7 +6,6 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/integrations/supabase/client';
 import { usePermissionsContext } from '@/contexts/PermissionsContext';
 import { Save, Sun, Moon, Monitor } from 'lucide-react';
@@ -14,7 +13,6 @@ import { applyTema, applyDensidade, applyFonte, applySidebarCor, applySidebarTex
 
 export default function ConfigAparencia() {
   const { toast } = useToast();
-  const { logActivity } = useActivityLogger();
   const { utilizador } = usePermissionsContext();
   const [loading, setLoading] = useState(false);
 
@@ -101,13 +99,6 @@ export default function ConfigAparencia() {
       applySidebarCor(sidebarCor);
       applySidebarTexto(sidebarTexto);
       saveAppearance({ tema, densidade, tamanhoFonte, sidebarExpandida, sidebarCor, sidebarTexto });
-
-      logActivity({
-        modulo: 'Configurações',
-        acao: 'atualizou_aparencia',
-        descricao: 'Atualizou preferências de aparência',
-        entidade_tipo: 'configuracao',
-      });
 
       toast({ title: 'Preferências guardadas' });
     } catch (error: any) {
